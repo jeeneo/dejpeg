@@ -6,7 +6,7 @@
 
 [FBCNN creators](https://github.com/jiaxi-jiang/FBCNN)
 
-license:
+## license:
 
 FBCNN is released under the Apache 2.0 license, however this app and its code is under the GPLv3 license
 
