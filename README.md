@@ -1,4 +1,4 @@
-### DeJPEG
+# DeJPEG
 
 this is an Android app for removing jpeg compression artifacts using [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and (the deprecated) PyTorch Mobile library
 
