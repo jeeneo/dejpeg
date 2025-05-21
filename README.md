@@ -20,8 +20,8 @@ apk from [releases](https://github.com/jeeneo/dejpeg/releases/latest)
 [SCUNet](https://github.com/jeeneo/SCUNet-mobile/releases/tag/v1.0)
 
 ## screenshot:
+![Screenshot_20250521_182015_DeJPEG](https://github.com/user-attachments/assets/124f0580-3353-465e-b6bd-b847173ec660)
 
-![Screenshot_20250521_181253_DeJPEG](https://github.com/user-attachments/assets/6d34009c-09b4-49ca-a508-88f3209e900e)
 
 ## limitations:
 1. proessed on your phone (no gpu), I'd recommend a device with 4gb of ram or more (the models themselves are ~250mb)
