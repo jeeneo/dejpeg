@@ -19,7 +19,7 @@ download the mobile models from here
 
 1. it's all locally processed on your phone (no GPU), so I'd recommend a device with 8gb of ram or more
 2. size of the input image has been tested up to `1920` (either dimension), but theoretically can process a larger image and see reason 1 again.
-3. transparency will isnt supported and will be flattened (fix planned)
+3. transparency isnt supported and will be flattened (fix planned)
 
 ## note:
 
