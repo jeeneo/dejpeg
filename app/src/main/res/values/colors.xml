@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="background_dark">#121212</color>
+    <color name="grid_background_dark">#1E1E1E</color>
+    <color name="selected_item_dark">#2C2C2C</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="button_enabled">#424242</color>
+    <color name="button_disabled">#222222</color>
+    <color name="filmstrip_background">#80222222</color> <!-- Semi-transparent dark gray -->
+</resources>
