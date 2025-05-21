@@ -16,22 +16,29 @@ apk from [releases](https://github.com/jeeneo/dejpeg/releases/latest)
 
 ## models:
 [FBCNN](https://github.com/jeeneo/FBCNN-mobile/releases/tag/v1.0)
+
 [SCUNet](https://github.com/jeeneo/SCUNet-mobile/releases/tag/v1.0)
 
+## screenshot:
+
+![Screenshot_20250521_181253_DeJPEG](https://github.com/user-attachments/assets/6d34009c-09b4-49ca-a508-88f3209e900e)
+
+## limitations:
 1. proessed on your phone (no gpu), I'd recommend a device with 4gb of ram or more (the models themselves are ~250mb)
 2. size of the input image has been tested up to `1920` (any), but see reason 1 again.
 3. transparency isnt supported and will be flattened (fix planned)
 
 ## note:
-
 DeJPEG is not affiliated or related to Topaz's `DEJPEG` or any other program/project
 
 ## credits:
-
 [@adrianerrea](https://github.com/adrianerrea/fromPytorchtoMobile) for information on how to create and convert a mobile PyTorch app
 
 [FBCNN creators](https://github.com/jiaxi-jiang/FBCNN)
 
 ## license:
-FBCNN is released under the Apache 2.0 license, however this app and its code is under the GPLv3 license
-(honestly it's just PyTorch mobile which is deprecated anyway)
+all models used are under their respective licenses, however this app and its code is under the GPLv3 license, however I ask you not to charge money for this
+
+you are free to embed parts of this app in your own project as long as it remains free/non-paywalled
+
+if you do, credit is appreciated but not required.
