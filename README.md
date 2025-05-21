@@ -2,20 +2,22 @@
 
 # De*JPEG*
 
-this is an Android app for removing jpeg compression artifacts using [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and (the deprecated) PyTorch Mobile library
+this is an Android app for removing jpeg compression artifacts using [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and [SCUNet](https://github.com/cszn/SCUNet) using (the deprecated) PyTorch Mobile library
 
 ## features:
 1. batch processing
 2. before/after viewing
 3. exporting as BMP or PNG
-4. model loading (color/grey/doublegrey)
+4. different models (FBCNN and SCUNET + grey variants)
 5. no internet (even at the permission level; fully offline, fully private)
 
 ## download:
 apk from [releases](https://github.com/jeeneo/dejpeg/releases/latest)
 
 ## models:
-download the mobile models from [here](https://github.com/jeeneo/FBCNN-mobile/releases/tag/v1.0)
+[FBCNN](https://github.com/jeeneo/FBCNN-mobile/releases/tag/v1.0)
+[SCUNet](https://github.com/jeeneo/SCUNet-mobile/releases/tag/v1.0)
+
 
 ![Screenshot_20250520_221854_DeJPEG](https://github.com/user-attachments/assets/61b35fbe-5ff4-4943-b980-d7ef78a7beb7)
 
