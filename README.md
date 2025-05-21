@@ -1,4 +1,5 @@
-![New Project(2)](https://github.com/user-attachments/assets/254d0b97-dec6-4885-a25d-c04587a4bba0)
+![djpeg_logo](https://github.com/user-attachments/assets/4f8f432b-f30e-4bcc-aae3-02cb076e7cec)
+
 
 # De*JPEG*
 
