@@ -25,7 +25,7 @@ apk from [releases](https://github.com/jeeneo/dejpeg/releases/latest)
 
 ## limitations:
 1. proessed on your phone (no gpu), I'd recommend a device with 4gb of ram or more (the models themselves are ~250mb)
-2. size of the input image has been tested up to `1920` (any), but see reason 1 again.
+2. input images above 1000px will be processed in chunks
 3. transparency isnt supported and will be flattened (fix planned)
 
 ## note:
