@@ -18,12 +18,7 @@ apk from [releases](https://github.com/jeeneo/dejpeg/releases/latest)
 [FBCNN](https://github.com/jeeneo/FBCNN-mobile/releases/tag/v1.0)
 [SCUNet](https://github.com/jeeneo/SCUNet-mobile/releases/tag/v1.0)
 
-
-![Screenshot_20250520_221854_DeJPEG](https://github.com/user-attachments/assets/61b35fbe-5ff4-4943-b980-d7ef78a7beb7)
-
-## limitations:
-
-1. it's all locally processed on your phone (no gpu), I'd recommend a device with 4gb of ram or more (the models themselves are ~250mb)
+1. proessed on your phone (no gpu), I'd recommend a device with 4gb of ram or more (the models themselves are ~250mb)
 2. size of the input image has been tested up to `1920` (any), but see reason 1 again.
 3. transparency isnt supported and will be flattened (fix planned)
 
