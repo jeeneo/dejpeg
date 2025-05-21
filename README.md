@@ -12,7 +12,7 @@ this is an Android app for removing jpeg compression artifacts using [FBCNN](htt
 5. no internet (even at the permission level; fully offline, fully private)
 
 ## download:
-apk from releases
+apk from [releases](https://github.com/jeeneo/dejpeg/releases/latest)
 
 ## models:
 download the mobile models from [here](https://github.com/jeeneo/FBCNN-mobile/releases/tag/v1.0)
