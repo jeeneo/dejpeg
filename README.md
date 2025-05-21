@@ -2,7 +2,7 @@
 
 # De*JPEG*
 
-this is an Android app for removing jpeg compression artifacts using [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and [SCUNet](https://github.com/cszn/SCUNet) using (the deprecated) PyTorch Mobile library
+this is an Android app for removing jpeg compression artifacts and denoising images with [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and [SCUNet](https://github.com/cszn/SCUNet) using (the deprecated) PyTorch Mobile library
 
 ## features:
 1. batch processing
