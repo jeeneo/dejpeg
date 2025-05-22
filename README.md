@@ -30,7 +30,7 @@ apk from [releases](https://github.com/jeeneo/dejpeg/releases/latest)
 3. transparency isnt supported and will be flattened (fix planned)
 
 ## note:
-DeJPEG is not affiliated or related to Topaz's `DEJPEG` or any other program/project
+De*JPEG* is not affiliated or related to Topaz's `DEJPEG` or any other program/project
 
 ## credits:
 [@adrianerrea](https://github.com/adrianerrea/fromPytorchtoMobile) for information on how to create and convert a mobile PyTorch app
