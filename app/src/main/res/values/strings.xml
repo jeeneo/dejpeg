@@ -66,4 +66,6 @@
     <string name="processing_complete_description">tap to view results</string>
     <string name="processing_chunk">processing chunk: %1$d of %2$d</string>
     <string name="notification_permission_denied">notification permission denied</string>
+    <string name="title_import">Import</string>
+    <string name="title_queue">Queue</string>
 </resources>
