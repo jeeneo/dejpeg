@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="8dp">
+
+    <ImageView
+        android:id="@+id/image_thumbnail"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:scaleType="centerCrop"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        tools:srcCompat="@tools:sample/avatars" />
+
+    <TextView
+        android:id="@+id/text_image_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:textAppearance="?attr/textAppearanceListItem"
+        app:layout_constraintStart_toEndOf="@id/image_thumbnail"
+        app:layout_constraintTop_toTopOf="@id/image_thumbnail"
+        app:layout_constraintEnd_toStartOf="@+id/button_cancel_processing"
+        tools:text="Image_Name_Placeholder.jpg" />
+
+    <TextView
+        android:id="@+id/text_processing_status"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="4dp"
+        app:layout_constraintStart_toEndOf="@id/image_thumbnail"
+        app:layout_constraintTop_toBottomOf="@id/text_image_name"
+        app:layout_constraintEnd_toStartOf="@+id/button_cancel_processing"
+        tools:text="Status: Pending" />
+
+    <ProgressBar
+        android:id="@+id/progress_bar_image"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="4dp"
+        android:indeterminate="true"
+        android:visibility="gone"
+        app:layout_constraintStart_toEndOf="@id/image_thumbnail"
+        app:layout_constraintTop_toBottomOf="@id/text_processing_status"
+        app:layout_constraintEnd_toStartOf="@+id/button_cancel_processing"
+        tools:visibility="visible"/>
+
+    <Button
+        android:id="@+id/button_cancel_processing"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Cancel"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:visibility="visible"/>
+
+    <Button
+        android:id="@+id/button_view_result"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="View"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/button_cancel_processing"
+        app:layout_constraintBottom_toBottomOf="parent"
+        tools:visibility="visible"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
