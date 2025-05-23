@@ -13,18 +13,16 @@
         android:scaleType="centerCrop"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        tools:srcCompat="@tools:sample/avatars" />
+        app:layout_constraintBottom_toBottomOf="parent" />
 
     <TextView
         android:id="@+id/text_image_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
-        android:textAppearance="?attr/textAppearanceListItem"
         app:layout_constraintStart_toEndOf="@id/image_thumbnail"
         app:layout_constraintTop_toTopOf="@id/image_thumbnail"
-        app:layout_constraintEnd_toStartOf="@+id/button_cancel_processing"
+        app:layout_constraintEnd_toEndOf="parent"
         tools:text="Image_Name_Placeholder.jpg" />
 
     <TextView
@@ -35,12 +33,11 @@
         android:layout_marginTop="4dp"
         app:layout_constraintStart_toEndOf="@id/image_thumbnail"
         app:layout_constraintTop_toBottomOf="@id/text_image_name"
-        app:layout_constraintEnd_toStartOf="@+id/button_cancel_processing"
+        app:layout_constraintEnd_toEndOf="parent"
         tools:text="Status: Pending" />
 
     <ProgressBar
         android:id="@+id/progress_bar_image"
-        style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
@@ -49,8 +46,7 @@
         android:visibility="gone"
         app:layout_constraintStart_toEndOf="@id/image_thumbnail"
         app:layout_constraintTop_toBottomOf="@id/text_processing_status"
-        app:layout_constraintEnd_toStartOf="@+id/button_cancel_processing"
-        tools:visibility="visible"/>
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <Button
         android:id="@+id/button_cancel_processing"
@@ -59,8 +55,7 @@
         android:text="Cancel"
         android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        tools:visibility="visible"/>
+        app:layout_constraintTop_toTopOf="parent" />
 
     <Button
         android:id="@+id/button_view_result"
@@ -70,7 +65,6 @@
         android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/button_cancel_processing"
-        app:layout_constraintBottom_toBottomOf="parent"
-        tools:visibility="visible"/>
+        app:layout_constraintBottom_toBottomOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

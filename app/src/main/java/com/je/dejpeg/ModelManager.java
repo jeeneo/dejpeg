@@ -225,6 +225,10 @@ public class ModelManager {
         return modelName != null && modelName.contains("color");
     }
 
+    public boolean isModelNameValid(String modelName) {
+        return VALID_MODELS.contains(modelName);
+    }
+
     public interface ModelCallback {
         void onSuccess(String modelName);
         void onError(String error);
