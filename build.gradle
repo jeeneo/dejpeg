@@ -6,14 +6,19 @@ buildscript {
     repositories {
         google()
         mavenCentral()
+        maven { url 'https://jitpack.io' }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.2.0'
+        classpath 'com.android.tools.build:gradle:8.10.0'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
 
 plugins {
-    id 'com.android.application' version '8.2.0' apply false
-    id 'com.android.library' version '8.2.0' apply false
+    id 'com.android.application' version '8.10.0' apply false
+    id 'com.android.library' version '8.10.0' apply false
+}
+
+allprojects {
+    layout.buildDirectory.set(file("C:/~buildirs/${project.name}"))
 }
