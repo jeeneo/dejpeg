@@ -48,8 +48,7 @@ public class QueueAdapter extends RecyclerView.Adapter<QueueAdapter.ViewHolder> 
         holder.textProcessingStatus.setText(String.format(Locale.getDefault(), "Status: %s", item.getStatus().name()));
 
         // Placeholder for thumbnail loading
-        // Glide.with(context).load(item.getOriginalImageUri()).into(holder.imageThumbnail);
-        holder.imageThumbnail.setImageResource(R.mipmap.ic_launcher); // Placeholder
+        holder.imageThumbnail.setImageResource(R.mipmap.ic_launcher); // Replace with actual image loading logic
 
         switch (item.getStatus()) {
             case PENDING:
@@ -72,7 +71,6 @@ public class QueueAdapter extends RecyclerView.Adapter<QueueAdapter.ViewHolder> 
                 holder.progressBarImage.setVisibility(View.GONE);
                 holder.buttonCancelProcessing.setVisibility(View.GONE);
                 holder.buttonViewResult.setVisibility(View.GONE);
-                // Optionally show an error icon or different text
                 holder.textProcessingStatus.setText(String.format(Locale.getDefault(), "Status: %s - Error", item.getStatus().name()));
                 break;
         }

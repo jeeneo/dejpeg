@@ -1,5 +1,10 @@
 package com.je.dejpeg;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -9,9 +14,11 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -106,9 +113,10 @@ public class QueueFragment extends Fragment implements QueueAdapter.OnQueueItemI
 
         queueAdapter = new QueueAdapter(getContext(), this);
         recyclerViewQueue.setAdapter(queueAdapter);
-        queueAdapter.setQueueItems(queueItems); // Initialize with current list (likely empty at first)
+        queueAdapter.setQueueItems(queueItems); // Set initial items
 
-        // loadSampleData(); // Sample data loading removed
+        // Update UI when the list changes
+        queueAdapter.notifyDataSetChanged();
     }
 
     // loadSampleData() method removed or commented out
