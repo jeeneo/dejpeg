@@ -32,6 +32,13 @@ apk from [releases](https://github.com/jeeneo/dejpeg/releases/latest)
 ## note:
 De*JPEG* is not affiliated or related to Topaz's `DEJPEG` or any other program/project
 
+## todo:
+
+1. ✅ ~~use custom before/after view (replaces ComposeBeforeAfter and fixes jitter)~~ done
+2. ⭕ gif support
+3. ⭕ preserve alpha (transparency)
+4. ⭕ more models?
+
 ## credits:
 [@adrianerrea](https://github.com/adrianerrea/fromPytorchtoMobile) for information on how to create and convert a mobile PyTorch app
 
