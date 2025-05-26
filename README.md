@@ -26,7 +26,7 @@ this is an Android app for removing jpeg compression artifacts and denoising ima
 
 
 ## limitations:
-1. proessed on your phone (no gpu), I'd recommend a device with 4gb of ram or more (the models themselves are ~250mb)
+1. processed on your phone (no gpu), I'd recommend a device with 4gb of ram or more (the models themselves are ~250mb)
 2. input images above 1200px (x or y) will be processed in chunks
 
 ## note:
