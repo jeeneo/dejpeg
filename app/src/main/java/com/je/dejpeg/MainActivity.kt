@@ -43,8 +43,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var selectButton: Button
     private lateinit var processButton: Button
     private lateinit var strengthSeekBar: RangeSlider
-    // private lateinit var logRecyclerView: RecyclerView
-    // private lateinit var logAdapter: LogAdapter
     private lateinit var pageIndicator: TextView
     private lateinit var cancelButton: Button
 
@@ -79,13 +77,8 @@ class MainActivity : AppCompatActivity() {
 
     private var outputFormat = "PNG"
     private var lastStrength = 0.5f
-
-    // Control preview visibility
     private var showPreviews = true
-    // Control filmstrip visibility
     private var showFilmstrip = false
-
-    // Add per-image strength factor support
     private var perImageStrengthFactors = mutableListOf<Float>()
     private var applyStrengthToAll = true
 
@@ -103,10 +96,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var filmstripAdapter: FilmstripAdapter
     private lateinit var filmstripRecyclerView: RecyclerView
-
-    // Add reference for loading bar
     private lateinit var processingProgressBar: ProgressBar
-
     private lateinit var vibrationManager: VibrationManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -125,10 +115,17 @@ class MainActivity : AppCompatActivity() {
         processButton = findViewById(R.id.processButton)
         strengthSeekBar = findViewById(R.id.strengthSeekBar)
         applyToAllSwitch = findViewById(R.id.applyToAllSwitch)
-        // pageIndicator = findViewById(R.id.pageIndicator)
         cancelButton = findViewById(R.id.cancelButton)
-        // Hide the applyToAllSwitch initially
         applyToAllSwitch.visibility = View.GONE
+
+        applyToAllSwitch.setOnCheckedChangeListener { _, _ ->
+            vibrationManager.vibrateButton()
+            if (applyToAllSwitch.isChecked) {
+                strengthSeekBar.setValues(lastStrength * 100f)
+            } else if (currentPage < perImageStrengthFactors.size) {
+                strengthSeekBar.setValues(perImageStrengthFactors[currentPage] * 100f)
+            }
+        }
 
         modelManager = ModelManager(this)
         imageProcessor = ImageProcessor(this, modelManager)
@@ -169,7 +166,7 @@ class MainActivity : AppCompatActivity() {
             MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.select_image)
                 .setItems(arrayOf(getString(R.string.single_image), getString(R.string.multiple_images))) { _, which ->
-                    vibrationManager.vibrateDialogChoice() // Add choice feedback
+                    vibrationManager.vibrateDialogChoice()
                     val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
                         type = "image/*"
                         if (which == 1) {
@@ -194,25 +191,41 @@ class MainActivity : AppCompatActivity() {
         processButton.isEnabled = false
 
         strengthSeekBar.addOnChangeListener { _, value, fromUser ->
-            vibrationManager.vibrateSliderTouch() // Add touch feedback
+            vibrationManager.vibrateSliderTouch()
             if (fromUser) {
                 vibrationManager.vibrateSliderChange()
             }
             val snapped = (value / 5).toInt() * 5f
             strengthSeekBar.setValues(snapped)
             lastStrength = snapped / 100f
-            if (images.size > 1 && !applyStrengthToAll && currentPage < perImageStrengthFactors.size) {
+            
+            if (!applyToAllSwitch.isChecked && currentPage < perImageStrengthFactors.size) {
                 perImageStrengthFactors[currentPage] = lastStrength
             }
+            
             getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                 .edit()
                 .putFloat(STRENGTH_FACTOR_KEY, lastStrength)
                 .apply()
         }
 
+
+        //  intent?.let {
+        //     if (Intent.ACTION_SEND == it.action && it.type?.startsWith("image/") == true) {
+        //         val imageUri = it.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+        //         if (imageUri != null) onImageSelected(imageUri)
+        //     }
+        // }
+        // deprecated replaced:
+
         intent?.let {
             if (Intent.ACTION_SEND == it.action && it.type?.startsWith("image/") == true) {
-                val imageUri = it.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+                val imageUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    it.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+                } else {
+                    @Suppress("DEPRECATION")
+                    it.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+                }
                 if (imageUri != null) onImageSelected(imageUri)
             }
         }
@@ -220,8 +233,24 @@ class MainActivity : AppCompatActivity() {
         if (!modelManager.hasActiveModel()) promptModelSelection()
 
         beforeAfterView = findViewById(R.id.beforeAfterView)
+        beforeAfterView.setButtonCallback(object : BeforeAfterImageView.ButtonCallback {
+            override fun onShareClicked() {
+                vibrationManager.vibrateButton()
+                val currentImage = images.getOrNull(currentPage)?.outputBitmap
+                if (currentImage != null) {
+                    shareImage(currentImage)
+                }
+            }
+            
+            override fun onSaveClicked() {
+                vibrationManager.vibrateButton()
+                val currentImage = images.getOrNull(currentPage)?.outputBitmap
+                if (currentImage != null) {
+                    saveImageToGallery(currentImage)
+                }
+            }
+        })
         filmstripRecyclerView = findViewById(R.id.filmstripRecyclerView)
-        // Find the ProgressBar
         processingProgressBar = findViewById(R.id.processingProgressBar)
         setupFilmstrip()
         updateImageViews()
@@ -232,7 +261,6 @@ class MainActivity : AppCompatActivity() {
             setupNotificationChannel()
         }
 
-        // Hide or show strength slider based on model type
         updateStrengthSliderVisibility()
 
         application.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
@@ -274,7 +302,6 @@ class MainActivity : AppCompatActivity() {
                 modelManager.unloadModel()
                 imageProcessor.unloadModel()
                 modelManager.setActiveModel(models[which])
-                // // logAdapter.addLog(getString(R.string.model_switched, models[which]))
                 Toast.makeText(this, getString(R.string.model_switched, models[which]), Toast.LENGTH_SHORT).show()
                 processButton.isEnabled = images.isNotEmpty()
                 updateStrengthSliderVisibility()
@@ -298,7 +325,7 @@ class MainActivity : AppCompatActivity() {
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.delete_models)
             .setMultiChoiceItems(items, checkedItems) { _, which, isChecked ->
-                vibrationManager.vibrateMenuTap() // Use menu tap vibration for checkboxes
+                vibrationManager.vibrateMenuTap()
                 checkedItems[which] = isChecked
             }
             .setPositiveButton(getString(R.string.delete_button)) { _, _ ->
@@ -322,7 +349,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun copyAndLoadModel(modelUri: Uri) {
         runOnUiThread { showImportProgressDialog() }
-        // // logAdapter.addLog(getString(R.string.importing_model_message))
 
         Thread {
             try {
@@ -332,8 +358,6 @@ class MainActivity : AppCompatActivity() {
                             dismissImportProgressDialog()
                             modelManager.setActiveModel(modelName)
                             Toast.makeText(applicationContext, getString(R.string.model_imported_toast), Toast.LENGTH_SHORT).show()
-                            // // logAdapter.addLog(getString(R.string.model_imported, modelName))
-                            // // logAdapter.addLog(getString(R.string.model_switched, modelName))
                             processButton.isEnabled = images.isNotEmpty()
                             updateStrengthSliderVisibility()
                         }
@@ -342,7 +366,6 @@ class MainActivity : AppCompatActivity() {
                         runOnUiThread {
                             dismissImportProgressDialog()
                             Toast.makeText(applicationContext, getString(R.string.error_importing_model), Toast.LENGTH_LONG).show()
-                            // logAdapter.addLog(getString(R.string.error_importing_model, error))
                             promptModelSelection()
                         }
                     }
@@ -355,7 +378,6 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread {
                     dismissImportProgressDialog()
                     Toast.makeText(applicationContext, getString(R.string.invalid_model), Toast.LENGTH_LONG).show()
-                    // logAdapter.addLog(getString(R.string.invalid_model))
                     promptModelSelection()
                 }
             }
@@ -407,7 +429,6 @@ class MainActivity : AppCompatActivity() {
             }
             startActivity(intent)
         } catch (e: Exception) {
-            // logAdapter.addLog(getString(R.string.error_opening_image, e.message))
             Toast.makeText(this, getString(R.string.error_opening_image_toast), Toast.LENGTH_SHORT).show()
         }
     }
@@ -427,7 +448,6 @@ class MainActivity : AppCompatActivity() {
             }
             updateImageViews(bitmap)
         } catch (e: IOException) {
-            // logAdapter.addLog(getString(R.string.error_loading_image, e.message))
             Toast.makeText(this, getString(R.string.error_loading_image, e.message), Toast.LENGTH_SHORT).show()
         }
     }
@@ -452,7 +472,7 @@ class MainActivity : AppCompatActivity() {
                     perImageStrengthFactors.add(lastStrength)
                     loadedCount++
                 } catch (e: Exception) {
-                    // logAdapter.addLog(getString(R.string.error_loading_image_n, i + 1, e.message))
+                    Toast.makeText(this, getString(R.string.error_loading_image_n, i + 1, e.message), Toast.LENGTH_SHORT).show()
                 }
             }
 
@@ -460,16 +480,15 @@ class MainActivity : AppCompatActivity() {
                 currentPage = 0
                 processButton.isEnabled = modelManager.hasActiveModel()
                 applyToAllSwitch.visibility = if (loadedCount > 1) View.VISIBLE else View.GONE
+                strengthSeekBar.setValues(perImageStrengthFactors[currentPage] * 100f)
                 Toast.makeText(this, getString(R.string.images_loaded, loadedCount), Toast.LENGTH_SHORT).show()
                 showPreviews = true
                 showFilmstrip = false
                 updateImageViews()
             } else {
-                // logAdapter.addLog(getString(R.string.no_images_loaded))
                 Toast.makeText(this, getString(R.string.no_images_loaded), Toast.LENGTH_SHORT).show()
             }
         } catch (e: Exception) {
-            // logAdapter.addLog(getString(R.string.error_loading_images, e.message))
             Toast.makeText(this, getString(R.string.error_loading_images, e.message), Toast.LENGTH_SHORT).show()
         }
     }
@@ -480,9 +499,9 @@ class MainActivity : AppCompatActivity() {
         perImageStrengthFactors.clear()
         perImageStrengthFactors.add(lastStrength)
         currentPage = 0
-        beforeAfterView.clearImages() // Clear existing images first
+        beforeAfterView.clearImages()
         beforeAfterView.setBeforeImage(bitmap)
-        beforeAfterView.setAfterImage(null) // Explicitly set after image to null
+        beforeAfterView.setAfterImage(null)
         processButton.isEnabled = modelManager.hasActiveModel()
         Toast.makeText(this, getString(R.string.image_loaded), Toast.LENGTH_SHORT).show()
         showPreviews = true
@@ -492,59 +511,21 @@ class MainActivity : AppCompatActivity() {
         updateImageViews()
     }
 
-    // private fun updateImageViews() {
-    //     if (images.isEmpty()) {
-    //         beforeAfterView.clearImages()
-    //         filmstripRecyclerView.visibility = View.GONE
-    //         processingProgressBar.visibility = View.GONE
-    //         return
-    //     }
-
-    //     // Show loading bar if processing
-    //     if (isProcessing) {
-    //         beforeAfterView.visibility = View.GONE
-    //         filmstripRecyclerView.visibility = View.GONE
-    //         processingProgressBar.visibility = View.VISIBLE
-    //         return
-    //     } else {
-    //         processingProgressBar.visibility = View.GONE
-    //     }
-
-    //     beforeAfterView.visibility = View.VISIBLE
-    //     val currentImage = images[currentPage]
-    //     beforeAfterView.setBeforeImage(currentImage.inputBitmap)
-    //     beforeAfterView.setAfterImage(currentImage.outputBitmap)
-
-    //     // Hide slider if only before image is available
-    //     if (beforeAfterView.hasOnlyBeforeImage()) {
-    //         // Do not call setAfterImage with null if it expects a non-null Bitmap
-    //         // Optionally, you can add a method in BeforeAfterImageView to clear the after image if needed
-    //     }
-
-    //     filmstripRecyclerView.visibility = if (images.size > 1) View.VISIBLE else View.GONE
-    //     filmstripAdapter.submitList(images.toList())
-    //     filmstripRecyclerView.scrollToPosition(currentPage)
-    // }
-
     private fun saveImageToGallery(bitmap: Bitmap) {
         try {
             val fileName = "DeJPEG_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}"
             val outputFile = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), 
                 "$fileName.${outputFormat.lowercase()}")
-            
             FileOutputStream(outputFile).use { out ->
                 bitmap.compress(
                     if (outputFormat == "PNG") Bitmap.CompressFormat.PNG else Bitmap.CompressFormat.PNG,
                     100, out
                 )
             }
-            
             MediaScannerConnection.scanFile(this, arrayOf(outputFile.toString()), null, null)
             Toast.makeText(this, getString(R.string.image_saved), Toast.LENGTH_SHORT).show()
-            // logAdapter.addLog(getString(R.string.image_saved))
         } catch (e: Exception) {
             Toast.makeText(this, getString(R.string.error_saving_image, e.message), Toast.LENGTH_SHORT).show()
-            // logAdapter.addLog(getString(R.string.error_saving_image, e.message))
         }
     }
 
@@ -554,21 +535,17 @@ class MainActivity : AppCompatActivity() {
             FileOutputStream(cachePath).use { out ->
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
             }
-            
             val contentUri = androidx.core.content.FileProvider.getUriForFile(
                 this, "$packageName.provider", cachePath
             )
-            
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "image/png"
                 putExtra(Intent.EXTRA_STREAM, contentUri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             startActivity(Intent.createChooser(shareIntent, getString(R.string.share)))
-            
         } catch (e: Exception) {
             Toast.makeText(this, getString(R.string.error_sharing_image, e.message), Toast.LENGTH_SHORT).show()
-            // logAdapter.addLog(getString(R.string.error_sharing_image, e.message))
         }
     }
 
@@ -578,7 +555,6 @@ class MainActivity : AppCompatActivity() {
             cancelButton.visibility = if (isProcessing) View.VISIBLE else View.GONE
             selectButton.isEnabled = !isProcessing
             processButton.isEnabled = images.isNotEmpty() && modelManager.hasActiveModel()
-            // Hide image view and filmstrip when processing, show loading bar
             beforeAfterView.visibility = if (isProcessing) View.GONE else View.VISIBLE
             filmstripRecyclerView.visibility = if (isProcessing) View.GONE else filmstripRecyclerView.visibility
             processingProgressBar.visibility = if (isProcessing) View.VISIBLE else View.GONE
@@ -591,17 +567,14 @@ class MainActivity : AppCompatActivity() {
             isProcessing = false
             dismissProcessingNotification()
             updateButtonVisibility()
-            // updatePageIndicator()
             updateImageViews()
             Toast.makeText(this, getString(R.string.processing_cancelled), Toast.LENGTH_SHORT).show()
-            // logAdapter.addLog(getString(R.string.processing_cancelled))
         }
     }
 
     private fun processWithModel() {
         isProcessing = true
         updateButtonVisibility()
-        // updatePageIndicator()
         updateImageViews()
 
         val isBatch = images.size > 1
@@ -618,7 +591,6 @@ class MainActivity : AppCompatActivity() {
                 }
                 dismissProcessingNotification()
                 updateButtonVisibility()
-                // updatePageIndicator()
                 showFilmstrip = true
                 updateImageViews()
                 return
@@ -633,19 +605,6 @@ class MainActivity : AppCompatActivity() {
                 image.inputBitmap,
                 strength,
                 object : ImageProcessor.ProcessCallback {
-                    override fun onProgress(message: String) {
-                        runOnUiThread {
-                            if (isProcessing) {
-                                // Log only unique and meaningful messages
-                                when {
-                                    // message.contains("Loading model") -> // logAdapter.addLog(message)
-                                    // message.contains("Processing chunk") -> Unit // Skip chunk-specific logs
-                                    // message.contains("Processing complete") -> Unit // Skip redundant completion logs
-                                    // else -> // logAdapter.addLog(message)
-                                }
-                            }
-                        }
-                    }
                     override fun onComplete(result: Bitmap) {
                         runOnUiThread {
                             if (isProcessing) {
@@ -656,7 +615,6 @@ class MainActivity : AppCompatActivity() {
                                 } else {
                                     vibrationManager.vibrateSingleSuccess()
                                 }
-                                // logAdapter.addLog(getString(R.string.processing_complete_single))
                                 updateImageViews()
                                 processNext(index + 1)
                             }
@@ -676,6 +634,8 @@ class MainActivity : AppCompatActivity() {
                                 processNext(index + 1)
                             }
                         }
+                    }
+                    override fun onProgress(message: String) {
                     }
                 },
                 index,
@@ -793,7 +753,6 @@ class MainActivity : AppCompatActivity() {
                     .putString(OUTPUT_FORMAT_KEY, outputFormat)
                     .apply()
                 Toast.makeText(this, getString(R.string.output_format_set, outputFormat), Toast.LENGTH_SHORT).show()
-                // logAdapter.addLog(getString(R.string.output_format_set, outputFormat))
                 dialog.dismiss()
             }
             .setNeutralButton(R.string.manage_models) { _, _ ->
@@ -849,7 +808,7 @@ class MainActivity : AppCompatActivity() {
         runOnUiThread {
             strengthSeekBar.visibility = if (shouldShowStrength) View.VISIBLE else View.GONE
         }
-        updateImageViews() // Trigger recomposition to update strength UI in Compose
+        updateImageViews()
     }
     
     private fun updateImageViews() {
@@ -860,7 +819,6 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        // Show loading bar if processing
         if (isProcessing) {
             beforeAfterView.visibility = View.GONE
             filmstripRecyclerView.visibility = View.GONE
@@ -875,31 +833,87 @@ class MainActivity : AppCompatActivity() {
         beforeAfterView.setBeforeImage(currentImage.inputBitmap)
         beforeAfterView.setAfterImage(currentImage.outputBitmap)
 
-        // Hide slider if only before image is available
-        if (beforeAfterView.hasOnlyBeforeImage()) {
-            // Do not call setAfterImage with null if it expects a non-null Bitmap
-            // Optionally, you can add a method in BeforeAfterImageView to clear the after image if needed
-        }
-
         filmstripRecyclerView.visibility = if (images.size > 1) View.VISIBLE else View.GONE
         filmstripAdapter.submitList(images.toList())
         filmstripRecyclerView.scrollToPosition(currentPage)
     }
 
-    private fun setupFilmstrip() {
-        filmstripAdapter = FilmstripAdapter { position ->
-            if (position != currentPage) {
-                currentPage = position
-                beforeAfterView.resetView()
+    private fun showImageRemovalDialog(position: Int) {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.remove_image)
+            .setItems(arrayOf(
+                getString(R.string.remove_this_image),
+                getString(R.string.remove_all_images)
+            )) { _, which ->
+                vibrationManager.vibrateDialogChoice()
+                when (which) {
+                    0 -> removeImage(position)
+                    1 -> removeAllImages()
+                }
+            }
+            .setNegativeButton(R.string.cancel_button) { _, _ ->
+                vibrationManager.vibrateDialogChoice()
+            }
+            .show()
+    }
+
+    private fun removeImage(position: Int) {
+        if (position < 0 || position >= images.size) return
+        
+        images.removeAt(position)
+        perImageStrengthFactors.removeAt(position)
+        
+        when {
+            images.isEmpty() -> {
+                currentPage = 0
+                beforeAfterView.clearImages()
+                applyToAllSwitch.visibility = View.GONE
+            }
+            currentPage >= images.size -> {
+                currentPage = images.size - 1
+                updateImageViews()
+            }
+            else -> {
                 updateImageViews()
             }
         }
+        
+        applyToAllSwitch.visibility = if (images.size > 1) View.VISIBLE else View.GONE
+    }
+
+    private fun removeAllImages() {
+        images.clear()
+        perImageStrengthFactors.clear()
+        currentPage = 0
+        beforeAfterView.clearImages()
+        applyToAllSwitch.visibility = View.GONE
+        updateImageViews()
+    }
+
+    private fun setupFilmstrip() {
+        filmstripAdapter = FilmstripAdapter(
+            onClick = { position ->
+                if (position != currentPage) {
+                    currentPage = position
+                    if (!applyToAllSwitch.isChecked && position < perImageStrengthFactors.size) {
+                        strengthSeekBar.setValues(perImageStrengthFactors[position] * 100f)
+                    }
+                    beforeAfterView.resetView()
+                    updateImageViews()
+                }
+            },
+            onLongClick = { position ->
+                vibrationManager.vibrateMenuTap()
+                showImageRemovalDialog(position)
+            }
+        )
         filmstripRecyclerView.adapter = filmstripAdapter
         filmstripRecyclerView.visibility = View.GONE
     }
 
     private inner class FilmstripAdapter(
-        private val onItemClick: (Int) -> Unit
+        private val onClick: (Int) -> Unit,
+        private val onLongClick: (Int) -> Unit
     ) : RecyclerView.Adapter<FilmstripAdapter.ViewHolder>() {
         private var items = mutableListOf<ProcessingImage>()
 
@@ -917,13 +931,11 @@ class MainActivity : AppCompatActivity() {
                 )
                 scaleType = ImageView.ScaleType.CENTER_CROP
                 setBackgroundResource(android.R.color.darker_gray)
-                // Add padding between images
                 val padding = (resources.displayMetrics.density * 6).toInt()
                 setPadding(padding, padding, padding, padding)
-                // Set rounded corners using outline provider (API 21+)
                 outlineProvider = object : ViewOutlineProvider() {
                     override fun getOutline(view: View, outline: Outline) {
-                        val radius = (resources.displayMetrics.density * 8) // change this value to adjust the corner radius, larger = more rounded
+                        val radius = (resources.displayMetrics.density * 8)
                         outline.setRoundRect(0, 0, view.width, view.height, radius)
                     }
                 }
@@ -943,8 +955,15 @@ class MainActivity : AppCompatActivity() {
                 imageView.setOnClickListener { 
                     val position = adapterPosition
                     if (position != RecyclerView.NO_POSITION) {
-                        onItemClick(position)
+                        onClick(position)
                     }
+                }
+                imageView.setOnLongClickListener {
+                    val position = adapterPosition
+                    if (position != RecyclerView.NO_POSITION) {
+                        onLongClick(position)
+                    }
+                    true
                 }
             }
 

@@ -66,6 +66,16 @@ public class ImageProcessor {
 
     private Bitmap processImageChunk(Mat chunk, float strength, boolean isGrayscaleModel) {
         try {
+            // extract alpha channel if exists
+            Mat alphaChannel = null;
+            if (chunk.channels() == 4) {
+                alphaChannel = new Mat();
+                org.opencv.core.Core.extractChannel(chunk, alphaChannel, 3);
+                Mat rgbMat = new Mat();
+                org.opencv.imgproc.Imgproc.cvtColor(chunk, rgbMat, org.opencv.imgproc.Imgproc.COLOR_BGRA2BGR);
+                chunk = rgbMat;
+            }
+
             chunk.convertTo(chunk, CvType.CV_32F, 1.0 / 255.0);
 
             int height = chunk.rows();
@@ -126,8 +136,25 @@ public class ImageProcessor {
                 outputMat.convertTo(outputMat, CvType.CV_8UC3, 255.0);
             }
 
-            Bitmap resultBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+            Bitmap resultBitmap = Bitmap.createBitmap(width, height, 
+                alphaChannel != null ? Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565);
             Utils.matToBitmap(outputMat, resultBitmap);
+
+            // reapply alpha channel
+            if (alphaChannel != null) {
+                Mat resultMat = new Mat();
+                Utils.bitmapToMat(resultBitmap, resultMat);
+                Mat resultBGRA = new Mat();
+                org.opencv.imgproc.Imgproc.cvtColor(resultMat, resultBGRA, org.opencv.imgproc.Imgproc.COLOR_BGR2BGRA);
+                org.opencv.core.Core.insertChannel(alphaChannel, resultBGRA, 3);
+                releaseMat(resultMat);
+                releaseMat(alphaChannel);
+                
+                resultBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+                Utils.matToBitmap(resultBGRA, resultBitmap);
+                releaseMat(resultBGRA);
+            }
+
             releaseMat(outputMat);
             return resultBitmap;
 
@@ -146,13 +173,11 @@ public class ImageProcessor {
                     return;
                 }
 
-                // Determine the active model and its type
                 String modelName = modelManager.getActiveModelName();
                 boolean isSCUNetModel = modelName != null && modelName.startsWith("scunet_");
                 boolean isGrayscaleModel = modelName != null && modelName.contains("gray");
                 boolean isSpecialGaussianModel = modelName != null && modelName.equals("scunet_color_real_gan.ptl");
 
-                // Load the appropriate model if needed
                 if (isSCUNetModel || isSpecialGaussianModel) {
                     if (fbcnnModule != null) unloadModel();
                     if (scunetModule == null) {
@@ -171,10 +196,29 @@ public class ImageProcessor {
                 Utils.bitmapToMat(inputBitmap, imageMat);
 
                 if (isGrayscaleModel) {
+                    Mat alphaChannel = null;
+                    if (imageMat.channels() == 4) {
+                        alphaChannel = new Mat();
+                        org.opencv.core.Core.extractChannel(imageMat, alphaChannel, 3);
+                    }
+                    
                     Mat grayMat = new Mat();
-                    org.opencv.imgproc.Imgproc.cvtColor(imageMat, grayMat, org.opencv.imgproc.Imgproc.COLOR_BGR2GRAY);
+                    org.opencv.imgproc.Imgproc.cvtColor(imageMat, grayMat, 
+                        imageMat.channels() == 4 ? 
+                        org.opencv.imgproc.Imgproc.COLOR_BGRA2GRAY : 
+                        org.opencv.imgproc.Imgproc.COLOR_BGR2GRAY);
+                    
                     releaseMat(imageMat);
                     imageMat = grayMat;
+
+                    if (alphaChannel != null) {
+                        Mat grayBGRA = new Mat();
+                        org.opencv.imgproc.Imgproc.cvtColor(grayMat, grayBGRA, org.opencv.imgproc.Imgproc.COLOR_GRAY2BGRA);
+                        org.opencv.core.Core.insertChannel(alphaChannel, grayBGRA, 3);
+                        releaseMat(alphaChannel);
+                        releaseMat(imageMat);
+                        imageMat = grayBGRA;
+                    }
                 }
 
                 Bitmap resultBitmap;
@@ -233,7 +277,6 @@ public class ImageProcessor {
                     Utils.bitmapToMat(processedChunk, processedMat);
                     releaseBitmap(processedChunk);
 
-                    // Calculate the region to copy (excluding overlap)
                     int copyStartY = row > 0 ? CHUNK_OVERLAP : 0;
                     int copyStartX = col > 0 ? CHUNK_OVERLAP : 0;
                     int copyWidth = endX - startX - (col < numCols - 1 ? CHUNK_OVERLAP : 0) - copyStartX;
