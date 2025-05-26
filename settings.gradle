@@ -15,7 +15,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "djpeg"
+rootProject.name = "dejpeg"
 include ':app'
 def opencvsdk='none/android'
 include ':opencv'
