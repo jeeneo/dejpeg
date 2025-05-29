@@ -279,16 +279,37 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun promptModelSelection() {
-        MaterialAlertDialogBuilder(this)
+        val dialog = MaterialAlertDialogBuilder(this)
             .setTitle(R.string.select_model)
             .setMessage(R.string.no_models)
-            .setPositiveButton(R.string.import_model) { _, _ ->
+            .setNeutralButton(R.string.import_model) { _, _ ->
                 vibrationManager.vibrateDialogChoice()
                 val intent = Intent(Intent.ACTION_GET_CONTENT).apply { type = "*/*" }
                 modelPickerLauncher.launch(intent)
             }
+            .setPositiveButton("FBCNN", null)
+            .setNegativeButton("SCUNet", null)
             .setCancelable(false)
-            .show()
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(DialogInterface.BUTTON_POSITIVE)?.setOnClickListener {
+                vibrationManager.vibrateDialogChoice()
+                val fbcnnLink = getString(R.string.FBCNN_link)
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(fbcnnLink))
+                startActivity(intent)
+                // Do not dismiss dialog
+            }
+            dialog.getButton(DialogInterface.BUTTON_NEGATIVE)?.setOnClickListener {
+                vibrationManager.vibrateDialogChoice()
+                val scunetLink = getString(R.string.SCUNet_link)
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(scunetLink))
+                startActivity(intent)
+                // Do not dismiss dialog
+            }
+        }
+
+        dialog.show()
     }
 
     private fun showModelManagementDialog() {

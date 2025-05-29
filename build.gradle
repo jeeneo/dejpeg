@@ -19,6 +19,6 @@ plugins {
     id 'com.android.library' version '8.10.0' apply false
 }
 
-// allprojects {
-//     layout.buildDirectory.set(file("C:/~buildirs/${project.name}"))
-// }
+allprojects {
+    layout.buildDirectory.set(file("C:/~buildirs/${project.name}"))
+}

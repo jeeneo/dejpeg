@@ -7,7 +7,7 @@
     <string name="manage_models">manage models</string>
     <string name="import_model">import</string>
     <string name="delete_models">delete models</string>
-    <string name="no_models">no models found. please import a model.</string>
+    <string name="no_models">no models found.\n\nplease download a model from one of the buttons below, then import (you can delete the files after being imported)</string>
     <string name="invalid_model">invalid model file. please select one of:\nfbcnn_color.ptl\nfbcnn_gray.ptl\nfbcnn_gray_double.ptl</string>
     <string name="save_to_gallery">save to gallery</string>
     <string name="share">share</string>
@@ -32,10 +32,10 @@
     <string name="no_images_loaded">no images loaded</string>
     <string name="error_loading_images">error loading images %s</string>
     <string name="error_loading_image_n">error loading image %1$d: %2$s</string>
-    <string name="error_loading_image">Error loading image: %s</string>
-    <string name="remove_image">Remove Image</string>
-    <string name="remove_this_image">Remove this image</string>
-    <string name="remove_all_images">Remove all images</string>
+    <string name="error_loading_image">error loading image: %s</string>
+    <string name="remove_image">remove image</string>
+    <string name="remove_this_image">remove this image</string>
+    <string name="remove_all_images">remove all images</string>
     <string name="error_saving_image">error saving image: %1$s</string>
     <string name="strength">strength: %1$d</string>
     <string name="image_loaded">image loaded</string>
@@ -68,4 +68,6 @@
     <string name="processing_chunk">processing chunk: %1$d of %2$d</string>
     <string name="notification_permission_denied">notification permission denied</string>
     <string name="processing_error">processing error</string>
+    <string name="FBCNN_link">https://github.com/jeeneo/FBCNN-mobile/releases/latest</string>
+    <string name="SCUNet_link">https://github.com/jeeneo/SCUNet-mobile/releases/latest</string>
 </resources>
