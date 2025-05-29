@@ -3,13 +3,13 @@
 
 # De*JPEG*
 
-this is an Android app for removing jpeg compression artifacts and denoising images with [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and [SCUNet](https://github.com/cszn/SCUNet) with mobile-compatible models
+... is a free Android app for removing jpeg compression artifacts and denoising images with [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and [SCUNet](https://github.com/cszn/SCUNet) with mobile-compatible models
 
 ## features:
 1. batch processing
 2. transparancy re-mapping (experimental)
 4. exporting as BMP or PNG
-5. no internet needed
+5. free and no internet needed
 
 ## download:
 [v2.0b (arm64 only)](https://github.com/jeeneo/dejpeg/releases/download/v2.0b/dejpeg-arm64-v8a-2.0b.apk)
