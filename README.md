@@ -11,7 +11,8 @@
 4. exporting as BMP or PNG
 5. free and no internet needed
 
-## [download](https://github.com/jeeneo/dejpeg/releases/latest)
+## download:
+[here](https://github.com/jeeneo/dejpeg/releases/latest)
 
 ## mobile models (required):
 [FBCNN](https://github.com/jeeneo/FBCNN-mobile/releases/tag/v1.0)
