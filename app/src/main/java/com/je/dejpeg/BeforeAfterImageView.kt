@@ -88,6 +88,10 @@ class BeforeAfterImageView @JvmOverloads constructor(
     private var lastTouchY = 0f
     private var activePointerId = MotionEvent.INVALID_POINTER_ID
     
+    private var isScaling = false
+    private var lastScaleFocusX = 0f
+    private var lastScaleFocusY = 0f
+    
     private val scaleGestureDetector = ScaleGestureDetector(context, ScaleListener())
     private val gestureDetector = GestureDetector(context, GestureListener())
     
@@ -204,13 +208,21 @@ class BeforeAfterImageView @JvmOverloads constructor(
         val viewWidth = width.toFloat()
         val viewHeight = height.toFloat()
 
-        val minTransX = min(0f, viewWidth - scaledWidth)
-        val maxTransX = max(0f, viewWidth - scaledWidth)
-        val minTransY = min(0f, viewHeight - scaledHeight)
-        val maxTransY = max(0f, viewHeight - scaledHeight)
+        if (scaledWidth <= viewWidth) {
+            translateX = (viewWidth - scaledWidth) / 2f
+        } else {
+            val minTransX = viewWidth - scaledWidth
+            val maxTransX = 0f
+            translateX = translateX.coerceIn(minTransX, maxTransX)
+        }
 
-        translateX = translateX.coerceIn(minTransX, maxTransX)
-        translateY = translateY.coerceIn(minTransY, maxTransY)
+        if (scaledHeight <= viewHeight) {
+            translateY = (viewHeight - scaledHeight) / 2f
+        } else {
+            val minTransY = viewHeight - scaledHeight
+            val maxTransY = 0f
+            translateY = translateY.coerceIn(minTransY, maxTransY)
+        }
     }
     
     fun hasOnlyBeforeImage(): Boolean {
@@ -353,12 +365,19 @@ class BeforeAfterImageView @JvmOverloads constructor(
                 }
             }
         }
-        
         scaleGestureDetector.onTouchEvent(event)
-        if (scaleGestureDetector.isInProgress) {
+
+        if (isScaling) {
+            when (event.actionMasked) {
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    isScaling = false
+                    activePointerId = MotionEvent.INVALID_POINTER_ID
+                    isDraggingSlider = false
+                    parent.requestDisallowInterceptTouchEvent(false)
+                }
+            }
             return true
         }
-        
         gestureDetector.onTouchEvent(event)
         
         when (event.actionMasked) {
