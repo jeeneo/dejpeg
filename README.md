@@ -39,4 +39,5 @@ De*JPEG* is not affiliated or related to Topaz's `DEJPEG` or any other software/
 
 ## license:
 all models used are under their respective licenses
+
 you are free to embed parts of this app in your own project as long as it remains free/non-paywalled and must abide to the GPL v3 license
