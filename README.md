@@ -27,16 +27,16 @@
 
 ## limitations:
 1. processed on your phone (no gpu), I'd recommend a device with 4gb of ram or more
-2. input images above 1200px (x or y) will be processed in chunks
+2. input images above 1200px will be processed in chunks
 
 ## note:
-De*JPEG* is not affiliated or related to Topaz's `DEJPEG` or any other program/project
+De*JPEG* is not affiliated or related to Topaz's `DEJPEG` or any other software/project
 
 ## credits:
-[@adrianerrea](https://github.com/adrianerrea/fromPytorchtoMobile) for information on how to createa mobile PyTorch app and various information
+[@adrianerrea](https://github.com/adrianerrea/fromPytorchtoMobile) for information on how to create a mobile PyTorch app and various information
 
 [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and [SCUNet](https://github.com/cszn/SCUNet) creators
 
 ## license:
 all models used are under their respective licenses
-you are free to embed parts of this app in your own project as long as it remains free/non-paywalled
+you are free to embed parts of this app in your own project as long as it remains free/non-paywalled and must abide to the GPL v3 license
