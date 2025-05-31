@@ -19,7 +19,7 @@
 
 [SCUNet](https://github.com/jeeneo/SCUNet-mobile/releases/latest)
 
-## screenshot:
+## screenshots:
 
 ![figs](https://github.com/user-attachments/assets/d20aa6b6-47d3-4036-87af-7ed9bf73a99e)
 ![tulips](https://github.com/user-attachments/assets/cc14390b-fbb8-43fc-8dc8-df2175f4b8f2)
