@@ -6,9 +6,6 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.util.Log;
 
-import org.pytorch.LiteModuleLoader;
-import org.pytorch.Module;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -19,23 +16,30 @@ import java.util.List;
 
 import android.provider.OpenableColumns;
 
+// ONNX Runtime imports
+import ai.onnxruntime.OnnxTensor;
+import ai.onnxruntime.OrtEnvironment;
+import ai.onnxruntime.OrtSession;
+import ai.onnxruntime.OrtException;
+
 public class ModelManager {
     private static final String PREFS_NAME = "ModelPrefs";
     private static final String ACTIVE_MODEL_KEY = "activeModel";
     private static final List<String> VALID_MODELS = Arrays.asList(
-            "fbcnn_color.ptl",
-            "fbcnn_gray.ptl",
-            "fbcnn_gray_double.ptl",
-            "scunet_color_real_psnr.ptl", // SCUNet color model
-            "scunet_gray_15.ptl",        // SCUNet grayscale models
-            "scunet_gray_25.ptl",
-            "scunet_gray_50.ptl",
-            "scunet_color_real_gan.ptl"      // SCUNet gaussian model
+            "fbcnn_color.onnx",
+            "fbcnn_gray.onnx",
+            "fbcnn_gray_double.onnx",
+            "scunet_color_real_psnr.onnx", // SCUNet color model
+            "scunet_gray_15.onnx",        // SCUNet grayscale models
+            "scunet_gray_25.onnx",
+            "scunet_gray_50.onnx",
+            "scunet_color_real_gan.onnx"      // SCUNet gaussian model
     );
 
     private final Context context;
     private final SharedPreferences prefs;
-    private Module currentModule = null;
+    private OrtSession currentSession = null;
+    private OrtEnvironment ortEnv = null;
     private final VibrationManager vibrationManager;
 
     public ModelManager(Context context) {
@@ -51,22 +55,38 @@ public class ModelManager {
     }
 
     public void unloadModel() {
-        if (currentModule != null) {
-            currentModule = null;
-            System.gc();
+        if (currentSession != null) {
+            try {
+                currentSession.close();
+            } catch (Exception e) {
+                // ignore
+            }
+            currentSession = null;
         }
+        if (ortEnv != null) {
+            try {
+                ortEnv.close();
+            } catch (Exception e) {
+                // ignore
+            }
+            ortEnv = null;
+        }
+        System.gc();
     }
 
-    public Module loadModel() throws Exception {
-        if (currentModule != null) {
-            return currentModule;
+    public OrtSession loadModel() throws Exception {
+        if (currentSession != null) {
+            return currentSession;
         }
         String activeModel = prefs.getString(ACTIVE_MODEL_KEY, null);
         if (activeModel == null) throw new Exception("No active model set");
         File modelFile = new File(context.getFilesDir(), activeModel);
         if (!modelFile.exists()) throw new Exception("Model file not found");
-        currentModule = LiteModuleLoader.load(modelFile.getAbsolutePath());
-        return currentModule;
+        if (ortEnv == null) {
+            ortEnv = OrtEnvironment.getEnvironment();
+        }
+        currentSession = ortEnv.createSession(modelFile.getAbsolutePath(), new OrtSession.SessionOptions());
+        return currentSession;
     }
 
     public List<String> getInstalledModels() {

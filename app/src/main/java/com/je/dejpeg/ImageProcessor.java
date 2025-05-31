@@ -2,12 +2,23 @@ package com.je.dejpeg;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import org.opencv.android.Utils;
-import org.opencv.core.CvType;
-import org.opencv.core.Mat;
-import org.pytorch.IValue;
-import org.pytorch.Module;
-import org.pytorch.Tensor;
+import android.graphics.Color;
+import android.os.Looper;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.widget.Toast;
+import androidx.appcompat.app.AppCompatActivity;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+
+// ONNX Runtime imports
+import ai.onnxruntime.OnnxTensor;
+import ai.onnxruntime.OrtEnvironment;
+import ai.onnxruntime.OrtSession;
+import ai.onnxruntime.OrtException;
+
+import java.nio.FloatBuffer;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ImageProcessor {
     private static final int MAX_CHUNK_SIZE = 1200;
@@ -16,8 +27,9 @@ public class ImageProcessor {
 
     private final ModelManager modelManager;
     private final Context context;
-    private Module fbcnnModule = null;
-    private Module scunetModule = null;
+    private OrtSession fbcnnSession = null;
+    private OrtSession scunetSession = null;
+    private OrtEnvironment ortEnv = null;
     public boolean isCancelled = false;
     private Thread processingThread = null;
 
@@ -33,8 +45,9 @@ public class ImageProcessor {
     }
 
     public void unloadModel() {
-        fbcnnModule = null;
-        scunetModule = null;
+        fbcnnSession = null;
+        scunetSession = null;
+        ortEnv = null;
         modelManager.unloadModel();
     }
 
@@ -52,183 +65,208 @@ public class ImageProcessor {
         }
     }
 
-    private void releaseMat(Mat mat) {
-        if (mat != null) {
-            mat.release();
-        }
-    }
-
     private void releaseBitmap(Bitmap bitmap) {
         if (bitmap != null && !bitmap.isRecycled()) {
             bitmap.recycle();
         }
     }
 
-    private Bitmap processImageChunk(Mat chunk, float strength, boolean isGrayscaleModel) {
+    private Bitmap processImageChunk(Bitmap chunkBitmap, float strength, boolean isGrayscaleModel) {
         try {
-            // extract alpha channel if exists
-            Mat alphaChannel = null;
-            if (chunk.channels() == 4) {
-                alphaChannel = new Mat();
-                org.opencv.core.Core.extractChannel(chunk, alphaChannel, 3);
-                Mat rgbMat = new Mat();
-                org.opencv.imgproc.Imgproc.cvtColor(chunk, rgbMat, org.opencv.imgproc.Imgproc.COLOR_BGRA2BGR);
-                chunk = rgbMat;
-            }
+            int width = chunkBitmap.getWidth();
+            int height = chunkBitmap.getHeight();
+            boolean hasAlpha = chunkBitmap.getConfig() == Bitmap.Config.ARGB_8888;
 
-            chunk.convertTo(chunk, CvType.CV_32F, 1.0 / 255.0);
+            int[] pixels = new int[width * height];
+            chunkBitmap.getPixels(pixels, 0, width, 0, 0, width, height);
 
-            int height = chunk.rows();
-            int width = chunk.cols();
             float[] inputArray;
+            float[] alphaChannel = null;
+
+            if (hasAlpha) {
+                alphaChannel = new float[width * height];
+            }
 
             if (isGrayscaleModel) {
                 inputArray = new float[height * width];
                 for (int i = 0; i < height; i++) {
                     for (int j = 0; j < width; j++) {
-                        inputArray[i * width + j] = (float) chunk.get(i, j)[0];
+                        int idx = i * width + j;
+                        int color = pixels[idx];
+                        int gray = (Color.red(color) + Color.green(color) + Color.blue(color)) / 3;
+                        inputArray[idx] = gray / 255.0f;
+                        if (hasAlpha) alphaChannel[idx] = Color.alpha(color) / 255.0f;
                     }
                 }
             } else {
                 inputArray = new float[3 * height * width];
-                for (int c = 0; c < 3; c++) {
-                    for (int h = 0; h < height; h++) {
-                        for (int w = 0; w < width; w++) {
-                            double[] pixel = chunk.get(h, w);
-                            inputArray[c * height * width + h * width + w] = (float) (pixel[2 - c]);
+                for (int i = 0; i < height; i++) {
+                    for (int j = 0; j < width; j++) {
+                        int idx = i * width + j;
+                        int color = pixels[idx];
+                        inputArray[0 * height * width + idx] = Color.red(color) / 255.0f;
+                        inputArray[1 * height * width + idx] = Color.green(color) / 255.0f;
+                        inputArray[2 * height * width + idx] = Color.blue(color) / 255.0f;
+                        if (hasAlpha) alphaChannel[idx] = Color.alpha(color) / 255.0f;
+                    }
+                }
+            }
+
+            // ONNX Runtime inference
+            if (ortEnv == null) {
+                ortEnv = OrtEnvironment.getEnvironment();
+            }
+
+            long[] inputShape = new long[]{1, isGrayscaleModel ? 1 : 3, height, width};
+            OnnxTensor inputTensor = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(inputArray), inputShape);
+            OnnxTensor qfTensor = null;
+            Map<String, OnnxTensor> inputs = new HashMap<>();
+
+            OrtSession session;
+            if (scunetSession != null) {
+                session = scunetSession;
+                inputs.put("input", inputTensor);
+            } else {
+                session = fbcnnSession;
+                float qf = strength / 100.0f;
+                // Fix: qf shape should be [1, 1] (rank 2)
+                FloatBuffer qfBuffer = FloatBuffer.wrap(new float[]{qf});
+                qfTensor = OnnxTensor.createTensor(ortEnv, qfBuffer, new long[]{1, 1});
+                inputs.put("input", inputTensor);
+                inputs.put("qf", qfTensor);
+            }
+
+            OrtSession.Result result = session.run(inputs);
+            float[] outputArray = null;
+            Object outputValue = result.get(0).getValue();
+            if (outputValue == null) {
+                android.util.Log.e("ImageProcessor", "ONNX output is null");
+                showErrorDialog("ONNX model output is null", null);
+                throw new RuntimeException("ONNX model output is null");
+            }
+            if (outputValue instanceof float[]) {
+                outputArray = (float[]) outputValue;
+            } else if (outputValue instanceof float[][][][]) {
+                float[][][][] arr = (float[][][][]) outputValue;
+                int c = arr[0].length;
+                int h = arr[0][0].length;
+                int w = arr[0][0][0].length;
+                outputArray = new float[c * h * w];
+                for (int ch = 0; ch < c; ch++) {
+                    for (int i = 0; i < h; i++) {
+                        for (int j = 0; j < w; j++) {
+                            outputArray[ch * h * w + i * w + j] = arr[0][ch][i][j];
                         }
                     }
                 }
-            }
-
-            Tensor inputTensor = Tensor.fromBlob(inputArray, new long[]{1, isGrayscaleModel ? 1 : 3, height, width});
-            Tensor outputTensor;
-
-            if (scunetModule != null) {
-                outputTensor = scunetModule.forward(IValue.from(inputTensor)).toTensor();
             } else {
-                float qf = strength / 100.0f;
-                Tensor qfTensor = Tensor.fromBlob(new float[]{qf}, new long[]{1, 1});
-                outputTensor = fbcnnModule.forward(IValue.from(inputTensor), IValue.from(qfTensor)).toTuple()[0].toTensor();
+                android.util.Log.e("ImageProcessor", "Unexpected ONNX output type: " + outputValue.getClass());
+                showErrorDialog("Unexpected ONNX output type: " + outputValue.getClass(), null);
+                throw new RuntimeException("Unexpected ONNX output type: " + outputValue.getClass());
             }
+            inputTensor.close();
+            if (qfTensor != null) qfTensor.close();
+            result.close();
 
-            float[] outputArray = outputTensor.getDataAsFloatArray();
-            Mat outputMat = new Mat(height, width, isGrayscaleModel ? CvType.CV_32FC1 : CvType.CV_32FC3);
-
+            // Convert outputArray to Bitmap
+            Bitmap resultBitmap = Bitmap.createBitmap(width, height, hasAlpha ? Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565);
+            int[] outPixels = new int[width * height];
             if (isGrayscaleModel) {
                 for (int i = 0; i < height; i++) {
                     for (int j = 0; j < width; j++) {
-                        outputMat.put(i, j, outputArray[i * width + j]);
+                        int idx = i * width + j;
+                        int gray = Math.max(0, Math.min(255, (int) (outputArray[idx] * 255.0f)));
+                        int alpha = hasAlpha ? Math.max(0, Math.min(255, (int) (alphaChannel[idx] * 255.0f))) : 255;
+                        outPixels[idx] = Color.argb(alpha, gray, gray, gray);
                     }
                 }
-                outputMat.convertTo(outputMat, CvType.CV_8UC1, 255.0);
             } else {
-                for (int h = 0; h < height; h++) {
-                    for (int w = 0; w < width; w++) {
-                        float[] pixel = new float[]{
-                            outputArray[2 * height * width + h * width + w],
-                            outputArray[1 * height * width + h * width + w],
-                            outputArray[0 * height * width + h * width + w]
-                        };
-                        outputMat.put(h, w, pixel);
+                for (int i = 0; i < height; i++) {
+                    for (int j = 0; j < width; j++) {
+                        int idx = i * width + j;
+                        int r = Math.max(0, Math.min(255, (int) (outputArray[0 * height * width + idx] * 255.0f)));
+                        int g = Math.max(0, Math.min(255, (int) (outputArray[1 * height * width + idx] * 255.0f)));
+                        int b = Math.max(0, Math.min(255, (int) (outputArray[2 * height * width + idx] * 255.0f)));
+                        int alpha = hasAlpha ? Math.max(0, Math.min(255, (int) (alphaChannel[idx] * 255.0f))) : 255;
+                        outPixels[idx] = Color.argb(alpha, r, g, b);
                     }
                 }
-                outputMat.convertTo(outputMat, CvType.CV_8UC3, 255.0);
             }
-
-            Bitmap resultBitmap = Bitmap.createBitmap(width, height, 
-                alphaChannel != null ? Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565);
-            Utils.matToBitmap(outputMat, resultBitmap);
-
-            // reapply alpha channel
-            if (alphaChannel != null) {
-                Mat resultMat = new Mat();
-                Utils.bitmapToMat(resultBitmap, resultMat);
-                Mat resultBGRA = new Mat();
-                org.opencv.imgproc.Imgproc.cvtColor(resultMat, resultBGRA, org.opencv.imgproc.Imgproc.COLOR_BGR2BGRA);
-                org.opencv.core.Core.insertChannel(alphaChannel, resultBGRA, 3);
-                releaseMat(resultMat);
-                releaseMat(alphaChannel);
-                
-                resultBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-                Utils.matToBitmap(resultBGRA, resultBitmap);
-                releaseMat(resultBGRA);
-            }
-
-            releaseMat(outputMat);
+            resultBitmap.setPixels(outPixels, 0, width, 0, 0, width, height);
             return resultBitmap;
 
         } catch (Exception e) {
-            throw new RuntimeException("Error processing chunk: " + e.getMessage());
+            android.util.Log.e("ImageProcessor", "Error processing chunk", e);
+            showErrorDialog(e.getMessage(), e);
+            throw new RuntimeException("Error processing chunk: " + (e.getMessage() != null ? e.getMessage() : e.toString()));
         }
+    }
+
+    // Utility to show error dialog with copy support
+    private void showErrorDialog(String message, Throwable throwable) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(message);
+        if (throwable != null) {
+            sb.append("\n\n").append(android.util.Log.getStackTraceString(throwable));
+        }
+        String errorText = sb.toString();
+
+        // Ensure dialog is shown on UI thread
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            ((AppCompatActivity) context).runOnUiThread(() -> showErrorDialog(message, throwable));
+            return;
+        }
+
+        new MaterialAlertDialogBuilder(context)
+            .setTitle("Error")
+            .setMessage(errorText)
+            .setPositiveButton("OK", null)
+            .setNeutralButton("Copy", (dialog, which) -> {
+                ClipboardManager clipboard = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+                ClipData clip = ClipData.newPlainText("Error", errorText);
+                clipboard.setPrimaryClip(clip);
+                Toast.makeText(context, "Error copied to clipboard", Toast.LENGTH_SHORT).show();
+            })
+            .show();
     }
 
     public void processImage(Bitmap inputBitmap, float strength, ProcessCallback callback, int currentIndex, int totalImages) {
         isCancelled = false;
         processingThread = new Thread(() -> {
-            Mat imageMat = null;
             try {
-                if (Thread.interrupted()) {
-                    callback.onError(context.getString(R.string.processing_cancelled));
-                    return;
-                }
-
                 String modelName = modelManager.getActiveModelName();
                 boolean isSCUNetModel = modelName != null && modelName.startsWith("scunet_");
                 boolean isGrayscaleModel = modelName != null && modelName.contains("gray");
-                boolean isSpecialGaussianModel = modelName != null && modelName.equals("scunet_color_real_gan.ptl");
+                boolean isSpecialGaussianModel = modelName != null && modelName.equals("scunet_color_real_gan.onnx");
+
+                if (ortEnv == null) {
+                    ortEnv = OrtEnvironment.getEnvironment();
+                }
 
                 if (isSCUNetModel || isSpecialGaussianModel) {
-                    if (fbcnnModule != null) unloadModel();
-                    if (scunetModule == null) {
+                    if (fbcnnSession != null) unloadModel();
+                    if (scunetSession == null) {
                         callback.onProgress(context.getString(R.string.loading_model));
-                        scunetModule = modelManager.loadModel();
+                        scunetSession = modelManager.loadModel();
                     }
                 } else {
-                    if (scunetModule != null) unloadModel();
-                    if (fbcnnModule == null) {
+                    if (scunetSession != null) unloadModel();
+                    if (fbcnnSession == null) {
                         callback.onProgress(context.getString(R.string.loading_model));
-                        fbcnnModule = modelManager.loadModel();
+                        fbcnnSession = modelManager.loadModel();
                     }
                 }
 
-                imageMat = new Mat();
-                Utils.bitmapToMat(inputBitmap, imageMat);
-
-                if (isGrayscaleModel) {
-                    Mat alphaChannel = null;
-                    if (imageMat.channels() == 4) {
-                        alphaChannel = new Mat();
-                        org.opencv.core.Core.extractChannel(imageMat, alphaChannel, 3);
-                    }
-                    
-                    Mat grayMat = new Mat();
-                    org.opencv.imgproc.Imgproc.cvtColor(imageMat, grayMat, 
-                        imageMat.channels() == 4 ? 
-                        org.opencv.imgproc.Imgproc.COLOR_BGRA2GRAY : 
-                        org.opencv.imgproc.Imgproc.COLOR_BGR2GRAY);
-                    
-                    releaseMat(imageMat);
-                    imageMat = grayMat;
-
-                    if (alphaChannel != null) {
-                        Mat grayBGRA = new Mat();
-                        org.opencv.imgproc.Imgproc.cvtColor(grayMat, grayBGRA, org.opencv.imgproc.Imgproc.COLOR_GRAY2BGRA);
-                        org.opencv.core.Core.insertChannel(alphaChannel, grayBGRA, 3);
-                        releaseMat(alphaChannel);
-                        releaseMat(imageMat);
-                        imageMat = grayBGRA;
-                    }
-                }
+                Bitmap workingBitmap = inputBitmap.copy(Bitmap.Config.ARGB_8888, true);
 
                 Bitmap resultBitmap;
-                if (imageMat.width() > MAX_INPUT_SIZE || imageMat.height() > MAX_INPUT_SIZE) {
-                    resultBitmap = processLargeImage(imageMat, strength, isGrayscaleModel, callback);
+                if (workingBitmap.getWidth() > MAX_INPUT_SIZE || workingBitmap.getHeight() > MAX_INPUT_SIZE) {
+                    resultBitmap = processLargeImage(workingBitmap, strength, isGrayscaleModel, callback);
                 } else {
                     callback.onProgress(totalImages > 1 ? 
                         context.getString(R.string.processing_batch, currentIndex + 1, totalImages) :
                         context.getString(R.string.processing_single));
-                    resultBitmap = processImageChunk(imageMat, strength, isGrayscaleModel);
+                    resultBitmap = processImageChunk(workingBitmap, strength, isGrayscaleModel);
                 }
 
                 if (!isCancelled) {
@@ -237,85 +275,60 @@ public class ImageProcessor {
                     releaseBitmap(resultBitmap);
                     callback.onError(context.getString(R.string.processing_cancelled));
                 }
-
             } catch (Exception e) {
                 e.printStackTrace();
+                // Show error dialog with stack trace
+                showErrorDialog(e.getMessage(), e);
                 callback.onError(e.getMessage());
-            } finally {
-                releaseMat(imageMat);
             }
         });
         processingThread.start();
     }
 
-    private Bitmap processLargeImage(Mat sourceMat, float strength, boolean isGrayscaleModel, ProcessCallback callback) {
-        int sourceWidth = sourceMat.width();
-        int sourceHeight = sourceMat.height();
-        
-        Mat resultMat = new Mat(sourceHeight, sourceWidth, sourceMat.type());
-        
+    private Bitmap processLargeImage(Bitmap sourceBitmap, float strength, boolean isGrayscaleModel, ProcessCallback callback) {
+        int sourceWidth = sourceBitmap.getWidth();
+        int sourceHeight = sourceBitmap.getHeight();
+        Bitmap resultBitmap = Bitmap.createBitmap(sourceWidth, sourceHeight, sourceBitmap.getConfig());
+
         int numRows = (int) Math.ceil((double) sourceHeight / MAX_CHUNK_SIZE);
         int numCols = (int) Math.ceil((double) sourceWidth / MAX_CHUNK_SIZE);
         int totalChunks = numRows * numCols;
         int processedChunks = 0;
 
-        try {
-            for (int row = 0; row < numRows && !isCancelled; row++) {
-                for (int col = 0; col < numCols && !isCancelled; col++) {
-                    int startY = row * MAX_CHUNK_SIZE - (row > 0 ? CHUNK_OVERLAP : 0);
-                    int startX = col * MAX_CHUNK_SIZE - (col > 0 ? CHUNK_OVERLAP : 0);
-                    int endY = Math.min((row + 1) * MAX_CHUNK_SIZE + (row < numRows - 1 ? CHUNK_OVERLAP : 0), sourceHeight);
-                    int endX = Math.min((col + 1) * MAX_CHUNK_SIZE + (col < numCols - 1 ? CHUNK_OVERLAP : 0), sourceWidth);
+        for (int row = 0; row < numRows && !isCancelled; row++) {
+            for (int col = 0; col < numCols && !isCancelled; col++) {
+                int startY = row * MAX_CHUNK_SIZE - (row > 0 ? CHUNK_OVERLAP : 0);
+                int startX = col * MAX_CHUNK_SIZE - (col > 0 ? CHUNK_OVERLAP : 0);
+                int endY = Math.min((row + 1) * MAX_CHUNK_SIZE + (row < numRows - 1 ? CHUNK_OVERLAP : 0), sourceHeight);
+                int endX = Math.min((col + 1) * MAX_CHUNK_SIZE + (col < numCols - 1 ? CHUNK_OVERLAP : 0), sourceWidth);
 
-                    Mat chunk = new Mat(sourceMat, new org.opencv.core.Rect(startX, startY, endX - startX, endY - startY));
-                    callback.onProgress(context.getString(R.string.processing_chunk, ++processedChunks, totalChunks));
+                Bitmap chunk = Bitmap.createBitmap(sourceBitmap, startX, startY, endX - startX, endY - startY);
+                callback.onProgress(context.getString(R.string.processing_chunk, ++processedChunks, totalChunks));
 
-                    Bitmap processedChunk = processImageChunk(chunk, strength, isGrayscaleModel);
-                    releaseMat(chunk);
+                Bitmap processedChunk = processImageChunk(chunk, strength, isGrayscaleModel);
+                chunk.recycle();
 
-                    Mat processedMat = new Mat();
-                    Utils.bitmapToMat(processedChunk, processedMat);
-                    releaseBitmap(processedChunk);
+                int copyStartY = row > 0 ? CHUNK_OVERLAP : 0;
+                int copyStartX = col > 0 ? CHUNK_OVERLAP : 0;
+                int copyWidth = endX - startX - (col < numCols - 1 ? CHUNK_OVERLAP : 0) - copyStartX;
+                int copyHeight = endY - startY - (row < numRows - 1 ? CHUNK_OVERLAP : 0) - copyStartY;
 
-                    int copyStartY = row > 0 ? CHUNK_OVERLAP : 0;
-                    int copyStartX = col > 0 ? CHUNK_OVERLAP : 0;
-                    int copyWidth = endX - startX - (col < numCols - 1 ? CHUNK_OVERLAP : 0) - copyStartX;
-                    int copyHeight = endY - startY - (row < numRows - 1 ? CHUNK_OVERLAP : 0) - copyStartY;
-
-                    Mat copyRegion = new Mat(processedMat, new org.opencv.core.Rect(copyStartX, copyStartY, copyWidth, copyHeight));
-                    copyRegion.copyTo(new Mat(resultMat, new org.opencv.core.Rect(
-                        startX + copyStartX,
-                        startY + copyStartY,
-                        copyWidth,
-                        copyHeight
-                    )));
-
-                    releaseMat(processedMat);
-                    releaseMat(copyRegion);
-                }
+                int[] chunkPixels = new int[copyWidth * copyHeight];
+                processedChunk.getPixels(chunkPixels, 0, copyWidth, copyStartX, copyStartY, copyWidth, copyHeight);
+                resultBitmap.setPixels(chunkPixels, 0, copyWidth, startX + copyStartX, startY + copyStartY, copyWidth, copyHeight);
+                processedChunk.recycle();
             }
-
-            if (isCancelled) {
-                releaseMat(resultMat);
-                return null;
-            }
-
-            Bitmap finalBitmap = Bitmap.createBitmap(sourceWidth, sourceHeight, Bitmap.Config.ARGB_8888);
-            Utils.matToBitmap(resultMat, finalBitmap);
-            
-            if (!isCancelled) {
-                callback.onProgress(context.getString(R.string.processing_complete_single));
-            }
-            
-            return finalBitmap;
-
-        } finally {
-            releaseMat(resultMat);
         }
+
+        if (!isCancelled) {
+            callback.onProgress(context.getString(R.string.processing_complete_single));
+        }
+
+        return resultBitmap;
     }
 
     public boolean isActiveModelSCUNet() {
         String modelName = modelManager.getActiveModelName();
-        return modelName != null && (modelName.startsWith("scunet_") || modelName.equals("scunet_color_real_gan.ptl"));
+        return modelName != null && (modelName.startsWith("scunet_") || modelName.equals("scunet_color_real_gan.onnx"));
     }
 }

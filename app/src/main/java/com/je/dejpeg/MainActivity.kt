@@ -104,11 +104,11 @@ class MainActivity : AppCompatActivity() {
 
         vibrationManager = VibrationManager(this)
 
-        try {
-            System.loadLibrary("opencv_java4")
-        } catch (e: UnsatisfiedLinkError) {
-            Toast.makeText(this, getString(R.string.opencv_error), Toast.LENGTH_LONG).show()
-        }
+        // try {
+        //     System.loadLibrary("opencv_java4")
+        // } catch (e: UnsatisfiedLinkError) {
+        //     Toast.makeText(this, getString(R.string.opencv_error), Toast.LENGTH_LONG).show()
+        // }
         setContentView(R.layout.activity_main)
 
         selectButton = findViewById(R.id.selectButton)
