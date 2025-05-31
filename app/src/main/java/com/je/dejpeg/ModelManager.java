@@ -85,7 +85,13 @@ public class ModelManager {
         if (ortEnv == null) {
             ortEnv = OrtEnvironment.getEnvironment();
         }
-        currentSession = ortEnv.createSession(modelFile.getAbsolutePath(), new OrtSession.SessionOptions());
+
+        OrtSession.SessionOptions sessionOptions = new OrtSession.SessionOptions();
+        if (activeModel.startsWith("scunet_")) {
+            sessionOptions.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.NO_OPT);
+        }
+
+        currentSession = ortEnv.createSession(modelFile.getAbsolutePath(), sessionOptions);
         return currentSession;
     }
 
