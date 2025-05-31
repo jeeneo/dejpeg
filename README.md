@@ -15,9 +15,9 @@
 [here](https://github.com/jeeneo/dejpeg/releases/latest)
 
 ## mobile models (required):
-[FBCNN](https://github.com/jeeneo/FBCNN-mobile/releases/tag/v1.0)
+[FBCNN](https://github.com/jeeneo/FBCNN-mobile/releases/latest)
 
-[SCUNet](https://github.com/jeeneo/SCUNet-mobile/releases/tag/v1.0)
+[SCUNet](https://github.com/jeeneo/SCUNet-mobile/releases/latest)
 
 ## screenshot:
 
