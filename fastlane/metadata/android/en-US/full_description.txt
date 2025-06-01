@@ -12,15 +12,3 @@
    <li>input images above 1200px will be processed in chunks</li>
 </ul>
 <p><b>Note:</b><b>De<i>JPEG</i></b> is not affiliated or related to Topaz's <code>DEJPEG</code> or any other software/project.</p>
-
-changelog:
-<p><b>v2.2</b></p>
-
-added:
-1. add background service for notifications (fixes ghost notifications)
-2. dynamic theme (read from system)
-3. model hashing/verification
-
-fixes:
-1. removed anti-aliasing (for better viewing)
-2. fixed before/after view issues when panning
