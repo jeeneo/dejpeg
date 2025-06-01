@@ -11,4 +11,4 @@
    <li>processed on your phone (no gpu), I'd recommend a device with 4gb of ram or more</li>
    <li>input images above 1200px will be processed in chunks</li>
 </ul>
-<p><b>Note:</b><b>De<i>JPEG</i></b> is not affiliated or related to Topaz's <code>DEJPEG</code> or any other software/project.</p>
+<p><b>Note: </b><b>De<i>JPEG</i></b> is not affiliated or related to Topaz's <code>DEJPEG</code> or any other software/project.</p>
