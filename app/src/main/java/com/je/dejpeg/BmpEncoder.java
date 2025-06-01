@@ -6,7 +6,7 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-public class BmpEncoder {
+public class bmpEncoder {
     private static final int BMP_HEADER_SIZE = 14;
     private static final int DIB_HEADER_SIZE = 40;
     

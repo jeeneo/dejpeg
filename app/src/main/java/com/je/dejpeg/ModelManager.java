@@ -10,13 +10,15 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import android.provider.OpenableColumns;
 
-// ONNX Runtime imports
 import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtSession;
@@ -29,12 +31,23 @@ public class ModelManager {
             "fbcnn_color.onnx",
             "fbcnn_gray.onnx",
             "fbcnn_gray_double.onnx",
-            "scunet_color_real_psnr.onnx", // SCUNet color model
-            "scunet_gray_15.onnx",        // SCUNet grayscale models
+            "scunet_color_real_gan.onnx",
+            "scunet_color_real_psnr.onnx",
+            "scunet_gray_15.onnx",
             "scunet_gray_25.onnx",
-            "scunet_gray_50.onnx",
-            "scunet_color_real_gan.onnx"      // SCUNet gaussian model
+            "scunet_gray_50.onnx"
     );
+    private static final Map<String, String> MODEL_HASHES = new HashMap<>();
+    static {
+        MODEL_HASHES.put("fbcnn_color.onnx", "3bb0ff3060c217d3b3af95615157fca8a65506455cf4e3d88479e09efffec97f");
+        MODEL_HASHES.put("fbcnn_gray.onnx", "041b360fc681ae4b134e7ec98da1ae4c7ea57435e5abe701530d5a995a7a27b3");
+        MODEL_HASHES.put("fbcnn_gray_double.onnx", "83aca9febba0da828dbb5cc6e23e328f60f5ad07fa3de617ab1030f0a24d4f67");
+        MODEL_HASHES.put("scunet_color_real_gan.onnx", "5eb9a8015cf24477980d3a4eec2e35107c470703b98d257f7560cd3cf3f02922");
+        MODEL_HASHES.put("scunet_color_real_psnr.onnx", "341eb061ed4d7834dbe6cdab3fb509c887f82aa29be8819c7d09b3d9bfa4892d");
+        MODEL_HASHES.put("scunet_gray_15.onnx", "10d33552b5754ab9df018cb119e20e1f2b18546eff8e28954529a51e5a6ae255");
+        MODEL_HASHES.put("scunet_gray_25.onnx", "01b5838a85822ae21880062106a80078f06e7a82aa2ffc8847e32f4462b4c928");
+        MODEL_HASHES.put("scunet_gray_50.onnx", "a8d9cbbbb2696ac116a87a5055496291939ed873fe28d7f560373675bb970833");
+    }
 
     private final Context context;
     private final SharedPreferences prefs;
@@ -59,7 +72,7 @@ public class ModelManager {
             try {
                 currentSession.close();
             } catch (Exception e) {
-                // ignore
+                Log.e("ModelManager", "error closing session: " + e.getMessage());
             }
             currentSession = null;
         }
@@ -67,7 +80,7 @@ public class ModelManager {
             try {
                 ortEnv.close();
             } catch (Exception e) {
-                // ignore
+                Log.e("ModelManager", "error closing environment: " + e.getMessage());
             }
             ortEnv = null;
         }
@@ -111,7 +124,6 @@ public class ModelManager {
     private String resolveFilename(Uri modelUri) throws Exception {
         String filename = null;
         
-        // Try cursor method first
         try (Cursor cursor = context.getContentResolver().query(modelUri, null, null, null, null)) {
             if (cursor != null && cursor.moveToFirst()) {
                 int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
@@ -122,7 +134,6 @@ public class ModelManager {
             }
         }
 
-        // Fallback methods
         if (filename == null) {
             String path = modelUri.getPath();
             if (path != null) {
@@ -138,7 +149,6 @@ public class ModelManager {
             throw new Exception("Could not determine filename");
         }
 
-        // Clean up filename
         int queryIndex = filename.indexOf('?');
         if (queryIndex > 0) {
             filename = filename.substring(0, queryIndex);
@@ -151,16 +161,44 @@ public class ModelManager {
         
         final String cleanFilename = filename.trim();
 
-        // Validate against valid models
         String matchedModel = VALID_MODELS.stream()
             .filter(model -> model.equalsIgnoreCase(cleanFilename))
             .findFirst()
             .orElseThrow(() -> new Exception(
-                "Invalid model filename: " + cleanFilename + 
-                "\nExpected one of: " + String.join(", ", VALID_MODELS)
+                "invalid model filename: " + cleanFilename + 
+                "\nexpected one of: " + String.join(", ", VALID_MODELS)
             ));
 
+        String expectedHash = MODEL_HASHES.get(matchedModel);
+        if (expectedHash != null) {
+            String actualHash = computeFileHash(modelUri);
+            if (!expectedHash.equalsIgnoreCase(actualHash)) {
+                throw new Exception("model file hash mismatch!! expected: " + expectedHash + 
+                    ", but got: " + actualHash + 
+                    "\nplease ensure the model file is correct and not corrupted or tampered.");
+            }
+        }
+
         return matchedModel;
+    }
+
+    private String computeFileHash(Uri fileUri) throws Exception {
+        try (InputStream is = context.getContentResolver().openInputStream(fileUri)) {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = is.read(buffer)) != -1) {
+                digest.update(buffer, 0, read);
+            }
+            byte[] hashBytes = digest.digest();
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hashBytes) {
+                hexString.append(String.format("%02x", b));
+            }
+            return hexString.toString();
+        } catch (Exception e) {
+            throw new Exception("Failed to compute file hash", e);
+        }
     }
 
     public boolean importModel(Uri modelUri) throws Exception {

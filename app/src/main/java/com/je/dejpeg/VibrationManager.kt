@@ -25,17 +25,15 @@ class VibrationManager(private val context: Context) {
     }
     
     companion object {
-        // Vibration durations in milliseconds
         private const val LIGHT_VIBRATION_DURATION = 10L
         private const val MEDIUM_VIBRATION_DURATION = 25L
         private const val BUTTON_VIBRATION_DURATION = 5L
         private const val TOUCH_VIBRATION_DURATION = 3L
         private const val DIALOG_CHOICE_DURATION = 8L
         
-        // Vibration patterns
-        private val SUCCESS_PATTERN = longArrayOf(0, 10, 50, 10) // Two light vibrations
-        private val ERROR_PATTERN = longArrayOf(0, 25, 25, 25) // Medium stutter
-        private val SINGLE_SUCCESS_PATTERN = longArrayOf(0, 10) // Single light vibration
+        private val SUCCESS_PATTERN = longArrayOf(0, 10, 50, 10)
+        private val ERROR_PATTERN = longArrayOf(0, 25, 25, 25)
+        private val SINGLE_SUCCESS_PATTERN = longArrayOf(0, 10)
     }
     
     fun vibrateButton() {
@@ -137,7 +135,6 @@ class VibrationManager(private val context: Context) {
         }
     }
     
-    // Helper function to use system haptic feedback when available
     fun performHapticFeedback(view: View, feedbackConstant: Int = HapticFeedbackConstants.CONTEXT_CLICK) {
         view.performHapticFeedback(feedbackConstant, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
     }

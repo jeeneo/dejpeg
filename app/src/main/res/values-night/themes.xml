@@ -1,0 +1,31 @@
+<resources>
+    <style name="theme.dejpeg" parent="Theme.Material3.DayNight">
+        <!-- System bars -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        
+        <!-- Window background -->
+        <item name="android:windowBackground">@color/background_dark</item>
+        <item name="android:colorBackground">@color/background_dark</item>
+        
+        <!-- Material3 colors -->
+        <item name="colorPrimary">@color/white</item>
+        <item name="colorOnPrimary">@color/black</item>
+        <item name="colorSurface">@color/background_dark</item>
+        <item name="colorOnSurface">@color/white</item>
+        
+        <!-- AppCompat compatibility -->
+        <item name="android:windowContentOverlay">@null</item>
+
+        <!-- Widget styles -->
+        <item name="materialButtonStyle">@style/Widget.App.Button.Dark</item>
+    </style>
+
+    <style name="Widget.App.Button.Dark" parent="Widget.Material3.Button">
+        <item name="android:textColor">@color/white</item>
+        <item name="backgroundTint">@color/button_enabled_dark</item>
+        <item name="android:stateListAnimator">@null</item>
+    </style>
+</resources>

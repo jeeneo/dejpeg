@@ -1,39 +1,38 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <style name="theme.dejpeg" parent="Theme.Material3.Dark">
-        <!-- Status bar color. -->
-        <item name="android:statusBarColor">@android:color/black</item>
-        <item name="android:windowLightStatusBar">false</item>
-        <!-- Customize your theme here. -->
-        <item name="colorPrimary">@color/white</item>
-        <item name="colorOnPrimary">@color/black</item>
-        <item name="colorSecondary">@color/white</item>
-        <item name="colorOnSecondary">@color/black</item>
-        <item name="android:textColor">@color/white</item>
-        <item name="android:textColorPrimary">@color/white</item>
-        <item name="android:textColorSecondary">@color/white</item>
-        <item name="android:colorBackground">@color/background_dark</item>
-        <item name="colorSurface">@color/background_dark</item>
-        <item name="colorOnSurface">@color/white</item>
-        <item name="android:windowBackground">@color/background_dark</item>
-        <item name="actionBarStyle">@style/Widget.App.ActionBar</item>
+<resources>
+    <style name="theme.dejpeg" parent="Theme.Material3.DayNight">
+        <!-- System bars -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        
+        <!-- Window background -->
+        <item name="android:windowBackground">@color/background_light</item>
+        <item name="android:colorBackground">@color/background_light</item>
+        
+        <!-- Material3 colors -->
+        <item name="colorPrimary">@color/black</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSurface">@color/background_light</item>
+        <item name="colorOnSurface">@color/black</item>
+        
+        <!-- AppCompat compatibility -->
+        <item name="android:windowContentOverlay">@null</item>
+
+        <!-- Widget styles -->
         <item name="materialButtonStyle">@style/Widget.App.Button</item>
     </style>
 
     <style name="Widget.App.Button" parent="Widget.Material3.Button">
-        <item name="android:textColor">@color/white</item>
-        <item name="backgroundTint">@color/button_state_list</item>
+        <item name="android:textColor">@color/black</item>
+        <item name="backgroundTint">@color/button_enabled_light</item>
         <item name="android:stateListAnimator">@null</item>
     </style>
 
-    <style name="Theme.ComposeDialog" parent="Theme.MaterialComponents.DayNight.Dialog">
+    <style name="Theme.ComposeDialog" parent="Theme.Material3.DayNight.Dialog">
         <item name="android:windowIsFloating">false</item>
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowFullscreen">true</item>
         <item name="android:windowNoTitle">true</item>
-    </style>
-
-    <style name="Widget.App.ActionBar" parent="Widget.Material3.ActionBar.Solid">
-        <item name="background">@color/background_dark</item>
-        <item name="elevation">0dp</item>
     </style>
 </resources>

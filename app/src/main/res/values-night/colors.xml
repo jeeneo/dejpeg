@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark theme colors -->
+    <color name="background_dark">#121212</color>
+    <color name="grid_background_dark">#1E1E1E</color>
+    <color name="selected_item_dark">#2C2C2C</color>
+    <color name="button_enabled_dark">#424242</color>
+    <color name="button_disabled_dark">#222222</color>
+    <color name="filmstrip_background_dark">#80222222</color>
+
+    <!-- Button states -->
+    <color name="button_enabled">@color/button_enabled_dark</color>
+    <color name="button_disabled">@color/button_disabled_dark</color>
+</resources>

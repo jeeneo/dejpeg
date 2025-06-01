@@ -99,16 +99,17 @@ class MainActivity : AppCompatActivity() {
     private lateinit var processingProgressBar: ProgressBar
     private lateinit var vibrationManager: VibrationManager
 
+    private lateinit var notificationHandler: NotificationHandler
+    
+    private lateinit var placeholderContainer: LinearLayout
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        (application as dejpeg).registerActivityLifecycleCallbacks(AppLifecycleTracker)
 
         vibrationManager = VibrationManager(this)
-
-        // try {
-        //     System.loadLibrary("opencv_java4")
-        // } catch (e: UnsatisfiedLinkError) {
-        //     Toast.makeText(this, getString(R.string.opencv_error), Toast.LENGTH_LONG).show()
-        // }
+        notificationHandler = NotificationHandler(this)
         setContentView(R.layout.activity_main)
 
         selectButton = findViewById(R.id.selectButton)
@@ -117,6 +118,8 @@ class MainActivity : AppCompatActivity() {
         applyToAllSwitch = findViewById(R.id.applyToAllSwitch)
         cancelButton = findViewById(R.id.cancelButton)
         applyToAllSwitch.visibility = View.GONE
+
+        placeholderContainer = findViewById(R.id.placeholderContainer)
 
         applyToAllSwitch.setOnCheckedChangeListener { _, _ ->
             vibrationManager.vibrateButton()
@@ -209,15 +212,6 @@ class MainActivity : AppCompatActivity() {
                 .apply()
         }
 
-
-        //  intent?.let {
-        //     if (Intent.ACTION_SEND == it.action && it.type?.startsWith("image/") == true) {
-        //         val imageUri = it.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
-        //         if (imageUri != null) onImageSelected(imageUri)
-        //     }
-        // }
-        // deprecated replaced:
-
         intent?.let {
             if (Intent.ACTION_SEND == it.action && it.type?.startsWith("image/") == true) {
                 val imageUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -258,24 +252,13 @@ class MainActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
         } else {
-            setupNotificationChannel()
+            notificationHandler.setupNotificationChannel()
         }
 
         updateStrengthSliderVisibility()
 
-        application.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
-            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
-            override fun onActivityStarted(activity: Activity) {}
-            override fun onActivityResumed(activity: Activity) {}
-            override fun onActivityPaused(activity: Activity) {}
-            override fun onActivityStopped(activity: Activity) {}
-            override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
-            override fun onActivityDestroyed(activity: Activity) {
-                if (activity === this@MainActivity) {
-                    clearAllNotifications()
-                }
-            }
-        })
+        val serviceIntent = Intent(this, AppBackgroundService::class.java)
+        startService(serviceIntent)
     }
 
     private fun promptModelSelection() {
@@ -298,14 +281,12 @@ class MainActivity : AppCompatActivity() {
                 val fbcnnLink = getString(R.string.FBCNN_link)
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(fbcnnLink))
                 startActivity(intent)
-                // Do not dismiss dialog
             }
             dialog.getButton(DialogInterface.BUTTON_NEGATIVE)?.setOnClickListener {
                 vibrationManager.vibrateDialogChoice()
                 val scunetLink = getString(R.string.SCUNet_link)
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(scunetLink))
                 startActivity(intent)
-                // Do not dismiss dialog
             }
         }
 
@@ -370,7 +351,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun copyAndLoadModel(modelUri: Uri) {
         runOnUiThread { showImportProgressDialog() }
-
         Thread {
             try {
                 val callback = object : ModelManager.ModelCallback {
@@ -386,8 +366,7 @@ class MainActivity : AppCompatActivity() {
                     override fun onError(error: String) {
                         runOnUiThread {
                             dismissImportProgressDialog()
-                            Toast.makeText(applicationContext, getString(R.string.error_importing_model), Toast.LENGTH_LONG).show()
-                            promptModelSelection()
+                            showErrorDialog(getString(R.string.error_importing_model))
                         }
                     }
                     override fun onProgress(progress: Int) {
@@ -398,11 +377,27 @@ class MainActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 runOnUiThread {
                     dismissImportProgressDialog()
-                    Toast.makeText(applicationContext, getString(R.string.invalid_model), Toast.LENGTH_LONG).show()
-                    promptModelSelection()
+                    val errorMessage = getString(R.string.error_importing_model, e.message)
+                    showErrorDialog(errorMessage)
                 }
             }
         }.start()
+    }
+
+    private fun showErrorDialog(message: String) {
+        MaterialAlertDialogBuilder(this@MainActivity)
+            .setTitle(R.string.importing_model)
+            .setMessage(message)
+            .setPositiveButton(R.string.copy) { _: DialogInterface, _: Int ->
+                val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                val clip = android.content.ClipData.newPlainText("error", message)
+                clipboard.setPrimaryClip(clip)
+            }
+            .setNegativeButton(R.string.dismiss, null)
+            .setOnDismissListener {
+                if (!modelManager.hasActiveModel()) promptModelSelection()
+            }
+            .show()
     }
 
     private fun showImportProgressDialog() {
@@ -668,158 +663,44 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showProcessingNotification(currentImage: Int, totalImages: Int) {
-        val notificationTitle = if (totalImages > 1) {
-            getString(R.string.processing_batch, currentImage, totalImages)
-        } else {
-            getString(R.string.processing_single)
-        }
-
-        val notification = NotificationCompat.Builder(this, "processing_channel")
-            .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(notificationTitle)
-            .setProgress(0, 0, true)
-            .setOngoing(true)
-            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
-            .setOnlyAlertOnce(true)
-            .setAutoCancel(false)
-            .build()
-
-        NotificationManagerCompat.from(this).notify(NOTIFICATION_ID_PROCESSING, notification)
+        notificationHandler.showProcessingNotification(currentImage, totalImages)
     }
 
     private fun showErrorNotification(error: String) {
-        vibrationManager.vibrateError()
-        val notification = NotificationCompat.Builder(this, "processing_channel")
-            .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(getString(R.string.processing_error))
-            .setContentText(error)
-            .setAutoCancel(true)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .build()
-
-        NotificationManagerCompat.from(this).apply {
-            cancel(NOTIFICATION_ID_PROCESSING)
-            notify(NOTIFICATION_ID_ERROR, notification)
-        }
+        notificationHandler.showErrorNotification(error)
     }
 
     private fun showCompletionNotification(totalImages: Int) {
-        val notificationTitle = if (totalImages > 1) {
-            getString(R.string.processing_complete_batch, totalImages)
-        } else {
-            getString(R.string.processing_complete_single)
-        }
-
-        val intent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            this, 0, intent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
-
-        val notification = NotificationCompat.Builder(this, "processing_channel")
-            .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(notificationTitle)
-            .setContentText(getString(R.string.processing_complete_description))
-            .setAutoCancel(true)
-            .setContentIntent(pendingIntent)
-            .build()
-
-        NotificationManagerCompat.from(this).apply {
-            cancel(NOTIFICATION_ID_PROCESSING)
-            notify(NOTIFICATION_ID_COMPLETION, notification)
-        }
+        notificationHandler.showCompletionNotification(totalImages)
     }
 
     private fun dismissProcessingNotification() {
-        NotificationManagerCompat.from(this).cancel(NOTIFICATION_ID_PROCESSING)
+        notificationHandler.dismissProcessingNotification()
     }
 
     private fun clearAllNotifications() {
-        val notificationManager = NotificationManagerCompat.from(this)
-        notificationManager.cancel(NOTIFICATION_ID_PROCESSING)
-        notificationManager.cancel(NOTIFICATION_ID_COMPLETION)
-        notificationManager.cancel(NOTIFICATION_ID_ERROR)
+        notificationHandler.clearAllNotifications()
     }
 
     private fun setupNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                "processing_channel",
-                getString(R.string.processing_updates),
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = getString(R.string.processing_updates_description)
-                setShowBadge(true)
-                enableLights(false)
-                enableVibration(false)
-            }
-            val notificationManager = getSystemService(NotificationManager::class.java)
-            notificationManager.createNotificationChannel(channel)
+        notificationHandler.setupNotificationChannel()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        notificationHandler.clearAllNotifications()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (isProcessing && !isFinishing && !isChangingConfigurations) {
+            notificationHandler.showProcessingNotification(currentPage + 1, images.size)
         }
     }
 
-    private fun showConfigDialog() {
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.config)
-            .setSingleChoiceItems(
-                arrayOf(getString(R.string.png), getString(R.string.bmp)),
-                if (outputFormat == "BMP") FORMAT_BMP else FORMAT_PNG
-            ) { dialog: DialogInterface, which: Int ->
-                vibrationManager.vibrateDialogChoice()
-                outputFormat = if (which == FORMAT_BMP) "BMP" else "PNG"
-                getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-                    .edit()
-                    .putString(OUTPUT_FORMAT_KEY, outputFormat)
-                    .apply()
-                Toast.makeText(this, getString(R.string.output_format_set, outputFormat), Toast.LENGTH_SHORT).show()
-                dialog.dismiss()
-            }
-            .setNeutralButton(R.string.manage_models) { _, _ ->
-                vibrationManager.vibrateDialogChoice()
-                showModelManagementDialog()
-            }
-            .setNegativeButton(R.string.cancel_button) { _, _ ->
-                vibrationManager.vibrateDialogChoice()
-            }
-            .show()
-    }
-
-    private fun showDialog(
-        title: Int,
-        message: Int? = null,
-        items: Array<String>? = null,
-        checkedItem: Int = -1,
-        onItemSelected: ((Int) -> Unit)? = null,
-        positiveButton: Int? = null,
-        onPositive: (() -> Unit)? = null,
-        neutralButton: Int? = null,
-        onNeutral: (() -> Unit)? = null,
-        negativeButton: Int? = null,
-        onNegative: (() -> Unit)? = null,
-        cancellable: Boolean = true
-    ) {
-        MaterialAlertDialogBuilder(this).apply {
-            setTitle(title)
-            message?.let { setMessage(it) }
-            items?.let { itemsArray ->
-                if (checkedItem >= 0) {
-                    setSingleChoiceItems(itemsArray, checkedItem) { dialog, which ->
-                        onItemSelected?.invoke(which)
-                        dialog.dismiss()
-                    }
-                } else {
-                    setItems(itemsArray) { _, which ->
-                        onItemSelected?.invoke(which)
-                    }
-                }
-            }
-            positiveButton?.let { setPositiveButton(it) { _, _ -> onPositive?.invoke() } }
-            neutralButton?.let { setNeutralButton(it) { _, _ -> onNeutral?.invoke() } }
-            negativeButton?.let { setNegativeButton(it) { _, _ -> onNegative?.invoke() } }
-            setCancelable(cancellable)
-        }.show()
+    override fun onDestroy() {
+        super.onDestroy()
+        notificationHandler.clearAllNotifications()
     }
 
     private fun updateStrengthSliderVisibility() {
@@ -837,8 +718,11 @@ class MainActivity : AppCompatActivity() {
             beforeAfterView.clearImages()
             filmstripRecyclerView.visibility = View.GONE
             processingProgressBar.visibility = View.GONE
+            placeholderContainer.visibility = View.VISIBLE
             return
         }
+
+        placeholderContainer.visibility = View.GONE
 
         if (isProcessing) {
             beforeAfterView.visibility = View.GONE
@@ -1011,8 +895,29 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        clearAllNotifications()
+    private fun showConfigDialog() {
+    MaterialAlertDialogBuilder(this)
+        .setTitle(R.string.config)
+        .setSingleChoiceItems(
+            arrayOf(getString(R.string.png), getString(R.string.bmp)),
+            if (outputFormat == "BMP") FORMAT_BMP else FORMAT_PNG
+        ) { dialog: DialogInterface, which: Int ->
+            vibrationManager.vibrateDialogChoice()
+            outputFormat = if (which == FORMAT_BMP) "BMP" else "PNG"
+            getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                .edit()
+                .putString(OUTPUT_FORMAT_KEY, outputFormat)
+                .apply()
+            Toast.makeText(this, getString(R.string.output_format_set, outputFormat), Toast.LENGTH_SHORT).show()
+            dialog.dismiss()
+        }
+        .setNeutralButton(R.string.manage_models) { _, _ ->
+            vibrationManager.vibrateDialogChoice()
+            showModelManagementDialog()
+        }
+        .setNegativeButton(R.string.cancel_button) { _, _ ->
+            vibrationManager.vibrateDialogChoice()
+        }
+        .show()
     }
 }

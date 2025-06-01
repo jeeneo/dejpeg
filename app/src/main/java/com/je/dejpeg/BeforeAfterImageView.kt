@@ -20,7 +20,9 @@ class BeforeAfterImageView @JvmOverloads constructor(
     private var beforeBitmap: Bitmap? = null
     private var afterBitmap: Bitmap? = null
     
-    private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        isFilterBitmap = true
+    }
     private val sliderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
         strokeWidth = 4f
@@ -80,7 +82,7 @@ class BeforeAfterImageView @JvmOverloads constructor(
     
     private var scaleFactor = 1.0f
     private var minScale = 1.0f
-    private var maxScale = 5.0f
+    private var maxScale = 1.0f
     private var translateX = 0f
     private var translateY = 0f
     
@@ -119,14 +121,21 @@ class BeforeAfterImageView @JvmOverloads constructor(
         buttonCallback = callback
     }
     
+    private fun calculateMaxScale(bitmap: Bitmap) {
+        val density = resources.displayMetrics.density
+        maxScale = max(bitmap.width / density, bitmap.height / density)
+    }
+
     fun setBeforeImage(bitmap: Bitmap) {
         beforeBitmap = bitmap
+        calculateMaxScale(bitmap)
         calculateImageBounds()
         invalidate()
     }
     
     fun setAfterImage(bitmap: Bitmap?) {
         afterBitmap = bitmap
+        bitmap?.let { calculateMaxScale(it) }
         showSlider = bitmap != null
         calculateImageBounds()
         invalidate()
@@ -189,6 +198,8 @@ class BeforeAfterImageView @JvmOverloads constructor(
         matrix.invert(inverseMatrix)
 
         constrainTranslation()
+
+        paint.isFilterBitmap = scaleFactor <= 1.0f
 
         matrix.reset()
         matrix.postScale(scaleFactor, scaleFactor)
@@ -390,12 +401,14 @@ class BeforeAfterImageView @JvmOverloads constructor(
                     parent.requestDisallowInterceptTouchEvent(true)
                 }
             }
-            
+
             MotionEvent.ACTION_POINTER_DOWN -> {
                 if (event.pointerCount == 2) {
                     val index = event.actionIndex
-                    lastTouchX = event.getX(index)
-                    lastTouchY = event.getY(index)
+                    lastTouchX = (event.getX(0) + event.getX(1)) / 2
+                    lastTouchY = (event.getY(0) + event.getY(1)) / 2
+                    isScaling = true
+                    parent.requestDisallowInterceptTouchEvent(true)
                 }
             }
             
@@ -407,6 +420,18 @@ class BeforeAfterImageView @JvmOverloads constructor(
                     
                     if (isDraggingSlider) {
                         updateSliderPosition(x)
+                    } else if (isScaling && event.pointerCount == 2) {
+                        val newTouchX = (event.getX(0) + event.getX(1)) / 2
+                        val newTouchY = (event.getY(0) + event.getY(1)) / 2
+                        val dx = newTouchX - lastTouchX
+                        val dy = newTouchY - lastTouchY
+
+                        translateX += dx
+                        translateY += dy
+                        updateMatrix()
+
+                        lastTouchX = newTouchX
+                        lastTouchY = newTouchY
                     } else if (scaleFactor > minScale) {
                         val dx = x - lastTouchX
                         val dy = y - lastTouchY
@@ -414,29 +439,37 @@ class BeforeAfterImageView @JvmOverloads constructor(
                         translateX += dx
                         translateY += dy
                         updateMatrix()
+
+                        lastTouchX = x
+                        lastTouchY = y
                     }
-                    
-                    lastTouchX = x
-                    lastTouchY = y
                 }
-            }
-            
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                activePointerId = MotionEvent.INVALID_POINTER_ID
-                isDraggingSlider = false
-                parent.requestDisallowInterceptTouchEvent(false)
             }
             
             MotionEvent.ACTION_POINTER_UP -> {
                 val pointerIndex = event.actionIndex
                 val pointerId = event.getPointerId(pointerIndex)
-                
+
                 if (pointerId == activePointerId) {
                     val newPointerIndex = if (pointerIndex == 0) 1 else 0
                     lastTouchX = event.getX(newPointerIndex)
                     lastTouchY = event.getY(newPointerIndex)
                     activePointerId = event.getPointerId(newPointerIndex)
                 }
+
+                if (event.pointerCount == 2) {
+                    lastTouchX = (event.getX(0) + event.getX(1)) / 2
+                    lastTouchY = (event.getY(0) + event.getY(1)) / 2
+                } else {
+                    isScaling = false
+                }
+            }
+
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                activePointerId = MotionEvent.INVALID_POINTER_ID
+                isDraggingSlider = false
+                isScaling = false
+                parent.requestDisallowInterceptTouchEvent(false)
             }
         }
         
@@ -504,7 +537,7 @@ class BeforeAfterImageView @JvmOverloads constructor(
             if (currentScale > minScale) {
                 targetScale = minScale
             } else {
-                targetScale = maxScale
+                targetScale = (minScale * 4f).coerceIn(minScale, maxScale)
             }
 
             animateZoom(targetScale, focusX, focusY)

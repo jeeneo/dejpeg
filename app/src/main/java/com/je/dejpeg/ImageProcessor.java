@@ -10,7 +10,6 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
-// ONNX Runtime imports
 import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtSession;
@@ -112,7 +111,6 @@ public class ImageProcessor {
                 }
             }
 
-            // ONNX Runtime inference
             if (ortEnv == null) {
                 ortEnv = OrtEnvironment.getEnvironment();
             }
@@ -129,7 +127,6 @@ public class ImageProcessor {
             } else {
                 session = fbcnnSession;
                 float qf = strength / 100.0f;
-                // Fix: qf shape should be [1, 1] (rank 2)
                 FloatBuffer qfBuffer = FloatBuffer.wrap(new float[]{qf});
                 qfTensor = OnnxTensor.createTensor(ortEnv, qfBuffer, new long[]{1, 1});
                 inputs.put("input", inputTensor);
@@ -168,7 +165,6 @@ public class ImageProcessor {
             if (qfTensor != null) qfTensor.close();
             result.close();
 
-            // Convert outputArray to Bitmap
             Bitmap resultBitmap = Bitmap.createBitmap(width, height, hasAlpha ? Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565);
             int[] outPixels = new int[width * height];
             if (isGrayscaleModel) {
@@ -202,7 +198,6 @@ public class ImageProcessor {
         }
     }
 
-    // Utility to show error dialog with copy support
     private void showErrorDialog(String message, Throwable throwable) {
         StringBuilder sb = new StringBuilder();
         sb.append(message);
@@ -211,7 +206,6 @@ public class ImageProcessor {
         }
         String errorText = sb.toString();
 
-        // Ensure dialog is shown on UI thread
         if (Looper.myLooper() != Looper.getMainLooper()) {
             ((AppCompatActivity) context).runOnUiThread(() -> showErrorDialog(message, throwable));
             return;
@@ -277,7 +271,6 @@ public class ImageProcessor {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                // Show error dialog with stack trace
                 showErrorDialog(e.getMessage(), e);
                 callback.onError(e.getMessage());
             }

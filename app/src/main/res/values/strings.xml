@@ -8,7 +8,6 @@
     <string name="import_model">import</string>
     <string name="delete_models">delete models</string>
     <string name="no_models">no models found.\n\nplease download a model from one of the buttons below, then import (you can delete the files after being imported)</string>
-    <string name="invalid_model">invalid model file. please select one of:\nfbcnn_color.onnx\nfbcnn_gray.onnx\nfbcnn_gray_double.onnx</string>
     <string name="save_to_gallery">save to gallery</string>
     <string name="share">share</string>
     <string name="save">save</string>
@@ -26,7 +25,6 @@
     <string name="image_processed">image processed successfully</string>
     <string name="apply_to_all">apply to all</string>
     <string name="model_switched">switched to model: %1$s</string>
-    <!-- <string name="opencv_error">failed to load opencv native library</string> -->
     <string name="model_file">model file</string>
     <string name="images_loaded">loaded %1$d images</string>
     <string name="no_images_loaded">no images loaded</string>
@@ -70,4 +68,7 @@
     <string name="processing_error">processing error</string>
     <string name="FBCNN_link">https://github.com/jeeneo/FBCNN-mobile/releases/latest</string>
     <string name="SCUNet_link">https://github.com/jeeneo/SCUNet-mobile/releases/latest</string>
+    <string name="app_slogan">non-destructive restoration</string>
+    <string name="copy">copy</string>
+    <string name="dismiss">dismiss</string>
 </resources>
