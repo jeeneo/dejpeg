@@ -1,1 +1,26 @@
-<p><b>De<i>JPEG</i></b> is a free Android app for removing jpeg compression artifacts and denoising images with <a href='https://github.com/jiaxi-jiang/FBCNN' target='_blank' rel='nofollow noopener'>FBCNN</a> and <a href='https://github.com/cszn/SCUNet' target='_blank' rel='nofollow noopener'>SCUNet</a> with mobile-compatible models.</p><p><br><b>Features:</b></p><ul><li>batch processing</li><li>transparancy re-mapping (experimental)</li><li>exporting as BMP or PNG</li><li>free and no internet needed</li></ul><p><b>limitations:</b></p><ul><li>processed on your phone (no gpu), I'd recommend a device with 4gb of ram or more</li><li>input images above 1200px will be processed in chunks</li></ul><p><b>Note:</b> <b>De<i>JPEG</i></b> is not affiliated or related to Topaz's <code>DEJPEG</code> or any other software/project.</p>
+<p><b>De<i>JPEG</i></b> is a free Android app for removing jpeg compression artifacts and denoising images with <a href='https://github.com/jiaxi-jiang/FBCNN' target='_blank' rel='nofollow noopener'>FBCNN</a> and <a href='https://github.com/cszn/SCUNet' target='_blank' rel='nofollow noopener'>SCUNet</a> with mobile-compatible models.</p>
+<p><br><b>Features:</b></p>
+<ul>
+   <li>batch processing</li>
+   <li>transparancy re-mapping (experimental)</li>
+   <li>exporting as BMP or PNG</li>
+   <li>free and no internet needed</li>
+</ul>
+<p><b>limitations:</b></p>
+<ul>
+   <li>processed on your phone (no gpu), I'd recommend a device with 4gb of ram or more</li>
+   <li>input images above 1200px will be processed in chunks</li>
+</ul>
+<p><b>Note:</b><b>De<i>JPEG</i></b> is not affiliated or related to Topaz's <code>DEJPEG</code> or any other software/project.</p>
+
+changelog:
+<p><b>v2.2</b></p>
+
+added:
+1. add background service for notifications (fixes ghost notifications)
+2. dynamic theme (read from system)
+3. model hashing/verification
+
+fixes:
+1. removed anti-aliasing (for better viewing)
+2. fixed before/after view issues when panning
