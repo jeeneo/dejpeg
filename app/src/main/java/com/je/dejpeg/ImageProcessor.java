@@ -32,6 +32,15 @@ public class ImageProcessor {
     public boolean isCancelled = false;
     private Thread processingThread = null;
 
+    private final android.graphics.Bitmap.Config defaultConfig = Bitmap.Config.ARGB_8888;
+    private final androidx.collection.LruCache<String, Bitmap> bitmapPool =
+        new androidx.collection.LruCache<String, Bitmap>(4) {
+            @Override
+            protected int sizeOf(String key, Bitmap value) {
+                return value.getAllocationByteCount();
+            }
+        };
+
     public interface ProcessCallback {
         void onProgress(String message);
         void onComplete(Bitmap result);
@@ -67,6 +76,24 @@ public class ImageProcessor {
     private void releaseBitmap(Bitmap bitmap) {
         if (bitmap != null && !bitmap.isRecycled()) {
             bitmap.recycle();
+        }
+    }
+
+    private Bitmap acquireBitmap(int width, int height) {
+        String key = width + "x" + height;
+        Bitmap bitmap = bitmapPool.get(key);
+        if (bitmap != null && !bitmap.isRecycled()) {
+            bitmapPool.remove(key);
+            bitmap.eraseColor(Color.TRANSPARENT);
+            return bitmap;
+        }
+        return Bitmap.createBitmap(width, height, defaultConfig);
+    }
+
+    private void recycleBitmap(Bitmap bitmap) {
+        if (bitmap != null && !bitmap.isRecycled()) {
+            String key = bitmap.getWidth() + "x" + bitmap.getHeight();
+            bitmapPool.put(key, bitmap);
         }
     }
 
@@ -253,13 +280,14 @@ public class ImageProcessor {
 
                 Bitmap workingBitmap = inputBitmap.copy(Bitmap.Config.ARGB_8888, true);
 
+                callback.onProgress(totalImages > 1 ?
+                    context.getString(R.string.processing_image_n_of_m, currentIndex + 1, totalImages) :
+                    context.getString(R.string.processing_single));
+
                 Bitmap resultBitmap;
                 if (workingBitmap.getWidth() > MAX_INPUT_SIZE || workingBitmap.getHeight() > MAX_INPUT_SIZE) {
-                    resultBitmap = processLargeImage(workingBitmap, strength, isGrayscaleModel, callback);
+                    resultBitmap = processLargeImage(workingBitmap, strength, isGrayscaleModel, callback, currentIndex, totalImages);
                 } else {
-                    callback.onProgress(totalImages > 1 ? 
-                        context.getString(R.string.processing_batch, currentIndex + 1, totalImages) :
-                        context.getString(R.string.processing_single));
                     resultBitmap = processImageChunk(workingBitmap, strength, isGrayscaleModel);
                 }
 
@@ -278,10 +306,11 @@ public class ImageProcessor {
         processingThread.start();
     }
 
-    private Bitmap processLargeImage(Bitmap sourceBitmap, float strength, boolean isGrayscaleModel, ProcessCallback callback) {
+    private Bitmap processLargeImage(Bitmap sourceBitmap, float strength, boolean isGrayscaleModel, 
+            ProcessCallback callback, int currentIndex, int totalImages) {
         int sourceWidth = sourceBitmap.getWidth();
         int sourceHeight = sourceBitmap.getHeight();
-        Bitmap resultBitmap = Bitmap.createBitmap(sourceWidth, sourceHeight, sourceBitmap.getConfig());
+        Bitmap resultBitmap = acquireBitmap(sourceWidth, sourceHeight);
 
         int numRows = (int) Math.ceil((double) sourceHeight / MAX_CHUNK_SIZE);
         int numCols = (int) Math.ceil((double) sourceWidth / MAX_CHUNK_SIZE);
@@ -296,7 +325,11 @@ public class ImageProcessor {
                 int endX = Math.min((col + 1) * MAX_CHUNK_SIZE + (col < numCols - 1 ? CHUNK_OVERLAP : 0), sourceWidth);
 
                 Bitmap chunk = Bitmap.createBitmap(sourceBitmap, startX, startY, endX - startX, endY - startY);
-                callback.onProgress(context.getString(R.string.processing_chunk, ++processedChunks, totalChunks));
+                
+                String progress = totalImages > 1 ?
+                    context.getString(R.string.processing_image_n_of_m_chunk, currentIndex + 1, totalImages, ++processedChunks, totalChunks) :
+                    context.getString(R.string.processing_chunk, processedChunks, totalChunks);
+                callback.onProgress(progress);
 
                 Bitmap processedChunk = processImageChunk(chunk, strength, isGrayscaleModel);
                 chunk.recycle();
@@ -311,10 +344,6 @@ public class ImageProcessor {
                 resultBitmap.setPixels(chunkPixels, 0, copyWidth, startX + copyStartX, startY + copyStartY, copyWidth, copyHeight);
                 processedChunk.recycle();
             }
-        }
-
-        if (!isCancelled) {
-            callback.onProgress(context.getString(R.string.processing_complete_single));
         }
 
         return resultBitmap;

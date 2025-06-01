@@ -31,8 +31,7 @@ class NotificationHandler(private val context: Context) {
         }
     }
 
-    fun showProcessingNotification(currentImage: Int, totalImages: Int) {
-        
+    fun showProcessingNotification(currentImage: Int, totalImages: Int, chunkProgress: String? = null) {
         val notificationTitle = if (totalImages > 1) {
             context.getString(R.string.processing_batch, currentImage, totalImages)
         } else {
@@ -48,8 +47,9 @@ class NotificationHandler(private val context: Context) {
         )
 
         val notification = NotificationCompat.Builder(context, "processing_channel")
-            .setSmallIcon(R.drawable.ic_notification)
+            .setSmallIcon(R.drawable.ic_processing)
             .setContentTitle(notificationTitle)
+            .setContentText(chunkProgress)
             .setProgress(0, 0, true)
             .setOngoing(true)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
@@ -65,7 +65,7 @@ class NotificationHandler(private val context: Context) {
         if (AppLifecycleTracker.isAppInForeground) return
 
         val notification = NotificationCompat.Builder(context, "processing_channel")
-            .setSmallIcon(R.drawable.ic_notification)
+            .setSmallIcon(R.drawable.ic_processing)
             .setContentTitle(context.getString(R.string.processing_error))
             .setContentText(error)
             .setAutoCancel(true)
@@ -96,7 +96,7 @@ class NotificationHandler(private val context: Context) {
         )
 
         val notification = NotificationCompat.Builder(context, "processing_channel")
-            .setSmallIcon(R.drawable.ic_notification)
+            .setSmallIcon(R.drawable.ic_complete)
             .setContentTitle(notificationTitle)
             .setContentText(context.getString(R.string.processing_complete_description))
             .setAutoCancel(true)

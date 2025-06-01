@@ -1,26 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Shared colors -->
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
-    
-    <!-- Light theme colors -->
     <color name="background_light">#FFFFFF</color>
     <color name="grid_background_light">#F5F5F5</color>
     <color name="selected_item_light">#E0E0E0</color>
     <color name="button_enabled_light">#E0E0E0</color>
     <color name="button_disabled_light">#F5F5F5</color>
     <color name="filmstrip_background_light">#80E0E0E0</color>
-
-    <!-- Dark theme colors -->
     <color name="background_dark">#FFFFFF</color>
     <color name="grid_background_dark">#F5F5F5</color>
     <color name="selected_item_dark">#E0E0E0</color>
     <color name="button_enabled_dark">#BDBDBD</color>
     <color name="button_disabled_dark">#EEEEEE</color>
     <color name="filmstrip_background_dark">#80EEEEEE</color>
-
-    <!-- Button states -->
     <color name="button_enabled">@color/button_enabled_light</color>
     <color name="button_disabled">@color/button_disabled_light</color>
 </resources>

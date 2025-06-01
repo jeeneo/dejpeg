@@ -7,7 +7,7 @@
     <string name="manage_models">manage models</string>
     <string name="import_model">import</string>
     <string name="delete_models">delete models</string>
-    <string name="no_models">no models found.\n\nplease download a model from one of the buttons below, then import (you can delete the files after being imported)</string>
+    <string name="no_models">no models found.\n\nplease download a model from one of the buttons below, then import (you can delete the file after being imported)</string>
     <string name="save_to_gallery">save to gallery</string>
     <string name="share">share</string>
     <string name="save">save</string>
@@ -71,4 +71,8 @@
     <string name="app_slogan">non-destructive restoration</string>
     <string name="copy">copy</string>
     <string name="dismiss">dismiss</string>
+    <string name="download_button">download</string>
+    <string name="download_models">downloads models</string>
+    <string name="processing_image_n_of_m">processing image %1$d of %2$d</string>
+    <string name="processing_image_n_of_m_chunk">processing image %1$d of %2$d (chunk %3$d/%4$d)</string>
 </resources>

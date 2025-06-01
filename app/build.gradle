@@ -11,8 +11,8 @@ android {
         applicationId "com.je.dejpeg"
         minSdk 24
         targetSdk 35
-        versionCode 2
-        versionName "2.2"
+        versionCode 230
+        versionName "2.3"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 

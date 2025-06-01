@@ -10,122 +10,135 @@
         android:id="@+id/beforeAfterView"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintBottom_toTopOf="@+id/controlsLayout"
-        app:layout_constraintEnd_toStartOf="@+id/filmstripRecyclerView"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/controlsLayout"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <ProgressBar
-        android:id="@+id/processingProgressBar"
-        style="?android:attr/progressBarStyleLarge"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
+    <com.je.dejpeg.ProcessingAnimation
+        android:id="@+id/processingAnimation"
+        android:layout_width="200dp"
+        android:layout_height="48dp"
         android:visibility="gone"
         app:layout_constraintTop_toTopOf="@+id/beforeAfterView"
         app:layout_constraintBottom_toBottomOf="@+id/beforeAfterView"
         app:layout_constraintStart_toStartOf="@+id/beforeAfterView"
         app:layout_constraintEnd_toEndOf="@+id/beforeAfterView" />
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/filmstripRecyclerView"
-        android:layout_width="100dp"
-        android:layout_height="0dp"
-        android:clipToPadding="false"
-        android:orientation="vertical"
-        android:padding="8dp"
-        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/controlsLayout"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <LinearLayout
-        android:id="@+id/controlsLayout"
-        android:layout_width="match_parent"
+    <TextView
+        android:id="@+id/processingText"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="16dp"
-        app:layout_constraintBottom_toBottomOf="parent">
+        android:layout_marginTop="16dp"
+        android:textAlignment="center"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@+id/processingAnimation"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="@+id/beforeAfterView" />
 
-        <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/controlsLayout"
+        android:layout_width="320dp"
+        android:layout_height="match_parent"
+        android:padding="16dp"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/filmstripRecyclerView"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:clipToPadding="false"
+            android:orientation="vertical"
+            android:padding="8dp"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            app:layout_constraintBottom_toTopOf="@+id/strengthSeekBar"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <com.google.android.material.slider.RangeSlider
+            android:id="@+id/strengthSeekBar"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:layout_marginBottom="8dp"
+            android:valueFrom="0.0"
+            android:valueTo="100.0"
+            android:stepSize="5.0"
+            app:values="@array/initial_slider_values"
+            app:layout_constraintBottom_toTopOf="@+id/applyToAllSwitch"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
 
-            <com.google.android.material.slider.RangeSlider
-                android:id="@+id/strengthSeekBar"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:valueFrom="0.0"
-                android:valueTo="100.0"
-                android:stepSize="5.0"
-                app:values="@array/initial_slider_values" />
-
-            <com.google.android.material.materialswitch.MaterialSwitch
-                android:id="@+id/applyToAllSwitch"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/apply_to_all"
-                android:checked="true" />
-        </LinearLayout>
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/applyToAllSwitch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="@string/apply_to_all"
+            android:checked="true"
+            app:layout_constraintBottom_toTopOf="@+id/buttonsLayout" />
 
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:id="@+id/buttonsLayout"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginStart="16dp">
+            android:orientation="vertical"
+            app:layout_constraintBottom_toTopOf="@+id/pageIndicator">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/selectButton"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
+                android:layout_marginBottom="8dp"
                 android:text="@string/select_image"
                 style="@style/Widget.Material3.Button.TonalButton" />
 
             <FrameLayout
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/processButton"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/process"
                     style="@style/Widget.Material3.Button" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/cancelButton"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/cancel"
                     android:visibility="gone"
                     style="@style/Widget.Material3.Button.TonalButton" />
+
             </FrameLayout>
         </LinearLayout>
-    </LinearLayout>
 
-    <TextView
-        android:id="@+id/pageIndicator"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-        android:visibility="gone"
-        app:layout_constraintBottom_toTopOf="@+id/controlsLayout"
-        app:layout_constraintStart_toStartOf="@+id/controlsLayout" />
+        <TextView
+            android:id="@+id/pageIndicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <LinearLayout
         android:id="@+id/placeholderContainer"
         android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_height="wrap_content"
         android:gravity="center"
         android:orientation="vertical"
         android:visibility="gone"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/controlsLayout"
+        app:layout_constraintBottom_toBottomOf="@+id/beforeAfterView"
+        app:layout_constraintEnd_toEndOf="@+id/beforeAfterView"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/filmstripRecyclerView">
+        app:layout_constraintTop_toTopOf="@+id/beforeAfterView">
 
         <ImageView
             android:layout_width="256dp"
@@ -140,6 +153,7 @@
             android:textAlignment="center"
             android:textColor="#757575"
             android:textStyle="italic" />
+
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

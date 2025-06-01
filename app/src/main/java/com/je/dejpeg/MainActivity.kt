@@ -96,13 +96,15 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var filmstripAdapter: FilmstripAdapter
     private lateinit var filmstripRecyclerView: RecyclerView
-    private lateinit var processingProgressBar: ProgressBar
+    private lateinit var processingAnimation: ProcessingAnimation
     private lateinit var vibrationManager: VibrationManager
 
     private lateinit var notificationHandler: NotificationHandler
     
     private lateinit var placeholderContainer: LinearLayout
     
+    private lateinit var processingText: TextView
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
@@ -120,6 +122,7 @@ class MainActivity : AppCompatActivity() {
         applyToAllSwitch.visibility = View.GONE
 
         placeholderContainer = findViewById(R.id.placeholderContainer)
+        processingText = findViewById(R.id.processingText)
 
         applyToAllSwitch.setOnCheckedChangeListener { _, _ ->
             vibrationManager.vibrateButton()
@@ -245,7 +248,7 @@ class MainActivity : AppCompatActivity() {
             }
         })
         filmstripRecyclerView = findViewById(R.id.filmstripRecyclerView)
-        processingProgressBar = findViewById(R.id.processingProgressBar)
+        processingAnimation = findViewById(R.id.processingAnimation)
         setupFilmstrip()
         updateImageViews()
 
@@ -259,6 +262,18 @@ class MainActivity : AppCompatActivity() {
 
         val serviceIntent = Intent(this, AppBackgroundService::class.java)
         startService(serviceIntent)
+
+        val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
+        toolbar.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                R.id.action_config -> {
+                    vibrationManager.vibrateMenuTap()
+                    showConfigDialog()
+                    true
+                }
+                else -> false
+            }
+        }
     }
 
     private fun promptModelSelection() {
@@ -317,6 +332,28 @@ class MainActivity : AppCompatActivity() {
             .setNeutralButton(R.string.delete_button) { _, _ ->
                 vibrationManager.vibrateDialogChoice()
                 showDeleteModelDialog(models)
+            }
+            .setNegativeButton(R.string.download_button) { _, _ ->
+                vibrationManager.vibrateDialogChoice()
+                showModelDownloadDialog()
+            }
+            .show()
+    }
+
+    private fun showModelDownloadDialog() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.download_models)
+            .setItems(arrayOf("FBCNN", "SCUNet")) { _, which ->
+                vibrationManager.vibrateDialogChoice()
+                val link = when (which) {
+                    0 -> getString(R.string.FBCNN_link)
+                    else -> getString(R.string.SCUNet_link)
+                }
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link))
+                startActivity(intent)
+            }
+            .setNegativeButton(R.string.cancel_button) { _, _ ->
+                vibrationManager.vibrateDialogChoice()
             }
             .show()
     }
@@ -573,7 +610,8 @@ class MainActivity : AppCompatActivity() {
             processButton.isEnabled = images.isNotEmpty() && modelManager.hasActiveModel()
             beforeAfterView.visibility = if (isProcessing) View.GONE else View.VISIBLE
             filmstripRecyclerView.visibility = if (isProcessing) View.GONE else filmstripRecyclerView.visibility
-            processingProgressBar.visibility = if (isProcessing) View.VISIBLE else View.GONE
+            processingAnimation.visibility = if (isProcessing) View.VISIBLE else View.GONE
+            processingText.visibility = if (isProcessing) View.VISIBLE else View.GONE
         }
     }
 
@@ -584,6 +622,7 @@ class MainActivity : AppCompatActivity() {
             dismissProcessingNotification()
             updateButtonVisibility()
             updateImageViews()
+            stopService(Intent(this, AppBackgroundService::class.java))
             Toast.makeText(this, getString(R.string.processing_cancelled), Toast.LENGTH_SHORT).show()
         }
     }
@@ -592,10 +631,17 @@ class MainActivity : AppCompatActivity() {
         isProcessing = true
         updateButtonVisibility()
         updateImageViews()
+        
+        val serviceIntent = Intent(this, AppBackgroundService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent)
+        } else {
+            startService(serviceIntent)
+        }
 
         val isBatch = images.size > 1
         var completedCount = 0
-        showProcessingNotification(0, images.size)
+        showProcessingNotification(1, images.size)
 
         fun processNext(index: Int) {
             if (!isProcessing || index >= images.size) {
@@ -614,8 +660,6 @@ class MainActivity : AppCompatActivity() {
 
             val image = images[index]
             val strength = if (applyStrengthToAll) lastStrength * 100f else perImageStrengthFactors[index] * 100f
-
-            showProcessingNotification(index + 1, images.size)
 
             imageProcessor.processImage(
                 image.inputBitmap,
@@ -640,18 +684,17 @@ class MainActivity : AppCompatActivity() {
                         runOnUiThread {
                             if (isProcessing) {
                                 vibrationManager.vibrateError()
-                                val errorMessage = if (isBatch) 
-                                    getString(R.string.error_loading_image_n, index + 1, error)
-                                else 
-                                    getString(R.string.error_loading_image, error)
-                                
-                                showErrorNotification(errorMessage)
-                                Toast.makeText(this@MainActivity, errorMessage, Toast.LENGTH_SHORT).show()
+                                showErrorNotification(error)
+                                Toast.makeText(this@MainActivity, error, Toast.LENGTH_SHORT).show()
                                 processNext(index + 1)
                             }
                         }
                     }
                     override fun onProgress(message: String) {
+                        runOnUiThread {
+                            processingText.text = message
+                            showProcessingNotification(index + 1, images.size, message)
+                        }
                     }
                 },
                 index,
@@ -662,8 +705,8 @@ class MainActivity : AppCompatActivity() {
         processNext(0)
     }
 
-    private fun showProcessingNotification(currentImage: Int, totalImages: Int) {
-        notificationHandler.showProcessingNotification(currentImage, totalImages)
+    private fun showProcessingNotification(currentImage: Int, totalImages: Int, chunkProgress: String? = null) {
+        notificationHandler.showProcessingNotification(currentImage, totalImages, chunkProgress)
     }
 
     private fun showErrorNotification(error: String) {
@@ -701,6 +744,9 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         notificationHandler.clearAllNotifications()
+        if (!isProcessing) {
+            stopService(Intent(this, AppBackgroundService::class.java))
+        }
     }
 
     private fun updateStrengthSliderVisibility() {
@@ -717,7 +763,7 @@ class MainActivity : AppCompatActivity() {
         if (images.isEmpty()) {
             beforeAfterView.clearImages()
             filmstripRecyclerView.visibility = View.GONE
-            processingProgressBar.visibility = View.GONE
+            processingAnimation.visibility = View.GONE
             placeholderContainer.visibility = View.VISIBLE
             return
         }
@@ -727,10 +773,10 @@ class MainActivity : AppCompatActivity() {
         if (isProcessing) {
             beforeAfterView.visibility = View.GONE
             filmstripRecyclerView.visibility = View.GONE
-            processingProgressBar.visibility = View.VISIBLE
+            processingAnimation.visibility = View.VISIBLE
             return
         } else {
-            processingProgressBar.visibility = View.GONE
+            processingAnimation.visibility = View.GONE
         }
 
         beforeAfterView.visibility = View.VISIBLE
@@ -813,6 +859,15 @@ class MainActivity : AppCompatActivity() {
             }
         )
         filmstripRecyclerView.adapter = filmstripAdapter
+        val isLandscape = resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+        if (isLandscape) {
+            filmstripRecyclerView.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this, 
+                androidx.recyclerview.widget.LinearLayoutManager.VERTICAL, false)
+        } else {
+            filmstripRecyclerView.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this, 
+                androidx.recyclerview.widget.LinearLayoutManager.HORIZONTAL, false)
+        }
+        
         filmstripRecyclerView.visibility = View.GONE
     }
 
@@ -829,10 +884,15 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val isLandscape = parent.context.resources.configuration.orientation == 
+                android.content.res.Configuration.ORIENTATION_LANDSCAPE
+
             val imageView = ImageView(parent.context).apply {
                 layoutParams = ViewGroup.LayoutParams(
-                    resources.getDimensionPixelSize(R.dimen.filmstrip_item_width),
-                    ViewGroup.LayoutParams.MATCH_PARENT
+                    if (isLandscape) ViewGroup.LayoutParams.MATCH_PARENT 
+                    else resources.getDimensionPixelSize(R.dimen.filmstrip_item_width),
+                    if (isLandscape) resources.getDimensionPixelSize(R.dimen.filmstrip_item_width) 
+                    else ViewGroup.LayoutParams.MATCH_PARENT
                 )
                 scaleType = ImageView.ScaleType.CENTER_CROP
                 setBackgroundResource(android.R.color.darker_gray)
@@ -876,22 +936,6 @@ class MainActivity : AppCompatActivity() {
                 imageView.setImageBitmap(item.outputBitmap ?: item.inputBitmap)
                 imageView.alpha = if (isSelected) 1f else 0.6f
             }
-        }
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.main_menu, menu)
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.action_config -> {
-                vibrationManager.vibrateMenuTap()
-                showConfigDialog()
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
         }
     }
 

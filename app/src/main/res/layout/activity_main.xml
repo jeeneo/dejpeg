@@ -6,6 +6,13 @@
     android:background="?android:attr/colorBackground"
     android:fitsSystemWindows="true">
 
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        app:menu="@menu/main_menu"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <com.je.dejpeg.BeforeAfterImageView
         android:id="@+id/beforeAfterView"
         android:layout_width="0dp"
@@ -13,19 +20,28 @@
         app:layout_constraintBottom_toTopOf="@+id/filmstripRecyclerView"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toBottomOf="@+id/toolbar" />
 
-    <!-- Add a centered ProgressBar for processing/loading -->
-    <ProgressBar
-        android:id="@+id/processingProgressBar"
-        style="?android:attr/progressBarStyleLarge"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
+    <com.je.dejpeg.ProcessingAnimation
+        android:id="@+id/processingAnimation"
+        android:layout_width="200dp"
+        android:layout_height="48dp"
         android:visibility="gone"
         app:layout_constraintTop_toTopOf="@+id/beforeAfterView"
         app:layout_constraintBottom_toBottomOf="@+id/beforeAfterView"
         app:layout_constraintStart_toStartOf="@+id/beforeAfterView"
         app:layout_constraintEnd_toEndOf="@+id/beforeAfterView" />
+
+    <TextView
+        android:id="@+id/processingText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:textAlignment="center"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@+id/processingAnimation"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/filmstripRecyclerView"
