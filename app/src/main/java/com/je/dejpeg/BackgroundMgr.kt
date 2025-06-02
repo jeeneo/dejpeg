@@ -12,4 +12,11 @@ class dejpeg : Application() {
         super.onCreate()
         registerActivityLifecycleCallbacks(AppLifecycleTracker)
     }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level >= TRIM_MEMORY_UI_HIDDEN) {
+            stopService(Intent(this, AppBackgroundService::class.java))
+        }
+    }
 }

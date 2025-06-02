@@ -18,11 +18,103 @@ import ai.onnxruntime.OrtException;
 import java.nio.FloatBuffer;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.concurrent.Future;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ImageProcessor {
+    
+    public static class ProcessingState {
+        private static volatile ProcessingState instance;
+        private volatile boolean isProcessing;
+        private volatile int currentImageIndex;
+        private volatile int totalImages;
+        private volatile int currentChunk;
+        private volatile int totalChunks;
+        
+        private ProcessingState() {
+            reset();
+        }
+        
+        public static ProcessingState getInstance() {
+            if (instance == null) {
+                synchronized (ProcessingState.class) {
+                    if (instance == null) {
+                        instance = new ProcessingState();
+                    }
+                }
+            }
+            return instance;
+        }
+        
+        public synchronized void reset() {
+            isProcessing = false;
+            currentImageIndex = 0;
+            totalImages = 0;
+            currentChunk = 0;
+            totalChunks = 0;
+        }
+        
+        public synchronized void setImageProgress(int current, int total) {
+            currentImageIndex = current;
+            totalImages = total;
+            isProcessing = true;
+        }
+        
+        public synchronized void setChunkProgress(int current, int total) {
+            currentChunk = current;
+            totalChunks = total;
+        }
+        
+        public synchronized int getDisplayImageNumber() {
+            return currentImageIndex + 1;
+        }
+        
+        public synchronized String getProgressString(Context context) {
+            if (!isProcessing) return "";
+            
+            if (totalChunks > 1 && totalImages > 1) {
+                return context.getString(R.string.processing_image_batch_chunked, 
+                    getDisplayImageNumber(), totalImages, currentChunk, totalChunks);
+            } else if (totalChunks > 1) {
+                return context.getString(R.string.processing_image_chunked, 
+                    currentChunk, totalChunks);
+            } else if (totalImages > 1) {
+                return context.getString(R.string.processing_image_batch, 
+                    getDisplayImageNumber(), totalImages);
+            } else {
+                return context.getString(R.string.processing_image_single);
+            }
+        }
+        
+        public boolean isProcessing() {
+            return isProcessing;
+        }
+        
+        public synchronized void setComplete() {
+            isProcessing = false;
+        }
+        
+        public synchronized int getCurrentImage() {
+            return currentImageIndex;
+        }
+        
+        public synchronized int getTotalImages() {
+            return totalImages;
+        }
+    }
+
     private static final int MAX_CHUNK_SIZE = 1200;
     private static final int MAX_INPUT_SIZE = 1200;
     private static final int CHUNK_OVERLAP = 32;
+
+    // Add max concurrent chunks based on available memory
+    private static final int MAX_CONCURRENT_CHUNKS = 2;
+    private static final long MEMORY_CHUNK_THRESHOLD = 1024 * 1024 * 100; // 100MB threshold
 
     private final ModelManager modelManager;
     private final Context context;
@@ -41,6 +133,15 @@ public class ImageProcessor {
             }
         };
 
+    // Add thread pool for parallel processing
+    private ExecutorService executorService = Executors.newFixedThreadPool(
+        Math.max(1, Runtime.getRuntime().availableProcessors() - 1)
+    );
+    
+    // Add reusable buffers
+    private final ThreadLocal<int[]> pixelBuffer = new ThreadLocal<>();
+    private final ThreadLocal<float[]> tensorBuffer = new ThreadLocal<>();
+
     public interface ProcessCallback {
         void onProgress(String message);
         void onComplete(Bitmap result);
@@ -53,22 +154,52 @@ public class ImageProcessor {
     }
 
     public void unloadModel() {
-        fbcnnSession = null;
-        scunetSession = null;
-        ortEnv = null;
-        modelManager.unloadModel();
+        if (fbcnnSession != null) {
+            try {
+                fbcnnSession.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            fbcnnSession = null;
+        }
+        
+        if (scunetSession != null) {
+            try {
+                scunetSession.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            scunetSession = null;
+        }
+        
+        if (ortEnv != null) {
+            try {
+                ortEnv.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            ortEnv = null;
+        }
+        
+        System.gc();
     }
 
     public void cancelProcessing() {
         isCancelled = true;
+        ProcessingState.getInstance().reset();
         if (processingThread != null) {
             try {
+                executorService.shutdownNow(); // Interrupt all running tasks
                 processingThread.interrupt();
                 processingThread.join(1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             } finally {
                 processingThread = null;
+                // Recreate the executor service for future use
+                executorService = Executors.newFixedThreadPool(
+                    Math.max(1, Runtime.getRuntime().availableProcessors() - 1)
+                );
             }
         }
     }
@@ -97,49 +228,72 @@ public class ImageProcessor {
         }
     }
 
+    private float[] getOrCreateTensorBuffer(int size) {
+        float[] buffer = tensorBuffer.get();
+        if (buffer == null || buffer.length < size) {
+            buffer = new float[size];
+            tensorBuffer.set(buffer);
+        }
+        return buffer;
+    }
+
+    private int[] getOrCreatePixelBuffer(int size) {
+        int[] buffer = pixelBuffer.get();
+        if (buffer == null || buffer.length < size) {
+            buffer = new int[size];
+            pixelBuffer.set(buffer);
+        }
+        return buffer;
+    }
+
+    private boolean validateChunkSize(int width, int height) {
+        if (width > MAX_CHUNK_SIZE || height > MAX_CHUNK_SIZE) {
+            String error = String.format("Chunk size %dx%d exceeds maximum allowed size of %d", 
+                width, height, MAX_CHUNK_SIZE);
+            android.util.Log.e("ImageProcessor", error);
+            throw new IllegalArgumentException(error);
+        }
+        // Check if estimated memory usage is within bounds
+        long estimatedMemory = width * height * 4L * 2L; // RGB + working buffer
+        return estimatedMemory <= MEMORY_CHUNK_THRESHOLD;
+    }
+
     private Bitmap processImageChunk(Bitmap chunkBitmap, float strength, boolean isGrayscaleModel) {
         try {
             int width = chunkBitmap.getWidth();
             int height = chunkBitmap.getHeight();
             boolean hasAlpha = chunkBitmap.getConfig() == Bitmap.Config.ARGB_8888;
 
-            int[] pixels = new int[width * height];
+            // Validate chunk size
+            if (!validateChunkSize(width, height)) {
+                throw new IllegalArgumentException("Chunk size exceeds memory limits");
+            }
+
+            int[] pixels = getOrCreatePixelBuffer(width * height);
             chunkBitmap.getPixels(pixels, 0, width, 0, 0, width, height);
 
-            float[] inputArray;
-            float[] alphaChannel = null;
+            // Fix tensor buffer size calculation
+            int tensorSize = (isGrayscaleModel ? 1 : 3) * height * width;
+            float[] inputArray = getOrCreateTensorBuffer(tensorSize);
+            FloatBuffer inputBuffer = FloatBuffer.wrap(inputArray);
+            inputBuffer.limit(tensorSize); // Ensure buffer size matches tensor requirements
 
-            if (hasAlpha) {
-                alphaChannel = new float[width * height];
-            }
+            float[] alphaChannel = hasAlpha ? new float[width * height] : null;
 
             if (isGrayscaleModel) {
-                inputArray = new float[height * width];
-                for (int i = 0; i < height; i++) {
-                    for (int j = 0; j < width; j++) {
-                        int idx = i * width + j;
-                        int color = pixels[idx];
-                        int gray = (Color.red(color) + Color.green(color) + Color.blue(color)) / 3;
-                        inputArray[idx] = gray / 255.0f;
-                        if (hasAlpha) alphaChannel[idx] = Color.alpha(color) / 255.0f;
-                    }
+                for (int i = 0; i < pixels.length; i++) {
+                    int color = pixels[i];
+                    inputArray[i] = ((Color.red(color) + Color.green(color) + Color.blue(color)) / 3) / 255.0f;
+                    if (hasAlpha) alphaChannel[i] = Color.alpha(color) / 255.0f;
                 }
             } else {
-                inputArray = new float[3 * height * width];
-                for (int i = 0; i < height; i++) {
-                    for (int j = 0; j < width; j++) {
-                        int idx = i * width + j;
-                        int color = pixels[idx];
-                        inputArray[0 * height * width + idx] = Color.red(color) / 255.0f;
-                        inputArray[1 * height * width + idx] = Color.green(color) / 255.0f;
-                        inputArray[2 * height * width + idx] = Color.blue(color) / 255.0f;
-                        if (hasAlpha) alphaChannel[idx] = Color.alpha(color) / 255.0f;
-                    }
+                for (int i = 0; i < pixels.length; i++) {
+                    int color = pixels[i];
+                    inputArray[i] = Color.red(color) / 255.0f;
+                    inputArray[i + height * width] = Color.green(color) / 255.0f;
+                    inputArray[i + 2 * height * width] = Color.blue(color) / 255.0f;
+                    if (hasAlpha) alphaChannel[i] = Color.alpha(color) / 255.0f;
                 }
-            }
-
-            if (ortEnv == null) {
-                ortEnv = OrtEnvironment.getEnvironment();
             }
 
             long[] inputShape = new long[]{1, isGrayscaleModel ? 1 : 3, height, width};
@@ -192,32 +346,27 @@ public class ImageProcessor {
             if (qfTensor != null) qfTensor.close();
             result.close();
 
-            Bitmap resultBitmap = Bitmap.createBitmap(width, height, hasAlpha ? Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565);
-            int[] outPixels = new int[width * height];
+            // Optimize result bitmap creation
+            int[] outPixels = pixels; // Reuse input pixel array
             if (isGrayscaleModel) {
-                for (int i = 0; i < height; i++) {
-                    for (int j = 0; j < width; j++) {
-                        int idx = i * width + j;
-                        int gray = Math.max(0, Math.min(255, (int) (outputArray[idx] * 255.0f)));
-                        int alpha = hasAlpha ? Math.max(0, Math.min(255, (int) (alphaChannel[idx] * 255.0f))) : 255;
-                        outPixels[idx] = Color.argb(alpha, gray, gray, gray);
-                    }
+                for (int i = 0; i < pixels.length; i++) {
+                    int gray = Math.max(0, Math.min(255, (int) (outputArray[i] * 255.0f)));
+                    int alpha = hasAlpha ? Math.max(0, Math.min(255, (int) (alphaChannel[i] * 255.0f))) : 255;
+                    outPixels[i] = Color.argb(alpha, gray, gray, gray);
                 }
             } else {
-                for (int i = 0; i < height; i++) {
-                    for (int j = 0; j < width; j++) {
-                        int idx = i * width + j;
-                        int r = Math.max(0, Math.min(255, (int) (outputArray[0 * height * width + idx] * 255.0f)));
-                        int g = Math.max(0, Math.min(255, (int) (outputArray[1 * height * width + idx] * 255.0f)));
-                        int b = Math.max(0, Math.min(255, (int) (outputArray[2 * height * width + idx] * 255.0f)));
-                        int alpha = hasAlpha ? Math.max(0, Math.min(255, (int) (alphaChannel[idx] * 255.0f))) : 255;
-                        outPixels[idx] = Color.argb(alpha, r, g, b);
-                    }
+                for (int i = 0; i < pixels.length; i++) {
+                    int r = Math.max(0, Math.min(255, (int) (outputArray[i] * 255.0f)));
+                    int g = Math.max(0, Math.min(255, (int) (outputArray[i + height * width] * 255.0f)));
+                    int b = Math.max(0, Math.min(255, (int) (outputArray[i + 2 * height * width] * 255.0f)));
+                    int alpha = hasAlpha ? Math.max(0, Math.min(255, (int) (alphaChannel[i] * 255.0f))) : 255;
+                    outPixels[i] = Color.argb(alpha, r, g, b);
                 }
             }
+
+            Bitmap resultBitmap = acquireBitmap(width, height);
             resultBitmap.setPixels(outPixels, 0, width, 0, 0, width, height);
             return resultBitmap;
-
         } catch (Exception e) {
             android.util.Log.e("ImageProcessor", "Error processing chunk", e);
             showErrorDialog(e.getMessage(), e);
@@ -253,25 +402,35 @@ public class ImageProcessor {
 
     public void processImage(Bitmap inputBitmap, float strength, ProcessCallback callback, int currentIndex, int totalImages) {
         isCancelled = false;
+        ProcessingState.getInstance().setImageProgress(currentIndex, totalImages);
+        
         processingThread = new Thread(() -> {
             try {
+                // Create a new environment if null
+                if (ortEnv == null) {
+                    ortEnv = OrtEnvironment.getEnvironment();
+                }
+                
                 String modelName = modelManager.getActiveModelName();
                 boolean isSCUNetModel = modelName != null && modelName.startsWith("scunet_");
                 boolean isGrayscaleModel = modelName != null && modelName.contains("gray");
                 boolean isSpecialGaussianModel = modelName != null && modelName.equals("scunet_color_real_gan.onnx");
 
-                if (ortEnv == null) {
-                    ortEnv = OrtEnvironment.getEnvironment();
-                }
-
+                // Load appropriate model session
                 if (isSCUNetModel || isSpecialGaussianModel) {
-                    if (fbcnnSession != null) unloadModel();
+                    if (fbcnnSession != null) {
+                        unloadModel();
+                        ortEnv = OrtEnvironment.getEnvironment();
+                    }
                     if (scunetSession == null) {
                         callback.onProgress(context.getString(R.string.loading_model));
                         scunetSession = modelManager.loadModel();
                     }
                 } else {
-                    if (scunetSession != null) unloadModel();
+                    if (scunetSession != null) {
+                        unloadModel();
+                        ortEnv = OrtEnvironment.getEnvironment();
+                    }
                     if (fbcnnSession == null) {
                         callback.onProgress(context.getString(R.string.loading_model));
                         fbcnnSession = modelManager.loadModel();
@@ -281,76 +440,176 @@ public class ImageProcessor {
                 Bitmap workingBitmap = inputBitmap.copy(Bitmap.Config.ARGB_8888, true);
 
                 callback.onProgress(totalImages > 1 ?
-                    context.getString(R.string.processing_image_n_of_m, currentIndex + 1, totalImages) :
-                    context.getString(R.string.processing_single));
+                    context.getString(R.string.processing_image_batch, currentIndex + 1, totalImages) :
+                    context.getString(R.string.processing_image_single));
 
-                Bitmap resultBitmap;
-                if (workingBitmap.getWidth() > MAX_INPUT_SIZE || workingBitmap.getHeight() > MAX_INPUT_SIZE) {
-                    resultBitmap = processLargeImage(workingBitmap, strength, isGrayscaleModel, callback, currentIndex, totalImages);
-                } else {
-                    resultBitmap = processImageChunk(workingBitmap, strength, isGrayscaleModel);
-                }
+                Bitmap resultBitmap = null;
+                try {
+                    if (workingBitmap.getWidth() > MAX_INPUT_SIZE || workingBitmap.getHeight() > MAX_INPUT_SIZE) {
+                        resultBitmap = processLargeImage(workingBitmap, strength, isGrayscaleModel, callback, currentIndex, totalImages);
+                    } else {
+                        resultBitmap = processImageChunk(workingBitmap, strength, isGrayscaleModel);
+                    }
 
-                if (!isCancelled) {
-                    callback.onComplete(resultBitmap);
-                } else {
-                    releaseBitmap(resultBitmap);
-                    callback.onError(context.getString(R.string.processing_cancelled));
+                    if (!isCancelled && resultBitmap != null) {
+                        ProcessingState.getInstance().setComplete();
+                        callback.onComplete(resultBitmap);
+                    } else {
+                        ProcessingState.getInstance().reset();
+                        if (resultBitmap != null) {
+                            releaseBitmap(resultBitmap);
+                        }
+                        callback.onError(context.getString(R.string.processing_cancelled_toast));
+                    }
+                } catch (Exception e) {
+                    ProcessingState.getInstance().reset();
+                    if (resultBitmap != null) {
+                        releaseBitmap(resultBitmap);
+                    }
+                    throw e;
                 }
             } catch (Exception e) {
+                ProcessingState.getInstance().reset();
                 e.printStackTrace();
-                showErrorDialog(e.getMessage(), e);
+                if (!(e instanceof InterruptedException)) {
+                    showErrorDialog(e.getMessage(), e);
+                }
                 callback.onError(e.getMessage());
             }
         });
         processingThread.start();
     }
 
+    private synchronized void updateProgress(ProcessCallback callback, int currentIndex, int totalImages, 
+            int processedChunks, int totalChunks) {
+        ProcessingState.getInstance().setImageProgress(currentIndex, totalImages);
+        ProcessingState.getInstance().setChunkProgress(processedChunks, totalChunks);
+        callback.onProgress(ProcessingState.getInstance().getProgressString(context));
+    }
+
     private Bitmap processLargeImage(Bitmap sourceBitmap, float strength, boolean isGrayscaleModel, 
             ProcessCallback callback, int currentIndex, int totalImages) {
-        int sourceWidth = sourceBitmap.getWidth();
-        int sourceHeight = sourceBitmap.getHeight();
-        Bitmap resultBitmap = acquireBitmap(sourceWidth, sourceHeight);
+        try {
+            int sourceWidth = sourceBitmap.getWidth();
+            int sourceHeight = sourceBitmap.getHeight();
+            Bitmap resultBitmap = acquireBitmap(sourceWidth, sourceHeight);
 
-        int numRows = (int) Math.ceil((double) sourceHeight / MAX_CHUNK_SIZE);
-        int numCols = (int) Math.ceil((double) sourceWidth / MAX_CHUNK_SIZE);
-        int totalChunks = numRows * numCols;
-        int processedChunks = 0;
+            // Calculate effective chunk size (accounting for overlap)
+            int effectiveChunkSize = MAX_CHUNK_SIZE - CHUNK_OVERLAP * 2;
+            int numRows = (int) Math.ceil((double) sourceHeight / effectiveChunkSize);
+            int numCols = (int) Math.ceil((double) sourceWidth / effectiveChunkSize);
+            int totalChunks = numRows * numCols;
 
-        for (int row = 0; row < numRows && !isCancelled; row++) {
-            for (int col = 0; col < numCols && !isCancelled; col++) {
-                int startY = row * MAX_CHUNK_SIZE - (row > 0 ? CHUNK_OVERLAP : 0);
-                int startX = col * MAX_CHUNK_SIZE - (col > 0 ? CHUNK_OVERLAP : 0);
-                int endY = Math.min((row + 1) * MAX_CHUNK_SIZE + (row < numRows - 1 ? CHUNK_OVERLAP : 0), sourceHeight);
-                int endX = Math.min((col + 1) * MAX_CHUNK_SIZE + (col < numCols - 1 ? CHUNK_OVERLAP : 0), sourceWidth);
+            AtomicInteger processedChunks = new AtomicInteger(0);
+            List<Future<Void>> futures = new ArrayList<>();
+            java.util.concurrent.Semaphore chunkLimiter = 
+                new java.util.concurrent.Semaphore(MAX_CONCURRENT_CHUNKS);
 
-                Bitmap chunk = Bitmap.createBitmap(sourceBitmap, startX, startY, endX - startX, endY - startY);
-                
-                String progress = totalImages > 1 ?
-                    context.getString(R.string.processing_image_n_of_m_chunk, currentIndex + 1, totalImages, ++processedChunks, totalChunks) :
-                    context.getString(R.string.processing_chunk, processedChunks, totalChunks);
-                callback.onProgress(progress);
+            for (int row = 0; row < numRows && !isCancelled; row++) {
+                for (int col = 0; col < numCols && !isCancelled; col++) {
+                    final int finalRow = row;
+                    final int finalCol = col;
 
-                Bitmap processedChunk = processImageChunk(chunk, strength, isGrayscaleModel);
-                chunk.recycle();
+                    // Calculate chunk boundaries with proper overlap
+                    final int startY = Math.max(0, finalRow * effectiveChunkSize - CHUNK_OVERLAP);
+                    final int startX = Math.max(0, finalCol * effectiveChunkSize - CHUNK_OVERLAP);
+                    final int endY = Math.min(sourceHeight, (finalRow + 1) * effectiveChunkSize + CHUNK_OVERLAP);
+                    final int endX = Math.min(sourceWidth, (finalCol + 1) * effectiveChunkSize + CHUNK_OVERLAP);
 
-                int copyStartY = row > 0 ? CHUNK_OVERLAP : 0;
-                int copyStartX = col > 0 ? CHUNK_OVERLAP : 0;
-                int copyWidth = endX - startX - (col < numCols - 1 ? CHUNK_OVERLAP : 0) - copyStartX;
-                int copyHeight = endY - startY - (row < numRows - 1 ? CHUNK_OVERLAP : 0) - copyStartY;
+                    futures.add(executorService.submit(() -> {
+                        try {
+                            chunkLimiter.acquire();
+                            if (Thread.interrupted() || isCancelled) {
+                                throw new InterruptedException("Processing cancelled");
+                            }
 
-                int[] chunkPixels = new int[copyWidth * copyHeight];
-                processedChunk.getPixels(chunkPixels, 0, copyWidth, copyStartX, copyStartY, copyWidth, copyHeight);
-                resultBitmap.setPixels(chunkPixels, 0, copyWidth, startX + copyStartX, startY + copyStartY, copyWidth, copyHeight);
-                processedChunk.recycle();
+                            updateProgress(callback, currentIndex, totalImages, 
+                                processedChunks.get() + 1, totalChunks);
+
+                            // Process the chunk
+                            Bitmap chunk = Bitmap.createBitmap(sourceBitmap, 
+                                startX, startY, endX - startX, endY - startY);
+                            Bitmap processedChunk = processImageChunk(chunk, strength, isGrayscaleModel);
+                            chunk.recycle();
+
+                            synchronized (resultBitmap) {
+                                // Calculate copy boundaries excluding overlap
+                                final int copyStartY = (startY > 0) ? CHUNK_OVERLAP : 0;
+                                final int copyStartX = (startX > 0) ? CHUNK_OVERLAP : 0;
+                                final int copyEndY = endY - startY - 
+                                    (endY < sourceHeight ? CHUNK_OVERLAP : 0);
+                                final int copyEndX = endX - startX - 
+                                    (endX < sourceWidth ? CHUNK_OVERLAP : 0);
+                                final int copyWidth = copyEndX - copyStartX;
+                                final int copyHeight = copyEndY - copyStartY;
+
+                                int[] chunkPixels = new int[copyWidth * copyHeight];
+                                processedChunk.getPixels(chunkPixels, 0, copyWidth, 
+                                    copyStartX, copyStartY, copyWidth, copyHeight);
+                                resultBitmap.setPixels(chunkPixels, 0, copyWidth,
+                                    startX + copyStartX, startY + copyStartY, 
+                                    copyWidth, copyHeight);
+                            }
+                            processedChunk.recycle();
+
+                            processedChunks.incrementAndGet();
+                            return null;
+                        } catch (InterruptedException e) {
+                            throw e;
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        } finally {
+                            chunkLimiter.release();
+                            System.gc();
+                        }
+                    }));
+                }
             }
-        }
 
-        return resultBitmap;
+            // Wait for completion or cancellation
+            try {
+                for (Future<Void> future : futures) {
+                    if (!isCancelled) {
+                        try {
+                            future.get();
+                        } catch (InterruptedException e) {
+                            futures.forEach(f -> f.cancel(true));
+                            throw e;
+                        }
+                    } else {
+                        futures.forEach(f -> f.cancel(true));
+                        throw new InterruptedException("Processing cancelled");
+                    }
+                }
+                return resultBitmap;
+            } catch (InterruptedException e) {
+                releaseBitmap(resultBitmap);
+                throw e;
+            } catch (Exception e) {
+                releaseBitmap(resultBitmap);
+                throw new RuntimeException(e);
+            }
+        } catch (InterruptedException e) {
+            return null;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public boolean isActiveModelSCUNet() {
         String modelName = modelManager.getActiveModelName();
         return modelName != null && (modelName.startsWith("scunet_") || modelName.equals("scunet_color_real_gan.onnx"));
+    }
+
+    // Add cleanup method
+    public void cleanup() {
+        executorService.shutdown();
+        try {
+            if (!executorService.awaitTermination(1, TimeUnit.SECONDS)) {
+                executorService.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executorService.shutdownNow();
+        }
     }
 }

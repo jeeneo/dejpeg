@@ -38,6 +38,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.recyclerview.widget.RecyclerView
 import android.view.ViewGroup
 import android.graphics.Outline
+import com.je.dejpeg.ImageProcessor.ProcessingState
 
 class MainActivity : AppCompatActivity() {
     private lateinit var selectButton: Button
@@ -144,15 +145,38 @@ class MainActivity : AppCompatActivity() {
         imagePickerLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
         ) { result ->
-            if (result.resultCode == RESULT_OK && result.data != null) {
-                if (result.data?.clipData != null) {
-                    handleMultipleImages(result.data?.clipData!!)
-                } else {
-                    val uri = result.data?.data
-                    if (uri != null) onImageSelected(uri)
+            try {
+                if (result.resultCode == RESULT_OK && result.data != null) {
+                    result.data?.let { data ->
+                        if (data.clipData != null) {
+                            handleMultipleImages(data.clipData!!)
+                        } else {
+                            data.data?.let { uri ->
+                                val inputStream = contentResolver.openInputStream(uri)
+                                val options = BitmapFactory.Options().apply {
+                                    inJustDecodeBounds = true
+                                }
+                                BitmapFactory.decodeStream(inputStream, null, options)
+                                inputStream?.close()
+        
+                                val width = options.outWidth
+                                val height = options.outHeight
+        
+                                if (width > 7000 || height > 7000) {
+                                    showWarningDialog("the selected image is very large (${width}x${height}), this can cause issues") {
+                                        onImageSelected(uri)
+                                    }
+                                } else {
+                                    onImageSelected(uri)
+                                }
+                            }
+                        }
+                    }
                 }
+            } catch (e: Exception) {
+                showErrorDialog(getString(R.string.error_opening_image_dialog) + " " + e.message)
             }
-        }
+        }    
 
         modelPickerLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
@@ -161,9 +185,9 @@ class MainActivity : AppCompatActivity() {
                 val modelUri = result.data!!.data
                 if (modelUri != null) copyAndLoadModel(modelUri)
             } else {
-                if (!modelManager.hasActiveModel()) {
-                    promptModelSelection()
-                }
+                // if (!modelManager.hasActiveModel()) {
+                showModelManagementDialog()
+                // }
             }
         }
 
@@ -265,13 +289,32 @@ class MainActivity : AppCompatActivity() {
 
         val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
         toolbar.setOnMenuItemClickListener { item ->
+            if (isProcessing) {
+            Toast.makeText(this, getString(R.string.processing_in_progress_toast), Toast.LENGTH_SHORT).show()
+            return@setOnMenuItemClickListener true
+            }
             when (item.itemId) {
-                R.id.action_config -> {
-                    vibrationManager.vibrateMenuTap()
-                    showConfigDialog()
-                    true
-                }
-                else -> false
+            R.id.action_config -> {
+                vibrationManager.vibrateMenuTap()
+                showConfigDialog()
+                true
+            }
+            else -> false
+            }
+        }
+        
+        intent?.let {
+            if (it.getBooleanExtra("show_service_info", false)) {
+                showServiceInfoDialog()
+            }
+        }
+    }
+    
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        intent?.let {
+            if (it.getBooleanExtra("show_service_info", false)) {
+                showServiceInfoDialog()
             }
         }
     }
@@ -280,7 +323,7 @@ class MainActivity : AppCompatActivity() {
         val dialog = MaterialAlertDialogBuilder(this)
             .setTitle(R.string.select_model)
             .setMessage(R.string.no_models)
-            .setNeutralButton(R.string.import_model) { _, _ ->
+            .setNeutralButton(R.string.import_model_button) { _, _ ->
                 vibrationManager.vibrateDialogChoice()
                 val intent = Intent(Intent.ACTION_GET_CONTENT).apply { type = "*/*" }
                 modelPickerLauncher.launch(intent)
@@ -324,12 +367,12 @@ class MainActivity : AppCompatActivity() {
                 updateStrengthSliderVisibility()
                 dialog.dismiss()
             }
-            .setPositiveButton(R.string.import_button) { _, _ ->
+            .setPositiveButton(R.string.import_model_button) { _, _ ->
                 vibrationManager.vibrateDialogChoice()
                 val intent = Intent(Intent.ACTION_GET_CONTENT).apply { type = "*/*" }
                 modelPickerLauncher.launch(intent)
             }
-            .setNeutralButton(R.string.delete_button) { _, _ ->
+            .setNeutralButton(R.string.delete_model_button) { _, _ ->
                 vibrationManager.vibrateDialogChoice()
                 showDeleteModelDialog(models)
             }
@@ -339,10 +382,18 @@ class MainActivity : AppCompatActivity() {
             }
             .show()
     }
+    
+    private fun showServiceInfoDialog() {
+        MaterialAlertDialogBuilder(this)
+        .setTitle("DeJPEG service")
+        .setMessage(getString(R.string.background_service_message) + getString(R.string.background_service_additional_message))
+        .setPositiveButton(getString(R.string.ok_button), null)
+        .show()
+    }
 
     private fun showModelDownloadDialog() {
         MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.download_models)
+            .setTitle(R.string.download_models_title)
             .setItems(arrayOf("FBCNN", "SCUNet")) { _, which ->
                 vibrationManager.vibrateDialogChoice()
                 val link = when (which) {
@@ -354,6 +405,7 @@ class MainActivity : AppCompatActivity() {
             }
             .setNegativeButton(R.string.cancel_button) { _, _ ->
                 vibrationManager.vibrateDialogChoice()
+                showModelManagementDialog()
             }
             .show()
     }
@@ -362,18 +414,18 @@ class MainActivity : AppCompatActivity() {
         val items = models.toTypedArray()
         val checkedItems = BooleanArray(models.size)
         MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.delete_models)
+            .setTitle(R.string.delete_models_title)
             .setMultiChoiceItems(items, checkedItems) { _, which, isChecked ->
                 vibrationManager.vibrateMenuTap()
                 checkedItems[which] = isChecked
             }
-            .setPositiveButton(getString(R.string.delete_button)) { _, _ ->
+            .setPositiveButton(getString(R.string.delete_model_button)) { _, _ ->
                 vibrationManager.vibrateDialogChoice()
                 for (i in checkedItems.indices) {
                     if (checkedItems[i]) {
                         modelManager.deleteModel(models[i], object : ModelManager.ModelDeleteCallback {
                             override fun onModelDeleted(modelName: String) {
-                                Toast.makeText(this@MainActivity, getString(R.string.model_deleted, modelName), Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this@MainActivity, getString(R.string.model_deleted_toast, modelName), Toast.LENGTH_SHORT).show()
                             }
                         })
                     }
@@ -382,6 +434,7 @@ class MainActivity : AppCompatActivity() {
             }
             .setNegativeButton(getString(R.string.cancel_button)) { _, _ ->
                 vibrationManager.vibrateDialogChoice()
+                showModelManagementDialog()
             }
             .show()
     }
@@ -395,7 +448,7 @@ class MainActivity : AppCompatActivity() {
                         runOnUiThread {
                             dismissImportProgressDialog()
                             modelManager.setActiveModel(modelName)
-                            Toast.makeText(applicationContext, getString(R.string.model_imported_toast), Toast.LENGTH_SHORT).show()
+                            Toast.makeText(applicationContext, getString(R.string.model_imported_toast_success), Toast.LENGTH_SHORT).show()
                             processButton.isEnabled = images.isNotEmpty()
                             updateStrengthSliderVisibility()
                         }
@@ -403,7 +456,7 @@ class MainActivity : AppCompatActivity() {
                     override fun onError(error: String) {
                         runOnUiThread {
                             dismissImportProgressDialog()
-                            showErrorDialog(getString(R.string.error_importing_model))
+                            showErrorDialog(getString(R.string.model_imported_dialog_error))
                         }
                     }
                     override fun onProgress(progress: Int) {
@@ -414,8 +467,7 @@ class MainActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 runOnUiThread {
                     dismissImportProgressDialog()
-                    val errorMessage = getString(R.string.error_importing_model, e.message)
-                    showErrorDialog(errorMessage)
+                    showErrorDialog(getString(R.string.model_imported_dialog_error, e.message))
                 }
             }
         }.start()
@@ -423,19 +475,30 @@ class MainActivity : AppCompatActivity() {
 
     private fun showErrorDialog(message: String) {
         MaterialAlertDialogBuilder(this@MainActivity)
-            .setTitle(R.string.importing_model)
+            .setTitle(R.string.error_dialog_title)
             .setMessage(message)
-            .setPositiveButton(R.string.copy) { _: DialogInterface, _: Int ->
+            .setPositiveButton(R.string.copy_button) { _: DialogInterface, _: Int ->
                 val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
                 val clip = android.content.ClipData.newPlainText("error", message)
                 clipboard.setPrimaryClip(clip)
             }
-            .setNegativeButton(R.string.dismiss, null)
+            .setNegativeButton(R.string.dismiss_button, null)
             .setOnDismissListener {
                 if (!modelManager.hasActiveModel()) promptModelSelection()
             }
             .show()
     }
+    
+    private fun showWarningDialog(message: String, onContinue: () -> Unit
+    ) {
+        MaterialAlertDialogBuilder(this@MainActivity)
+            .setTitle(R.string.warning_dialog_title)
+            .setMessage(message)
+            .setPositiveButton("continue") { _, _ -> onContinue() }
+            .setNegativeButton("cancel", null)
+            .show()
+    }
+
 
     private fun showImportProgressDialog() {
         if (importProgressDialog?.isShowing == true) return
@@ -482,7 +545,7 @@ class MainActivity : AppCompatActivity() {
             }
             startActivity(intent)
         } catch (e: Exception) {
-            Toast.makeText(this, getString(R.string.error_opening_image_toast), Toast.LENGTH_SHORT).show()
+            showErrorDialog(getString(R.string.error_loading_image_dialog) + " " + e.message)
         }
     }
 
@@ -501,7 +564,7 @@ class MainActivity : AppCompatActivity() {
             }
             updateImageViews(bitmap)
         } catch (e: IOException) {
-            Toast.makeText(this, getString(R.string.error_loading_image, e.message), Toast.LENGTH_SHORT).show()
+            showErrorDialog(getString(R.string.error_loading_image_dialog) + " " + e.message)
         }
     }
 
@@ -514,37 +577,68 @@ class MainActivity : AppCompatActivity() {
 
     private fun handleMultipleImages(clipData: ClipData) {
         try {
-            images.clear()
-            perImageStrengthFactors.clear()
-            var loadedCount = 0
+            val oversizedUris = mutableListOf<Uri>()
+            val regularUris = mutableListOf<Uri>()
+    
             for (i in 0 until clipData.itemCount) {
-                try {
-                    val uri = clipData.getItemAt(i).uri
-                    val bitmap = MediaStore.Images.Media.getBitmap(contentResolver, uri)
-                    images.add(ProcessingImage(bitmap))
-                    perImageStrengthFactors.add(lastStrength)
-                    loadedCount++
-                } catch (e: Exception) {
-                    Toast.makeText(this, getString(R.string.error_loading_image_n, i + 1, e.message), Toast.LENGTH_SHORT).show()
+                val uri = clipData.getItemAt(i).uri
+    
+                val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                val inputStream = contentResolver.openInputStream(uri)
+                BitmapFactory.decodeStream(inputStream, null, options)
+                inputStream?.close()
+    
+                if (options.outWidth > 6000 || options.outHeight > 6000) {
+                    oversizedUris.add(uri)
+                } else {
+                    regularUris.add(uri)
                 }
             }
-
-            if (loadedCount > 0) {
-                currentPage = 0
-                processButton.isEnabled = modelManager.hasActiveModel()
-                applyToAllSwitch.visibility = if (loadedCount > 1) View.VISIBLE else View.GONE
-                strengthSeekBar.setValues(perImageStrengthFactors[currentPage] * 100f)
-                Toast.makeText(this, getString(R.string.images_loaded, loadedCount), Toast.LENGTH_SHORT).show()
-                showPreviews = true
-                showFilmstrip = false
-                updateImageViews()
-            } else {
-                Toast.makeText(this, getString(R.string.no_images_loaded), Toast.LENGTH_SHORT).show()
+    
+            val loadImages: () -> Unit = {
+                images.clear()
+                perImageStrengthFactors.clear()
+                var loadedCount = 0
+    
+                val allUris = regularUris + oversizedUris
+                for (uri in allUris) {
+                    try {
+                        val bitmap = MediaStore.Images.Media.getBitmap(contentResolver, uri)
+                        images.add(ProcessingImage(bitmap))
+                        perImageStrengthFactors.add(lastStrength)
+                        loadedCount++
+                    } catch (e: Exception) {
+                        showErrorDialog(getString(R.string.error_loading_image_dialog) + " " + e.message)
+                        continue
+                    }
+                }
+    
+                if (loadedCount > 0) {
+                    currentPage = 0
+                    processButton.isEnabled = modelManager.hasActiveModel()
+                    applyToAllSwitch.visibility = if (loadedCount > 1) View.VISIBLE else View.GONE
+                    strengthSeekBar.setValues(perImageStrengthFactors[currentPage] * 100f)
+                    Toast.makeText(this, getString(R.string.batch_images_loaded_toast, loadedCount), Toast.LENGTH_SHORT).show()
+                    showPreviews = true
+                    showFilmstrip = false
+                    updateImageViews()
+                } else {
+                    Toast.makeText(this, getString(R.string.no_images_loaded_toast), Toast.LENGTH_SHORT).show()
+                }
             }
+    
+            if (oversizedUris.isNotEmpty()) {
+                val message = "one or more selected images are very large (exceeds 7000px), this might affect performance."
+                showWarningDialog(message, onContinue = loadImages)
+            } else {
+                loadImages()
+            }
+    
         } catch (e: Exception) {
-            Toast.makeText(this, getString(R.string.error_loading_images, e.message), Toast.LENGTH_SHORT).show()
+            showErrorDialog(getString(R.string.error_loading_all_images_batch_dialog, e.message))
         }
     }
+
 
     private fun updateImageViews(bitmap: Bitmap) {
         images.clear()
@@ -556,7 +650,7 @@ class MainActivity : AppCompatActivity() {
         beforeAfterView.setBeforeImage(bitmap)
         beforeAfterView.setAfterImage(null)
         processButton.isEnabled = modelManager.hasActiveModel()
-        Toast.makeText(this, getString(R.string.image_loaded), Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.single_image_loaded_toast), Toast.LENGTH_SHORT).show()
         showPreviews = true
         showFilmstrip = false
         applyToAllSwitch.visibility = View.GONE
@@ -576,9 +670,9 @@ class MainActivity : AppCompatActivity() {
                 )
             }
             MediaScannerConnection.scanFile(this, arrayOf(outputFile.toString()), null, null)
-            Toast.makeText(this, getString(R.string.image_saved), Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.image_saved_toast), Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
-            Toast.makeText(this, getString(R.string.error_saving_image, e.message), Toast.LENGTH_SHORT).show()
+            showErrorDialog(getString(R.string.error_saving_image_dialog) + " " + e.message)
         }
     }
 
@@ -596,41 +690,51 @@ class MainActivity : AppCompatActivity() {
                 putExtra(Intent.EXTRA_STREAM, contentUri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            startActivity(Intent.createChooser(shareIntent, getString(R.string.share)))
+            startActivity(Intent.createChooser(shareIntent, getString(R.string.share_image)))
         } catch (e: Exception) {
-            Toast.makeText(this, getString(R.string.error_sharing_image, e.message), Toast.LENGTH_SHORT).show()
+            showErrorDialog(getString(R.string.error_sharing_image_dialog) + " " + e.message)
         }
     }
 
     private fun updateButtonVisibility() {
         runOnUiThread {
+            val isProcessing = ProcessingState.getInstance().isProcessing() || this.isProcessing
             processButton.visibility = if (isProcessing) View.GONE else View.VISIBLE
             cancelButton.visibility = if (isProcessing) View.VISIBLE else View.GONE
             selectButton.isEnabled = !isProcessing
             processButton.isEnabled = images.isNotEmpty() && modelManager.hasActiveModel()
             beforeAfterView.visibility = if (isProcessing) View.GONE else View.VISIBLE
-            filmstripRecyclerView.visibility = if (isProcessing) View.GONE else filmstripRecyclerView.visibility
+            filmstripRecyclerView.visibility = if (!isProcessing && images.size > 1) View.VISIBLE else View.GONE
             processingAnimation.visibility = if (isProcessing) View.VISIBLE else View.GONE
             processingText.visibility = if (isProcessing) View.VISIBLE else View.GONE
+            
+            // Ensure text is shown properly
+            if (isProcessing) {
+                processingText.bringToFront()
+                processingAnimation.bringToFront()
+            }
         }
     }
 
     private fun cancelProcessing() {
-        if (isProcessing) {
+        if (ProcessingState.getInstance().isProcessing()) {
             imageProcessor.cancelProcessing()
-            isProcessing = false
+            ProcessingState.getInstance().reset()
             dismissProcessingNotification()
             updateButtonVisibility()
             updateImageViews()
             stopService(Intent(this, AppBackgroundService::class.java))
-            Toast.makeText(this, getString(R.string.processing_cancelled), Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.processing_cancelled_toast), Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun processWithModel() {
         isProcessing = true
         updateButtonVisibility()
-        updateImageViews()
+        processingAnimation.visibility = View.VISIBLE
+        processingText.visibility = View.VISIBLE
+        beforeAfterView.visibility = View.GONE
+        filmstripRecyclerView.visibility = View.GONE
         
         val serviceIntent = Intent(this, AppBackgroundService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -684,7 +788,7 @@ class MainActivity : AppCompatActivity() {
                         runOnUiThread {
                             if (isProcessing) {
                                 vibrationManager.vibrateError()
-                                showErrorNotification(error)
+                                notificationHandler.showErrorNotification(error)
                                 Toast.makeText(this@MainActivity, error, Toast.LENGTH_SHORT).show()
                                 processNext(index + 1)
                             }
@@ -693,7 +797,7 @@ class MainActivity : AppCompatActivity() {
                     override fun onProgress(message: String) {
                         runOnUiThread {
                             processingText.text = message
-                            showProcessingNotification(index + 1, images.size, message)
+                            notificationHandler.showProcessingNotification(index + 1, images.size, message)
                         }
                     }
                 },
@@ -736,17 +840,20 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        if (isProcessing && !isFinishing && !isChangingConfigurations) {
-            notificationHandler.showProcessingNotification(currentPage + 1, images.size)
+        val state = ProcessingState.getInstance()
+        if (state.isProcessing() && !isFinishing && !isChangingConfigurations) {
+            notificationHandler.showProcessingNotification(
+                state.getDisplayImageNumber(),
+                state.getTotalImages(),
+                state.getProgressString(this)
+            )
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
         notificationHandler.clearAllNotifications()
-        if (!isProcessing) {
-            stopService(Intent(this, AppBackgroundService::class.java))
-        }
+        stopService(Intent(this, AppBackgroundService::class.java))
     }
 
     private fun updateStrengthSliderVisibility() {
@@ -764,20 +871,24 @@ class MainActivity : AppCompatActivity() {
             beforeAfterView.clearImages()
             filmstripRecyclerView.visibility = View.GONE
             processingAnimation.visibility = View.GONE
+            processingText.visibility = View.GONE
             placeholderContainer.visibility = View.VISIBLE
             return
         }
 
         placeholderContainer.visibility = View.GONE
+        val processingState = ProcessingState.getInstance()
 
-        if (isProcessing) {
+        if (isProcessing || processingState.isProcessing()) {
             beforeAfterView.visibility = View.GONE
             filmstripRecyclerView.visibility = View.GONE
             processingAnimation.visibility = View.VISIBLE
+            processingText.visibility = View.VISIBLE
             return
-        } else {
-            processingAnimation.visibility = View.GONE
         }
+
+        processingAnimation.visibility = View.GONE
+        processingText.visibility = View.GONE
 
         beforeAfterView.visibility = View.VISIBLE
         val currentImage = images[currentPage]
@@ -791,10 +902,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun showImageRemovalDialog(position: Int) {
         MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.remove_image)
+            .setTitle(R.string.remove_image_title)
             .setItems(arrayOf(
-                getString(R.string.remove_this_image),
-                getString(R.string.remove_all_images)
+                getString(R.string.remove_this_image_button),
+                getString(R.string.remove_all_images_button)
             )) { _, which ->
                 vibrationManager.vibrateDialogChoice()
                 when (which) {
@@ -941,7 +1052,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun showConfigDialog() {
     MaterialAlertDialogBuilder(this)
-        .setTitle(R.string.config)
+        .setTitle(R.string.config_dialog_title)
         .setSingleChoiceItems(
             arrayOf(getString(R.string.png), getString(R.string.bmp)),
             if (outputFormat == "BMP") FORMAT_BMP else FORMAT_PNG
@@ -952,10 +1063,10 @@ class MainActivity : AppCompatActivity() {
                 .edit()
                 .putString(OUTPUT_FORMAT_KEY, outputFormat)
                 .apply()
-            Toast.makeText(this, getString(R.string.output_format_set, outputFormat), Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.output_format_set_toast, outputFormat), Toast.LENGTH_SHORT).show()
             dialog.dismiss()
         }
-        .setNeutralButton(R.string.manage_models) { _, _ ->
+        .setNeutralButton(R.string.manage_models_button) { _, _ ->
             vibrationManager.vibrateDialogChoice()
             showModelManagementDialog()
         }

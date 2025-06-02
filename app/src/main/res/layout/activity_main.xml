@@ -103,14 +103,14 @@
                     android:id="@+id/processButton"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/process"
+                    android:text="@string/process_button"
                     style="@style/Widget.Material3.Button" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/cancelButton"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/cancel"
+                    android:text="@string/cancel_button"
                     android:visibility="gone"
                     style="@style/Widget.Material3.Button.TonalButton" />
 
@@ -130,15 +130,19 @@
 
     <LinearLayout
         android:id="@+id/placeholderContainer"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:gravity="center"
         android:orientation="vertical"
-        android:visibility="gone">
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="@+id/beforeAfterView"
+        app:layout_constraintBottom_toBottomOf="@+id/beforeAfterView"
+        app:layout_constraintStart_toStartOf="@+id/beforeAfterView"
+        app:layout_constraintEnd_toEndOf="@+id/beforeAfterView">
 
         <ImageView
-            android:layout_width="256dp"
-            android:layout_height="256dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:src="@drawable/dejpeg"
             android:contentDescription="@string/app_name" />
 

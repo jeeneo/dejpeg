@@ -8,6 +8,7 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import com.je.dejpeg.ImageProcessor.ProcessingState
 
 class NotificationHandler(private val context: Context) {
     private val NOTIFICATION_ID_PROCESSING = 1
@@ -18,7 +19,7 @@ class NotificationHandler(private val context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 "processing_channel",
-                context.getString(R.string.processing_updates),
+                context.getString(R.string.processing_updates_reason_for_notifications),
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
                 description = context.getString(R.string.processing_updates_description)
@@ -32,10 +33,11 @@ class NotificationHandler(private val context: Context) {
     }
 
     fun showProcessingNotification(currentImage: Int, totalImages: Int, chunkProgress: String? = null) {
-        val notificationTitle = if (totalImages > 1) {
-            context.getString(R.string.processing_batch, currentImage, totalImages)
+        val processingState = ProcessingState.getInstance()
+        val notificationTitle = if (processingState.isProcessing()) {
+            processingState.getProgressString(context)
         } else {
-            context.getString(R.string.processing_single)
+            context.getString(R.string.processing_image_single)
         }
 
         val intent = Intent(context, MainActivity::class.java).apply {
@@ -49,7 +51,6 @@ class NotificationHandler(private val context: Context) {
         val notification = NotificationCompat.Builder(context, "processing_channel")
             .setSmallIcon(R.drawable.ic_processing)
             .setContentTitle(notificationTitle)
-            .setContentText(chunkProgress)
             .setProgress(0, 0, true)
             .setOngoing(true)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
@@ -66,7 +67,7 @@ class NotificationHandler(private val context: Context) {
 
         val notification = NotificationCompat.Builder(context, "processing_channel")
             .setSmallIcon(R.drawable.ic_processing)
-            .setContentTitle(context.getString(R.string.processing_error))
+            .setContentTitle(context.getString(R.string.processing_error_title_notification))
             .setContentText(error)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)

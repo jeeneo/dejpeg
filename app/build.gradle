@@ -11,8 +11,8 @@ android {
         applicationId "com.je.dejpeg"
         minSdk 24
         targetSdk 35
-        versionCode 230
-        versionName "2.3"
+        versionCode 242
+        versionName "2.4.2"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -34,7 +34,6 @@ android {
             minifyEnabled true
             shrinkResources true
             debuggable false
-            versionNameSuffix "-release"
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         debug {

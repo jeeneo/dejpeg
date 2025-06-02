@@ -1,78 +1,108 @@
 <resources>
     <string name="app_name">DeJPEG</string>
+    <string name="app_slogan">non-destructive restoration</string>
+
+    <!-- links -->
+    <string name="FBCNN_link">https://github.com/jeeneo/FBCNN-mobile/releases/latest</string>
+    <string name="SCUNet_link">https://github.com/jeeneo/SCUNet-mobile/releases/latest</string>
+
+    <!-- main UI -->
+    <string name="select_image">add</string>
+    <string name="process_button">process</string>
+    <string name="cancel_button">cancel</string>
+    <string name="apply_to_all">apply to all</string>
+    <string name="config_dialog_title">config</string>
+    <string name="error_dialog_title">error</string>
+    <string name="warning_dialog_title">warning</string>
+
+    <string name="background_service_title">DeJPEG service</string>
+    <string name="stop_background_service_text">stop</string>
+    <string name="background_service_message">this is intended to prevent the system from killing the app when in background.</string>
+    <string name="background_service_additional_message">\n\nyou can stop the service from the notification or dismissing the app from recents.</string>
+    <string name="ok_button">ok</string>
+
+    <string name="png">png</string>
+    <string name="bmp">bitmap</string>
+    <string name="output_format_set_toast">output format set to: %1$s</string>
+
+    <string name="share_image">share</string>
+
+    <!-- error dialogs -->
+    <string name="copy_button">copy</string>
+    <string name="dismiss_button">dismiss</string>
+
+    <!-- image picker -->
+    <string name="single_image">single image</string>
+    <string name="multiple_images">multiple images</string>
+
+    <!-- model UI -->
     <string name="select_model">select model</string>
+    <string name="no_models">no models found.\n\nplease download a model from one of the buttons below, then import</string>
+    <string name="model_switched">switched to model: %1$s</string>
+    <string name="import_model_button">import</string>
+    <string name="delete_model_button">delete model</string>
+    <string name="model_deleted_toast">model deleted: %1$s</string>
+    <string name="download_button">download</string>
+    <string name="download_models_title">downloads models</string>
+    <string name="delete_models_title">delete models</string>
+    <!-- model imports -->
+    <string name="manage_models_button">manage models</string>
+    <string name="importing_model">importing model</string>
+    <string name="model_imported_toast_success">model imported successfully</string>
+    <string name="model_imported_dialog_error">error importing model: %1$s</string>
+    
+    <string name="loading_model">loading model</string>
+
+    <!-- image imports -->
+    <string name="single_image_loaded_toast">image loaded</string>
+    <string name="batch_images_loaded_toast">loaded %1$d images</string>
+    <string name="image_saved_toast">image saved to gallery</string>
+    <string name="error_opening_image_dialog">error adding image:</string>
+    <string name="error_loading_image_dialog">error loading image:</string>
+    <string name="no_images_loaded_toast">no images loaded</string>
+    <string name="error_saving_image_dialog">error saving image:</string>
+    <string name="error_sharing_image_dialog">error sharing image:</string>
+    <string name="error_loading_all_images_batch_dialog">error loading all images: %s</string>
+    <string name="remove_this_image_button">remove this image</string>
+    <string name="remove_all_images_button">remove all images</string>
+    <string name="remove_image_title">remove image</string>
+
+    <!-- processing -->
+    <string name="processing_image_single">processing</string>
+    <string name="processing_image_batch">processing image %1$d of %2$d</string>
+    <string name="processing_image_chunked">processing chunk %1$d of %2$d</string>
+    <string name="processing_image_batch_chunked">processing image %1$d of %2$d (chunk %3$d/%4$d)</string>
+    <string name="processing_cancelled_toast">processing cancelled!</string>
+
+    <!-- processing_in_progress_toast -->
+    
+    <string name="processing_in_progress_toast">not available while processing</string>
+
+    <string name="processing_complete_batch">batch processing complete - %1$d images processed</string>
+    <string name="processing_complete_single">processing complete</string>
+    
+    <string name="processing_complete_description">tap to view results</string>
+
+    <string name="processing_updates_description">shows updates for image processing tasks</string>
+    <string name="processing_updates_reason_for_notifications">processing updates</string>
+    <string name="processing_error_title_notification">processing error</string>
+
+    <!-- garbage strings::
+    <string name="notification_permission_denied">notification permission denied</string>
     <string name="model_not_selected">please select a model file first</string>
     <string name="model_copied">model file copied successfully</string>
     <string name="error_copying_model">error copying model file</string>
-    <string name="manage_models">manage models</string>
-    <string name="import_model">import</string>
-    <string name="delete_models">delete models</string>
-    <string name="no_models">no models found.\n\nplease download a model from one of the buttons below, then import (you can delete the file after being imported)</string>
+    <string name="model_file">model file</string>
+    <string name="importing_model_message">importing model...</string>
+    <string name="model_imported">model imported: %1$s</string>
+    <string name="model_import_failed">model import failed: %1$s</string>
     <string name="save_to_gallery">save to gallery</string>
-    <string name="share">share</string>
-    <string name="save">save</string>
-    <string name="importing_model">importing model</string>
-    <string name="image_saved">image saved to gallery</string>
+    <string name="save_text">save</string>
     <string name="error_saving">error saving image</string>
     <string name="output_format">output format</string>
-    <string name="cancel">cancel</string>
-    <string name="process">process</string>
     <string name="select_multiple">select multiple images</string>
-    <string name="page_indicator">image %1$d of %2$d</string>
-    <string name="processing_batch">processing image %1$d of %2$d</string>
-    <string name="batch_complete">batch processing complete</string>
-    <string name="select_image">add</string>
     <string name="image_processed">image processed successfully</string>
-    <string name="apply_to_all">apply to all</string>
-    <string name="model_switched">switched to model: %1$s</string>
-    <string name="model_file">model file</string>
-    <string name="images_loaded">loaded %1$d images</string>
-    <string name="no_images_loaded">no images loaded</string>
-    <string name="error_loading_images">error loading images %s</string>
-    <string name="error_loading_image_n">error loading image %1$d: %2$s</string>
-    <string name="error_loading_image">error loading image: %s</string>
-    <string name="remove_image">remove image</string>
-    <string name="remove_this_image">remove this image</string>
-    <string name="remove_all_images">remove all images</string>
-    <string name="error_saving_image">error saving image: %1$s</string>
     <string name="strength">strength: %1$d</string>
-    <string name="image_loaded">image loaded</string>
-    <string name="error_sharing_image">error sharing image: %1$s</string>
     <string name="error_opening_image">error opening image: %1$s</string>
-    <string name="error_opening_image_toast">error opening image</string>
-    <string name="importing_model_message">importing model...</string>
-    <string name="error_importing_model">error importing model: %1$s</string>
-    <string name="model_imported">model imported: %1$s</string>
-    <string name="model_imported_toast">model imported successfully</string>
-    <string name="model_deleted">model deleted: %1$s</string>
-    <string name="model_import_failed">model import failed: %1$s</string>
-    <string name="delete_button">delete model</string>
-    <string name="cancel_button">cancel</string>
-    <string name="import_button">import</string>
-    <string name="png">png</string>
-    <string name="bmp">bitmap</string>
-    <string name="output_format_set">output format set to: %1$s</string>
-    <string name="config">config</string>
-    <string name="loading_model">loading model...</string>
-    <string name="processing_cancelled">processing cancelled!</string>
-    <string name="processing_single">processing...</string>
-    <string name="single_image">single image</string>
-    <string name="multiple_images">multiple images</string>
-    <string name="processing_updates_description">shows updates for image processing tasks</string>
-    <string name="processing_updates">processing updates</string>
-    <string name="processing_complete_single">processing complete</string>
-    <string name="processing_complete_batch">batch processing complete - %1$d images processed</string>
-    <string name="processing_complete_description">tap to view results</string>
-    <string name="processing_chunk">processing chunk: %1$d of %2$d</string>
-    <string name="notification_permission_denied">notification permission denied</string>
-    <string name="processing_error">processing error</string>
-    <string name="FBCNN_link">https://github.com/jeeneo/FBCNN-mobile/releases/latest</string>
-    <string name="SCUNet_link">https://github.com/jeeneo/SCUNet-mobile/releases/latest</string>
-    <string name="app_slogan">non-destructive restoration</string>
-    <string name="copy">copy</string>
-    <string name="dismiss">dismiss</string>
-    <string name="download_button">download</string>
-    <string name="download_models">downloads models</string>
-    <string name="processing_image_n_of_m">processing image %1$d of %2$d</string>
-    <string name="processing_image_n_of_m_chunk">processing image %1$d of %2$d (chunk %3$d/%4$d)</string>
+    -->
 </resources>

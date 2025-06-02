@@ -14,6 +14,7 @@ class AppBackgroundService : Service() {
     companion object {
         private const val NOTIFICATION_ID = 192
         private const val CHANNEL_ID = "background_processing_channel"
+        private const val ACTION_STOP_SERVICE = "com.je.dejpeg.STOP_SERVICE"
     }
 
     override fun onCreate() {
@@ -22,6 +23,12 @@ class AppBackgroundService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == ACTION_STOP_SERVICE) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+            return START_NOT_STICKY
+        }
+
         startForeground(NOTIFICATION_ID, createNotification())
         return START_STICKY
     }
@@ -33,6 +40,7 @@ class AppBackgroundService : Service() {
         NotificationHandler(this).clearAllNotifications()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
+        android.os.Process.killProcess(android.os.Process.myPid())
     }
 
     private fun createNotificationChannel() {
@@ -42,7 +50,7 @@ class AppBackgroundService : Service() {
                 "Background Processing",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "prevents the system from killing the app while open"
+                description = (getString(R.string.background_service_message))
             }
             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
@@ -50,22 +58,38 @@ class AppBackgroundService : Service() {
     }
 
     private fun createNotification() = NotificationCompat.Builder(this, CHANNEL_ID)
-        .setContentTitle("DeJPEG service")
-        .setContentText("service active")
+        .setContentTitle(getString(R.string.background_service_title))
+        .setContentText("service is active")
         .setSmallIcon(R.drawable.ic_launcher_foreground)
         .setPriority(NotificationCompat.PRIORITY_LOW)
-        .setOngoing(true)
-        .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+        // .setOngoing(true) - useless in android 14+
         .setCategory(NotificationCompat.CATEGORY_SERVICE)
         .setAutoCancel(false)
+        .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
         .apply {
-            val pendingIntent = PendingIntent.getActivity(
+        val openAppIntent = Intent(this@AppBackgroundService, MainActivity::class.java).apply {
+            putExtra("show_service_info", true)
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this@AppBackgroundService,
+            0,
+            openAppIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        setContentIntent(pendingIntent)
+
+
+            val stopIntent = Intent(this@AppBackgroundService, AppBackgroundService::class.java).apply {
+                action = ACTION_STOP_SERVICE
+            }
+            val stopPendingIntent = PendingIntent.getService(
                 this@AppBackgroundService,
-                0,
-                packageManager.getLaunchIntentForPackage(packageName),
+                1,
+                stopIntent,
                 PendingIntent.FLAG_IMMUTABLE
             )
-            setContentIntent(pendingIntent)
+            addAction(android.R.drawable.ic_menu_close_clear_cancel, getString(R.string.stop_background_service_text), stopPendingIntent)
         }
         .build()
 }
