@@ -709,7 +709,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateButtonVisibility() {
         runOnUiThread {
-            val isProcessing = ProcessingState.getInstance(this).isProcessing() || this.isProcessing
             processButton.visibility = if (isProcessing) View.GONE else View.VISIBLE
             cancelButton.visibility = if (isProcessing) View.VISIBLE else View.GONE
             selectButton.isEnabled = !isProcessing
@@ -728,17 +727,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun cancelProcessing() {
-        if (ProcessingState.getInstance(this).isProcessing() || isProcessing) {
             imageProcessor.cancelProcessing()
-            ProcessingState.getInstance(this).reset()
             isProcessing = false
             dismissProcessingNotification()
             updateButtonVisibility()
             updateImageViews()
-            stopService(Intent(this, AppBackgroundService::class.java))
+            // stopService(Intent(this, AppBackgroundService::class.java))
             Toast.makeText(this, getString(R.string.processing_cancelled_toast), Toast.LENGTH_SHORT).show()
             vibrationManager.vibrateError()
-        }
     }
 
     private fun processWithModel() {
@@ -844,13 +840,9 @@ class MainActivity : AppCompatActivity() {
         notificationHandler.clearAllNotifications()
     }
 
-    override fun onPause() {
-        super.onPause()
-        val state = ProcessingState.getInstance(this)
-        if (state.isProcessing() && !isFinishing && !isChangingConfigurations) {
-            // showProgressText();
-        }
-    }
+    // override fun onPause() {
+    //     super.onPause()
+    // }
 
     override fun onDestroy() {
         super.onDestroy()
@@ -879,15 +871,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         placeholderContainer.visibility = View.GONE
-        val processingState = ProcessingState.getInstance(this)
-
-        if (isProcessing || processingState.isProcessing()) {
-            beforeAfterView.visibility = View.GONE
-            filmstripRecyclerView.visibility = View.GONE
-            processingAnimation.visibility = View.VISIBLE
-            processingText.visibility = View.VISIBLE
-            return
-        }
 
         processingAnimation.visibility = View.GONE
         processingText.visibility = View.GONE
@@ -1062,7 +1045,6 @@ class MainActivity : AppCompatActivity() {
             prefs.edit()
                 .putString(PROGRESS_FORMAT_KEY, if (isChecked) "PERCENTAGE" else "PLAINTEXT")
                 .apply()
-            ProcessingState.getInstance(this).loadProgressFormat(this)
         }
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.config_dialog_title)

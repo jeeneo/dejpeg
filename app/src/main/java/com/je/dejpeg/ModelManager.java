@@ -25,7 +25,6 @@ import ai.onnxruntime.OrtSession;
 import ai.onnxruntime.OrtException;
 
 import com.je.dejpeg.utils.VibrationManager;
-import com.je.dejpeg.utils.ProcessingState;
 
 public class ModelManager {
     private static final String PREFS_NAME = "ModelPrefs";
@@ -79,7 +78,6 @@ public class ModelManager {
             }
             currentSession = null;
         }
-        
         if (ortEnv != null) {
             try {
                 ortEnv.close();
@@ -88,8 +86,6 @@ public class ModelManager {
             }
             ortEnv = null;
         }
-        
-        // Force garbage collection after unloading
         System.gc();
     }
 
@@ -97,13 +93,10 @@ public class ModelManager {
         if (currentSession != null) {
             return currentSession;
         }
-        
         String activeModel = prefs.getString(ACTIVE_MODEL_KEY, null);
         if (activeModel == null) throw new Exception("No active model set");
-        
         File modelFile = new File(context.getFilesDir(), activeModel);
         if (!modelFile.exists()) throw new Exception("Model file not found");
-        
         if (ortEnv == null) {
             ortEnv = OrtEnvironment.getEnvironment();
         }

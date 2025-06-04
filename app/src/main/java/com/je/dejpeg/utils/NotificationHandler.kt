@@ -8,7 +8,7 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import com.je.dejpeg.utils.ProcessingState
+// import com.je.dejpeg.utils.ProcessingState
 
 import com.je.dejpeg.MainActivity
 import com.je.dejpeg.R
@@ -45,12 +45,9 @@ class NotificationHandler(private val context: Context) {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        val notificationHandler = NotificationHandler(context)
-        val progressText = ProcessingState.getInstance(context).getProgressString(context)
-
         val notification = NotificationCompat.Builder(context, "processing_channel")
             .setSmallIcon(R.drawable.ic_processing)
-            .setContentTitle(progressText)
+            .setContentTitle("processing")
             .setProgress(0, 0, true)
             .setOngoing(true)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)

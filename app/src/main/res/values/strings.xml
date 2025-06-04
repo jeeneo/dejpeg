@@ -68,12 +68,11 @@
     <string name="remove_image_title">remove image</string>
 
     <!-- processing -->
-    <string name="processing_image_single">processing</string>
-    <string name="processing_image_batch">processing image %1$d of %2$d</string>
-    <string name="processing_image_chunked">processing chunk %1$d of %2$d</string>
-    <string name="processing_image_batch_chunked">processing image %1$d of %2$d (chunk %3$d/%4$d)</string>
-    <string name="processing_image_batch_chunked_concurrent">Processing image %1$d of %2$d (chunk %3$d/%4$d, %5$d threads)</string>
-    <string name="processing_image_chunked_concurrent">Processing chunk %1$d of %2$d (%3$d threads)</string>
+    <string name="processing_chunked_single">Processing chunk %1$d of %2$d</string>
+    <string name="processing_batch_chunked">Batch: %1$d/%2$d images, %3$d/%4$d chunks</string>
+    <string name="processing_batch">Batch: %1$d/%2$d images</string>
+    <string name="processing_image_single">Processing single image</string>
+    <string name="processing_preparing">Preparing...</string>
     <string name="processing_cancelled_toast">processing cancelled!</string>
 
     <!-- processing_in_progress_toast -->
@@ -89,12 +88,13 @@
     <string name="processing_updates_reason_for_notifications">processing updates</string>
     <string name="processing_error_title_notification">processing error</string>
 
-    <string name="processing_preparing">Preparing images for processing…</string>
+    <!-- <string name="processing_preparing">Preparing images for processing…</string> -->
     <string name="processing_multiple_images">Processing %1$d of %2$d images in parallel</string>
     <string name="processing_image_status">Image %1$d: Processing</string>
     <string name="processing_image_chunked_status">Image %1$d: Processing chunk %2$d of %3$d</string>
     <string name="processing_parallel">Processing %1$d images in parallel...</string>
     <string name="processing_large_image">Processing large image %1$d of %2$d</string>
+    <string name="processing_chunked_single_range">Processing chunks %1$s</string>
 
     <!-- garbage strings::
     <string name="notification_permission_denied">notification permission denied</string>
