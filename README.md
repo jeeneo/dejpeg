@@ -1,5 +1,4 @@
-![djpeg_logo](https://github.com/user-attachments/assets/4f8f432b-f30e-4bcc-aae3-02cb076e7cec)
-
+![dejpeg](https://github.com/user-attachments/assets/55f35274-1492-4bb1-ab00-f816db612f90)
 
 # De*JPEG*
 
