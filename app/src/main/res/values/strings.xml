@@ -72,6 +72,8 @@
     <string name="processing_image_batch">processing image %1$d of %2$d</string>
     <string name="processing_image_chunked">processing chunk %1$d of %2$d</string>
     <string name="processing_image_batch_chunked">processing image %1$d of %2$d (chunk %3$d/%4$d)</string>
+    <string name="processing_image_batch_chunked_concurrent">Processing image %1$d of %2$d (chunk %3$d/%4$d, %5$d threads)</string>
+    <string name="processing_image_chunked_concurrent">Processing chunk %1$d of %2$d (%3$d threads)</string>
     <string name="processing_cancelled_toast">processing cancelled!</string>
 
     <!-- processing_in_progress_toast -->
@@ -86,6 +88,13 @@
     <string name="processing_updates_description">shows updates for image processing tasks</string>
     <string name="processing_updates_reason_for_notifications">processing updates</string>
     <string name="processing_error_title_notification">processing error</string>
+
+    <string name="processing_preparing">Preparing images for processing…</string>
+    <string name="processing_multiple_images">Processing %1$d of %2$d images in parallel</string>
+    <string name="processing_image_status">Image %1$d: Processing</string>
+    <string name="processing_image_chunked_status">Image %1$d: Processing chunk %2$d of %3$d</string>
+    <string name="processing_parallel">Processing %1$d images in parallel...</string>
+    <string name="processing_large_image">Processing large image %1$d of %2$d</string>
 
     <!-- garbage strings::
     <string name="notification_permission_denied">notification permission denied</string>
@@ -105,4 +114,6 @@
     <string name="strength">strength: %1$d</string>
     <string name="error_opening_image">error opening image: %1$s</string>
     -->
+    
+    <string name="progress_format_switch">percentage progress</string>
 </resources>

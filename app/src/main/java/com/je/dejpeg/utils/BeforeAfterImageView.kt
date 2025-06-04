@@ -1,4 +1,4 @@
-package com.je.dejpeg
+package com.je.dejpeg.utils
 
 import android.content.Context
 import android.graphics.*
@@ -10,6 +10,8 @@ import android.view.View
 import android.graphics.drawable.Drawable
 import kotlin.math.max
 import kotlin.math.min
+
+import com.je.dejpeg.R
 
 class BeforeAfterImageView @JvmOverloads constructor(
     context: Context,

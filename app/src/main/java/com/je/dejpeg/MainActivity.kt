@@ -38,7 +38,13 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.recyclerview.widget.RecyclerView
 import android.view.ViewGroup
 import android.graphics.Outline
-import com.je.dejpeg.ImageProcessor.ProcessingState
+
+import com.je.dejpeg.utils.ProcessingState
+import com.je.dejpeg.utils.ProcessingAnimation
+import com.je.dejpeg.utils.VibrationManager
+import com.je.dejpeg.utils.NotificationHandler
+import com.je.dejpeg.utils.BeforeAfterImageView
+import com.je.dejpeg.dejpeg
 
 class MainActivity : AppCompatActivity() {
     private lateinit var selectButton: Button
@@ -61,6 +67,7 @@ class MainActivity : AppCompatActivity() {
     private val PREFS_NAME = "AppPrefs"
     private val OUTPUT_FORMAT_KEY = "outputFormat"
     private val STRENGTH_FACTOR_KEY = "strengthFactor"
+    private val PROGRESS_FORMAT_KEY = "progressFormat"
     private val FORMAT_PNG = 0
     private val FORMAT_BMP = 1
 
@@ -108,7 +115,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         (application as dejpeg).registerActivityLifecycleCallbacks(AppLifecycleTracker)
 
         vibrationManager = VibrationManager(this)
@@ -284,8 +291,8 @@ class MainActivity : AppCompatActivity() {
 
         updateStrengthSliderVisibility()
 
-        val serviceIntent = Intent(this, AppBackgroundService::class.java)
-        startService(serviceIntent)
+        // val serviceIntent = Intent(this, AppBackgroundService::class.java)
+        // startService(serviceIntent)
 
         val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
         toolbar.setOnMenuItemClickListener { item ->
@@ -308,6 +315,10 @@ class MainActivity : AppCompatActivity() {
                 showServiceInfoDialog()
             }
         }
+
+        // Start service in foreground
+        val serviceIntent = Intent(this, AppBackgroundService::class.java)
+        startForegroundService(serviceIntent)
     }
     
     override fun onNewIntent(intent: Intent?) {
@@ -698,7 +709,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateButtonVisibility() {
         runOnUiThread {
-            val isProcessing = ProcessingState.getInstance().isProcessing() || this.isProcessing
+            val isProcessing = ProcessingState.getInstance(this).isProcessing() || this.isProcessing
             processButton.visibility = if (isProcessing) View.GONE else View.VISIBLE
             cancelButton.visibility = if (isProcessing) View.VISIBLE else View.GONE
             selectButton.isEnabled = !isProcessing
@@ -717,14 +728,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun cancelProcessing() {
-        if (ProcessingState.getInstance().isProcessing()) {
+        if (ProcessingState.getInstance(this).isProcessing() || isProcessing) {
             imageProcessor.cancelProcessing()
-            ProcessingState.getInstance().reset()
+            ProcessingState.getInstance(this).reset()
+            isProcessing = false
             dismissProcessingNotification()
             updateButtonVisibility()
             updateImageViews()
             stopService(Intent(this, AppBackgroundService::class.java))
             Toast.makeText(this, getString(R.string.processing_cancelled_toast), Toast.LENGTH_SHORT).show()
+            vibrationManager.vibrateError()
         }
     }
 
@@ -735,17 +748,10 @@ class MainActivity : AppCompatActivity() {
         processingText.visibility = View.VISIBLE
         beforeAfterView.visibility = View.GONE
         filmstripRecyclerView.visibility = View.GONE
-        
-        val serviceIntent = Intent(this, AppBackgroundService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(serviceIntent)
-        } else {
-            startService(serviceIntent)
-        }
 
         val isBatch = images.size > 1
         var completedCount = 0
-        showProcessingNotification(1, images.size)
+        notificationHandler.showProcessingNotification()  // Show initial notification
 
         fun processNext(index: Int) {
             if (!isProcessing || index >= images.size) {
@@ -797,7 +803,7 @@ class MainActivity : AppCompatActivity() {
                     override fun onProgress(message: String) {
                         runOnUiThread {
                             processingText.text = message
-                            notificationHandler.showProcessingNotification(index + 1, images.size, message)
+                            // showProgressText();
                         }
                     }
                 },
@@ -809,9 +815,9 @@ class MainActivity : AppCompatActivity() {
         processNext(0)
     }
 
-    private fun showProcessingNotification(currentImage: Int, totalImages: Int, chunkProgress: String? = null) {
-        notificationHandler.showProcessingNotification(currentImage, totalImages, chunkProgress)
-    }
+    // private fun showProgressText() {
+
+    // }
 
     private fun showErrorNotification(error: String) {
         notificationHandler.showErrorNotification(error)
@@ -840,13 +846,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        val state = ProcessingState.getInstance()
+        val state = ProcessingState.getInstance(this)
         if (state.isProcessing() && !isFinishing && !isChangingConfigurations) {
-            notificationHandler.showProcessingNotification(
-                state.getDisplayImageNumber(),
-                state.getTotalImages(),
-                state.getProgressString(this)
-            )
+            // showProgressText();
         }
     }
 
@@ -857,9 +859,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateStrengthSliderVisibility() {
-        if (!::imageProcessor.isInitialized) return
-        
-        val shouldShowStrength = !imageProcessor.isActiveModelSCUNet()
+        if (!::modelManager.isInitialized) return
+        val activeModel = modelManager.getActiveModelName()
+        val shouldShowStrength = activeModel?.contains("fbcnn", ignoreCase = true) == true
         runOnUiThread {
             strengthSeekBar.visibility = if (shouldShowStrength) View.VISIBLE else View.GONE
         }
@@ -877,7 +879,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         placeholderContainer.visibility = View.GONE
-        val processingState = ProcessingState.getInstance()
+        val processingState = ProcessingState.getInstance(this)
 
         if (isProcessing || processingState.isProcessing()) {
             beforeAfterView.visibility = View.GONE
@@ -1051,28 +1053,39 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showConfigDialog() {
-    MaterialAlertDialogBuilder(this)
-        .setTitle(R.string.config_dialog_title)
-        .setSingleChoiceItems(
-            arrayOf(getString(R.string.png), getString(R.string.bmp)),
-            if (outputFormat == "BMP") FORMAT_BMP else FORMAT_PNG
-        ) { dialog: DialogInterface, which: Int ->
-            vibrationManager.vibrateDialogChoice()
-            outputFormat = if (which == FORMAT_BMP) "BMP" else "PNG"
-            getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-                .edit()
-                .putString(OUTPUT_FORMAT_KEY, outputFormat)
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_config, null)
+
+        val progressFormatSwitch = dialogView.findViewById<CheckBox>(R.id.progressFormatSwitch)
+        progressFormatSwitch.isChecked = prefs.getString(PROGRESS_FORMAT_KEY, "PLAINTEXT") == "PERCENTAGE"
+        progressFormatSwitch.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit()
+                .putString(PROGRESS_FORMAT_KEY, if (isChecked) "PERCENTAGE" else "PLAINTEXT")
                 .apply()
-            Toast.makeText(this, getString(R.string.output_format_set_toast, outputFormat), Toast.LENGTH_SHORT).show()
-            dialog.dismiss()
+            ProcessingState.getInstance(this).loadProgressFormat(this)
         }
-        .setNeutralButton(R.string.manage_models_button) { _, _ ->
-            vibrationManager.vibrateDialogChoice()
-            showModelManagementDialog()
-        }
-        .setNegativeButton(R.string.cancel_button) { _, _ ->
-            vibrationManager.vibrateDialogChoice()
-        }
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.config_dialog_title)
+            .setSingleChoiceItems(
+                arrayOf(getString(R.string.png), getString(R.string.bmp)),
+                if (outputFormat == "BMP") FORMAT_BMP else FORMAT_PNG
+            ) { dialog, which ->
+                vibrationManager.vibrateDialogChoice()
+                outputFormat = if (which == FORMAT_BMP) "BMP" else "PNG"
+                prefs.edit()
+                    .putString(OUTPUT_FORMAT_KEY, outputFormat)
+                    .apply()
+                Toast.makeText(this, getString(R.string.output_format_set_toast, outputFormat), Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+            }
+            .setNeutralButton(R.string.manage_models_button) { _, _ ->
+                vibrationManager.vibrateDialogChoice()
+                showModelManagementDialog()
+            }
+            .setNegativeButton(R.string.cancel_button) { _, _ ->
+                vibrationManager.vibrateDialogChoice()
+            }
+            .setView(dialogView)
         .show()
     }
 }

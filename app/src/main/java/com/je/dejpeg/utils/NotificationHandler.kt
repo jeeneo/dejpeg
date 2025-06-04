@@ -1,4 +1,4 @@
-package com.je.dejpeg
+package com.je.dejpeg.utils
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -8,7 +8,11 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import com.je.dejpeg.ImageProcessor.ProcessingState
+import com.je.dejpeg.utils.ProcessingState
+
+import com.je.dejpeg.MainActivity
+import com.je.dejpeg.R
+import com.je.dejpeg.AppLifecycleTracker
 
 class NotificationHandler(private val context: Context) {
     private val NOTIFICATION_ID_PROCESSING = 1
@@ -32,14 +36,7 @@ class NotificationHandler(private val context: Context) {
         }
     }
 
-    fun showProcessingNotification(currentImage: Int, totalImages: Int, chunkProgress: String? = null) {
-        val processingState = ProcessingState.getInstance()
-        val notificationTitle = if (processingState.isProcessing()) {
-            processingState.getProgressString(context)
-        } else {
-            context.getString(R.string.processing_image_single)
-        }
-
+    fun showProcessingNotification() {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
@@ -48,9 +45,12 @@ class NotificationHandler(private val context: Context) {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
+        val notificationHandler = NotificationHandler(context)
+        val progressText = ProcessingState.getInstance(context).getProgressString(context)
+
         val notification = NotificationCompat.Builder(context, "processing_channel")
             .setSmallIcon(R.drawable.ic_processing)
-            .setContentTitle(notificationTitle)
+            .setContentTitle(progressText)
             .setProgress(0, 0, true)
             .setOngoing(true)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)

@@ -1,4 +1,4 @@
-package com.je.dejpeg;
+package com.je.dejpeg.utils;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;

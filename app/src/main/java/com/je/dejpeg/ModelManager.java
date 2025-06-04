@@ -24,6 +24,9 @@ import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtSession;
 import ai.onnxruntime.OrtException;
 
+import com.je.dejpeg.utils.VibrationManager;
+import com.je.dejpeg.utils.ProcessingState;
+
 public class ModelManager {
     private static final String PREFS_NAME = "ModelPrefs";
     private static final String ACTIVE_MODEL_KEY = "activeModel";
@@ -101,7 +104,6 @@ public class ModelManager {
         File modelFile = new File(context.getFilesDir(), activeModel);
         if (!modelFile.exists()) throw new Exception("Model file not found");
         
-        // Create new environment if null
         if (ortEnv == null) {
             ortEnv = OrtEnvironment.getEnvironment();
         }

@@ -13,7 +13,7 @@
         app:menu="@menu/main_menu"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <com.je.dejpeg.BeforeAfterImageView
+    <com.je.dejpeg.utils.BeforeAfterImageView
         android:id="@+id/beforeAfterView"
         android:layout_width="0dp"
         android:layout_height="0dp"
@@ -22,7 +22,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/toolbar" />
 
-    <com.je.dejpeg.ProcessingAnimation
+    <com.je.dejpeg.utils.ProcessingAnimation
         android:id="@+id/processingAnimation"
         android:layout_width="200dp"
         android:layout_height="48dp"

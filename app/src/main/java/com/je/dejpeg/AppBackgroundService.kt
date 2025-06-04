@@ -9,6 +9,9 @@ import android.content.Context
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import com.je.dejpeg.R
+import com.je.dejpeg.utils.NotificationHandler
+import com.je.dejpeg.MainActivity
 
 class AppBackgroundService : Service() {
     companion object {
@@ -29,7 +32,9 @@ class AppBackgroundService : Service() {
             return START_NOT_STICKY
         }
 
-        startForeground(NOTIFICATION_ID, createNotification())
+        // Create notification immediately and start foreground
+        val notification = createNotification()
+        startForeground(NOTIFICATION_ID, notification)
         return START_STICKY
     }
 
@@ -59,25 +64,24 @@ class AppBackgroundService : Service() {
 
     private fun createNotification() = NotificationCompat.Builder(this, CHANNEL_ID)
         .setContentTitle(getString(R.string.background_service_title))
-        .setContentText("service is active")
-        .setSmallIcon(R.drawable.ic_launcher_foreground)
+        .setContentText(getString(R.string.background_service_message))
+        .setSmallIcon(R.drawable.ic_processing)
         .setPriority(NotificationCompat.PRIORITY_LOW)
-        // .setOngoing(true) - useless in android 14+
         .setCategory(NotificationCompat.CATEGORY_SERVICE)
         .setAutoCancel(false)
         .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
         .apply {
-        val openAppIntent = Intent(this@AppBackgroundService, MainActivity::class.java).apply {
-            putExtra("show_service_info", true)
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            this@AppBackgroundService,
-            0,
-            openAppIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        setContentIntent(pendingIntent)
+            val openAppIntent = Intent(this@AppBackgroundService, MainActivity::class.java).apply {
+                putExtra("show_service_info", true)
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+            }
+            val pendingIntent = PendingIntent.getActivity(
+                this@AppBackgroundService,
+                0,
+                openAppIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            setContentIntent(pendingIntent)
 
 
             val stopIntent = Intent(this@AppBackgroundService, AppBackgroundService::class.java).apply {
