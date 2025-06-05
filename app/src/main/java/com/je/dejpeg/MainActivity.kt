@@ -263,7 +263,6 @@ class MainActivity : AppCompatActivity() {
         beforeAfterView = findViewById(R.id.beforeAfterView)
         beforeAfterView.setButtonCallback(object : BeforeAfterImageView.ButtonCallback {
             override fun onShareClicked() {
-                vibrationManager.vibrateButton()
                 val currentImage = images.getOrNull(currentPage)?.outputBitmap
                 if (currentImage != null) {
                     shareImage(currentImage)
@@ -271,7 +270,6 @@ class MainActivity : AppCompatActivity() {
             }
             
             override fun onSaveClicked() {
-                vibrationManager.vibrateButton()
                 val currentImage = images.getOrNull(currentPage)?.outputBitmap
                 if (currentImage != null) {
                     saveImageToGallery(currentImage)
@@ -371,7 +369,7 @@ class MainActivity : AppCompatActivity() {
             .setSingleChoiceItems(items, models.indexOf(activeModel)) { dialog: DialogInterface, which: Int ->
                 vibrationManager.vibrateMenuTap()
                 modelManager.unloadModel()
-                imageProcessor.unloadModel()
+                // imageProcessor.unloadModel()
                 modelManager.setActiveModel(models[which])
                 Toast.makeText(this, getString(R.string.model_switched, models[which]), Toast.LENGTH_SHORT).show()
                 processButton.isEnabled = images.isNotEmpty()
@@ -682,8 +680,10 @@ class MainActivity : AppCompatActivity() {
             }
             MediaScannerConnection.scanFile(this, arrayOf(outputFile.toString()), null, null)
             Toast.makeText(this, getString(R.string.image_saved_toast), Toast.LENGTH_SHORT).show()
+            vibrationManager.vibrateButton()
         } catch (e: Exception) {
             showErrorDialog(getString(R.string.error_saving_image_dialog) + " " + e.message)
+            vibrationManager.vibrateError()
         }
     }
 
@@ -701,9 +701,11 @@ class MainActivity : AppCompatActivity() {
                 putExtra(Intent.EXTRA_STREAM, contentUri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
+            vibrationManager.vibrateButton()
             startActivity(Intent.createChooser(shareIntent, getString(R.string.share_image)))
         } catch (e: Exception) {
             showErrorDialog(getString(R.string.error_sharing_image_dialog) + " " + e.message)
+            vibrationManager.vibrateError()
         }
     }
 
@@ -792,6 +794,7 @@ class MainActivity : AppCompatActivity() {
                                 vibrationManager.vibrateError()
                                 notificationHandler.showErrorNotification(error)
                                 Toast.makeText(this@MainActivity, error, Toast.LENGTH_SHORT).show()
+                                showErrorDialog(error)
                                 processNext(index + 1)
                             }
                         }

@@ -7,17 +7,20 @@ public class ProcessingState {
     // Number of CPU cores used for processing
     public static int coresUsed = Runtime.getRuntime().availableProcessors();
 
-    // Current chunk range being processed (e.g., 1-4 out of 12)
+    // Chunk progress state
     public static final AtomicInteger currentChunkStart = new AtomicInteger(0);
     public static final AtomicInteger currentChunkEnd = new AtomicInteger(0);
     public static final AtomicInteger totalChunks = new AtomicInteger(0);
 
-    // Image queue state (e.g., image 3 of 10), with chunk substate
+    // Image queue state, with chunk substate
     public static final AtomicInteger currentImageIndex = new AtomicInteger(0);
     public static final AtomicInteger totalImages = new AtomicInteger(0);
     public static final AtomicInteger currentImageChunkStart = new AtomicInteger(0);
     public static final AtomicInteger currentImageChunkEnd = new AtomicInteger(0);
     public static final AtomicInteger currentImageTotalChunks = new AtomicInteger(0);
+
+    // New active chunk counter for currently running tasks
+    public static final AtomicInteger activeChunks = new AtomicInteger(0);
 
     /**
      * Resets all values to default (should be called at the end of processing)
@@ -31,6 +34,7 @@ public class ProcessingState {
         currentImageChunkStart.set(0);
         currentImageChunkEnd.set(0);
         currentImageTotalChunks.set(0);
+        activeChunks.set(0);
     }
 
     /**
@@ -58,13 +62,19 @@ public class ProcessingState {
      * Human-readable representation of the current progress.
      */
     public static String getStatusString() {
+        String activeInfo = "";
+        if (activeChunks.get() > 0) {
+            activeInfo = String.format(", chunks in progress: %d (using %d cores)", 
+                activeChunks.get(), coresUsed);
+        }
+
         if (totalImages.get() > 0) {
             return "Processing image " + currentImageIndex.get() + " of " + totalImages.get() +
                     ", chunks " + currentImageChunkStart.get() + "-" + currentImageChunkEnd.get() +
-                    " of " + currentImageTotalChunks.get();
+                    " of " + currentImageTotalChunks.get() + activeInfo;
         } else {
             return "Processing chunks " + currentChunkStart.get() + "-" + currentChunkEnd.get() +
-                    " of " + totalChunks.get();
+                    " of " + totalChunks.get() + activeInfo;
         }
     }
 }
