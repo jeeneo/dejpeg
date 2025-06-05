@@ -123,7 +123,21 @@ public class ModelManager {
         return models;
     }
 
-    private String resolveFilename(Uri modelUri) throws Exception {
+    public static class ResolveResult {
+        public final String matchedModel;
+        public final boolean hashMatches;
+        public final String expectedHash;
+        public final String actualHash;
+
+        public ResolveResult(String matchedModel, boolean hashMatches, String expectedHash, String actualHash) {
+            this.matchedModel = matchedModel;
+            this.hashMatches = hashMatches;
+            this.expectedHash = expectedHash;
+            this.actualHash = actualHash;
+        }
+    }
+
+    public ResolveResult resolveFilenameWithHash(Uri modelUri) throws Exception {
         String filename = null;
         
         try (Cursor cursor = context.getContentResolver().query(modelUri, null, null, null, null)) {
@@ -172,16 +186,13 @@ public class ModelManager {
             ));
 
         String expectedHash = MODEL_HASHES.get(matchedModel);
+        String actualHash = null;
+        boolean hashMatches = true;
         if (expectedHash != null) {
-            String actualHash = computeFileHash(modelUri);
-            if (!expectedHash.equalsIgnoreCase(actualHash)) {
-                throw new Exception("model file hash mismatch!! expected: " + expectedHash + 
-                    ", but got: " + actualHash + 
-                    "\nplease ensure the model file is correct and not corrupted or tampered.");
-            }
+            actualHash = computeFileHash(modelUri);
+            hashMatches = expectedHash.equalsIgnoreCase(actualHash);
         }
-
-        return matchedModel;
+        return new ResolveResult(matchedModel, hashMatches, expectedHash, actualHash);
     }
 
     private String computeFileHash(Uri fileUri) throws Exception {
@@ -203,14 +214,31 @@ public class ModelManager {
         }
     }
 
-    public boolean importModel(Uri modelUri) throws Exception {
-        String filename = resolveFilename(modelUri);
-        return importModelInternal(modelUri, filename, null);
+    public boolean importModel(Uri modelUri, boolean force) throws Exception {
+        ResolveResult result = resolveFilenameWithHash(modelUri);
+        if (!result.hashMatches && !force) {
+            throw new Exception("HASH_MISMATCH:" + result.matchedModel + ":" + result.expectedHash + ":" + result.actualHash);
+        }
+        return importModelInternal(modelUri, result.matchedModel, null);
     }
 
+    public boolean importModel(Uri modelUri, ModelCallback callback, boolean force) throws Exception {
+        ResolveResult result = resolveFilenameWithHash(modelUri);
+        if (!result.hashMatches && !force) {
+            if (callback != null) {
+                callback.onError("HASH_MISMATCH:" + result.matchedModel + ":" + result.expectedHash + ":" + result.actualHash);
+            }
+            return false;
+        }
+        return importModelInternal(modelUri, result.matchedModel, callback);
+    }
+
+    // Overloads for compatibility
+    public boolean importModel(Uri modelUri) throws Exception {
+        return importModel(modelUri, false);
+    }
     public boolean importModel(Uri modelUri, ModelCallback callback) throws Exception {
-        String filename = resolveFilename(modelUri);
-        return importModelInternal(modelUri, filename, callback);
+        return importModel(modelUri, callback, false);
     }
 
     private boolean importModelInternal(Uri modelUri, String filename, ModelCallback callback) throws Exception {

@@ -448,7 +448,7 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun copyAndLoadModel(modelUri: Uri) {
+    private fun copyAndLoadModel(modelUri: Uri, force: Boolean = false) {
         runOnUiThread { showImportProgressDialog() }
         Thread {
             try {
@@ -465,21 +465,58 @@ class MainActivity : AppCompatActivity() {
                     override fun onError(error: String) {
                         runOnUiThread {
                             dismissImportProgressDialog()
-                            showErrorDialog(getString(R.string.model_imported_dialog_error))
+                            if (error.startsWith("HASH_MISMATCH:")) {
+                                val parts = error.split(":")
+                                val modelName = parts.getOrNull(1) ?: "unknown"
+                                val expected = parts.getOrNull(2) ?: "?"
+                                val actual = parts.getOrNull(3) ?: "?"
+                                showHashMismatchDialog(modelUri, modelName, expected, actual)
+                            } else {
+                                showErrorDialog(getString(R.string.model_imported_dialog_error))
+                            }
                         }
                     }
                     override fun onProgress(progress: Int) {
                         runOnUiThread { updateImportProgressDialog(progress) }
                     }
                 }
-                modelManager.importModel(modelUri, callback)
+                modelManager.importModel(modelUri, callback, force)
             } catch (e: Exception) {
                 runOnUiThread {
                     dismissImportProgressDialog()
-                    showErrorDialog(getString(R.string.model_imported_dialog_error, e.message))
+                    val msg = e.message ?: ""
+                    if (msg.startsWith("HASH_MISMATCH:")) {
+                        val parts = msg.split(":")
+                        val modelName = parts.getOrNull(1) ?: "unknown"
+                        val expected = parts.getOrNull(2) ?: "?"
+                        val actual = parts.getOrNull(3) ?: "?"
+                        showHashMismatchDialog(modelUri, modelName, expected, actual)
+                    } else {
+                        showErrorDialog(getString(R.string.model_imported_dialog_error, e.message))
+                    }
                 }
             }
         }.start()
+    }
+
+    private fun showHashMismatchDialog(modelUri: Uri, modelName: String, expected: String, actual: String) {
+        runOnUiThread {
+            MaterialAlertDialogBuilder(this)
+                .setTitle("Model Hash Mismatch")
+                .setMessage(
+                    "The selected model file's hash does not match the expected value.\n\n" +
+                    "Model: $modelName\n" +
+                    "Expected: $expected\n" +
+                    "Actual: $actual\n\n" +
+                    "This may indicate the file is corrupted or tampered with. Do you want to import anyway?"
+                )
+                .setPositiveButton("Import Anyway") { _, _ ->
+                    vibrationManager.vibrateDialogChoice()
+                    copyAndLoadModel(modelUri, force = true)
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+        }
     }
 
     private fun showErrorDialog(message: String) {
