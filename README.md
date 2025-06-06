@@ -36,6 +36,26 @@ De*JPEG* is not affiliated or related to Topaz's `DEJPEG` or any other software/
 
 [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and [SCUNet](https://github.com/cszn/SCUNet) creators
 
+## transparency
+<details>
+<summary>do you use AI?</summary>
+<br>
+
+I partially use Generative AI, (ChatGPT, Github Copilot, et. al.) for some of the complicated tasks and problems, but not for everything.
+
+I believe AI has its place, as a tool, not as a replacement.
+
+I only use it in my IDE, all my comments, changelogs (except for one, which it messed up), and interactions with me are typed out by me, from my brain.
+
+I do not pay for access to generative AI as well, i use whatever free tier is available
+
+if you check, you can see Google's "Jules AI" as a contributor (if its still there) and it made a PR based on things i described which completely broke the entire app.
+
+and no, this text wasn't written by AI.
+
+</details>
+
+
 ## license:
 all models used are under their respective licenses
 
