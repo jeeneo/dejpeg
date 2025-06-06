@@ -47,6 +47,10 @@ import com.je.dejpeg.utils.BeforeAfterImageView
 import com.je.dejpeg.dejpeg
 
 class MainActivity : AppCompatActivity() {
+    companion object {
+        @JvmField
+        var isProgressPercentage: Boolean = false
+    }
     private lateinit var selectButton: Button
     private lateinit var processButton: Button
     private lateinit var strengthSeekBar: RangeSlider
@@ -148,6 +152,7 @@ class MainActivity : AppCompatActivity() {
         outputFormat = prefs.getString(OUTPUT_FORMAT_KEY, "PNG") ?: "PNG"
         lastStrength = prefs.getFloat(STRENGTH_FACTOR_KEY, 0.5f)
         strengthSeekBar.setValues(lastStrength * 100f)
+        isProgressPercentage = prefs.getString(PROGRESS_FORMAT_KEY, "PLAINTEXT") == "PERCENTAGE"
 
         imagePickerLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
@@ -314,9 +319,12 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Start service in foreground
+        // start service in foreground
         val serviceIntent = Intent(this, AppBackgroundService::class.java)
         startForegroundService(serviceIntent)
+        // clear directories on startup
+        ImageProcessor.clearCacheDirs(ImageProcessor.chunkDir)
+        ImageProcessor.clearCacheDirs(ImageProcessor.processedDir)
     }
     
     override fun onNewIntent(intent: Intent?) {
@@ -767,13 +775,18 @@ class MainActivity : AppCompatActivity() {
 
     private fun cancelProcessing() {
             imageProcessor.cancelProcessing()
-            isProcessing = false
+            // isProcessing = false
             dismissProcessingNotification()
-            updateButtonVisibility()
-            updateImageViews()
-            // stopService(Intent(this, AppBackgroundService::class.java))
+            // updateButtonVisibility()
+            // updateImageViews()
             Toast.makeText(this, getString(R.string.processing_cancelled_toast), Toast.LENGTH_SHORT).show()
-            vibrationManager.vibrateError()
+            // vibrationManager.vibrateError()
+
+            // this is totally needed 100% i'm not lazy at all (no really, I don't wanna have to deal with native code execution termination)
+            val restartIntent = Intent(this, MainActivity::class.java)
+            restartIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            startActivity(restartIntent)
+            android.os.Process.killProcess(android.os.Process.myPid())
     }
 
     private fun processWithModel() {
@@ -1080,8 +1093,9 @@ class MainActivity : AppCompatActivity() {
         val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_config, null)
 
         val progressFormatSwitch = dialogView.findViewById<CheckBox>(R.id.progressFormatSwitch)
-        progressFormatSwitch.isChecked = prefs.getString(PROGRESS_FORMAT_KEY, "PLAINTEXT") == "PERCENTAGE"
+        progressFormatSwitch.isChecked = isProgressPercentage
         progressFormatSwitch.setOnCheckedChangeListener { _, isChecked ->
+            isProgressPercentage = isChecked
             prefs.edit()
                 .putString(PROGRESS_FORMAT_KEY, if (isChecked) "PERCENTAGE" else "PLAINTEXT")
                 .apply()

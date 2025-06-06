@@ -23,6 +23,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import com.je.dejpeg.utils.ProcessingState;
 
 public class ImageProcessor {
     private static final int CHUNK_SIZE = 1000;
@@ -34,10 +36,12 @@ public class ImageProcessor {
     private boolean isGrayscaleModel;
     private float strength;
 
-    private File chunkDir;
-    private File processedDir;
+    public static File chunkDir;
+    public static File processedDir;
     private Context context;
     private ModelManager modelManager;
+    
+    private final AtomicInteger runningChunks = new AtomicInteger(0);
 
     public interface ProcessCallback {
         void onComplete(Bitmap result);
@@ -59,9 +63,14 @@ public class ImageProcessor {
     public void processImage(Bitmap inputBitmap, float strength, ProcessCallback callback, int index, int total) {
         isCancelled = false;
         this.strength = strength;
+        ProcessingState.updateImageProgress(index + 1, total);
         new Thread(() -> {
             try {
-                if (callback != null) callback.onProgress("Loading model...");
+                if (inputBitmap.getWidth() > CHUNK_SIZE || inputBitmap.getHeight() > CHUNK_SIZE) {
+                    if (callback != null) callback.onProgress("loading...");
+                } else {
+                    if (callback != null) callback.onProgress("processing...");
+                }
                 
                 OrtSession session = modelManager.loadModel();
                 String modelName = modelManager.getActiveModelName();
@@ -74,7 +83,6 @@ public class ImageProcessor {
                     throw new Exception("Unknown model type: " + modelName);
                 }
 
-                if (callback != null) callback.onProgress("Processing image " + (index + 1) + " of " + total + "...");
                 Bitmap result = processBitmap(inputBitmap, callback, index, total);
                 if (callback != null) callback.onComplete(result);
             } catch (Exception e) {
@@ -83,12 +91,10 @@ public class ImageProcessor {
         }).start();
     }
 
-    // Add this overloaded method for internal use
     private Bitmap processBitmap(Bitmap inputBitmap) throws Exception {
         return processBitmap(inputBitmap, null, 0, 0);
     }
     
-    // Main universal function
     public Bitmap processBitmap(Bitmap inputBitmap, ProcessCallback callback, int index, int total) throws Exception {
         int width = inputBitmap.getWidth();
         int height = inputBitmap.getHeight();
@@ -97,40 +103,56 @@ public class ImageProcessor {
             // Ensure directories exist and are empty
             if (!chunkDir.exists()) chunkDir.mkdirs();
             if (!processedDir.exists()) processedDir.mkdirs();
-            clearDirectory(chunkDir);
-            clearDirectory(processedDir);
+            clearCacheDirs(chunkDir);
+            clearCacheDirs(processedDir);
 
             // Chunking required
             List<ChunkInfo> chunks = chunkBitmapToDisk(inputBitmap);
+            ProcessingState.updateChunkProgress(1, 0, chunks.size());
+            ProcessingState.completedChunks.set(0);
 
             int threadCount = Math.max(2, Runtime.getRuntime().availableProcessors() >= 4 ?
                 Runtime.getRuntime().availableProcessors() / 2 : 1);
             ExecutorService executor = Executors.newFixedThreadPool(threadCount);
             List<Future<File>> futures = new ArrayList<>();
+            AtomicInteger activeChunkStart = new AtomicInteger(1);
+            AtomicInteger activeChunkEnd = new AtomicInteger(0);
 
-            // Process each chunk in parallel, save to processedDir
             for (int i = 0; i < chunks.size(); i++) {
                 final int chunkIndex = i;
                 ChunkInfo chunk = chunks.get(i);
                 futures.add(executor.submit(() -> {
-                    if (callback != null) callback.onProgress(String.format("Processing image %d/%d - chunk %d/%d...", 
-                        index + 1, total, chunkIndex + 1, chunks.size()));
-                    // Load chunk from disk
-                    Bitmap chunkBitmap = BitmapFactory.decodeFile(chunk.chunkFile.getAbsolutePath());
-                    Bitmap processed = processBitmap(chunkBitmap);
-                    File outFile = new File(processedDir, "chunk_" + chunk.x + "_" + chunk.y + ".png");
-                    saveBitmapToFile(processed, outFile);
-                    chunkBitmap.recycle();
-                    processed.recycle(); // Free memory, but keep file
-                    chunk.processedFile = outFile;
-                    return outFile;
+                    runningChunks.incrementAndGet(); // Increment on start
+                    try {
+                        ProcessingState.updateChunkProgress(activeChunkStart.get(), chunkIndex + 1, chunks.size());
+                        if (callback != null) callback.onProgress(ProcessingState.getStatusString(context, threadCount));
+                
+                        activeChunkEnd.set(chunkIndex + 1);
+                        Bitmap chunkBitmap = BitmapFactory.decodeFile(chunk.chunkFile.getAbsolutePath());
+                        Bitmap processed = processBitmap(chunkBitmap);
+                        File outFile = new File(processedDir, "chunk_" + chunk.x + "_" + chunk.y + ".png");
+                        saveBitmapToFile(processed, outFile);
+                
+                        chunkBitmap.recycle();
+                        processed.recycle();
+                        chunk.processedFile = outFile;
+                        ProcessingState.completedChunks.incrementAndGet();
+                
+                        if (callback != null) {
+                            int currentlyRunning = runningChunks.get();
+                            callback.onProgress(ProcessingState.getStatusString(context, threadCount));
+                        }
+                
+                        activeChunkStart.incrementAndGet();
+                        return outFile;
+                    } finally {
+                        runningChunks.decrementAndGet(); // Decrement when done
+                    }
                 }));
             }
-            // Wait for all chunks to finish
             for (Future<File> f : futures) f.get();
             executor.shutdown();
 
-            // Merge processed chunks, removing overlaps
             Bitmap result = Bitmap.createBitmap(width, height, inputBitmap.getConfig());
             for (ChunkInfo chunk : chunks) {
                 File processedFile = chunk.processedFile;
@@ -138,7 +160,6 @@ public class ImageProcessor {
                 int chunkW = processed.getWidth();
                 int chunkH = processed.getHeight();
 
-                // Calculate region to copy (remove overlap except at borders)
                 int left = chunk.x == 0 ? 0 : OVERLAP / 2;
                 int top = chunk.y == 0 ? 0 : OVERLAP / 2;
                 int right = (chunk.x + chunkW >= width) ? chunkW : chunkW - OVERLAP / 2;
@@ -151,11 +172,8 @@ public class ImageProcessor {
                 result.setPixels(pixels, 0, copyW, chunk.x + left, chunk.y + top, copyW, copyH);
                 processed.recycle();
             }
-
-            // Clean up chunk files
-            clearDirectory(chunkDir);
-            clearDirectory(processedDir);
-
+            clearCacheDirs(chunkDir);
+            clearCacheDirs(processedDir);
             return result;
         }
 
@@ -305,7 +323,6 @@ public class ImageProcessor {
         return resultBitmap;
     }
 
-    // Helper for chunking bitmap and saving to disk
     private List<ChunkInfo> chunkBitmapToDisk(Bitmap input) throws IOException {
         List<ChunkInfo> chunks = new ArrayList<>();
         int width = input.getWidth();
@@ -325,7 +342,6 @@ public class ImageProcessor {
         return chunks;
     }
 
-    // Save bitmap to file as PNG
     private void saveBitmapToFile(Bitmap bitmap, File file) throws IOException {
         FileOutputStream out = null;
         try {
@@ -336,7 +352,6 @@ public class ImageProcessor {
         }
     }
 
-    // Add these public setters
     public void setScunetSession(OrtSession session, boolean isGrayscale) {
         this.scunetSession = session;
         this.fbcnnSession = null;
@@ -349,7 +364,6 @@ public class ImageProcessor {
         this.isGrayscaleModel = isGrayscale;
     }
 
-    // Helper class for chunk info
     private static class ChunkInfo {
         final int x, y;
         final File chunkFile;
@@ -362,8 +376,7 @@ public class ImageProcessor {
         }
     }
 
-    // Utility to clear a directory
-    private void clearDirectory(File dir) {
+    public static void clearCacheDirs(File dir) {
         if (dir.exists() && dir.isDirectory()) {
             File[] files = dir.listFiles();
             if (files != null) {
@@ -385,7 +398,6 @@ public class ImageProcessor {
             return;
         }
 
-        // Prevent window leak by checking activity state
         AppCompatActivity activity = (AppCompatActivity) context;
         if (activity.isFinishing() || activity.isDestroyed()) {
             return;

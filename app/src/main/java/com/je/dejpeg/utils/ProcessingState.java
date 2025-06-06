@@ -1,80 +1,69 @@
 package com.je.dejpeg.utils;
 
+import android.content.Context;
+import com.je.dejpeg.MainActivity;
+
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ProcessingState {
-
-    // Number of CPU cores used for processing
-    public static int coresUsed = Runtime.getRuntime().availableProcessors();
-
-    // Chunk progress state
-    public static final AtomicInteger currentChunkStart = new AtomicInteger(0);
-    public static final AtomicInteger currentChunkEnd = new AtomicInteger(0);
-    public static final AtomicInteger totalChunks = new AtomicInteger(0);
-
-    // Image queue state, with chunk substate
     public static final AtomicInteger currentImageIndex = new AtomicInteger(0);
     public static final AtomicInteger totalImages = new AtomicInteger(0);
-    public static final AtomicInteger currentImageChunkStart = new AtomicInteger(0);
-    public static final AtomicInteger currentImageChunkEnd = new AtomicInteger(0);
-    public static final AtomicInteger currentImageTotalChunks = new AtomicInteger(0);
+    public static final AtomicInteger activeChunkStart = new AtomicInteger(0);
+    public static final AtomicInteger activeChunkEnd = new AtomicInteger(0);
+    public static final AtomicInteger totalChunks = new AtomicInteger(0);
+    public static final AtomicInteger completedChunks = new AtomicInteger(0);
+    public static long startTime = 0;
 
-    // New active chunk counter for currently running tasks
-    public static final AtomicInteger activeChunks = new AtomicInteger(0);
-
-    /**
-     * Resets all values to default (should be called at the end of processing)
-     */
-    public static void reset() {
-        currentChunkStart.set(0);
-        currentChunkEnd.set(0);
-        totalChunks.set(0);
-        currentImageIndex.set(0);
-        totalImages.set(0);
-        currentImageChunkStart.set(0);
-        currentImageChunkEnd.set(0);
-        currentImageTotalChunks.set(0);
-        activeChunks.set(0);
+    public static void updateImageProgress(int current, int total) {
+        startTime = System.currentTimeMillis(); // start timing for current image
+        currentImageIndex.set(current);
+        totalImages.set(total);
+        completedChunks.set(0);
     }
 
-    /**
-     * Updates current global chunk processing progress.
-     */
     public static void updateChunkProgress(int start, int end, int total) {
-        currentChunkStart.set(start);
-        currentChunkEnd.set(end);
+        activeChunkStart.set(start);
+        activeChunkEnd.set(end);
         totalChunks.set(total);
     }
 
-    /**
-     * Updates current image queue processing status.
-     */
-    public static void updateImageProgress(int imageIndex, int totalImagesCount,
-                                           int chunkStart, int chunkEnd, int totalChunksForImage) {
-        currentImageIndex.set(imageIndex);
-        totalImages.set(totalImagesCount);
-        currentImageChunkStart.set(chunkStart);
-        currentImageChunkEnd.set(chunkEnd);
-        currentImageTotalChunks.set(totalChunksForImage);
-    }
-
-    /**
-     * Human-readable representation of the current progress.
-     */
-    public static String getStatusString() {
-        String activeInfo = "";
-        if (activeChunks.get() > 0) {
-            activeInfo = String.format(", chunks in progress: %d (using %d cores)", 
-                activeChunks.get(), coresUsed);
+    public static String getStatusString(Context context, int threadCount) {
+        int currentImage = currentImageIndex.get();
+        int totalImage = totalImages.get();
+        int completed = completedChunks.get();
+        int totalChunk = totalChunks.get();
+    
+        int totalWork = totalImage * totalChunk;
+        int workDone = (currentImage - 1) * totalChunk + completed;
+    
+        // Time estimate logic with thread count
+        String timeEstimate = "";
+        if (workDone >= threadCount && workDone < totalWork) {
+            long elapsedMillis = System.currentTimeMillis() - startTime;
+        
+            double avgMillisPerChunk = (double) elapsedMillis / workDone;
+            int remainingChunks = totalWork - workDone;
+        
+            long remainingMillis = (long) (avgMillisPerChunk * remainingChunks);
+            long remainingSeconds = remainingMillis / 1000;
+            long minutes = remainingSeconds / 60;
+            long seconds = remainingSeconds % 60;
+        
+            if (minutes > 0) {
+                timeEstimate = String.format(" (~%d min remaining)", minutes);
+            } else {
+                timeEstimate = String.format(" (~%d sec remaining)", seconds);
+            }
         }
-
-        if (totalImages.get() > 0) {
-            return "Processing image " + currentImageIndex.get() + " of " + totalImages.get() +
-                    ", chunks " + currentImageChunkStart.get() + "-" + currentImageChunkEnd.get() +
-                    " of " + currentImageTotalChunks.get() + activeInfo;
+    
+        if (MainActivity.isProgressPercentage) {
+            int percentage = totalWork > 0 ? (workDone * 100 / totalWork) : 0;
+            return String.format("processing %d%% complete...%s", percentage, timeEstimate);
         } else {
-            return "Processing chunks " + currentChunkStart.get() + "-" + currentChunkEnd.get() +
-                    " of " + totalChunks.get() + activeInfo;
+            return String.format("processing image %d/%d - chunks %d-%d/%d...%s",
+                    currentImage, totalImage,
+                    activeChunkStart.get(), activeChunkEnd.get(), totalChunk,
+                    timeEstimate);
         }
     }
 }
