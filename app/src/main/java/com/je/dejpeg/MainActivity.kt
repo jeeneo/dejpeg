@@ -69,11 +69,17 @@ class MainActivity : AppCompatActivity() {
     private lateinit var modelPickerLauncher: ActivityResultLauncher<Intent>
 
     private val PREFS_NAME = "AppPrefs"
-    private val OUTPUT_FORMAT_KEY = "outputFormat"
+    // private val OUTPUT_FORMAT_KEY = "outputFormat"
     private val STRENGTH_FACTOR_KEY = "strengthFactor"
     private val PROGRESS_FORMAT_KEY = "progressFormat"
+    private val DEFAULT_PICKER_KEY = "defaultPicker"
+    private val DEFAULT_ACTION_KEY = "defaultImagePickerAction"
     private val FORMAT_PNG = 0
-    private val FORMAT_BMP = 1
+    private val PICKER_GALLERY = 0
+    private val PICKER_INTERNAL = 1
+
+    private var defaultPicker = PICKER_GALLERY
+    private var defaultImageAction: Int = -1 // -1 means no default
 
     private lateinit var beforeAfterView: BeforeAfterImageView
 
@@ -87,7 +93,7 @@ class MainActivity : AppCompatActivity() {
     private var images = mutableListOf<ProcessingImage>()
     private var currentPage = 0
 
-    private var outputFormat = "PNG"
+    // private var outputFormat = "PNG"
     private var lastStrength = 0.5f
     private var showPreviews = true
     private var showFilmstrip = false
@@ -149,10 +155,12 @@ class MainActivity : AppCompatActivity() {
         imageProcessor = ImageProcessor(this, modelManager)
 
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        outputFormat = prefs.getString(OUTPUT_FORMAT_KEY, "PNG") ?: "PNG"
+        // outputFormat = prefs.getString(OUTPUT_FORMAT_KEY, "PNG") ?: "PNG"
         lastStrength = prefs.getFloat(STRENGTH_FACTOR_KEY, 0.5f)
         strengthSeekBar.setValues(lastStrength * 100f)
         isProgressPercentage = prefs.getString(PROGRESS_FORMAT_KEY, "PLAINTEXT") == "PERCENTAGE"
+        defaultPicker = prefs.getInt(DEFAULT_PICKER_KEY, PICKER_GALLERY)
+        defaultImageAction = prefs.getInt(DEFAULT_ACTION_KEY, -1)
 
         imagePickerLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
@@ -205,19 +213,15 @@ class MainActivity : AppCompatActivity() {
 
         selectButton.setOnClickListener {
             vibrationManager.vibrateButton()
-            MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.select_image)
-                .setItems(arrayOf(getString(R.string.single_image), getString(R.string.multiple_images))) { _, which ->
-                    vibrationManager.vibrateDialogChoice()
-                    val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
-                        type = "image/*"
-                        if (which == 1) {
-                            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-                        }
-                    }
-                    imagePickerLauncher.launch(intent)
+            if (defaultImageAction != -1) {
+                when (defaultImageAction) {
+                    0 -> launchGalleryPicker()
+                    1 -> launchInternalPhotoPicker()
+                    2 -> launchCamera()
                 }
-                .show()
+                return@setOnClickListener
+            }
+            showImagePickerDialog()
         }
 
         processButton.setOnClickListener {
@@ -716,12 +720,9 @@ class MainActivity : AppCompatActivity() {
         try {
             val fileName = "DeJPEG_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}"
             val outputFile = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), 
-                "$fileName.${outputFormat.lowercase()}")
+                "$fileName.png")
             FileOutputStream(outputFile).use { out ->
-                bitmap.compress(
-                    if (outputFormat == "PNG") Bitmap.CompressFormat.PNG else Bitmap.CompressFormat.PNG,
-                    100, out
-                )
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
             }
             MediaScannerConnection.scanFile(this, arrayOf(outputFile.toString()), null, null)
             Toast.makeText(this, getString(R.string.image_saved_toast), Toast.LENGTH_SHORT).show()
@@ -1100,19 +1101,17 @@ class MainActivity : AppCompatActivity() {
                 .putString(PROGRESS_FORMAT_KEY, if (isChecked) "PERCENTAGE" else "PLAINTEXT")
                 .apply()
         }
+
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.config_dialog_title)
-            .setSingleChoiceItems(
-                arrayOf(getString(R.string.png), getString(R.string.bmp)),
-                if (outputFormat == "BMP") FORMAT_BMP else FORMAT_PNG
-            ) { dialog, which ->
+            .setPositiveButton(R.string.clear_default_action) { _, _ ->
                 vibrationManager.vibrateDialogChoice()
-                outputFormat = if (which == FORMAT_BMP) "BMP" else "PNG"
-                prefs.edit()
-                    .putString(OUTPUT_FORMAT_KEY, outputFormat)
+                getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                    .edit()
+                    .remove(DEFAULT_ACTION_KEY)
                     .apply()
-                Toast.makeText(this, getString(R.string.output_format_set_toast, outputFormat), Toast.LENGTH_SHORT).show()
-                dialog.dismiss()
+                defaultImageAction = -1
+                Toast.makeText(this, R.string.default_action_cleared, Toast.LENGTH_SHORT).show()
             }
             .setNeutralButton(R.string.manage_models_button) { _, _ ->
                 vibrationManager.vibrateDialogChoice()
@@ -1122,6 +1121,56 @@ class MainActivity : AppCompatActivity() {
                 vibrationManager.vibrateDialogChoice()
             }
             .setView(dialogView)
-        .show()
+            .show()
+    }
+
+    private fun launchGalleryPicker() {
+        val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI).apply {
+            type = "image/*"
+            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+        }
+        imagePickerLauncher.launch(intent)
+    }
+
+    private fun launchInternalPhotoPicker() {
+        val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+            type = "image/*"
+            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+        }
+        imagePickerLauncher.launch(intent)
+    }
+
+    private fun launchCamera() {
+        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+        imagePickerLauncher.launch(intent)
+    }
+
+    private fun showImagePickerDialog() {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_image_picker, null)
+        val setDefaultSwitch = dialogView.findViewById<MaterialSwitch>(R.id.setDefaultSwitch)
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.pick_image_method)
+            .setView(dialogView)
+            .setItems(arrayOf(
+                getString(R.string.gallery_picker),
+                getString(R.string.internal_picker),
+                getString(R.string.camera)
+            )) { dialog, which ->
+                vibrationManager.vibrateDialogChoice()
+                if (setDefaultSwitch.isChecked) {
+                    getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                        .edit()
+                        .putInt(DEFAULT_ACTION_KEY, which)
+                        .apply()
+                    defaultImageAction = which
+                }
+                when (which) {
+                    0 -> launchGalleryPicker()
+                    1 -> launchInternalPhotoPicker()
+                    2 -> launchCamera()
+                }
+            }
+            .show()
     }
 }

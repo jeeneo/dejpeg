@@ -34,6 +34,11 @@
     <!-- image picker -->
     <string name="single_image">single image</string>
     <string name="multiple_images">multiple images</string>
+    
+    <string name="gallery_picker">Gallery</string>
+    <string name="internal_picker">Internal Photo Picker</string>
+    <string name="camera">Camera</string>
+    <string name="default_picker_title">Default Image Picker:</string>
 
     <!-- model UI -->
     <string name="select_model">select model</string>
@@ -116,4 +121,8 @@
     -->
     
     <string name="progress_format_switch">percentage progress</string>
+    <string name="set_as_default_action">Set this as the default action</string>
+    <string name="pick_image_method">Pick image from</string>
+    <string name="clear_default_action">Clear default action</string>
+    <string name="default_action_cleared">Default image picker action cleared</string>
 </resources>
