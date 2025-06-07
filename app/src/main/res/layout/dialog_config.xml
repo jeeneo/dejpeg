@@ -5,10 +5,12 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <CheckBox
+    <com.google.android.material.materialswitch.MaterialSwitch
         android:id="@+id/progressFormatSwitch"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/progress_format_switch" />
+        android:text="@string/progress_format_switch"
+        android:textSize="16sp"
+        android:minHeight="48dp"/>
 
 </LinearLayout>

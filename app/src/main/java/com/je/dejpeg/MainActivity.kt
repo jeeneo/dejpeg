@@ -38,8 +38,12 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.recyclerview.widget.RecyclerView
 import android.view.ViewGroup
 import android.graphics.Outline
+import android.media.ExifInterface
+import android.graphics.Matrix
+import java.io.InputStream
+import com.je.dejpeg.models.ProcessingState
 
-import com.je.dejpeg.utils.ProcessingState
+// import com.je.dejpeg.models.ProcessingState
 import com.je.dejpeg.utils.ProcessingAnimation
 import com.je.dejpeg.utils.VibrationManager
 import com.je.dejpeg.utils.NotificationHandler
@@ -123,6 +127,18 @@ class MainActivity : AppCompatActivity() {
     
     private lateinit var processingText: TextView
 
+    private var currentPhotoUri: Uri? = null
+
+    private val processingQueue = mutableListOf<QueueItem>()
+    private var isProcessingQueue = false
+
+    private data class QueueItem(
+        val image: ProcessingImage,
+        val strength: Float,
+        val requiresChunking: Boolean,
+        val index: Int
+    )
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -166,31 +182,35 @@ class MainActivity : AppCompatActivity() {
             ActivityResultContracts.StartActivityForResult()
         ) { result ->
             try {
-                if (result.resultCode == RESULT_OK && result.data != null) {
-                    result.data?.let { data ->
-                        if (data.clipData != null) {
-                            handleMultipleImages(data.clipData!!)
-                        } else {
-                            data.data?.let { uri ->
-                                val inputStream = contentResolver.openInputStream(uri)
-                                val options = BitmapFactory.Options().apply {
-                                    inJustDecodeBounds = true
-                                }
-                                BitmapFactory.decodeStream(inputStream, null, options)
-                                inputStream?.close()
-        
-                                val width = options.outWidth
-                                val height = options.outHeight
-        
-                                if (width > 7000 || height > 7000) {
-                                    showWarningDialog("the selected image is very large (${width}x${height}), this can cause issues") {
-                                        onImageSelected(uri)
-                                    }
-                                } else {
+                if (result.resultCode == RESULT_OK) {
+                    if (result.data?.data != null) {
+                        // Handle gallery/internal picker result
+                        result.data?.data?.let { uri ->
+                            val inputStream = contentResolver.openInputStream(uri)
+                            val options = BitmapFactory.Options().apply {
+                                inJustDecodeBounds = true
+                            }
+                            BitmapFactory.decodeStream(inputStream, null, options)
+                            inputStream?.close()
+
+                            val width = options.outWidth
+                            val height = options.outHeight
+
+                            if (width > 4000 || height > 4000) {
+                                showWarningDialog("the selected image is very large (${width}x${height}), (over 4000px) this can cause issues") {
                                     onImageSelected(uri)
                                 }
+                            } else {
+                                onImageSelected(uri)
                             }
                         }
+                    } else if (result.data?.clipData != null) {
+                        // Handle multiple images
+                        handleMultipleImages(result.data!!.clipData!!)
+                    } else if (currentPhotoUri != null) {
+                        // Handle camera result
+                        onImageSelected(currentPhotoUri!!)
+                        currentPhotoUri = null
                     }
                 }
             } catch (e: Exception) {
@@ -217,7 +237,8 @@ class MainActivity : AppCompatActivity() {
                 when (defaultImageAction) {
                     0 -> launchGalleryPicker()
                     1 -> launchInternalPhotoPicker()
-                    2 -> launchCamera()
+                    2 -> launchDocumentsPicker()
+                    3 -> launchCamera()
                 }
                 return@setOnClickListener
             }
@@ -607,61 +628,62 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun getCorrectlyOrientedBitmap(uri: Uri): Bitmap {
+        val inputStream: InputStream? = contentResolver.openInputStream(uri)
+        val bitmap = BitmapFactory.decodeStream(inputStream)
+        inputStream?.close()
+
+        val exif = contentResolver.openInputStream(uri)?.use { ExifInterface(it) }
+        val orientation = exif?.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+        val rotation = when (orientation) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> 90
+            ExifInterface.ORIENTATION_ROTATE_180 -> 180
+            ExifInterface.ORIENTATION_ROTATE_270 -> 270
+            else -> 0
+        }
+
+        val matrix = Matrix().apply { postRotate(rotation.toFloat()) }
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+    }
+
     private fun onImageSelected(selectedImage: Uri) {
         try {
-            var mimeType = contentResolver.getType(selectedImage)
-            if (mimeType == null) {
-                mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(
-                    MimeTypeMap.getFileExtensionFromUrl(selectedImage.toString())
-                )
-            }
-            val bitmap = if (mimeType == "image/webp") {
-                convertWebpToBitmap(selectedImage)
-            } else {
-                MediaStore.Images.Media.getBitmap(contentResolver, selectedImage)
-            }
+            val bitmap = getCorrectlyOrientedBitmap(selectedImage)
             updateImageViews(bitmap)
         } catch (e: IOException) {
             showErrorDialog(getString(R.string.error_loading_image_dialog) + " " + e.message)
         }
     }
 
-    private fun convertWebpToBitmap(webpUri: Uri): Bitmap {
-        val webpBitmap = MediaStore.Images.Media.getBitmap(contentResolver, webpUri)
-        val bmpFile = File(cacheDir, "input_temp.bmp")
-        FileOutputStream(bmpFile).use { webpBitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
-        return BitmapFactory.decodeFile(bmpFile.absolutePath)
-    }
-
     private fun handleMultipleImages(clipData: ClipData) {
         try {
             val oversizedUris = mutableListOf<Uri>()
             val regularUris = mutableListOf<Uri>()
-    
+
             for (i in 0 until clipData.itemCount) {
                 val uri = clipData.getItemAt(i).uri
-    
+
                 val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                 val inputStream = contentResolver.openInputStream(uri)
                 BitmapFactory.decodeStream(inputStream, null, options)
                 inputStream?.close()
-    
-                if (options.outWidth > 6000 || options.outHeight > 6000) {
+
+                if (options.outWidth > 4000 || options.outHeight > 4000) {
                     oversizedUris.add(uri)
                 } else {
                     regularUris.add(uri)
                 }
             }
-    
+
             val loadImages: () -> Unit = {
                 images.clear()
                 perImageStrengthFactors.clear()
                 var loadedCount = 0
-    
+
                 val allUris = regularUris + oversizedUris
                 for (uri in allUris) {
                     try {
-                        val bitmap = MediaStore.Images.Media.getBitmap(contentResolver, uri)
+                        val bitmap = getCorrectlyOrientedBitmap(uri)
                         images.add(ProcessingImage(bitmap))
                         perImageStrengthFactors.add(lastStrength)
                         loadedCount++
@@ -670,7 +692,7 @@ class MainActivity : AppCompatActivity() {
                         continue
                     }
                 }
-    
+
                 if (loadedCount > 0) {
                     currentPage = 0
                     processButton.isEnabled = modelManager.hasActiveModel()
@@ -684,14 +706,14 @@ class MainActivity : AppCompatActivity() {
                     Toast.makeText(this, getString(R.string.no_images_loaded_toast), Toast.LENGTH_SHORT).show()
                 }
             }
-    
+
             if (oversizedUris.isNotEmpty()) {
-                val message = "one or more selected images are very large (exceeds 7000px), this might affect performance."
+                val message = "one or more selected images are very large (exceeds 4000px), this might affect performance."
                 showWarningDialog(message, onContinue = loadImages)
             } else {
                 loadImages()
             }
-    
+
         } catch (e: Exception) {
             showErrorDialog(getString(R.string.error_loading_all_images_batch_dialog, e.message))
         }
@@ -798,71 +820,35 @@ class MainActivity : AppCompatActivity() {
         beforeAfterView.visibility = View.GONE
         filmstripRecyclerView.visibility = View.GONE
 
-        val isBatch = images.size > 1
-        var completedCount = 0
-        notificationHandler.showProcessingNotification()  // Show initial notification
+        // Clear any existing queue
+        processingQueue.clear()
+        isProcessingQueue = false
 
-        fun processNext(index: Int) {
-            if (!isProcessing || index >= images.size) {
-                isProcessing = false
-                if (completedCount > 0) {
-                    showCompletionNotification(completedCount)
-                } else {
-                    clearAllNotifications()
-                }
-                dismissProcessingNotification()
-                updateButtonVisibility()
-                showFilmstrip = true
-                updateImageViews()
-                return
-            }
-
-            val image = images[index]
-            val strength = if (applyStrengthToAll) lastStrength * 100f else perImageStrengthFactors[index] * 100f
-
-            imageProcessor.processImage(
-                image.inputBitmap,
-                strength,
-                object : ImageProcessor.ProcessCallback {
-                    override fun onComplete(result: Bitmap) {
-                        runOnUiThread {
-                            if (isProcessing) {
-                                image.outputBitmap = result
-                                completedCount++
-                                if (!isBatch || index == images.size - 1) {
-                                    vibrationManager.vibrateSuccess()
-                                } else {
-                                    vibrationManager.vibrateSingleSuccess()
-                                }
-                                updateImageViews()
-                                processNext(index + 1)
-                            }
-                        }
-                    }
-                    override fun onError(error: String) {
-                        runOnUiThread {
-                            if (isProcessing) {
-                                vibrationManager.vibrateError()
-                                notificationHandler.showErrorNotification(error)
-                                Toast.makeText(this@MainActivity, error, Toast.LENGTH_SHORT).show()
-                                showErrorDialog(error)
-                                processNext(index + 1)
-                            }
-                        }
-                    }
-                    override fun onProgress(message: String) {
-                        runOnUiThread {
-                            processingText.text = message
-                            // showProgressText();
-                        }
-                    }
-                },
-                index,
-                images.size
-            )
+        // Queue all images, determining if they need chunking
+        images.forEachIndexed { index, image -> 
+            val strength = if (applyToAllSwitch.isChecked) lastStrength * 100f 
+                          else perImageStrengthFactors[index] * 100f
+            val needsChunking = image.inputBitmap.width > ImageProcessor.CHUNK_SIZE || 
+                               image.inputBitmap.height > ImageProcessor.CHUNK_SIZE
+            processingQueue.add(QueueItem(image, strength, needsChunking, index))
         }
 
-        processNext(0)
+        // Sort queue to process chunked images first
+        processingQueue.sortBy { !it.requiresChunking }
+
+        // New: Set the processing order in ProcessingState (list of original indices in processing order)
+        ProcessingState.setProcessingOrder(processingQueue.map { it.index })
+
+        ProcessingState.queuedImages = images.size
+        ProcessingState.Companion.allImagesCompleted = false
+        
+        val processors = Runtime.getRuntime().availableProcessors()
+        val threadsToUse = if (processors >= 4) processors / 2 else 1
+        val initialStatus = ProcessingState.getStatusString(this, threadsToUse)
+
+        notificationHandler.showProgressNotification(initialStatus)
+
+        processQueue()
     }
 
     // private fun showProgressText() {
@@ -894,9 +880,13 @@ class MainActivity : AppCompatActivity() {
         notificationHandler.clearAllNotifications()
     }
 
-    // override fun onPause() {
-    //     super.onPause()
-    // }
+    override fun onPause() {
+        super.onPause()
+        if (isProcessing) {
+            val progressText = ProcessingState.getStatusString(this, Runtime.getRuntime().availableProcessors())
+            notificationHandler.showProgressNotification(progressText)
+        }
+    }
 
     override fun onDestroy() {
         super.onDestroy()
@@ -921,6 +911,16 @@ class MainActivity : AppCompatActivity() {
             processingAnimation.visibility = View.GONE
             processingText.visibility = View.GONE
             placeholderContainer.visibility = View.VISIBLE
+            return
+        }
+
+        // Prevent showing images until all are processed
+        if (isProcessing && !com.je.dejpeg.models.ProcessingState.Companion.allImagesCompleted) {
+            beforeAfterView.clearImages()
+            filmstripRecyclerView.visibility = View.GONE
+            processingAnimation.visibility = View.VISIBLE
+            processingText.visibility = View.VISIBLE
+            placeholderContainer.visibility = View.GONE
             return
         }
 
@@ -1093,7 +1093,7 @@ class MainActivity : AppCompatActivity() {
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
         val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_config, null)
 
-        val progressFormatSwitch = dialogView.findViewById<CheckBox>(R.id.progressFormatSwitch)
+        val progressFormatSwitch = dialogView.findViewById<MaterialSwitch>(R.id.progressFormatSwitch)
         progressFormatSwitch.isChecked = isProgressPercentage
         progressFormatSwitch.setOnCheckedChangeListener { _, isChecked ->
             isProgressPercentage = isChecked
@@ -1142,6 +1142,33 @@ class MainActivity : AppCompatActivity() {
 
     private fun launchCamera() {
         val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+        try {
+            // Create temporary file for the camera image
+            val storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+            val tempFile = File.createTempFile(
+                "JPEG_${System.currentTimeMillis()}_",
+                ".jpg",
+                storageDir
+            )
+            val photoURI = androidx.core.content.FileProvider.getUriForFile(
+                this,
+                "${packageName}.provider",
+                tempFile
+            )
+            // Store URI for later use
+            currentPhotoUri = photoURI
+            intent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI)
+            imagePickerLauncher.launch(intent)
+        } catch (e: IOException) {
+            showErrorDialog(getString(R.string.error_camera_dialog) + " " + e.message)
+        }
+    }
+
+    private fun launchDocumentsPicker() {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            type = "image/*"
+            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+        }
         imagePickerLauncher.launch(intent)
     }
 
@@ -1155,6 +1182,7 @@ class MainActivity : AppCompatActivity() {
             .setItems(arrayOf(
                 getString(R.string.gallery_picker),
                 getString(R.string.internal_picker),
+                getString(R.string.documents_picker),
                 getString(R.string.camera)
             )) { dialog, which ->
                 vibrationManager.vibrateDialogChoice()
@@ -1168,9 +1196,58 @@ class MainActivity : AppCompatActivity() {
                 when (which) {
                     0 -> launchGalleryPicker()
                     1 -> launchInternalPhotoPicker()
-                    2 -> launchCamera()
+                    2 -> launchDocumentsPicker()
+                    3 -> launchCamera()
                 }
             }
             .show()
+    }
+
+    private fun processQueue() {
+        if (isProcessingQueue || processingQueue.isEmpty()) return
+        isProcessingQueue = true
+
+        // No need to sort here anymore, already sorted in processWithModel
+
+        val item = processingQueue.removeAt(0)
+        imageProcessor.processImage(
+            item.image.inputBitmap,
+            item.strength,
+            object : ImageProcessor.ProcessCallback {
+                override fun onComplete(result: Bitmap) {
+                    runOnUiThread {
+                        item.image.outputBitmap = result
+                        isProcessingQueue = false
+                        if (processingQueue.isNotEmpty()) {
+                            processQueue()
+                        } else {
+                            isProcessing = false
+                            ProcessingState.Companion.markAllImagesCompleted()
+                            updateButtonVisibility()
+                            showFilmstrip = true
+                            updateImageViews()
+                        }
+                    }
+                }
+
+                override fun onError(error: String) {
+                    runOnUiThread {
+                        isProcessingQueue = false
+                        showErrorDialog(error)
+                        if (processingQueue.isNotEmpty()) {
+                            processQueue()
+                        }
+                    }
+                }
+
+                override fun onProgress(message: String) {
+                    runOnUiThread {
+                        processingText.text = message
+                    }
+                }
+            },
+            item.index,
+            images.size
+        )
     }
 }

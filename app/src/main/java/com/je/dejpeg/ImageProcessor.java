@@ -24,11 +24,12 @@ import java.util.concurrent.Future;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-import com.je.dejpeg.utils.ProcessingState;
+import com.je.dejpeg.models.ProcessingState;  // Update import path
+import com.je.dejpeg.models.ProcessingTimeStats; // Add import
 
 public class ImageProcessor {
-    private static final int CHUNK_SIZE = 1000;
-    private static final int OVERLAP = 32;
+    public static final int CHUNK_SIZE = 1000;
+    public static final int OVERLAP = 32;
     private boolean isCancelled = false;
     private OrtEnvironment ortEnv;
     private OrtSession scunetSession;
@@ -54,6 +55,8 @@ public class ImageProcessor {
         this.modelManager = modelManager;
         this.chunkDir = new File(context.getCacheDir(), "chunkAccumulator");
         this.processedDir = new File(context.getCacheDir(), "processedChunkDir");
+        // Load persisted time stats
+        ProcessingTimeStats.INSTANCE.load(context);
     }
 
     public void cancelProcessing() {
@@ -63,15 +66,15 @@ public class ImageProcessor {
     public void processImage(Bitmap inputBitmap, float strength, ProcessCallback callback, int index, int total) {
         isCancelled = false;
         this.strength = strength;
-        ProcessingState.updateImageProgress(index + 1, total);
+        ProcessingState.Companion.updateImageProgress(index + 1, total);  // Update static call
+        // Save last image size for estimate
+        ProcessingState.lastImageWidth = inputBitmap.getWidth();
+        ProcessingState.lastImageHeight = inputBitmap.getHeight();
         new Thread(() -> {
             try {
-                if (inputBitmap.getWidth() > CHUNK_SIZE || inputBitmap.getHeight() > CHUNK_SIZE) {
-                    if (callback != null) callback.onProgress("loading...");
-                } else {
-                    if (callback != null) callback.onProgress("processing...");
-                }
-                
+                // Move progress callback logic into ProcessingState
+                ProcessingState.Companion.updateSingleImageProgress(inputBitmap.getWidth(), inputBitmap.getHeight(), callback);
+
                 OrtSession session = modelManager.loadModel();
                 String modelName = modelManager.getActiveModelName();
                 
@@ -83,7 +86,13 @@ public class ImageProcessor {
                     throw new Exception("Unknown model type: " + modelName);
                 }
 
+                long startTime = System.currentTimeMillis();
                 Bitmap result = processBitmap(inputBitmap, callback, index, total);
+                long elapsed = System.currentTimeMillis() - startTime;
+                // If not chunked, record single image time
+                if (inputBitmap.getWidth() <= CHUNK_SIZE && inputBitmap.getHeight() <= CHUNK_SIZE) {
+                    ProcessingTimeStats.INSTANCE.recordSingleImageTime(inputBitmap.getWidth(), inputBitmap.getHeight(), elapsed, context);
+                }
                 if (callback != null) callback.onComplete(result);
             } catch (Exception e) {
                 if (callback != null) callback.onError(e.getMessage() != null ? e.getMessage() : "Unknown error");
@@ -108,45 +117,60 @@ public class ImageProcessor {
 
             // Chunking required
             List<ChunkInfo> chunks = chunkBitmapToDisk(inputBitmap);
-            ProcessingState.updateChunkProgress(1, 0, chunks.size());
-            ProcessingState.completedChunks.set(0);
-
+            // Get threadCount before first use
             int threadCount = Math.max(2, Runtime.getRuntime().availableProcessors() >= 4 ?
                 Runtime.getRuntime().availableProcessors() / 2 : 1);
+            ProcessingState.Companion.updateChunkProgress(1, 0, chunks.size(), threadCount); // Initialize totalChunks correctly
+            ProcessingState.Companion.getCompletedChunks().set(0); // Reset completedChunks
+            
+            int totalChunks = chunks.size();
             ExecutorService executor = Executors.newFixedThreadPool(threadCount);
             List<Future<File>> futures = new ArrayList<>();
-            AtomicInteger activeChunkStart = new AtomicInteger(1);
-            AtomicInteger activeChunkEnd = new AtomicInteger(0);
+            AtomicInteger completedChunks = new AtomicInteger(0);
 
             for (int i = 0; i < chunks.size(); i++) {
                 final int chunkIndex = i;
                 ChunkInfo chunk = chunks.get(i);
                 futures.add(executor.submit(() -> {
-                    runningChunks.incrementAndGet(); // Increment on start
+                    runningChunks.incrementAndGet();
+                    long chunkStart = System.currentTimeMillis();
                     try {
-                        ProcessingState.updateChunkProgress(activeChunkStart.get(), chunkIndex + 1, chunks.size());
-                        if (callback != null) callback.onProgress(ProcessingState.getStatusString(context, threadCount));
-                
-                        activeChunkEnd.set(chunkIndex + 1);
+                        int running = runningChunks.get();
+                        int completed = completedChunks.get();
+                        int start = Math.min(completed + 1, totalChunks);
+                        int end = Math.min(completed + running, totalChunks);
+
+                        ProcessingState.Companion.updateChunkProgress(start, end, totalChunks, threadCount); // Update chunk progress
+                        if (callback != null) callback.onProgress(ProcessingState.Companion.getStatusString(context, threadCount));
+
                         Bitmap chunkBitmap = BitmapFactory.decodeFile(chunk.chunkFile.getAbsolutePath());
                         Bitmap processed = processBitmap(chunkBitmap);
                         File outFile = new File(processedDir, "chunk_" + chunk.x + "_" + chunk.y + ".png");
                         saveBitmapToFile(processed, outFile);
-                
+
                         chunkBitmap.recycle();
                         processed.recycle();
                         chunk.processedFile = outFile;
-                        ProcessingState.completedChunks.incrementAndGet();
-                
+
+                        // Record chunk processing time for estimate
+                        long chunkElapsed = System.currentTimeMillis() - chunkStart;
+                        ProcessingTimeStats.INSTANCE.recordChunkTime(
+                            outFile.exists() ? chunkBitmap.getWidth() : chunkWidth(chunk), // fallback if needed
+                            outFile.exists() ? chunkBitmap.getHeight() : chunkHeight(chunk),
+                            chunkElapsed,
+                            context // Pass context to save stats
+                        );
+
+                        completedChunks.incrementAndGet();
+                        ProcessingState.Companion.getCompletedChunks().incrementAndGet();
+
                         if (callback != null) {
-                            int currentlyRunning = runningChunks.get();
-                            callback.onProgress(ProcessingState.getStatusString(context, threadCount));
+                            callback.onProgress(ProcessingState.Companion.getStatusString(context, threadCount));
                         }
-                
-                        activeChunkStart.incrementAndGet();
+
                         return outFile;
                     } finally {
-                        runningChunks.decrementAndGet(); // Decrement when done
+                        runningChunks.decrementAndGet();
                     }
                 }));
             }
@@ -321,6 +345,14 @@ public class ImageProcessor {
         }
         resultBitmap.setPixels(outPixels, 0, w, 0, 0, w, h);
         return resultBitmap;
+    }
+
+    // Helper methods for fallback chunk size if needed
+    private int chunkWidth(ChunkInfo chunk) {
+        return Math.min(CHUNK_SIZE, ProcessingState.lastImageWidth - chunk.x);
+    }
+    private int chunkHeight(ChunkInfo chunk) {
+        return Math.min(CHUNK_SIZE, ProcessingState.lastImageHeight - chunk.y);
     }
 
     private List<ChunkInfo> chunkBitmapToDisk(Bitmap input) throws IOException {

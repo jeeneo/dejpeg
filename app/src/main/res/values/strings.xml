@@ -1,12 +1,12 @@
 <resources>
-    <string name="app_name">DeJPEG</string>
+    <string name="app_name">dejpeg</string>
     <string name="app_slogan">non-destructive restoration</string>
 
     <!-- links -->
-    <string name="FBCNN_link">https://github.com/jeeneo/FBCNN-mobile/releases/latest</string>
-    <string name="SCUNet_link">https://github.com/jeeneo/SCUNet-mobile/releases/latest</string>
+    <string name="FBCNN_link">https://github.com/jeeneo/fbcnn-mobile/releases/latest</string>
+    <string name="SCUNet_link">https://github.com/jeeneo/scunet-mobile/releases/latest</string>
 
-    <!-- main UI -->
+    <!-- main ui -->
     <string name="select_image">add</string>
     <string name="process_button">process</string>
     <string name="cancel_button">cancel</string>
@@ -15,14 +15,13 @@
     <string name="error_dialog_title">error</string>
     <string name="warning_dialog_title">warning</string>
 
-    <string name="background_service_title">DeJPEG service</string>
+    <string name="background_service_title">dejpeg service</string>
     <string name="stop_background_service_text">stop</string>
     <string name="background_service_message">this is intended to prevent the system from killing the app when in background.</string>
     <string name="background_service_additional_message">\n\nyou can stop the service from the notification or dismissing the app from recents.</string>
     <string name="ok_button">ok</string>
 
     <string name="png">png</string>
-    <string name="bmp">bitmap</string>
     <string name="output_format_set_toast">output format set to: %1$s</string>
 
     <string name="share_image">share</string>
@@ -32,15 +31,18 @@
     <string name="dismiss_button">dismiss</string>
 
     <!-- image picker -->
-    <string name="single_image">single image</string>
-    <string name="multiple_images">multiple images</string>
+    <!-- <string name="single_image">single image</string> -->
+    <string name="error_camera_dialog">camera import error</string>
     
-    <string name="gallery_picker">Gallery</string>
-    <string name="internal_picker">Internal Photo Picker</string>
-    <string name="camera">Camera</string>
-    <string name="default_picker_title">Default Image Picker:</string>
+    
+    <string name="gallery_picker">gallery</string>
+    <string name="internal_picker">photo picker</string>
+    <string name="documents_picker">file picker</string>
+    <string name="camera">camera</string>
+    
+    <string name="default_picker_title">default image picker:</string>
 
-    <!-- model UI -->
+    <!-- model ui -->
     <string name="select_model">select model</string>
     <string name="no_models">no models found.\n\nplease download a model from one of the buttons below, then import</string>
     <string name="model_switched">switched to model: %1$s</string>
@@ -73,11 +75,11 @@
     <string name="remove_image_title">remove image</string>
 
     <!-- processing -->
-    <string name="processing_chunked_single">Processing chunk %1$d of %2$d</string>
-    <string name="processing_batch_chunked">Batch: %1$d/%2$d images, %3$d/%4$d chunks</string>
-    <string name="processing_batch">Batch: %1$d/%2$d images</string>
-    <string name="processing_image_single">Processing single image</string>
-    <string name="processing_preparing">Preparing...</string>
+    <string name="processing_chunked_single">processing chunk %1$d of %2$d</string>
+    <string name="processing_batch_chunked">batch: %1$d/%2$d images, %3$d/%4$d chunks</string>
+    <string name="processing_batch">batch: %1$d/%2$d images</string>
+    <string name="processing_image_single">processing single image</string>
+    <string name="processing_preparing">preparing...</string>
     <string name="processing_cancelled_toast">processing cancelled!</string>
 
     <!-- processing_in_progress_toast -->
@@ -93,13 +95,13 @@
     <string name="processing_updates_reason_for_notifications">processing updates</string>
     <string name="processing_error_title_notification">processing error</string>
 
-    <!-- <string name="processing_preparing">Preparing images for processing…</string> -->
-    <string name="processing_multiple_images">Processing %1$d of %2$d images in parallel</string>
-    <string name="processing_image_status">Image %1$d: Processing</string>
-    <string name="processing_image_chunked_status">Image %1$d: Processing chunk %2$d of %3$d</string>
-    <string name="processing_parallel">Processing %1$d images in parallel...</string>
-    <string name="processing_large_image">Processing large image %1$d of %2$d</string>
-    <string name="processing_chunked_single_range">Processing chunks %1$s</string>
+    <!-- <string name="processing_preparing">preparing images for processing…</string> -->
+    <string name="processing_multiple_images">processing %1$d of %2$d images in parallel</string>
+    <string name="processing_image_status">image %1$d: processing</string>
+    <string name="processing_image_chunked_status">image %1$d: processing chunk %2$d of %3$d</string>
+    <string name="processing_parallel">processing %1$d images in parallel...</string>
+    <string name="processing_large_image">processing large image %1$d of %2$d</string>
+    <string name="processing_chunked_single_range">processing chunks %1$s</string>
 
     <!-- garbage strings::
     <string name="notification_permission_denied">notification permission denied</string>
@@ -121,8 +123,8 @@
     -->
     
     <string name="progress_format_switch">percentage progress</string>
-    <string name="set_as_default_action">Set this as the default action</string>
-    <string name="pick_image_method">Pick image from</string>
-    <string name="clear_default_action">Clear default action</string>
-    <string name="default_action_cleared">Default image picker action cleared</string>
+    <string name="set_as_default_action">set this as the default action</string>
+    <string name="pick_image_method">pick image from</string>
+    <string name="clear_default_action">clear default action</string>
+    <string name="default_action_cleared">default image picker action cleared</string>
 </resources>

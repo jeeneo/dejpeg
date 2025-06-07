@@ -36,7 +36,7 @@ class NotificationHandler(private val context: Context) {
         }
     }
 
-    fun showProcessingNotification() {
+    fun showProgressNotification(progressText: String) {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
@@ -47,7 +47,7 @@ class NotificationHandler(private val context: Context) {
 
         val notification = NotificationCompat.Builder(context, "processing_channel")
             .setSmallIcon(R.drawable.ic_processing)
-            .setContentTitle("processing")
+            .setContentTitle(progressText)
             .setProgress(0, 0, true)
             .setOngoing(true)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
@@ -58,6 +58,10 @@ class NotificationHandler(private val context: Context) {
 
         NotificationManagerCompat.from(context).notify(NOTIFICATION_ID_PROCESSING, notification)
     }
+
+    // fun showProcessingNotification() {
+    //     showProgressNotification("processing...")
+    // }
 
     fun showErrorNotification(error: String) {
         if (AppLifecycleTracker.isAppInForeground) return
