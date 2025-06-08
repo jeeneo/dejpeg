@@ -7,8 +7,7 @@
 ## features:
 1. batch processing
 2. transparancy re-mapping (experimental)
-4. exporting as BMP or PNG
-5. free and no internet needed
+3. free and no internet needed
 
 ## download:
 [here](https://github.com/jeeneo/dejpeg/releases/latest)
