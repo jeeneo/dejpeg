@@ -86,4 +86,5 @@ dependencies {
     implementation 'androidx.recyclerview:recyclerview:1.4.0'
     implementation 'androidx.core:core-ktx:1.16.0'
     implementation 'androidx.core:core:1.16.0'
+    implementation 'io.noties.markwon:core:4.6.2'
 }

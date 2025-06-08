@@ -50,6 +50,9 @@ import com.je.dejpeg.utils.NotificationHandler
 import com.je.dejpeg.utils.BeforeAfterImageView
 import com.je.dejpeg.dejpeg
 
+import android.text.method.LinkMovementMethod
+import io.noties.markwon.Markwon
+
 class MainActivity : AppCompatActivity() {
     companion object {
         @JvmField
@@ -108,7 +111,7 @@ class MainActivity : AppCompatActivity() {
         if (isGranted) {
             setupNotificationChannel()
         } else {
-            Toast.makeText(this, "Notification permission denied. Background updates will not be shown.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "notifications denied", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -148,6 +151,13 @@ class MainActivity : AppCompatActivity() {
         notificationHandler = NotificationHandler(this)
         setContentView(R.layout.activity_main)
 
+        // Register status listener to broadcast updates to NotificationHandler
+        ProcessingState.setStatusListener(object : com.je.dejpeg.models.ProcessingProgress.StatusListener {
+            override fun onStatusChanged(status: String) {
+                notificationHandler.showProgressNotification(status)
+            }
+        })
+
         selectButton = findViewById(R.id.selectButton)
         processButton = findViewById(R.id.processButton)
         strengthSeekBar = findViewById(R.id.strengthSeekBar)
@@ -159,7 +169,7 @@ class MainActivity : AppCompatActivity() {
         processingText = findViewById(R.id.processingText)
 
         applyToAllSwitch.setOnCheckedChangeListener { _, _ ->
-            vibrationManager.vibrateButton()
+            vibrationManager.vibrateSwitcher()
             if (applyToAllSwitch.isChecked) {
                 strengthSeekBar.setValues(lastStrength * 100f)
             } else if (currentPage < perImageStrengthFactors.size) {
@@ -325,16 +335,21 @@ class MainActivity : AppCompatActivity() {
         val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
         toolbar.setOnMenuItemClickListener { item ->
             if (isProcessing) {
-            Toast.makeText(this, getString(R.string.processing_in_progress_toast), Toast.LENGTH_SHORT).show()
-            return@setOnMenuItemClickListener true
+                Toast.makeText(this, getString(R.string.processing_in_progress_toast), Toast.LENGTH_SHORT).show()
+                return@setOnMenuItemClickListener true
             }
             when (item.itemId) {
-            R.id.action_config -> {
-                vibrationManager.vibrateMenuTap()
-                showConfigDialog()
-                true
-            }
-            else -> false
+                R.id.action_config -> {
+                    vibrationManager.vibrateMenuTap()
+                    showConfigDialog()
+                    true
+                }
+                R.id.action_about -> {
+                    vibrationManager.vibrateMenuTap()
+                    showAboutDialog()
+                    true
+                }
+                else -> false
             }
         }
         
@@ -427,7 +442,7 @@ class MainActivity : AppCompatActivity() {
     
     private fun showServiceInfoDialog() {
         MaterialAlertDialogBuilder(this)
-        .setTitle("DeJPEG service")
+        .setTitle(getString(R.string.background_service_title))
         .setMessage(getString(R.string.background_service_message) + getString(R.string.background_service_additional_message))
         .setPositiveButton(getString(R.string.ok_button), null)
         .show()
@@ -828,8 +843,8 @@ class MainActivity : AppCompatActivity() {
         images.forEachIndexed { index, image -> 
             val strength = if (applyToAllSwitch.isChecked) lastStrength * 100f 
                           else perImageStrengthFactors[index] * 100f
-            val needsChunking = image.inputBitmap.width > ImageProcessor.CHUNK_SIZE || 
-                               image.inputBitmap.height > ImageProcessor.CHUNK_SIZE
+            val needsChunking = image.inputBitmap.width > ImageProcessor.DEFAULT_CHUNK_SIZE || 
+                               image.inputBitmap.height > ImageProcessor.DEFAULT_CHUNK_SIZE
             processingQueue.add(QueueItem(image, strength, needsChunking, index))
         }
 
@@ -877,15 +892,11 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        notificationHandler.clearAllNotifications()
+        // notificationHandler.clearAllNotifications()
     }
 
     override fun onPause() {
         super.onPause()
-        if (isProcessing) {
-            val progressText = ProcessingState.getStatusString(this, Runtime.getRuntime().availableProcessors())
-            notificationHandler.showProgressNotification(progressText)
-        }
     }
 
     override fun onDestroy() {
@@ -1096,6 +1107,7 @@ class MainActivity : AppCompatActivity() {
         val progressFormatSwitch = dialogView.findViewById<MaterialSwitch>(R.id.progressFormatSwitch)
         progressFormatSwitch.isChecked = isProgressPercentage
         progressFormatSwitch.setOnCheckedChangeListener { _, isChecked ->
+            vibrationManager.vibrateSwitcher()
             isProgressPercentage = isChecked
             prefs.edit()
                 .putString(PROGRESS_FORMAT_KEY, if (isChecked) "PERCENTAGE" else "PLAINTEXT")
@@ -1116,9 +1128,6 @@ class MainActivity : AppCompatActivity() {
             .setNeutralButton(R.string.manage_models_button) { _, _ ->
                 vibrationManager.vibrateDialogChoice()
                 showModelManagementDialog()
-            }
-            .setNegativeButton(R.string.cancel_button) { _, _ ->
-                vibrationManager.vibrateDialogChoice()
             }
             .setView(dialogView)
             .show()
@@ -1175,7 +1184,12 @@ class MainActivity : AppCompatActivity() {
     private fun showImagePickerDialog() {
         val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_image_picker, null)
         val setDefaultSwitch = dialogView.findViewById<MaterialSwitch>(R.id.setDefaultSwitch)
-
+    
+        // Vibrate when the switch is flipped
+        setDefaultSwitch.setOnCheckedChangeListener { _, isChecked ->
+            vibrationManager.vibrateSwitcher()
+        }
+    
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.pick_image_method)
             .setView(dialogView)
@@ -1185,7 +1199,6 @@ class MainActivity : AppCompatActivity() {
                 getString(R.string.documents_picker),
                 getString(R.string.camera)
             )) { dialog, which ->
-                vibrationManager.vibrateDialogChoice()
                 if (setDefaultSwitch.isChecked) {
                     getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                         .edit()
@@ -1193,6 +1206,7 @@ class MainActivity : AppCompatActivity() {
                         .apply()
                     defaultImageAction = which
                 }
+                vibrationManager.vibrateMenuTap()
                 when (which) {
                     0 -> launchGalleryPicker()
                     1 -> launchInternalPhotoPicker()
@@ -1222,7 +1236,7 @@ class MainActivity : AppCompatActivity() {
                             processQueue()
                         } else {
                             isProcessing = false
-                            ProcessingState.Companion.markAllImagesCompleted()
+                            ProcessingState.Companion.markAllImagesCompleted(context = this@MainActivity)
                             updateButtonVisibility()
                             showFilmstrip = true
                             updateImageViews()
@@ -1249,5 +1263,77 @@ class MainActivity : AppCompatActivity() {
             item.index,
             images.size
         )
+    }
+    
+    private fun showAboutDialog() {
+        val markdown = """
+            De*JPEG* is an open source app for removing compression and noise artifacts from images
+            
+            ----
+            
+            version v2.5.0 - [source code](https://github.com/jeeneo/dejpeg)
+        """.trimIndent()
+    
+        val textView = TextView(this).apply {
+            movementMethod = LinkMovementMethod.getInstance()
+            setPadding(64, 64, 64, 64)
+        }
+    
+        // Using Markwon library
+        val markwon = Markwon.create(this)
+        markwon.setMarkdown(textView, markdown)
+    
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.about_title)
+            .setView(textView)
+            .setPositiveButton(R.string.ok_button, null)
+            .setNeutralButton(R.string.FAQ_button) { _, _ ->
+                vibrationManager.vibrateDialogChoice()
+                showFAQDialog()
+            }
+            .show()
+    }
+
+    private fun showFAQDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_faq, null)
+    
+        // FAQ 1
+        val header1 = dialogView.findViewById<TextView>(R.id.header1)
+        val detail1 = dialogView.findViewById<TextView>(R.id.detail1)
+    
+        header1.setOnClickListener {
+            vibrationManager.vibrateDialogChoice()
+            val isVisible = detail1.visibility == View.VISIBLE
+            detail1.visibility = if (isVisible) View.GONE else View.VISIBLE
+            header1.text = if (isVisible) "▶ what is this app?" else "▼ what is this app?"
+        }
+    
+        // FAQ 2
+        val header2 = dialogView.findViewById<TextView>(R.id.header2)
+        val detail2 = dialogView.findViewById<TextView>(R.id.detail2)
+    
+        header2.setOnClickListener {
+            vibrationManager.vibrateDialogChoice()
+            val isVisible = detail2.visibility == View.VISIBLE
+            detail2.visibility = if (isVisible) View.GONE else View.VISIBLE
+            header2.text = if (isVisible) "▶ which models to use for which?" else "▼ which models to use for which?"
+        }
+
+        val header3 = dialogView.findViewById<TextView>(R.id.header3)
+        val detail3 = dialogView.findViewById<TextView>(R.id.detail3)
+
+        header3.setOnClickListener {
+            vibrationManager.vibrateDialogChoice()
+            val isVisible = detail3.visibility == View.VISIBLE
+            detail3.visibility = if (isVisible) View.GONE else View.VISIBLE
+            header3.text = if (isVisible) "▶ what are the other different models for?" else "▼ what are the other different models for?"
+        }
+
+        // Build the dialog
+        MaterialAlertDialogBuilder(this)
+            .setTitle("FAQ")
+            .setView(dialogView)
+            .setPositiveButton(R.string.ok_button, null)
+            .show()
     }
 }

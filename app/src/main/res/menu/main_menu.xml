@@ -5,4 +5,8 @@
         android:id="@+id/action_config"
         android:icon="@drawable/ic_settings"
         app:showAsAction="always" />
+    <item
+        android:id="@+id/action_about"
+        android:icon="@drawable/ic_about"
+        app:showAsAction="always" />
 </menu>

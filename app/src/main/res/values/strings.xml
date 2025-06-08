@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">dejpeg</string>
+    <string name="app_name">DeJPEG</string>
     <string name="app_slogan">non-destructive restoration</string>
 
     <!-- links -->
@@ -15,10 +15,10 @@
     <string name="error_dialog_title">error</string>
     <string name="warning_dialog_title">warning</string>
 
-    <string name="background_service_title">dejpeg service</string>
+    <string name="background_service_title">DeJPEG service</string>
     <string name="stop_background_service_text">stop</string>
     <string name="background_service_message">this is intended to prevent the system from killing the app when in background.</string>
-    <string name="background_service_additional_message">\n\nyou can stop the service from the notification or dismissing the app from recents.</string>
+    <string name="background_service_additional_message">\n\nyou can stop the service from the notification or by dismissing the app from recents.</string>
     <string name="ok_button">ok</string>
 
     <string name="png">png</string>
@@ -102,6 +102,9 @@
     <string name="processing_parallel">processing %1$d images in parallel...</string>
     <string name="processing_large_image">processing large image %1$d of %2$d</string>
     <string name="processing_chunked_single_range">processing chunks %1$s</string>
+    
+    <string name="about_title">about</string>
+    <string name="FAQ_button">FAQs</string>
 
     <!-- garbage strings::
     <string name="notification_permission_denied">notification permission denied</string>
@@ -123,8 +126,8 @@
     -->
     
     <string name="progress_format_switch">percentage progress</string>
-    <string name="set_as_default_action">set this as the default action</string>
+    <string name="set_as_default_action">set as default action</string>
     <string name="pick_image_method">pick image from</string>
-    <string name="clear_default_action">clear default action</string>
-    <string name="default_action_cleared">default image picker action cleared</string>
+    <string name="clear_default_action">clear picker action</string>
+    <string name="default_action_cleared">default picker action cleared</string>
 </resources>

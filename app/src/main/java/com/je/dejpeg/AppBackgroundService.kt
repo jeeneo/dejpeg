@@ -8,6 +8,8 @@ import android.content.Intent
 import android.content.Context
 import android.os.Build
 import android.os.IBinder
+import android.graphics.BitmapFactory;
+
 import androidx.core.app.NotificationCompat
 
 import com.je.dejpeg.utils.NotificationHandler
@@ -30,7 +32,6 @@ class AppBackgroundService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
-
         startForeground(NOTIFICATION_ID, createNotification())
         return START_STICKY
     }
@@ -62,7 +63,8 @@ class AppBackgroundService : Service() {
     private fun createNotification() = NotificationCompat.Builder(this, CHANNEL_ID)
         .setContentTitle(getString(R.string.background_service_title))
         .setContentText("service is active")
-        .setSmallIcon(R.drawable.ic_launcher_foreground)
+        .setSmallIcon(R.drawable.ic_service)
+        .setLargeIcon(BitmapFactory.decodeResource(resources,R.drawable.ic_service_raster))
         .setPriority(NotificationCompat.PRIORITY_LOW)
         // .setOngoing(true) - useless in android 14+
         .setCategory(NotificationCompat.CATEGORY_SERVICE)

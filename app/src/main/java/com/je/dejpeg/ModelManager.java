@@ -102,6 +102,12 @@ public class ModelManager {
         }
 
         OrtSession.SessionOptions sessionOptions = new OrtSession.SessionOptions();
+        
+        // Configure threading based on device capabilities
+        int numThreads = Math.max(2, Runtime.getRuntime().availableProcessors());
+        sessionOptions.setIntraOpNumThreads(numThreads);
+        sessionOptions.setInterOpNumThreads(1); // Use 1 for inter-op to avoid overhead
+        
         if (activeModel.startsWith("scunet_")) {
             sessionOptions.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.NO_OPT);
         }

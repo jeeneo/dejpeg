@@ -112,14 +112,25 @@ class VibrationManager(private val context: Context) {
             }
         }
     }
+    
+    fun vibrateSwitcher() {
+        vibrator?.let {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                it.vibrate(VibrationEffect.createOneShot(LIGHT_VIBRATION_DURATION, VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                @Suppress("DEPRECATION")
+                it.vibrate(LIGHT_VIBRATION_DURATION)
+            }
+        }
+    }
 
     fun vibrateDialogChoice() {
         vibrator?.let {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                it.vibrate(VibrationEffect.createOneShot(DIALOG_CHOICE_DURATION, VibrationEffect.DEFAULT_AMPLITUDE))
+                it.vibrate(VibrationEffect.createOneShot(BUTTON_VIBRATION_DURATION, VibrationEffect.DEFAULT_AMPLITUDE))
             } else {
                 @Suppress("DEPRECATION")
-                it.vibrate(DIALOG_CHOICE_DURATION)
+                it.vibrate(BUTTON_VIBRATION_DURATION)
             }
         }
     }
