@@ -59,6 +59,7 @@
     <string name="model_imported_dialog_error">error importing model: %1$s</string>
     
     <string name="loading_model">loading model</string>
+    <string name="loading_status">loading...</string>
 
     <!-- image imports -->
     <string name="single_image_loaded_toast">image loaded</string>
@@ -102,6 +103,7 @@
     <string name="processing_parallel">processing %1$d images in parallel...</string>
     <string name="processing_large_image">processing large image %1$d of %2$d</string>
     <string name="processing_chunked_single_range">processing chunks %1$s</string>
+    <string name="processing_status_format">processing image %1\$d/%2\$d - chunks %3\$d/%4\$d</string>
     
     <string name="about_title">about</string>
     <string name="FAQ_button">FAQs</string>
@@ -125,7 +127,7 @@
     <string name="error_opening_image">error opening image: %1$s</string>
     -->
     
-    <string name="progress_format_switch">percentage progress</string>
+    <!-- <string name="progress_format_switch">percentage progress</string> -->
     <string name="set_as_default_action">set as default action</string>
     <string name="pick_image_method">pick image from</string>
     <string name="clear_default_action">clear picker action</string>

@@ -30,8 +30,8 @@ public class ProcessingAnimation extends View {
     private static final int WHITE = 0xFFFFFFFF;
     private static final int BOUNCE_COUNT = 3;
     private static final float[] BOUNCE_AMPLITUDES = {0.15f, 0.10f, 0.05f};
-    private static final long MOVE_DURATION = 2000;
-    private static final long BOUNCE_DURATION = 300;
+    private static final long MOVE_DURATION = 1000;
+    private static final long BOUNCE_DURATION = 200;
 
     public ProcessingAnimation(Context context) {
         super(context);

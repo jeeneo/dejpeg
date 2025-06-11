@@ -54,10 +54,10 @@ import android.text.method.LinkMovementMethod
 import io.noties.markwon.Markwon
 
 class MainActivity : AppCompatActivity() {
-    companion object {
-        @JvmField
-        var isProgressPercentage: Boolean = false
-    }
+    // companion object {
+    //     @JvmField
+    //     var isProgressPercentage: Boolean = false
+    // }
     private lateinit var selectButton: Button
     private lateinit var processButton: Button
     private lateinit var strengthSeekBar: RangeSlider
@@ -151,12 +151,12 @@ class MainActivity : AppCompatActivity() {
         notificationHandler = NotificationHandler(this)
         setContentView(R.layout.activity_main)
 
-        // Register status listener to broadcast updates to NotificationHandler
-        ProcessingState.setStatusListener(object : com.je.dejpeg.models.ProcessingProgress.StatusListener {
-            override fun onStatusChanged(status: String) {
-                notificationHandler.showProgressNotification(status)
-            }
-        })
+        // // Register status listener to broadcast updates to NotificationHandler
+        // ProcessingState.setStatusListener(object : com.je.dejpeg.models.ProcessingProgress.StatusListener {
+        //     override fun onStatusChanged(status: String) {
+        //         notificationHandler.showProgressNotification(status)
+        //     }
+        // })
 
         selectButton = findViewById(R.id.selectButton)
         processButton = findViewById(R.id.processButton)
@@ -184,7 +184,6 @@ class MainActivity : AppCompatActivity() {
         // outputFormat = prefs.getString(OUTPUT_FORMAT_KEY, "PNG") ?: "PNG"
         lastStrength = prefs.getFloat(STRENGTH_FACTOR_KEY, 0.5f)
         strengthSeekBar.setValues(lastStrength * 100f)
-        isProgressPercentage = prefs.getString(PROGRESS_FORMAT_KEY, "PLAINTEXT") == "PERCENTAGE"
         defaultPicker = prefs.getInt(DEFAULT_PICKER_KEY, PICKER_GALLERY)
         defaultImageAction = prefs.getInt(DEFAULT_ACTION_KEY, -1)
 
@@ -236,7 +235,7 @@ class MainActivity : AppCompatActivity() {
                 if (modelUri != null) copyAndLoadModel(modelUri)
             } else {
                 // if (!modelManager.hasActiveModel()) {
-                showModelManagementDialog()
+                promptModelSelection()
                 // }
             }
         }
@@ -520,7 +519,7 @@ class MainActivity : AppCompatActivity() {
                                 val actual = parts.getOrNull(3) ?: "?"
                                 showHashMismatchDialog(modelUri, modelName, expected, actual)
                             } else {
-                                showErrorDialog(getString(R.string.model_imported_dialog_error))
+                                showErrorDialog(getString(R.string.model_imported_dialog_error, error))
                             }
                         }
                     }
@@ -804,14 +803,14 @@ class MainActivity : AppCompatActivity() {
             processingText.visibility = if (isProcessing) View.VISIBLE else View.GONE
             
             // Ensure text is shown properly
-            if (isProcessing) {
-                processingText.bringToFront()
-                processingAnimation.bringToFront()
-            }
+            // if (isProcessing) {
+            //     processingText.bringToFront()
+            //     processingAnimation.bringToFront()
+            // }
         }
     }
 
-    private fun cancelProcessing() {
+    public fun cancelProcessing() {
             imageProcessor.cancelProcessing()
             // isProcessing = false
             dismissProcessingNotification()
@@ -832,6 +831,7 @@ class MainActivity : AppCompatActivity() {
         updateButtonVisibility()
         processingAnimation.visibility = View.VISIBLE
         processingText.visibility = View.VISIBLE
+        processingText.text = getString(R.string.loading_status) // Show loading initially
         beforeAfterView.visibility = View.GONE
         filmstripRecyclerView.visibility = View.GONE
 
@@ -857,11 +857,11 @@ class MainActivity : AppCompatActivity() {
         ProcessingState.queuedImages = images.size
         ProcessingState.Companion.allImagesCompleted = false
         
-        val processors = Runtime.getRuntime().availableProcessors()
-        val threadsToUse = if (processors >= 4) processors / 2 else 1
-        val initialStatus = ProcessingState.getStatusString(this, threadsToUse)
+        // val processors = Runtime.getRuntime().availableProcessors()
+        // val threadsToUse = if (processors >= 4) processors / 2 else 1
+        // val initialStatus = ProcessingState.getStatusString(this)
 
-        notificationHandler.showProgressNotification(initialStatus)
+        // notificationHandler.showProgressNotification(initialStatus)
 
         processQueue()
     }
@@ -1104,16 +1104,6 @@ class MainActivity : AppCompatActivity() {
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
         val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_config, null)
 
-        val progressFormatSwitch = dialogView.findViewById<MaterialSwitch>(R.id.progressFormatSwitch)
-        progressFormatSwitch.isChecked = isProgressPercentage
-        progressFormatSwitch.setOnCheckedChangeListener { _, isChecked ->
-            vibrationManager.vibrateSwitcher()
-            isProgressPercentage = isChecked
-            prefs.edit()
-                .putString(PROGRESS_FORMAT_KEY, if (isChecked) "PERCENTAGE" else "PLAINTEXT")
-                .apply()
-        }
-
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.config_dialog_title)
             .setPositiveButton(R.string.clear_default_action) { _, _ ->
@@ -1221,8 +1211,6 @@ class MainActivity : AppCompatActivity() {
         if (isProcessingQueue || processingQueue.isEmpty()) return
         isProcessingQueue = true
 
-        // No need to sort here anymore, already sorted in processWithModel
-
         val item = processingQueue.removeAt(0)
         imageProcessor.processImage(
             item.image.inputBitmap,
@@ -1256,7 +1244,8 @@ class MainActivity : AppCompatActivity() {
 
                 override fun onProgress(message: String) {
                     runOnUiThread {
-                        processingText.text = message
+                        processingText.text = ProcessingState.getStatusString(this@MainActivity) // Update processingText
+                        notificationHandler.showProgressNotification(message)
                     }
                 }
             },

@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import com.je.dejpeg.models.ProcessingState;  // Update import path
-import com.je.dejpeg.models.ProcessingTimeStats; // Add import
+// import com.je.dejpeg.models.ProcessingTimeStats; // Add import
 
 public class ImageProcessor {
     public static final int DEFAULT_CHUNK_SIZE = 1000;
@@ -42,7 +42,7 @@ public class ImageProcessor {
     public static File processedDir;
     private Context context;
     private ModelManager modelManager;
-    
+
     private final AtomicInteger runningChunks = new AtomicInteger(0);
 
     public interface ProcessCallback {
@@ -56,8 +56,6 @@ public class ImageProcessor {
         this.modelManager = modelManager;
         this.chunkDir = new File(context.getCacheDir(), "chunkAccumulator");
         this.processedDir = new File(context.getCacheDir(), "processedChunkDir");
-        // Load persisted time stats
-        ProcessingTimeStats.INSTANCE.load(context);
     }
 
     public void cancelProcessing() {
@@ -67,18 +65,33 @@ public class ImageProcessor {
     public void processImage(Bitmap inputBitmap, float strength, ProcessCallback callback, int index, int total) {
         isCancelled = false;
         this.strength = strength;
-        ProcessingState.Companion.updateImageProgress(index + 1, total);  // Update static call
-        // Save last image size for estimate
+        
+        ProcessingState.Companion.updateImageProgress(index + 1, total);
         ProcessingState.lastImageWidth = inputBitmap.getWidth();
         ProcessingState.lastImageHeight = inputBitmap.getHeight();
+        
+        int width = inputBitmap.getWidth();
+        int height = inputBitmap.getHeight();
+        String activeModelName = modelManager.getActiveModelName();
+        int effectiveChunkSize = getChunkSizeForModel(activeModelName);
+        
+        if (width > effectiveChunkSize || height > effectiveChunkSize) {
+            int xChunks = (int) Math.ceil((double) width / (effectiveChunkSize - OVERLAP));
+            int yChunks = (int) Math.ceil((double) height / (effectiveChunkSize - OVERLAP));
+            ProcessingState.Companion.updateChunkProgress(xChunks * yChunks);
+        } else {
+            ProcessingState.Companion.updateChunkProgress(1);
+        }
+
+        if (callback != null) {
+            callback.onProgress(ProcessingState.Companion.getStatusString(context));
+        }
+
         new Thread(() -> {
             try {
-                // Move progress callback logic into ProcessingState
-                ProcessingState.Companion.updateSingleImageProgress(inputBitmap.getWidth(), inputBitmap.getHeight(), callback);
-
                 OrtSession session = modelManager.loadModel();
                 String modelName = modelManager.getActiveModelName();
-                
+
                 if (modelName.startsWith("scunet_")) {
                     setScunetSession(session, !modelManager.isColorModel(modelName));
                 } else if (modelName.startsWith("fbcnn_")) {
@@ -87,13 +100,7 @@ public class ImageProcessor {
                     throw new Exception("Unknown model type: " + modelName);
                 }
 
-                long startTime = System.currentTimeMillis();
                 Bitmap result = processBitmap(inputBitmap, callback, index, total);
-                long elapsed = System.currentTimeMillis() - startTime;
-                // If not chunked, record single image time
-                if (inputBitmap.getWidth() <= DEFAULT_CHUNK_SIZE && inputBitmap.getHeight() <= DEFAULT_CHUNK_SIZE) {
-                    ProcessingTimeStats.INSTANCE.recordSingleImageTime(inputBitmap.getWidth(), inputBitmap.getHeight(), elapsed, context);
-                }
                 if (callback != null) callback.onComplete(result);
             } catch (Exception e) {
                 if (callback != null) callback.onError(e.getMessage() != null ? e.getMessage() : "Unknown error");
@@ -104,13 +111,16 @@ public class ImageProcessor {
     private Bitmap processBitmap(Bitmap inputBitmap) throws Exception {
         return processBitmap(inputBitmap, null, 0, 0);
     }
-    
+
     public Bitmap processBitmap(Bitmap inputBitmap, ProcessCallback callback, int index, int total) throws Exception {
         int width = inputBitmap.getWidth();
         int height = inputBitmap.getHeight();
         String modelName = modelManager.getActiveModelName();
         int effectiveChunkSize = getChunkSizeForModel(modelName);
 
+        // Always update image progress (1/1 for single image)
+        ProcessingState.Companion.updateImageProgress(index + 1, total);
+        
         if (width > effectiveChunkSize || height > effectiveChunkSize) {
             // Ensure directories exist and are empty
             if (!chunkDir.exists()) chunkDir.mkdirs();
@@ -120,41 +130,31 @@ public class ImageProcessor {
 
             // Split into chunks but process sequentially with ONNX's internal threading
             List<ChunkInfo> chunks = chunkBitmapToDisk(inputBitmap);
-            ProcessingState.Companion.updateChunkProgress(1, 0, chunks.size(), 1);
+            ProcessingState.Companion.updateChunkProgress(chunks.size());  // Set total chunks first
             ProcessingState.Companion.getCompletedChunks().set(0);
-            
+
             for (int i = 0; i < chunks.size(); i++) {
                 if (isCancelled) throw new RuntimeException("Processing cancelled");
-                
+
                 ChunkInfo chunk = chunks.get(i);
                 long startTime = System.currentTimeMillis();
-                
+
                 Bitmap chunkBitmap = BitmapFactory.decodeFile(chunk.chunkFile.getAbsolutePath());
                 Bitmap processed = processChunk(chunkBitmap);
-                
-                // Record processing time for this chunk
-                long processingTime = System.currentTimeMillis() - startTime;
-                ProcessingTimeStats.INSTANCE.recordProcessingTime(
-                    modelName,
-                    chunkBitmap.getWidth(),
-                    chunkBitmap.getHeight(),
-                    processingTime
-                );
-                
+
                 File outFile = new File(processedDir, "chunk_" + chunk.x + "_" + chunk.y + ".png");
                 saveBitmapToFile(processed, outFile);
-                
+
                 chunkBitmap.recycle();
                 processed.recycle();
                 chunk.processedFile = outFile;
-                
+
                 ProcessingState.Companion.getCompletedChunks().incrementAndGet();
                 if (callback != null) {
-                    // Pass the number of threads being used
-                    callback.onProgress(ProcessingState.Companion.getStatusString(context, Runtime.getRuntime().availableProcessors()));
+                    callback.onProgress(ProcessingState.Companion.getStatusString(context));
                 }
             }
-            
+
             Bitmap result = Bitmap.createBitmap(width, height, inputBitmap.getConfig());
             for (ChunkInfo chunk : chunks) {
                 File processedFile = chunk.processedFile;
@@ -178,12 +178,15 @@ public class ImageProcessor {
             clearCacheDirs(processedDir);
             return result;
         } else {
+            ProcessingState.Companion.updateChunkProgress(1);
+            if (callback != null) {
+                callback.onProgress(ProcessingState.Companion.getStatusString(context));
+            }
             return processChunk(inputBitmap);
         }
     }
 
     private Bitmap processChunk(Bitmap chunk) throws Exception {
-        // Process single chunk using ONNX's internal threading
         int w = chunk.getWidth();
         int h = chunk.getHeight();
         boolean hasAlpha = chunk.getConfig() == Bitmap.Config.ARGB_8888;
@@ -235,8 +238,8 @@ public class ImageProcessor {
 
         long[] inputShape = new long[]{1, isGrayscaleModel ? 1 : 3, h, w};
         try (OnnxTensor inputTensor = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(inputArray), inputShape);
-             OnnxTensor qfTensor = scunetSession == null ? 
-                OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(new float[]{strength / 100.0f}), new long[]{1, 1}) : 
+             OnnxTensor qfTensor = scunetSession == null ?
+                OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(new float[]{strength / 100.0f}), new long[]{1, 1}) :
                 null) {
 
             if (isCancelled || Thread.currentThread().isInterrupted()) {
@@ -248,8 +251,6 @@ public class ImageProcessor {
             if (qfTensor != null) {
                 inputs.put("qf", qfTensor);
             }
-
-            // Suggest garbage collection before heavy operations
             System.gc();
 
             try (OrtSession.Result result = (scunetSession != null ? scunetSession : fbcnnSession).run(inputs)) {
@@ -320,8 +321,6 @@ public class ImageProcessor {
             }
         }
     }
-
-    // Helper methods for fallback chunk size if needed
     private int chunkWidth(ChunkInfo chunk) {
         return Math.min(DEFAULT_CHUNK_SIZE, ProcessingState.lastImageWidth - chunk.x);
     }

@@ -46,7 +46,7 @@
             android:id="@+id/detail2"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="for images that have compression artifacts (e.g. low-res images from Google, Pintrest, etc.) use FBCNN, the slider is only available for this mode, and affects how much strength goes into removing compression, use start out with a value between 20-35 for most images, then adjust per needs.\n\nSCUNet is more adapt at removing noise (e.g. ISO noise, grainy looking, or speckled).\n\nHowever, SCUNet can also remove compression, but it doesn't support a variable amount of smoothing."
+            android:text="for images that have compression artifacts (e.g. low-res images from Google, Pintrest, Instagram, etc.) use FBCNN, the slider is only available for this mode, and affects how much strength goes into removing compression, use start out with a value between 35-50 for most images, then adjust per needs.\n\nSCUNet is more adapt at removing noise (e.g. ISO noise, grainy looking, or speckled).\n\nSCUNet can also remove compression, but it doesn't support a variable amount of smoothing."
             android:visibility="gone"
             android:padding="8dp"/>
 
@@ -65,7 +65,7 @@
             android:id="@+id/detail3"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="the 'grey' FBCNN models is designed for greyscale images, 'double grey' is for the former, but also compressed twice, e.g., saving as jpeg, doing edits, saving as jpeg again.\n\nThe 'grey-15/25/50' models (for SCUNet) are also grayscale images with different levels of noise and detail preservation levels.\n\nThe 'PSNR' variant of SCUNet tries to pixel-match the original image as closely as possible, so it looks mathematically 'right' but can look too smooth or dull.\n\n'GAN' sacrifices near-perfect accuracy to add realistic textures or details, which can look more natural. So try both and see which one suits your image better."
+            android:text="note: the base models, FBCNN_color and SCUNet's PSNR/GAN are color models.\n\nThe 'grey' FBCNN model is designed for greyscale images, 'grey double' is also for greyscale but saved twice, e.g., saving as jpeg, doing edits, saving as jpeg again.\n\nThe 'grey 15/25/50' SCUNet models are only for grayscale images, with different levels of noise removal, higher the number, more noise removed.\n\nThe 'PSNR' variant of SCUNet tries to pixel-match the original image as closely as possible, so it looks mathematically 'right' but can look overly smooth\n\n'GAN' sacrifices near-perfect accuracy to add realistic textures or details, which can look more natural. As with most, try both and see which one suits your image better."
             android:visibility="gone"
             android:padding="8dp"/>
 

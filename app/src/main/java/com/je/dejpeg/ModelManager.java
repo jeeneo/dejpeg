@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -103,13 +104,33 @@ public class ModelManager {
 
         OrtSession.SessionOptions sessionOptions = new OrtSession.SessionOptions();
         
-        // Configure threading based on device capabilities
-        int numThreads = Math.max(2, Runtime.getRuntime().availableProcessors());
-        sessionOptions.setIntraOpNumThreads(numThreads);
-        sessionOptions.setInterOpNumThreads(1); // Use 1 for inter-op to avoid overhead
+        // NNAPI Execution Provider for HTP -- models arent optimized for it, so CPU is better, complicated and not worth it
+        // try {
+        //     sessionOptions.addConfigEntry("session.use_nnapi", "1");
+        //     Log.d("ModelManager", "NNAPI Execution Provider enabled for HTP.");
+        //     // new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> 
+        //     //     Toast.makeText(context, "NNAPI Execution Provider enabled for HTP.", Toast.LENGTH_SHORT).show()
+        //     // );
+        // } catch (Exception e) {
+        //     Log.w("ModelManager", "NNAPI Execution Provider not available, falling back to CPU", e);
+        //     // new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> 
+        //     //     Toast.makeText(context, "NNAPI Execution Provider not available, falling back to CPU", Toast.LENGTH_SHORT).show()
+        //     // );
+        // }
         
+        int numThreads = Math.max(2, Runtime.getRuntime().availableProcessors()); // use at least 2 threads, so if device has 8 cores, we use 6 for inference
+        if (numThreads > 6) {
+            numThreads = 6; //6 threads for better performance on most devices, all 8 can lag everything else out
+        }
+        Log.d("ModelManager", "using " + numThreads + " threads for inference");
+        sessionOptions.setIntraOpNumThreads(numThreads);
+        sessionOptions.setInterOpNumThreads(4); // 4 threads for inter-op parallelism
+
+        if (activeModel.startsWith("fbcnn_")) {
+            sessionOptions.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.EXTENDED_OPT);
+        }
         if (activeModel.startsWith("scunet_")) {
-            sessionOptions.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.NO_OPT);
+            sessionOptions.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.NO_OPT); // no optimizations for SCUNet models
         }
 
         currentSession = ortEnv.createSession(modelFile.getAbsolutePath(), sessionOptions);
@@ -229,7 +250,23 @@ public class ModelManager {
     }
 
     public boolean importModel(Uri modelUri, ModelCallback callback, boolean force) throws Exception {
-        ResolveResult result = resolveFilenameWithHash(modelUri);
+        ResolveResult result;
+        try {
+            result = resolveFilenameWithHash(modelUri);
+        } catch (Exception e) {
+            if (!force) {
+                if (callback != null) {
+                    callback.onError("HASH_CALCULATION_ERROR:" + e.getMessage());
+                }
+                return false;
+            }
+            // Fallback: Use the filename directly if hash calculation fails
+            String fallbackFilename = modelUri.getLastPathSegment();
+            if (fallbackFilename == null) {
+                throw new Exception("Could not determine filename during fallback" + e.getMessage());
+            }
+            return importModelInternal(modelUri, fallbackFilename, callback);
+        }
         if (!result.hashMatches && !force) {
             if (callback != null) {
                 callback.onError("HASH_MISMATCH:" + result.matchedModel + ":" + result.expectedHash + ":" + result.actualHash);
