@@ -1,4 +1,4 @@
-![dejpeg](https://github.com/user-attachments/assets/55f35274-1492-4bb1-ab00-f816db612f90)
+![dejpeg](https://github.com/user-attachments/assets/6d1e6fde-58b6-4991-9bb3-57b64627fbcf)
 
 # De*JPEG*
 
@@ -7,15 +7,16 @@
 ## features:
 1. batch processing
 2. transparancy re-mapping (experimental)
-3. free and no internet needed
+3. fully offline
+4. support for images above 1200px (processed in chunks)
 
 ## download:
 [here](https://github.com/jeeneo/dejpeg/releases/latest)
 
 ## mobile models (required):
-[FBCNN](https://github.com/jeeneo/FBCNN-mobile/releases/latest)
+[FBCNN](https://github.com/jeeneo/FBCNN-mobile/releases/latest) (JPEG artifacts)
 
-[SCUNet](https://github.com/jeeneo/SCUNet-mobile/releases/latest)
+[SCUNet](https://github.com/jeeneo/SCUNet-mobile/releases/latest) (Grain/Noise)
 
 ## screenshots:
 
@@ -23,8 +24,7 @@
 
 
 ## limitations:
-1. processed on your phone (no gpu), I'd recommend a device with 4gb of ram or more
-2. input images above 1200px will be processed in chunks
+- processed on your phone (no hardware acceleration), I'd recommend a device with ~4gb of ram and a CPU with at least 4 threads
 
 ## note:
 De*JPEG* is not affiliated or related to Topaz's `DEJPEG` or any other software/project
@@ -39,15 +39,15 @@ De*JPEG* is not affiliated or related to Topaz's `DEJPEG` or any other software/
 <summary>do you use AI?</summary>
 <br>
 
-I partially use Generative AI, (ChatGPT, Github Copilot, et. al.) for some of the complicated tasks and problems, but not for everything.
+I partially use Generative AI, (ChatGPT, Github Copilot, et. al.) for some complicated tasks and problems.
 
-I believe AI has its place, as a tool, not as a replacement.
+AI has its place, as a tool, not as a replacement.
 
-I only use it in my IDE, all my comments, changelogs (except for one, which it messed up), and interactions with me are typed out by me, from my brain.
+I only use it in my IDE, all my comments, changelogs, and interactions with me are typed with my hands, from my brain.
 
 I do not pay for access to generative AI as well, i use whatever free tier is available
 
-if you check, you can see Google's "Jules AI" as a contributor (if its still there) and it made a PR based on things i described which completely broke the entire app.
+If you see Google's "Jules AI" as a contributor (if its still there), I tried it out and it created a PR based on things I described, but didn't go as planned and reverted all changes.
 
 and no, this text wasn't written by AI.
 
