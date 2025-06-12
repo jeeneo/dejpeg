@@ -1,4 +1,0 @@
-fixed typos
-percentage calculation and time estimate removed due to lack of accuracy
-fixed typos
-improved ProcessingState/ImageProcessor for simplicity
