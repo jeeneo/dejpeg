@@ -8,7 +8,6 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-// import com.je.dejpeg.utils.ProcessingState
 
 import com.je.dejpeg.MainActivity
 import com.je.dejpeg.R
@@ -59,9 +58,6 @@ class NotificationHandler(private val context: Context) {
         NotificationManagerCompat.from(context).notify(NOTIFICATION_ID_PROCESSING, notification)
     }
 
-    // fun showProcessingNotification() {
-    //     showProgressNotification("processing...")
-    // }
 
     fun showErrorNotification(error: String) {
         if (AppLifecycleTracker.isAppInForeground) return

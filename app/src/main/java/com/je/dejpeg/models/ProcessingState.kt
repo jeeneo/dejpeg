@@ -22,9 +22,6 @@ class ProcessingProgress {
     private var lastImageHeight: Int = 0
     private var queuedImages: Int = 0
     private var allImagesCompleted: Boolean = false
-    private var startTime: Long = 0
-
-    private var imageStartTime: Long = 0
     private var originalEstimate: Long? = null
 
     interface StatusListener {
@@ -60,7 +57,6 @@ class ProcessingProgress {
     }
 
     fun updateImageProgress(current: Int, total: Int) {
-        imageStartTime = System.currentTimeMillis()
         originalEstimate = null
         currentImageIndex.set(current)
         totalImages.set(total)

@@ -1,73 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="match_parent"
+    android:orientation="vertical">
 
-    <LinearLayout
-        android:id="@+id/faq_container"
+    <ScrollView
+        android:id="@+id/scrollView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:scrollbars="vertical"
+        android:fadeScrollbars="false">
 
-        <!-- FAQ Item 1 -->
-        <TextView
-            android:id="@+id/header1"
+        <LinearLayout
+            android:id="@+id/faq_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="▶ what is this app?"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:padding="8dp"
-            android:clickable="true"
-            android:focusable="true"/>
+            android:orientation="vertical"
+            android:padding="16dp">
 
-        <TextView
-            android:id="@+id/detail1"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="this app is designed to remove JPEG compression artifacts (FBCNN) and denoise images (SCUNet)\n\nHowever, this isn't 'AI' or image upscaling, your images stay the same resolution. It's meant to provide a cleaner image, which can produce better results if you do use 'AI enhancers', but most of the time those will make them look uglier, this app preserves details (most of the time) and doesn't harm or ruin the final image."
-            android:visibility="gone"
-            android:padding="8dp"/>
+            <!-- FAQ Item 1 -->
+            <TextView
+                android:id="@+id/header1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:padding="8dp"
+                android:clickable="true"
+                android:focusable="true"/>
 
-        <!-- FAQ Item 2 -->
-        <TextView
-            android:id="@+id/header2"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="▶ which models to use for which?"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:padding="8dp"
-            android:clickable="true"
-            android:focusable="true"/>
+            <TextView
+                android:id="@+id/detail1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/FAQ1_text"
+                android:visibility="gone"
+                android:padding="8dp"/>
 
-        <TextView
-            android:id="@+id/detail2"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="for images that have compression artifacts (e.g. low-res images from Google, Pintrest, Instagram, etc.) use FBCNN, the slider is only available for this mode, and affects how much strength goes into removing compression, use start out with a value between 35-50 for most images, then adjust per needs.\n\nSCUNet is more adapt at removing noise (e.g. ISO noise, grainy looking, or speckled).\n\nSCUNet can also remove compression, but it doesn't support a variable amount of smoothing."
-            android:visibility="gone"
-            android:padding="8dp"/>
+            <!-- FAQ Item 2 -->
+            <TextView
+                android:id="@+id/header2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:padding="8dp"
+                android:clickable="true"
+                android:focusable="true"/>
 
-        <TextView
-            android:id="@+id/header3"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="▶ what are the other different models for?"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:padding="8dp"
-            android:clickable="true"
-            android:focusable="true"/>
+            <TextView
+                android:id="@+id/detail2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/FAQ2_text"
+                android:visibility="gone"
+                android:padding="8dp"/>
 
-        <TextView
-            android:id="@+id/detail3"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="note: the base models, FBCNN_color and SCUNet's PSNR/GAN are color models.\n\nThe 'grey' FBCNN model is designed for greyscale images, 'grey double' is also for greyscale but saved twice, e.g., saving as jpeg, doing edits, saving as jpeg again.\n\nThe 'grey 15/25/50' SCUNet models are only for grayscale images, with different levels of noise removal, higher the number, more noise removed.\n\nThe 'PSNR' variant of SCUNet tries to pixel-match the original image as closely as possible, so it looks mathematically 'right' but can look overly smooth\n\n'GAN' sacrifices near-perfect accuracy to add realistic textures or details, which can look more natural. As with most, try both and see which one suits your image better."
-            android:visibility="gone"
-            android:padding="8dp"/>
+            <TextView
+                android:id="@+id/header3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:padding="8dp"
+                android:clickable="true"
+                android:focusable="true"/>
 
-    </LinearLayout>
-</ScrollView>
+            <TextView
+                android:id="@+id/detail3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/FAQ3_text"
+                android:visibility="gone"
+                android:padding="8dp"/>
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

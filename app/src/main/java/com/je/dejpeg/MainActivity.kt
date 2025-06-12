@@ -43,7 +43,6 @@ import android.graphics.Matrix
 import java.io.InputStream
 import com.je.dejpeg.models.ProcessingState
 
-// import com.je.dejpeg.models.ProcessingState
 import com.je.dejpeg.utils.ProcessingAnimation
 import com.je.dejpeg.utils.VibrationManager
 import com.je.dejpeg.utils.NotificationHandler
@@ -54,10 +53,6 @@ import android.text.method.LinkMovementMethod
 import io.noties.markwon.Markwon
 
 class MainActivity : AppCompatActivity() {
-    // companion object {
-    //     @JvmField
-    //     var isProgressPercentage: Boolean = false
-    // }
     private lateinit var selectButton: Button
     private lateinit var processButton: Button
     private lateinit var strengthSeekBar: RangeSlider
@@ -76,7 +71,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var modelPickerLauncher: ActivityResultLauncher<Intent>
 
     private val PREFS_NAME = "AppPrefs"
-    // private val OUTPUT_FORMAT_KEY = "outputFormat"
     private val STRENGTH_FACTOR_KEY = "strengthFactor"
     private val PROGRESS_FORMAT_KEY = "progressFormat"
     private val DEFAULT_PICKER_KEY = "defaultPicker"
@@ -86,7 +80,7 @@ class MainActivity : AppCompatActivity() {
     private val PICKER_INTERNAL = 1
 
     private var defaultPicker = PICKER_GALLERY
-    private var defaultImageAction: Int = -1 // -1 means no default
+    private var defaultImageAction: Int = -1
 
     private lateinit var beforeAfterView: BeforeAfterImageView
 
@@ -100,7 +94,6 @@ class MainActivity : AppCompatActivity() {
     private var images = mutableListOf<ProcessingImage>()
     private var currentPage = 0
 
-    // private var outputFormat = "PNG"
     private var lastStrength = 0.5f
     private var showPreviews = true
     private var showFilmstrip = false
@@ -151,13 +144,6 @@ class MainActivity : AppCompatActivity() {
         notificationHandler = NotificationHandler(this)
         setContentView(R.layout.activity_main)
 
-        // // Register status listener to broadcast updates to NotificationHandler
-        // ProcessingState.setStatusListener(object : com.je.dejpeg.models.ProcessingProgress.StatusListener {
-        //     override fun onStatusChanged(status: String) {
-        //         notificationHandler.showProgressNotification(status)
-        //     }
-        // })
-
         selectButton = findViewById(R.id.selectButton)
         processButton = findViewById(R.id.processButton)
         strengthSeekBar = findViewById(R.id.strengthSeekBar)
@@ -181,7 +167,6 @@ class MainActivity : AppCompatActivity() {
         imageProcessor = ImageProcessor(this, modelManager)
 
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        // outputFormat = prefs.getString(OUTPUT_FORMAT_KEY, "PNG") ?: "PNG"
         lastStrength = prefs.getFloat(STRENGTH_FACTOR_KEY, 0.5f)
         strengthSeekBar.setValues(lastStrength * 100f)
         defaultPicker = prefs.getInt(DEFAULT_PICKER_KEY, PICKER_GALLERY)
@@ -193,7 +178,6 @@ class MainActivity : AppCompatActivity() {
             try {
                 if (result.resultCode == RESULT_OK) {
                     if (result.data?.data != null) {
-                        // Handle gallery/internal picker result
                         result.data?.data?.let { uri ->
                             val inputStream = contentResolver.openInputStream(uri)
                             val options = BitmapFactory.Options().apply {
@@ -214,10 +198,8 @@ class MainActivity : AppCompatActivity() {
                             }
                         }
                     } else if (result.data?.clipData != null) {
-                        // Handle multiple images
                         handleMultipleImages(result.data!!.clipData!!)
                     } else if (currentPhotoUri != null) {
-                        // Handle camera result
                         onImageSelected(currentPhotoUri!!)
                         currentPhotoUri = null
                     }
@@ -227,21 +209,22 @@ class MainActivity : AppCompatActivity() {
             }
         }    
 
-        modelPickerLauncher = registerForActivityResult(
-            ActivityResultContracts.StartActivityForResult()
+        modelPickerLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()
         ) { result ->
             if (result.resultCode == RESULT_OK && result.data != null) {
                 val modelUri = result.data!!.data
                 if (modelUri != null) copyAndLoadModel(modelUri)
             } else {
-                // if (!modelManager.hasActiveModel()) {
-                promptModelSelection()
-                // }
+                if (modelManager.hasActiveModel()) {
+                    showModelManagementDialog()
+                }
+                else if (!modelManager.hasActiveModel()) {
+                    promptModelSelection()
+                }
             }
         }
 
-        selectButton.setOnClickListener {
-            vibrationManager.vibrateButton()
+        selectButton.setOnClickListener { vibrationManager.vibrateButton()
             if (defaultImageAction != -1) {
                 when (defaultImageAction) {
                     0 -> launchGalleryPicker()
@@ -328,9 +311,6 @@ class MainActivity : AppCompatActivity() {
 
         updateStrengthSliderVisibility()
 
-        // val serviceIntent = Intent(this, AppBackgroundService::class.java)
-        // startService(serviceIntent)
-
         val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
         toolbar.setOnMenuItemClickListener { item ->
             if (isProcessing) {
@@ -358,10 +338,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // start service in foreground
         val serviceIntent = Intent(this, AppBackgroundService::class.java)
         startForegroundService(serviceIntent)
-        // clear directories on startup
         ImageProcessor.clearCacheDirs(ImageProcessor.chunkDir)
         ImageProcessor.clearCacheDirs(ImageProcessor.processedDir)
     }
@@ -413,10 +391,10 @@ class MainActivity : AppCompatActivity() {
         val items = models.toTypedArray()
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.select_model)
-            .setSingleChoiceItems(items, models.indexOf(activeModel)) { dialog: DialogInterface, which: Int ->
+            .setSingleChoiceItems(items, models.indexOf(activeModel))
+            { dialog: DialogInterface, which: Int ->
                 vibrationManager.vibrateMenuTap()
                 modelManager.unloadModel()
-                // imageProcessor.unloadModel()
                 modelManager.setActiveModel(models[which])
                 Toast.makeText(this, getString(R.string.model_switched, models[which]), Toast.LENGTH_SHORT).show()
                 processButton.isEnabled = images.isNotEmpty()
@@ -441,9 +419,9 @@ class MainActivity : AppCompatActivity() {
     
     private fun showServiceInfoDialog() {
         MaterialAlertDialogBuilder(this)
-        .setTitle(getString(R.string.background_service_title))
-        .setMessage(getString(R.string.background_service_message) + getString(R.string.background_service_additional_message))
-        .setPositiveButton(getString(R.string.ok_button), null)
+            .setTitle(getString(R.string.background_service_title))
+            .setMessage(getString(R.string.background_service_message) + getString(R.string.background_service_additional_message))
+            .setPositiveButton(getString(R.string.ok_button), null)
         .show()
     }
 
@@ -463,7 +441,7 @@ class MainActivity : AppCompatActivity() {
                 vibrationManager.vibrateDialogChoice()
                 showModelManagementDialog()
             }
-            .show()
+        .show()
     }
 
     private fun showDeleteModelDialog(models: List<String>) {
@@ -801,24 +779,13 @@ class MainActivity : AppCompatActivity() {
             filmstripRecyclerView.visibility = if (!isProcessing && images.size > 1) View.VISIBLE else View.GONE
             processingAnimation.visibility = if (isProcessing) View.VISIBLE else View.GONE
             processingText.visibility = if (isProcessing) View.VISIBLE else View.GONE
-            
-            // Ensure text is shown properly
-            // if (isProcessing) {
-            //     processingText.bringToFront()
-            //     processingAnimation.bringToFront()
-            // }
         }
     }
 
     public fun cancelProcessing() {
             imageProcessor.cancelProcessing()
-            // isProcessing = false
             dismissProcessingNotification()
-            // updateButtonVisibility()
-            // updateImageViews()
             Toast.makeText(this, getString(R.string.processing_cancelled_toast), Toast.LENGTH_SHORT).show()
-            // vibrationManager.vibrateError()
-
             // this is totally needed 100% i'm not lazy at all (no really, I don't wanna have to deal with native code execution termination)
             val restartIntent = Intent(this, MainActivity::class.java)
             restartIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
@@ -831,15 +798,11 @@ class MainActivity : AppCompatActivity() {
         updateButtonVisibility()
         processingAnimation.visibility = View.VISIBLE
         processingText.visibility = View.VISIBLE
-        processingText.text = getString(R.string.loading_status) // Show loading initially
+        processingText.text = getString(R.string.loading_status)
         beforeAfterView.visibility = View.GONE
         filmstripRecyclerView.visibility = View.GONE
-
-        // Clear any existing queue
         processingQueue.clear()
         isProcessingQueue = false
-
-        // Queue all images, determining if they need chunking
         images.forEachIndexed { index, image -> 
             val strength = if (applyToAllSwitch.isChecked) lastStrength * 100f 
                           else perImageStrengthFactors[index] * 100f
@@ -847,28 +810,12 @@ class MainActivity : AppCompatActivity() {
                                image.inputBitmap.height > ImageProcessor.DEFAULT_CHUNK_SIZE
             processingQueue.add(QueueItem(image, strength, needsChunking, index))
         }
-
-        // Sort queue to process chunked images first
         processingQueue.sortBy { !it.requiresChunking }
-
-        // New: Set the processing order in ProcessingState (list of original indices in processing order)
         ProcessingState.setProcessingOrder(processingQueue.map { it.index })
-
         ProcessingState.queuedImages = images.size
         ProcessingState.Companion.allImagesCompleted = false
-        
-        // val processors = Runtime.getRuntime().availableProcessors()
-        // val threadsToUse = if (processors >= 4) processors / 2 else 1
-        // val initialStatus = ProcessingState.getStatusString(this)
-
-        // notificationHandler.showProgressNotification(initialStatus)
-
         processQueue()
     }
-
-    // private fun showProgressText() {
-
-    // }
 
     private fun showErrorNotification(error: String) {
         notificationHandler.showErrorNotification(error)
@@ -925,7 +872,6 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        // Prevent showing images until all are processed
         if (isProcessing && !com.je.dejpeg.models.ProcessingState.Companion.allImagesCompleted) {
             beforeAfterView.clearImages()
             filmstripRecyclerView.visibility = View.GONE
@@ -1142,7 +1088,6 @@ class MainActivity : AppCompatActivity() {
     private fun launchCamera() {
         val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
         try {
-            // Create temporary file for the camera image
             val storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
             val tempFile = File.createTempFile(
                 "JPEG_${System.currentTimeMillis()}_",
@@ -1154,7 +1099,6 @@ class MainActivity : AppCompatActivity() {
                 "${packageName}.provider",
                 tempFile
             )
-            // Store URI for later use
             currentPhotoUri = photoURI
             intent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI)
             imagePickerLauncher.launch(intent)
@@ -1175,7 +1119,6 @@ class MainActivity : AppCompatActivity() {
         val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_image_picker, null)
         val setDefaultSwitch = dialogView.findViewById<MaterialSwitch>(R.id.setDefaultSwitch)
     
-        // Vibrate when the switch is flipped
         setDefaultSwitch.setOnCheckedChangeListener { _, isChecked ->
             vibrationManager.vibrateSwitcher()
         }
@@ -1258,9 +1201,9 @@ class MainActivity : AppCompatActivity() {
         val markdown = """
             De*JPEG* is an open source app for removing compression and noise artifacts from images
             
-            ----
+            version v2.5.1-debug
             
-            version v2.5.0 - [source code](https://github.com/jeeneo/dejpeg)
+            [GitHub](https://github.com/jeeneo/dejpeg)
         """.trimIndent()
     
         val textView = TextView(this).apply {
@@ -1268,7 +1211,6 @@ class MainActivity : AppCompatActivity() {
             setPadding(64, 64, 64, 64)
         }
     
-        // Using Markwon library
         val markwon = Markwon.create(this)
         markwon.setMarkdown(textView, markdown)
     
@@ -1285,40 +1227,42 @@ class MainActivity : AppCompatActivity() {
 
     private fun showFAQDialog() {
         val dialogView = layoutInflater.inflate(R.layout.dialog_faq, null)
-    
-        // FAQ 1
+
+        fun toggleSection(header: TextView, detail: View, textResId: Int) {
+            vibrationManager.vibrateDialogChoice()
+            val isVisible = detail.visibility == View.VISIBLE
+            detail.visibility = if (isVisible) View.GONE else View.VISIBLE
+
+            val arrow = if (isVisible) getString(R.string.arrow_side) else getString(R.string.arrow_open)
+            val label = getString(textResId)
+            val fullText = getString(R.string.arrow_text_format, arrow, label)
+            header.text = fullText
+        }
+
         val header1 = dialogView.findViewById<TextView>(R.id.header1)
         val detail1 = dialogView.findViewById<TextView>(R.id.detail1)
-    
+        val text1 = getString(R.string.arrow_text_format, getString(R.string.arrow_side), getString(R.string.header1_text))
+        header1.text = text1
         header1.setOnClickListener {
-            vibrationManager.vibrateDialogChoice()
-            val isVisible = detail1.visibility == View.VISIBLE
-            detail1.visibility = if (isVisible) View.GONE else View.VISIBLE
-            header1.text = if (isVisible) "▶ what is this app?" else "▼ what is this app?"
+            toggleSection(header1, detail1, R.string.header1_text)
         }
-    
-        // FAQ 2
+
         val header2 = dialogView.findViewById<TextView>(R.id.header2)
         val detail2 = dialogView.findViewById<TextView>(R.id.detail2)
-    
+        val text2 = getString(R.string.arrow_text_format, getString(R.string.arrow_side), getString(R.string.header2_text))
+        header2.text = text2
         header2.setOnClickListener {
-            vibrationManager.vibrateDialogChoice()
-            val isVisible = detail2.visibility == View.VISIBLE
-            detail2.visibility = if (isVisible) View.GONE else View.VISIBLE
-            header2.text = if (isVisible) "▶ which models to use for which?" else "▼ which models to use for which?"
+            toggleSection(header2, detail2, R.string.header2_text)
         }
 
         val header3 = dialogView.findViewById<TextView>(R.id.header3)
         val detail3 = dialogView.findViewById<TextView>(R.id.detail3)
-
+        val text3 = getString(R.string.arrow_text_format, getString(R.string.arrow_side), getString(R.string.header3_text))
+        header3.text = text3
         header3.setOnClickListener {
-            vibrationManager.vibrateDialogChoice()
-            val isVisible = detail3.visibility == View.VISIBLE
-            detail3.visibility = if (isVisible) View.GONE else View.VISIBLE
-            header3.text = if (isVisible) "▶ what are the other different models for?" else "▼ what are the other different models for?"
+            toggleSection(header3, detail3, R.string.header3_text)
         }
 
-        // Build the dialog
         MaterialAlertDialogBuilder(this)
             .setTitle("FAQ")
             .setView(dialogView)

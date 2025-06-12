@@ -66,7 +66,6 @@ class AppBackgroundService : Service() {
         .setSmallIcon(R.drawable.ic_service)
         .setLargeIcon(BitmapFactory.decodeResource(resources,R.drawable.ic_service_raster))
         .setPriority(NotificationCompat.PRIORITY_LOW)
-        // .setOngoing(true) - useless in android 14+
         .setCategory(NotificationCompat.CATEGORY_SERVICE)
         .setAutoCancel(false)
         .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)

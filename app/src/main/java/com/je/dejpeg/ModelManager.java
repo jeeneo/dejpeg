@@ -101,38 +101,21 @@ public class ModelManager {
         if (ortEnv == null) {
             ortEnv = OrtEnvironment.getEnvironment();
         }
-
         OrtSession.SessionOptions sessionOptions = new OrtSession.SessionOptions();
-        
-        // NNAPI Execution Provider for HTP -- models arent optimized for it, so CPU is better, complicated and not worth it
-        // try {
-        //     sessionOptions.addConfigEntry("session.use_nnapi", "1");
-        //     Log.d("ModelManager", "NNAPI Execution Provider enabled for HTP.");
-        //     // new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> 
-        //     //     Toast.makeText(context, "NNAPI Execution Provider enabled for HTP.", Toast.LENGTH_SHORT).show()
-        //     // );
-        // } catch (Exception e) {
-        //     Log.w("ModelManager", "NNAPI Execution Provider not available, falling back to CPU", e);
-        //     // new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> 
-        //     //     Toast.makeText(context, "NNAPI Execution Provider not available, falling back to CPU", Toast.LENGTH_SHORT).show()
-        //     // );
-        // }
-        
         int numThreads = Math.max(2, Runtime.getRuntime().availableProcessors()); // use at least 2 threads, so if device has 8 cores, we use 6 for inference
         if (numThreads > 6) {
-            numThreads = 6; //6 threads for better performance on most devices, all 8 can lag everything else out
+            numThreads = 6; // 6 threads for better performance on most devices, all 8 can lag everything else out
         }
-        Log.d("ModelManager", "using " + numThreads + " threads for inference");
+        // Log.d("ModelManager", "using " + numThreads + " threads for inference");
         sessionOptions.setIntraOpNumThreads(numThreads);
-        sessionOptions.setInterOpNumThreads(4); // 4 threads for inter-op parallelism
+        sessionOptions.setInterOpNumThreads(4);
 
         if (activeModel.startsWith("fbcnn_")) {
             sessionOptions.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.EXTENDED_OPT);
         }
         if (activeModel.startsWith("scunet_")) {
-            sessionOptions.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.NO_OPT); // no optimizations for SCUNet models
+            sessionOptions.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.NO_OPT); // no optimizations for SCUNet models, causes issues
         }
-
         currentSession = ortEnv.createSession(modelFile.getAbsolutePath(), sessionOptions);
         return currentSession;
     }
@@ -260,7 +243,6 @@ public class ModelManager {
                 }
                 return false;
             }
-            // Fallback: Use the filename directly if hash calculation fails
             String fallbackFilename = modelUri.getLastPathSegment();
             if (fallbackFilename == null) {
                 throw new Exception("Could not determine filename during fallback" + e.getMessage());
@@ -274,14 +256,6 @@ public class ModelManager {
             return false;
         }
         return importModelInternal(modelUri, result.matchedModel, callback);
-    }
-
-    // Overloads for compatibility
-    public boolean importModel(Uri modelUri) throws Exception {
-        return importModel(modelUri, false);
-    }
-    public boolean importModel(Uri modelUri, ModelCallback callback) throws Exception {
-        return importModel(modelUri, callback, false);
     }
 
     private boolean importModelInternal(Uri modelUri, String filename, ModelCallback callback) throws Exception {

@@ -117,20 +117,16 @@ public class ImageProcessor {
         int height = inputBitmap.getHeight();
         String modelName = modelManager.getActiveModelName();
         int effectiveChunkSize = getChunkSizeForModel(modelName);
-
-        // Always update image progress (1/1 for single image)
         ProcessingState.Companion.updateImageProgress(index + 1, total);
         
         if (width > effectiveChunkSize || height > effectiveChunkSize) {
-            // Ensure directories exist and are empty
             if (!chunkDir.exists()) chunkDir.mkdirs();
             if (!processedDir.exists()) processedDir.mkdirs();
             clearCacheDirs(chunkDir);
             clearCacheDirs(processedDir);
 
-            // Split into chunks but process sequentially with ONNX's internal threading
             List<ChunkInfo> chunks = chunkBitmapToDisk(inputBitmap);
-            ProcessingState.Companion.updateChunkProgress(chunks.size());  // Set total chunks first
+            ProcessingState.Companion.updateChunkProgress(chunks.size()); 
             ProcessingState.Companion.getCompletedChunks().set(0);
 
             for (int i = 0; i < chunks.size(); i++) {
