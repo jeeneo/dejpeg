@@ -8,13 +8,44 @@
         <item name="android:colorBackground">@color/background_dark</item>
         <item name="colorPrimary">@color/white</item>
         <item name="colorOnPrimary">@color/black</item>
+        <item name="colorPrimaryContainer">@color/button_enabled_dark</item>
+        <item name="colorOnPrimaryContainer">@color/black</item>
+        <item name="colorSecondary">@color/selected_item_dark</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="colorSecondaryContainer">@color/grid_background_dark</item>
+        <item name="colorOnSecondaryContainer">@color/white</item>
+        <item name="colorTertiary">@color/grid_background_dark</item>
+        <item name="colorOnTertiary">@color/white</item>
+        <item name="colorTertiaryContainer">@color/selected_item_dark</item>
+        <item name="colorOnTertiaryContainer">@color/white</item>
         <item name="colorSurface">@color/background_dark</item>
         <item name="colorOnSurface">@color/white</item>
+        <item name="colorSurfaceVariant">@color/surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/on_surface_variant</item>
+        <item name="colorSurfaceContainer">@color/grid_background_dark</item>
+        <item name="colorSurfaceContainerHigh">@color/selected_item_dark</item>
+        <item name="colorSurfaceContainerHighest">@color/button_enabled_dark</item>
+        <item name="colorSurfaceContainerLow">@color/background_dark</item>
+        <item name="colorSurfaceContainerLowest">@color/black</item>
+        <item name="colorSurfaceBright">@color/grid_background_dark</item>
+        <item name="colorSurfaceDim">@color/outline_variant</item>
+        <item name="colorError">@color/error</item>
+        <item name="colorOnError">@color/on_error</item>
+        <item name="colorErrorContainer">@color/error_container</item>
+        <item name="colorOnErrorContainer">@color/on_error_container</item>
+        <item name="colorOutline">@color/outline</item>
+        <item name="colorOutlineVariant">@color/outline_variant</item>
+        <item name="colorInversePrimary">@color/selected_item_dark</item>
+        <item name="colorInverseSurface">@color/white</item>
+        <item name="colorInverseOnSurface">@color/black</item>
+        <item name="colorScrim">@color/black</item>
+        <item name="colorSurfaceTint">@color/button_enabled_dark</item>
         <item name="android:windowContentOverlay">@null</item>
         <item name="materialButtonStyle">@style/Widget.App.Button.Dark</item>
+        <!-- <item name="materialSwitchStyle">@style/Widget.App.Switch.Dark</item> -->
     </style>
     <style name="Widget.App.Button.Dark" parent="Widget.Material3.Button">
-        <item name="android:textColor">@color/white</item>
+        <item name="android:textColor">@color/black</item>
         <item name="backgroundTint">@color/button_enabled_dark</item>
         <item name="android:stateListAnimator">@null</item>
     </style>

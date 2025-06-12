@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="white">#FFFFFF</color>
-    <color name="black">#000000</color>
-    <color name="background_light">#FFFFFF</color>
-    <color name="grid_background_light">#F5F5F5</color>
-    <color name="selected_item_light">#E0E0E0</color>
-    <color name="button_enabled_light">#E0E0E0</color>
-    <color name="button_disabled_light">#F5F5F5</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="black">#FF000000</color>
+    <color name="background_light">#FFFFFFFF</color> <!-- changed from #FFF9F9F9 -->
+    <color name="grid_background_light">#FFF3F3F3</color> <!-- lighter for contrast -->
+    <color name="selected_item_light">#FFE0E0E0</color> <!-- slightly lighter -->
+    <color name="button_enabled_light">#FF222222</color> <!-- darker for better contrast -->
+    <color name="button_disabled_light">#FFB0B0B0</color>
     <color name="filmstrip_background_light">#80E0E0E0</color>
-    <color name="background_dark">#FFFFFF</color>
-    <color name="grid_background_dark">#F5F5F5</color>
-    <color name="selected_item_dark">#E0E0E0</color>
-    <color name="button_enabled_dark">#BDBDBD</color>
-    <color name="button_disabled_dark">#EEEEEE</color>
-    <color name="filmstrip_background_dark">#80EEEEEE</color>
-    <color name="button_enabled">@color/button_enabled_light</color>
-    <color name="button_disabled">@color/button_disabled_light</color>
+    <color name="error">#FF9F000C</color>
+    <color name="error_container">#FFFF6D60</color>
+    <color name="on_error">#FFFFFFFF</color>
+    <color name="on_error_container">#FF410002</color>
+    <color name="outline">#FF696969</color>
+    <color name="outline_variant">#FFC0C0C0</color>
+    <color name="surface_variant">#FFE0E0E0</color>
+    <color name="on_surface_variant">#FF222222</color> <!-- darker for contrast -->
 </resources>
