@@ -8,7 +8,7 @@
 1. batch processing
 2. transparancy re-mapping (experimental)
 3. fully offline
-4. support for images above 1200px (processed in chunks)
+4. support for large images
 
 ## download:
 [here](https://github.com/jeeneo/dejpeg/releases/latest)
