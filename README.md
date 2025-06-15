@@ -29,6 +29,23 @@
 ## note:
 De*JPEG* is not affiliated or related to Topaz's `DEJPEG` or any other software/project
 
+### extra details
+
+<details>
+<summary>for Qualcomm users</summary>
+<br>
+
+tl;dr: Snapdragon devices support a special type of hardware acceleration, but these models wouldn't benefit from it.
+
+I've looked into Hexagon/HTP support for accelerating the speed of the processing but the models, from my internal testing, perform better with CPU
+
+which means if I were to use QCOMMs special HWA, the model would still need to use the CPU for some parts of processing
+
+best I can understand it as HTP doesn't support some of FBCNNs operations and would shift back and forth from HTP to CPU during any image, which isn't really beneficial.
+
+(retraining/recreating the models is outside the scope of this app)
+</details>
+
 ## credits:
 [@adrianerrea](https://github.com/adrianerrea/fromPytorchtoMobile) for information on how to create a mobile PyTorch app and various information which made it easier to run the ONNX model
 
