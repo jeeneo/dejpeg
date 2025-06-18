@@ -18,6 +18,8 @@
 
 [SCUNet](https://github.com/jeeneo/SCUNet-mobile/releases/latest) (Grain/Noise)
 
+info about models [here](https://github.com/jeeneo/dejpeg/wiki/model-types) (also in the apps FAQ)
+
 ## screenshots:
 
 <img src="https://raw.githubusercontent.com/jeeneo/dejpeg/refs/heads/main/fastlane/metadata/android/en-US/images/phoneScreenshots/01.jpg" width="300" > <img src="https://raw.githubusercontent.com/jeeneo/dejpeg/refs/heads/main/fastlane/metadata/android/en-US/images/phoneScreenshots/02.jpg" width="300" >
