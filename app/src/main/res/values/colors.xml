@@ -16,4 +16,9 @@
     <color name="outline_variant">#FFC0C0C0</color>
     <color name="surface_variant">#FFE0E0E0</color>
     <color name="on_surface_variant">#FF222222</color> <!-- darker for contrast -->
+    <color name="background_dark">#FF000000</color>
+    <color name="selected_item_dark">#FF000000</color>
+    <color name="button_enabled_dark">#FF000000</color>
+    <color name="filmstrip_background_dark">#80000000</color>
+    <color name="button_disabled">#FFB0B0B0</color>
 </resources>

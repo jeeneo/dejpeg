@@ -4,7 +4,6 @@
     <!-- <color name="grid_background_dark">#FFFFFFFF</color> -->
     <color name="selected_item_dark">#FF2C2C2C</color> <!-- darker for contrast -->
     <color name="button_enabled_dark">#FF404040</color> <!-- white for best contrast -->
-    <!-- <color name="button_disabled_dark">#FF505050</color> -->
     <color name="filmstrip_background_dark">#802C2C2C</color>
     <color name="error">#FFFFB4AB</color>
     <color name="error_container">#FFC32220</color>
