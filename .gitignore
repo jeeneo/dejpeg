@@ -16,3 +16,5 @@ local.properties
 outputs/
 .vscode/
 *.ini
+*.ps1
+*.bin
