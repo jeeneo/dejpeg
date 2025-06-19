@@ -2,13 +2,14 @@
 
 # De*JPEG*
 
-... is a free Android app for removing jpeg compression artifacts and denoising images with [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and [SCUNet](https://github.com/cszn/SCUNet) with mobile-compatible models
+... is a free Android app for removing jpeg compression artifacts and denoising images using [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and [SCUNet](https://github.com/cszn/SCUNet).
 
 ## features:
 1. batch processing
 2. transparancy re-mapping (experimental)
 3. fully offline
-4. support for large images
+
+note: this is not a "super resolution AI upscaler", but a simple non-destructive way to clean up compressed/noisy images
 
 ## download:
 [here](https://github.com/jeeneo/dejpeg/releases/latest)
@@ -34,18 +35,19 @@ De*JPEG* is not affiliated or related to Topaz's `DEJPEG` or any other software/
 ### extra details
 
 <details>
-<summary>for Qualcomm users</summary>
+<summary>for Qualcomm devs</summary>
 <br>
-
 tl;dr: Snapdragon devices support a special type of hardware acceleration, but these models wouldn't benefit from it.
 
-I've looked into Hexagon/HTP support for accelerating the speed of the processing but the models, from my internal testing, perform better with CPU
+I've looked into Hexagon/HTP support for accelerating the speed of the processing but the models from my internal testing perform better with CPU.
 
-which means if I were to use QCOMMs special HWA, the model would still need to use the CPU for some parts of processing
+which means if I were to use QCOMMs special HWA, the model would still need to use the CPU for some parts of processing.
 
 best I can understand it as HTP doesn't support some of FBCNNs operations and would shift back and forth from HTP to CPU during any image, which isn't really beneficial.
 
-(retraining/recreating the models is outside the scope of this app)
+I'd also need a Qualcomm developer license requiring me to hand over a lot of personal information for simply what I consider a hobby.
+
+and retraining/recreating the models aside from simple conversion, is outside my expertise.
 </details>
 
 ## credits:

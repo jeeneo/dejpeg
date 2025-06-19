@@ -24,12 +24,11 @@ import java.util.concurrent.Future;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-import com.je.dejpeg.models.ProcessingState;  // Update import path
-// import com.je.dejpeg.models.ProcessingTimeStats; // Add import
+import com.je.dejpeg.models.ProcessingState;
 
 public class ImageProcessor {
-    public static final int DEFAULT_CHUNK_SIZE = 1000;
-    public static final int SCUNET_CHUNK_SIZE = 800;
+    public static final int DEFAULT_CHUNK_SIZE = 1200;
+    public static final int SCUNET_CHUNK_SIZE = 1200;
     public static final int OVERLAP = 32;
     private boolean isCancelled = false;
     private OrtEnvironment ortEnv;
@@ -411,15 +410,15 @@ public class ImageProcessor {
         }
 
         new MaterialAlertDialogBuilder(context)
-            .setTitle("Error")
+            .setTitle(context.getString(R.string.error_dialog_title))
             .setMessage(errorText)
-            .setPositiveButton("OK", null)
-            .setNeutralButton("Copy", (dialog, which) -> {
-                ClipboardManager clipboard = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
-                ClipData clip = ClipData.newPlainText("Error", errorText);
-                clipboard.setPrimaryClip(clip);
-                Toast.makeText(context, "Error copied to clipboard", Toast.LENGTH_SHORT).show();
+            .setPositiveButton(context.getString(R.string.ok_button), null)
+            .setNeutralButton(context.getString(R.string.copy_button), (dialog, which) -> {
+            ClipboardManager clipboard = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+            ClipData clip = ClipData.newPlainText("Error", errorText);
+            clipboard.setPrimaryClip(clip);
+            Toast.makeText(context, context.getString(R.string.error_copied_to_clipboard_toast), Toast.LENGTH_SHORT).show();
             })
-            .show();
+        .show();
     }
 }

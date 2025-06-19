@@ -512,6 +512,9 @@ class BeforeAfterImageView @JvmOverloads constructor(
     
     private inner class ScaleListener : ScaleGestureDetector.SimpleOnScaleGestureListener() {
         override fun onScale(detector: ScaleGestureDetector): Boolean {
+            val bitmap = beforeBitmap ?: afterBitmap ?: return false
+            if (bitmap.width < 100 || bitmap.height < 100) return false // lazy fix for small images
+            
             val prevScale = scaleFactor
             val newScaleFactor = (scaleFactor * detector.scaleFactor).coerceIn(minScale, maxScale)
             val scaleChange = newScaleFactor / prevScale
@@ -531,6 +534,9 @@ class BeforeAfterImageView @JvmOverloads constructor(
     
     private inner class GestureListener : GestureDetector.SimpleOnGestureListener() {
         override fun onDoubleTap(e: MotionEvent): Boolean {
+            val bitmap = beforeBitmap ?: afterBitmap ?: return false
+            if (bitmap.width < 100 || bitmap.height < 100) return false // lazy fix for small images
+            
             val currentScale = scaleFactor
             val targetScale: Float
             val focusX = e.x

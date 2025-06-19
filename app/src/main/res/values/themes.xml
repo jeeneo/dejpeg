@@ -10,7 +10,7 @@
         <item name="colorOnPrimary">@color/white</item>
         <item name="colorPrimaryContainer">@color/button_enabled_light</item>
         <item name="colorOnPrimaryContainer">@color/white</item>
-        <item name="colorSecondary">@color/selected_item_light</item>
+        <item name="colorSecondary">@color/on_surface_variant</item>
         <item name="colorOnSecondary">@color/black</item>
         <item name="colorSecondaryContainer">@color/grid_background_light</item>
         <item name="colorOnSecondaryContainer">@color/black</item>

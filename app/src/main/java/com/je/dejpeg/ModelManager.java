@@ -102,11 +102,9 @@ public class ModelManager {
             ortEnv = OrtEnvironment.getEnvironment();
         }
         OrtSession.SessionOptions sessionOptions = new OrtSession.SessionOptions();
-        int numThreads = Math.max(2, Runtime.getRuntime().availableProcessors()); // use at least 2 threads, so if device has 8 cores, we use 6 for inference
-        if (numThreads > 6) {
-            numThreads = 6; // 6 threads for better performance on most devices, all 8 can lag everything else out
-        }
-        // Log.d("ModelManager", "using " + numThreads + " threads for inference");
+        int availableProcessors = Runtime.getRuntime().availableProcessors();
+        int numThreads;
+        if (availableProcessors <= 2) { numThreads = 1; } else { numThreads = (availableProcessors * 3) / 4; }
         sessionOptions.setIntraOpNumThreads(numThreads);
         sessionOptions.setInterOpNumThreads(4);
 

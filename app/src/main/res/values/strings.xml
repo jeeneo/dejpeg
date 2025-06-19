@@ -11,15 +11,23 @@
     <string name="process_button">process</string>
     <string name="cancel_button">cancel</string>
     <string name="apply_to_all">apply to all</string>
+    <string name="faq_dialog_title">FAQs</string>
     <string name="config_dialog_title">config</string>
     <string name="error_dialog_title">error</string>
     <string name="warning_dialog_title">warning</string>
+    <string name="ok_button">ok</string>
+
+    <string name="set_as_default_action">set as default action</string>
+    <string name="pick_image_method">pick image from</string>
+    <string name="clear_default_action">clear picker action</string>
+    <string name="default_action_cleared_toast">default picker action cleared</string>
 
     <string name="background_service_title">DeJPEG service</string>
     <string name="stop_background_service_text">stop</string>
     <string name="background_service_message">this is intended to prevent the system from killing the app when in background.</string>
-    <string name="background_service_additional_message">\n\nyou can stop the service from the notification or by dismissing the app from recents.</string>
-    <string name="ok_button">ok</string>
+    <string name="background_service_additional_message">\n\nyou shouldn\'t need to stop it, but it can be stopped from the notification or by dismissing the app from recents.</string>
+
+    <string name="error_copied_to_clipboard_toast">error copied to clipboard</string>
 
     <string name="png">png</string>
     <string name="output_format_set_toast">output format set to: %1$s</string>
@@ -35,7 +43,6 @@
     <!-- image picker -->
     <!-- <string name="single_image">single image</string> -->
     <string name="error_camera_dialog">camera import error</string>
-    
     
     <string name="gallery_picker">gallery</string>
     <string name="internal_picker">photo picker</string>
@@ -75,6 +82,7 @@
     <string name="error_loading_all_images_batch_dialog">error loading all images: %s</string>
     <string name="remove_this_image_button">remove this image</string>
     <string name="remove_all_images_button">remove all images</string>
+    <string name="remove_all_but_this_button">remove all but this</string>
     <string name="remove_image_title">remove image</string>
 
     <!-- processing -->
@@ -118,39 +126,14 @@
     <string name="arrow_text_format">%1$s %2$s</string>
 
     <string name="FAQ1_text">
-        this app is designed to remove JPEG compression artifacts (FBCNN) and denoise images (SCUNet)\n\nHowever, this isn\'t \"AI\" or image upscaling, your images stay the same resolution. It\'s meant to provide a cleaner image, which can produce better results if you do use \"AI enhancers\", that can make them look uglier or create unpleasant artifacts/blending (my opinion). This app preserves details (mostly) and doesn\'t harm or ruin the final image.
+        this app is designed to remove JPEG compression artifacts (FBCNN) and denoise images (SCUNet)\n\nhowever, this isn\'t \"AI\" or image upscaling, your images stay the same resolution. It\'s meant to provide a cleaner image, which can produce better results if you do use \"AI enhancers\", that can make them look uglier or create unpleasant artifacts/blending (my opinion). This app preserves details (mostly) and doesn\'t harm or ruin the final image.
     </string>
 
     <string name="FAQ2_text">
-        for images that have compression artifacts (e.g. low-res images from Google, Pinterest, Instagram, etc.), use FBCNN. The slider is only available for this mode, and affects how much strength goes into removing compression. Start with a value between 35–50 for most images, then adjust per needs.\n\nSCUNet is more adept at removing noise (e.g. ISO noise, grainy looking, or speckled).\n\nSCUNet can also remove compression, but it doesn\'t support a variable amount of smoothing.
+        for images that have compression artifacts (e.g. low-res images from Google, Pinterest, Instagram, or even GIF artifacts, etc.), use FBCNN. However, this app doesn\'t support processing GIF animations yet. The slider is only available for this mode, and affects how much strength goes into removing compression. Start with a value between 35-50 for most images, then adjust per needs.\n\nSCUNet is more adept at removing noise (e.g. ISO noise, grainy looking, or speckled).\n\nSCUNet can also remove compression and GIF artifacts, but it doesn\'t support a variable amount of smoothing.
     </string>
 
     <string name="FAQ3_text">
-        note: the base models, FBCNN_color and SCUNet\'s PSNR/GAN, are color models.\n\nThe \"grey\" FBCNN model is designed for greyscale images. \"grey double\" is also for greyscale but optimized for images saved and re-saved as JPEG. (e.g, edited/resized twice both saving as JPEG)\n\nThe \"grey 15/25/50\" SCUNet models are only for greyscale images, with different levels of noise removal, the higher the number, the more noise is removed.\n\nThe \"PSNR\" variant of SCUNet tries to pixel-match the original image as closely as possible, so it looks mathematically correct but may appear overly smooth.\n\n\"GAN\" sacrifices pixel-perfect accuracy to add realistic textures or details, which can look more natural. As with most cases, try both and see which one suits your image better.
+        note: the base models, FBCNN_color and SCUNet\'s PSNR/GAN, are color models.\n\nthe \"grey\" FBCNN model is designed for greyscale images. \"grey double\" is also for greyscale but optimized for images saved and re-saved as JPEG. (e.g, edited/resized twice both saving as JPEG)\n\nthe \"grey 15/25/50\" SCUNet models are only for greyscale images, with different levels of noise removal, the higher the number, the more noise is removed.\n\nthe \"PSNR\" variant of SCUNet tries to pixel-match the original image as closely as possible, so it looks mathematically correct but may appear overly smooth.\n\n\"GAN\" sacrifices pixel-perfect accuracy to add realistic textures or details, which can look more natural. As with most cases, try both and see which one suits your image better.
     </string>
-
-    <!-- garbage strings::
-    <string name="notification_permission_denied">notification permission denied</string>
-    <string name="model_not_selected">please select a model file first</string>
-    <string name="model_copied">model file copied successfully</string>
-    <string name="error_copying_model">error copying model file</string>
-    <string name="model_file">model file</string>
-    <string name="importing_model_message">importing model...</string>
-    <string name="model_imported">model imported: %1$s</string>
-    <string name="model_import_failed">model import failed: %1$s</string>
-    <string name="save_to_gallery">save to gallery</string>
-    <string name="save_text">save</string>
-    <string name="error_saving">error saving image</string>
-    <string name="output_format">output format</string>
-    <string name="select_multiple">select multiple images</string>
-    <string name="image_processed">image processed successfully</string>
-    <string name="strength">strength: %1$d</string>
-    <string name="error_opening_image">error opening image: %1$s</string>
-    -->
-    
-    <!-- <string name="progress_format_switch">percentage progress</string> -->
-    <string name="set_as_default_action">set as default action</string>
-    <string name="pick_image_method">pick image from</string>
-    <string name="clear_default_action">clear picker action</string>
-    <string name="default_action_cleared">default picker action cleared</string>
 </resources>

@@ -63,6 +63,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var imageProcessor: ImageProcessor
     private lateinit var applyToAllSwitch: MaterialSwitch
 
+    private lateinit var imageDimensionsText: TextView
+
     private var importProgressDialog: Dialog? = null
     private var importProgressBar: ProgressBar? = null
     private var importProgressText: TextView? = null
@@ -143,6 +145,7 @@ class MainActivity : AppCompatActivity() {
         vibrationManager = VibrationManager(this)
         notificationHandler = NotificationHandler(this)
         setContentView(R.layout.activity_main)
+        imageDimensionsText = findViewById(R.id.imageDimensionsText)
 
         selectButton = findViewById(R.id.selectButton)
         processButton = findViewById(R.id.processButton)
@@ -358,14 +361,17 @@ class MainActivity : AppCompatActivity() {
             .setTitle(R.string.select_model)
             .setMessage(R.string.no_models)
             .setNeutralButton(R.string.import_model_button) { _, _ ->
-                vibrationManager.vibrateDialogChoice()
+                // vibrationManager.vibrateDialogChoice()
                 val intent = Intent(Intent.ACTION_GET_CONTENT).apply { type = "*/*" }
                 modelPickerLauncher.launch(intent)
             }
             .setPositiveButton("FBCNN", null)
             .setNegativeButton("SCUNet", null)
+            .setOnDismissListener {
+                vibrationManager.vibrateDialogChoice()
+            }
             .setCancelable(false)
-            .create()
+        .create()
 
         dialog.setOnShowListener {
             dialog.getButton(DialogInterface.BUTTON_POSITIVE)?.setOnClickListener {
@@ -381,7 +387,6 @@ class MainActivity : AppCompatActivity() {
                 startActivity(intent)
             }
         }
-
         dialog.show()
     }
 
@@ -402,17 +407,20 @@ class MainActivity : AppCompatActivity() {
                 dialog.dismiss()
             }
             .setPositiveButton(R.string.import_model_button) { _, _ ->
-                vibrationManager.vibrateDialogChoice()
+                // vibrationManager.vibrateDialogChoice()
                 val intent = Intent(Intent.ACTION_GET_CONTENT).apply { type = "*/*" }
                 modelPickerLauncher.launch(intent)
             }
             .setNeutralButton(R.string.delete_model_button) { _, _ ->
-                vibrationManager.vibrateDialogChoice()
+                // vibrationManager.vibrateDialogChoice()
                 showDeleteModelDialog(models)
             }
             .setNegativeButton(R.string.download_button) { _, _ ->
-                vibrationManager.vibrateDialogChoice()
+                // vibrationManager.vibrateDialogChoice()
                 showModelDownloadDialog()
+            }
+            .setOnDismissListener {
+                vibrationManager.vibrateDialogChoice()
             }
             .show()
     }
@@ -422,6 +430,9 @@ class MainActivity : AppCompatActivity() {
             .setTitle(getString(R.string.background_service_title))
             .setMessage(getString(R.string.background_service_message) + getString(R.string.background_service_additional_message))
             .setPositiveButton(getString(R.string.ok_button), null)
+            .setOnDismissListener {
+                vibrationManager.vibrateDialogChoice()
+            }
         .show()
     }
 
@@ -438,8 +449,11 @@ class MainActivity : AppCompatActivity() {
                 startActivity(intent)
             }
             .setNegativeButton(R.string.cancel_button) { _, _ ->
-                vibrationManager.vibrateDialogChoice()
+                // vibrationManager.vibrateDialogChoice()
                 showModelManagementDialog()
+            }
+            .setOnDismissListener {
+                vibrationManager.vibrateDialogChoice()
             }
         .show()
     }
@@ -719,6 +733,7 @@ class MainActivity : AppCompatActivity() {
         perImageStrengthFactors.add(lastStrength)
         currentPage = 0
         beforeAfterView.clearImages()
+        imageDimensionsText.visibility = View.GONE
         beforeAfterView.setBeforeImage(bitmap)
         beforeAfterView.setAfterImage(null)
         processButton.isEnabled = modelManager.hasActiveModel()
@@ -865,6 +880,7 @@ class MainActivity : AppCompatActivity() {
     private fun updateImageViews() {
         if (images.isEmpty()) {
             beforeAfterView.clearImages()
+            imageDimensionsText.visibility = View.GONE
             filmstripRecyclerView.visibility = View.GONE
             processingAnimation.visibility = View.GONE
             processingText.visibility = View.GONE
@@ -874,6 +890,7 @@ class MainActivity : AppCompatActivity() {
 
         if (isProcessing && !com.je.dejpeg.models.ProcessingState.Companion.allImagesCompleted) {
             beforeAfterView.clearImages()
+            imageDimensionsText.visibility = View.GONE
             filmstripRecyclerView.visibility = View.GONE
             processingAnimation.visibility = View.VISIBLE
             processingText.visibility = View.VISIBLE
@@ -888,6 +905,12 @@ class MainActivity : AppCompatActivity() {
 
         beforeAfterView.visibility = View.VISIBLE
         val currentImage = images[currentPage]
+
+        val width = currentImage.inputBitmap.width
+        val height = currentImage.inputBitmap.height
+        imageDimensionsText.text = "${width}x${height}"
+        imageDimensionsText.visibility = View.VISIBLE
+
         beforeAfterView.setBeforeImage(currentImage.inputBitmap)
         beforeAfterView.setAfterImage(currentImage.outputBitmap)
 
@@ -901,18 +924,37 @@ class MainActivity : AppCompatActivity() {
             .setTitle(R.string.remove_image_title)
             .setItems(arrayOf(
                 getString(R.string.remove_this_image_button),
-                getString(R.string.remove_all_images_button)
+                getString(R.string.remove_all_images_button),
+                getString(R.string.remove_all_but_this_button)
             )) { _, which ->
                 vibrationManager.vibrateDialogChoice()
                 when (which) {
                     0 -> removeImage(position)
                     1 -> removeAllImages()
+                    2 -> removeAllExceptCurrent(position)
                 }
             }
             .setNegativeButton(R.string.cancel_button) { _, _ ->
                 vibrationManager.vibrateDialogChoice()
             }
             .show()
+    }
+
+    private fun removeAllExceptCurrent(position: Int) {
+        if (position < 0 || position >= images.size) return
+        
+        val keepImage = images[position]
+        val keepStrength = perImageStrengthFactors[position]
+        
+        images.clear()
+        perImageStrengthFactors.clear()
+        
+        images.add(keepImage)
+        perImageStrengthFactors.add(keepStrength)
+        
+        currentPage = 0
+        updateImageViews()
+        applyToAllSwitch.visibility = View.GONE
     }
 
     private fun removeImage(position: Int) {
@@ -925,6 +967,7 @@ class MainActivity : AppCompatActivity() {
             images.isEmpty() -> {
                 currentPage = 0
                 beforeAfterView.clearImages()
+                imageDimensionsText.visibility = View.GONE
                 applyToAllSwitch.visibility = View.GONE
             }
             currentPage >= images.size -> {
@@ -944,6 +987,7 @@ class MainActivity : AppCompatActivity() {
         perImageStrengthFactors.clear()
         currentPage = 0
         beforeAfterView.clearImages()
+        imageDimensionsText.visibility = View.GONE
         applyToAllSwitch.visibility = View.GONE
         updateImageViews()
     }
@@ -1053,17 +1097,20 @@ class MainActivity : AppCompatActivity() {
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.config_dialog_title)
             .setPositiveButton(R.string.clear_default_action) { _, _ ->
-                vibrationManager.vibrateDialogChoice()
+                // vibrationManager.vibrateDialogChoice()
                 getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                     .edit()
                     .remove(DEFAULT_ACTION_KEY)
                     .apply()
                 defaultImageAction = -1
-                Toast.makeText(this, R.string.default_action_cleared, Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, R.string.default_action_cleared_toast, Toast.LENGTH_SHORT).show()
             }
             .setNeutralButton(R.string.manage_models_button) { _, _ ->
-                vibrationManager.vibrateDialogChoice()
+                // vibrationManager.vibrateDialogChoice()
                 showModelManagementDialog()
+            }
+            .setOnDismissListener {
+                vibrationManager.vibrateDialogChoice()
             }
             .setView(dialogView)
             .show()
@@ -1119,7 +1166,7 @@ class MainActivity : AppCompatActivity() {
         val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_image_picker, null)
         val setDefaultSwitch = dialogView.findViewById<MaterialSwitch>(R.id.setDefaultSwitch)
     
-        setDefaultSwitch.setOnCheckedChangeListener { _, isChecked ->
+        setDefaultSwitch.setOnCheckedChangeListener { _, _ ->
             vibrationManager.vibrateSwitcher()
         }
     
@@ -1131,7 +1178,7 @@ class MainActivity : AppCompatActivity() {
                 getString(R.string.internal_picker),
                 getString(R.string.documents_picker),
                 getString(R.string.camera)
-            )) { dialog, which ->
+            )) { _, which ->
                 if (setDefaultSwitch.isChecked) {
                     getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                         .edit()
@@ -1139,13 +1186,15 @@ class MainActivity : AppCompatActivity() {
                         .apply()
                     defaultImageAction = which
                 }
-                vibrationManager.vibrateMenuTap()
                 when (which) {
                     0 -> launchGalleryPicker()
                     1 -> launchInternalPhotoPicker()
                     2 -> launchDocumentsPicker()
                     3 -> launchCamera()
                 }
+            }
+            .setOnDismissListener {
+                vibrationManager.vibrateDialogChoice()
             }
             .show()
     }
@@ -1187,7 +1236,7 @@ class MainActivity : AppCompatActivity() {
 
                 override fun onProgress(message: String) {
                     runOnUiThread {
-                        processingText.text = ProcessingState.getStatusString(this@MainActivity) // Update processingText
+                        processingText.text = ProcessingState.getStatusString(this@MainActivity)
                         notificationHandler.showProgressNotification(message)
                     }
                 }
@@ -1198,31 +1247,24 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun showAboutDialog() {
-        val markdown = """
-            De*JPEG* is an open source app for removing compression and noise artifacts from images
-            
-            version v2.5.1-debug
-            
-            [GitHub](https://github.com/jeeneo/dejpeg)
-        """.trimIndent()
-    
+        val markdown = """De*JPEG* is an open source app for removing compression and noise artifacts from images. Source on [GitHub](https://github.com/jeeneo/dejpeg).""".trimIndent()
         val textView = TextView(this).apply {
             movementMethod = LinkMovementMethod.getInstance()
             setPadding(64, 64, 64, 64)
         }
-    
         val markwon = Markwon.create(this)
         markwon.setMarkdown(textView, markdown)
-    
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.about_title)
             .setView(textView)
             .setPositiveButton(R.string.ok_button, null)
             .setNeutralButton(R.string.FAQ_button) { _, _ ->
-                vibrationManager.vibrateDialogChoice()
                 showFAQDialog()
             }
-            .show()
+            .setOnDismissListener {
+                vibrationManager.vibrateDialogChoice()
+            }
+        .show()
     }
 
     private fun showFAQDialog() {
@@ -1263,10 +1305,18 @@ class MainActivity : AppCompatActivity() {
             toggleSection(header3, detail3, R.string.header3_text)
         }
 
+            //         .setNeutralButton(R.string.FAQ_button) { _, _ ->
+            //     vibrationManager.vibrateDialogChoice()
+            //     showFAQDialog()
+            // }
+
         MaterialAlertDialogBuilder(this)
-            .setTitle("FAQ")
+            .setTitle(R.string.faq_dialog_title)
             .setView(dialogView)
             .setPositiveButton(R.string.ok_button, null)
-            .show()
+            .setOnDismissListener {
+                vibrationManager.vibrateDialogChoice()
+            }
+        .show()
     }
 }

@@ -68,43 +68,41 @@ android {
     android.applicationVariants.all { variant ->
         variant.outputs.each { output ->
             def baseAbiName = output.filters.find { it.filterType == com.android.build.OutputFile.ABI }.identifier
-            output.outputFileName = "dejpeg-${variant.name}-${baseAbiName}-${variant.versionName}.apk"
+            output.outputFileName = "dejpeg-${variant.name}-${baseAbiName}.apk"
         }
     }
-    sourceSets {
-        main {
-            assets.srcDirs += 'src/main/assets'
-        }
-        release {
-            assets.srcDirs += "$buildDir/generated/source_code_assets"
-        }
-    }
+    // sourceSets {
+    //     main {
+    //         assets.srcDirs += 'src/main/assets'
+    //     }
+    //     release {
+    //         assets.srcDirs += "$buildDir/generated/source_code_assets"
+    //     }
+    // }
 }
 
-// embed source code in /assets for release builds
+// task copySrcMainToAssets(type: Copy) {
+//     from "$rootDir/app/src/main"
+//     into "$buildDir/generated/source_code_assets/source_code/src/main"
+// }
 
-task copySrcMainToAssets(type: Copy) {
-    from "$rootDir/app/src/main"
-    into "$buildDir/generated/source_code_assets/source_code/src/main"
-}
-
-android.applicationVariants.all { variant ->
-    if (variant.buildType.name == "release") {
-        variant.mergeAssetsProvider.configure {
-            dependsOn(copySrcMainToAssets)
-        }
-        def lintAnalyzeTaskName = "lintVitalAnalyze${variant.name.capitalize()}"
-        def lintAnalyzeTask = tasks.findByName(lintAnalyzeTaskName)
-        if (lintAnalyzeTask != null) {
-            lintAnalyzeTask.dependsOn(copySrcMainToAssets)
-        }
-        def lintReportTaskName = "generate${variant.name.capitalize()}LintVitalReportModel"
-        def lintReportTask = tasks.findByName(lintReportTaskName)
-        if (lintReportTask != null) {
-            lintReportTask.dependsOn(copySrcMainToAssets)
-        }
-    }
-}
+// android.applicationVariants.all { variant ->
+//     if (variant.buildType.name == "release") {
+//         variant.mergeAssetsProvider.configure {
+//             dependsOn(copySrcMainToAssets)
+//         }
+//         def lintAnalyzeTaskName = "lintVitalAnalyze${variant.name.capitalize()}"
+//         def lintAnalyzeTask = tasks.findByName(lintAnalyzeTaskName)
+//         if (lintAnalyzeTask != null) {
+//             lintAnalyzeTask.dependsOn(copySrcMainToAssets)
+//         }
+//         def lintReportTaskName = "generate${variant.name.capitalize()}LintVitalReportModel"
+//         def lintReportTask = tasks.findByName(lintReportTaskName)
+//         if (lintReportTask != null) {
+//             lintReportTask.dependsOn(copySrcMainToAssets)
+//         }
+//     }
+// }
 
 dependencies {
     implementation platform('androidx.compose:compose-bom:2025.05.00')
