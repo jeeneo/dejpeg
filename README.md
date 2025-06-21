@@ -37,7 +37,9 @@ De*JPEG* is not affiliated or related to Topaz's `DEJPEG` or any other software/
 <details>
 <summary>for Qualcomm devs</summary>
 <br>
+
 tl;dr: Snapdragon devices support a special type of hardware acceleration, but these models wouldn't benefit from it.
+
 
 I've looked into Hexagon/HTP support for accelerating the speed of the processing but the models from my internal testing perform better with CPU.
 
