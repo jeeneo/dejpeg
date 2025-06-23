@@ -1,1 +1,1 @@
-remove image compression artifacts from your photos
+remove image compression from photos

@@ -271,20 +271,6 @@ class MainActivity : AppCompatActivity() {
                 .apply()
         }
 
-        intent?.let {
-            if (Intent.ACTION_SEND == it.action && it.type?.startsWith("image/") == true) {
-                val imageUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    it.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
-                } else {
-                    @Suppress("DEPRECATION")
-                    it.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
-                }
-                if (imageUri != null) onImageSelected(imageUri)
-            }
-        }
-
-        if (!modelManager.hasActiveModel()) promptModelSelection()
-
         beforeAfterView = findViewById(R.id.beforeAfterView)
         beforeAfterView.setButtonCallback(object : BeforeAfterImageView.ButtonCallback {
             override fun onShareClicked() {
@@ -334,17 +320,28 @@ class MainActivity : AppCompatActivity() {
                 else -> false
             }
         }
-        
         intent?.let {
             if (it.getBooleanExtra("show_service_info", false)) {
                 showServiceInfoDialog()
             }
         }
-
         val serviceIntent = Intent(this, AppBackgroundService::class.java)
         startForegroundService(serviceIntent)
         ImageProcessor.clearCacheDirs(ImageProcessor.chunkDir)
         ImageProcessor.clearCacheDirs(ImageProcessor.processedDir)
+
+        intent?.let {
+            if (Intent.ACTION_SEND == it.action && it.type?.startsWith("image/") == true) {
+                val imageUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    it.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+                } else {
+                    @Suppress("DEPRECATION")
+                    it.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+                }
+                if (imageUri != null) onImageSelected(imageUri)
+            }
+        }
+        if (!modelManager.hasActiveModel()) promptModelSelection()
     }
     
     override fun onNewIntent(intent: Intent?) {
@@ -361,7 +358,6 @@ class MainActivity : AppCompatActivity() {
             .setTitle(R.string.select_model)
             .setMessage(R.string.no_models)
             .setNeutralButton(R.string.import_model_button) { _, _ ->
-                // vibrationManager.vibrateDialogChoice()
                 val intent = Intent(Intent.ACTION_GET_CONTENT).apply { type = "*/*" }
                 modelPickerLauncher.launch(intent)
             }
@@ -407,16 +403,13 @@ class MainActivity : AppCompatActivity() {
                 dialog.dismiss()
             }
             .setPositiveButton(R.string.import_model_button) { _, _ ->
-                // vibrationManager.vibrateDialogChoice()
                 val intent = Intent(Intent.ACTION_GET_CONTENT).apply { type = "*/*" }
                 modelPickerLauncher.launch(intent)
             }
             .setNeutralButton(R.string.delete_model_button) { _, _ ->
-                // vibrationManager.vibrateDialogChoice()
                 showDeleteModelDialog(models)
             }
             .setNegativeButton(R.string.download_button) { _, _ ->
-                // vibrationManager.vibrateDialogChoice()
                 showModelDownloadDialog()
             }
             .setOnDismissListener {
@@ -1097,7 +1090,6 @@ class MainActivity : AppCompatActivity() {
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.config_dialog_title)
             .setPositiveButton(R.string.clear_default_action) { _, _ ->
-                // vibrationManager.vibrateDialogChoice()
                 getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                     .edit()
                     .remove(DEFAULT_ACTION_KEY)
@@ -1106,7 +1098,6 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, R.string.default_action_cleared_toast, Toast.LENGTH_SHORT).show()
             }
             .setNeutralButton(R.string.manage_models_button) { _, _ ->
-                // vibrationManager.vibrateDialogChoice()
                 showModelManagementDialog()
             }
             .setOnDismissListener {

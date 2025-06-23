@@ -9,11 +9,11 @@ android {
 
     defaultConfig {
         applicationId "com.je.dejpeg"
-        minSdk 24
+        minSdk 28 // android 9/Pie
         targetSdk 35
-        versionCode 251
-        versionName "2.5.1"
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        versionCode 252
+        versionName "2.5.2"
+        // testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary true
         }

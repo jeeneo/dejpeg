@@ -6,7 +6,7 @@
 
 ## features:
 1. batch processing
-2. transparancy re-mapping (experimental)
+2. transparency re-mapping (experimental)
 3. fully offline
 
 note: this is not a "super resolution AI upscaler", but a simple non-destructive way to clean up compressed/noisy images
@@ -25,12 +25,11 @@ info about models [here](https://github.com/jeeneo/dejpeg/wiki/model-types) (als
 
 <img src="https://raw.githubusercontent.com/jeeneo/dejpeg/refs/heads/main/fastlane/metadata/android/en-US/images/phoneScreenshots/01.png" width="300" > <img src="https://raw.githubusercontent.com/jeeneo/dejpeg/refs/heads/main/fastlane/metadata/android/en-US/images/phoneScreenshots/02.png" width="300" >
 
-
 ## limitations:
-- processed on your phone (no hardware acceleration), I'd recommend a device with ~4gb of ram and a CPU with at least 4 threads
+- processed locally, a device with 4gb of ram and a CPU with at least 4 threads is recommended.
 
 ## note:
-De*JPEG* is not affiliated or related to Topaz's `DEJPEG` or any other software/project
+De*JPEG* is not affiliated or related to Topaz `DEJPEG` or any other software/project
 
 ### extra details
 
@@ -40,7 +39,6 @@ De*JPEG* is not affiliated or related to Topaz's `DEJPEG` or any other software/
 
 tl;dr: Snapdragon devices support a special type of hardware acceleration, but these models wouldn't benefit from it.
 
-
 I've looked into Hexagon/HTP support for accelerating the speed of the processing but the models from my internal testing perform better with CPU.
 
 which means if I were to use QCOMMs special HWA, the model would still need to use the CPU for some parts of processing.
@@ -49,7 +47,8 @@ best I can understand it as HTP doesn't support some of FBCNNs operations and wo
 
 I'd also need a Qualcomm developer license requiring me to hand over a lot of personal information for simply what I consider a hobby.
 
-and retraining/recreating the models aside from simple conversion, is outside my expertise.
+and retraining/recreating the models aside from simple conversion is outside my expertise.
+
 </details>
 
 ## credits:
@@ -64,13 +63,7 @@ and retraining/recreating the models aside from simple conversion, is outside my
 
 I partially use Generative AI, (ChatGPT, Github Copilot, et. al.) for some complicated tasks and problems.
 
-AI has its place, as a tool, not as a replacement.
-
 I only use it in my IDE, all my comments, changelogs, and interactions with me are typed with my hands, from my brain.
-
-I do not pay for access to generative AI as well, i use whatever free tier is available
-
-If you see Google's "Jules AI" as a contributor (if its still there), I tried it out and it created a PR based on things I described, but didn't go as planned and reverted all changes.
 
 and no, this text wasn't written by AI.
 
