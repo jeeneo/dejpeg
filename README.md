@@ -1,7 +1,7 @@
 <div align='center'>
  <img src='https://github.com/user-attachments/assets/6d1e6fde-58b6-4991-9bb3-57b64627fbcf' height='140' alt="">
   <br>
-  a free Android app for removing jpeg compression artifacts
+  a free Android app for removing compression
 	<h2></h2>
     <table align='center'>
       <br>
