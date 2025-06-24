@@ -327,8 +327,8 @@ class MainActivity : AppCompatActivity() {
         }
         val serviceIntent = Intent(this, AppBackgroundService::class.java)
         startForegroundService(serviceIntent)
-        ImageProcessor.clearCacheDirs(ImageProcessor.chunkDir)
-        ImageProcessor.clearCacheDirs(ImageProcessor.processedDir)
+        // ImageProcessor.clearDirectory(ImageProcessor.chunkDir)
+        // ImageProcessor.clearDirectory(ImageProcessor.processedDir)
 
         intent?.let {
             if (Intent.ACTION_SEND == it.action && it.type?.startsWith("image/") == true) {
@@ -814,8 +814,8 @@ class MainActivity : AppCompatActivity() {
         images.forEachIndexed { index, image -> 
             val strength = if (applyToAllSwitch.isChecked) lastStrength * 100f 
                           else perImageStrengthFactors[index] * 100f
-            val needsChunking = image.inputBitmap.width > ImageProcessor.DEFAULT_CHUNK_SIZE || 
-                               image.inputBitmap.height > ImageProcessor.DEFAULT_CHUNK_SIZE
+            val needsChunking = image.inputBitmap.width > ImageProcessor.MAX_CHUNK_SIZE || 
+                               image.inputBitmap.height > ImageProcessor.MAX_CHUNK_SIZE
             processingQueue.add(QueueItem(image, strength, needsChunking, index))
         }
         processingQueue.sortBy { !it.requiresChunking }
