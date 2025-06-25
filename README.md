@@ -1,21 +1,23 @@
-<div align='center'>
- <img src='https://github.com/user-attachments/assets/6d1e6fde-58b6-4991-9bb3-57b64627fbcf' height='140' alt="">
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/6d1e6fde-58b6-4991-9bb3-57b64627fbcf" height="140" alt="">
   <br>
-    an image compression remover and denoising app
-    <h2></h2>
-    <table align='center'>
-      <br>
-        <tr>
-            <td><img src='fastlane/metadata/android/en-US/images/phoneScreenshots/01.png' height='400' alt=""></td>
-            <td><img src='fastlane/metadata/android/en-US/images/phoneScreenshots/02.png' height='400' alt=""></td>
-        </tr>
-    </table>
-    <p>
-        <a href='https://apt.izzysoft.de/fdroid/index/apk/com.je.dejpeg'><img src='https://raw.githubusercontent.com/jeeneo/dejpeg/refs/heads/main/assets/IzzyOnDroid.png' width="220" alt="IzzyOnDroid"></a>
-        <a href='http://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/jeeneo/dejpeg'><img src='https://raw.githubusercontent.com/jeeneo/dejpeg/refs/heads/main/assets/obtanium.png' width="220" alt="Obtanium"></a>
-        <a href='https://github.com/jeeneo/dejpeg/releases/latest'><img src='https://raw.githubusercontent.com/jeeneo/dejpeg/refs/heads/main/assets/badge_github.png' width="220" alt="Get it on GitHub"></a>
-    </p>
+  an image compression remover and denoising app
+  <h2></h2>
+
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/01.png" 
+       style="width: 300px; max-width: 100%; height: auto; margin: 10px;" alt="an image of two rectangular areas of the same picture of yellow tulips, the one at the top is 50 percent compression, the one below has 0 percent compression but still has noticeable PNG compression artifacts">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/02.png" 
+       style="width: 300px; max-width: 100%; height: auto; margin: 10px;" alt="an image of two purple figs (fruit), one on the left, and one in the right, in front of the other fig. the fig in the front is cut in half. text on the left near the back fig reads fig 1, text near the other fig reads fig 2, both figs are sitting on top of a table that has the text table 1">
+
+  <p>
+<p align="center">
+  <a href="https://apt.izzysoft.de/fdroid/index/apk/com.je.dejpeg"><img src="https://raw.githubusercontent.com/jeeneo/dejpeg/refs/heads/main/assets/IzzyOnDroid.png" width="220" alt="IzzyOnDroid"></a>
+  <a href="http://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/jeeneo/dejpeg"><img src="https://raw.githubusercontent.com/jeeneo/dejpeg/refs/heads/main/assets/obtanium.png" width="220" alt="Obtanium"></a>
+  <a href="https://github.com/jeeneo/dejpeg/releases/latest"><img src="https://raw.githubusercontent.com/jeeneo/dejpeg/refs/heads/main/assets/badge_github.png" width="220" alt="Get it on GitHub"></a>
+</p>
+  </p>
 </div>
+
 
 ## features:
 - batch processing
