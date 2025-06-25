@@ -1,7 +1,7 @@
 <div align='center'>
  <img src='https://github.com/user-attachments/assets/6d1e6fde-58b6-4991-9bb3-57b64627fbcf' height='140' alt="">
   <br>
-    an Android image compression remover and denoising app 
+    an image compression remover and denoising app
     <h2></h2>
     <table align='center'>
       <br>
