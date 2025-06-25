@@ -1296,11 +1296,6 @@ class MainActivity : AppCompatActivity() {
             toggleSection(header3, detail3, R.string.header3_text)
         }
 
-            //         .setNeutralButton(R.string.FAQ_button) { _, _ ->
-            //     vibrationManager.vibrateDialogChoice()
-            //     showFAQDialog()
-            // }
-
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.faq_dialog_title)
             .setView(dialogView)
