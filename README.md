@@ -3,12 +3,10 @@
   <br>
   an image compression remover and denoising app
   <h2></h2>
-
   <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/01.png" 
        style="width: 300px; max-width: 100%; height: auto; margin: 10px;" alt="an image of two rectangular areas of the same picture of yellow tulips, the one at the top is 50 percent compression, the one below has 0 percent compression but still has noticeable PNG compression artifacts">
   <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/02.png" 
-       style="width: 300px; max-width: 100%; height: auto; margin: 10px;" alt="an image of two purple figs (fruit), one on the left, and one in the right, in front of the other fig. the fig in the front is cut in half. text on the left near the back fig reads fig 1, text near the other fig reads fig 2, both figs are sitting on top of a table that has the text table 1">
-
+       style="width: 300px; max-width: 100%; height: auto; margin: 10px;" alt="an image of two purple figs (fruit), one on the left, and one in the right, in front of the other fig. the fig in the front is cut in half but still remaining upright. text on the left near the first fig reads fig 1. text near the other fig reads fig 2. both figs are sitting on top of a table that has the text table 1. there's a slider down the middle of the image showing the differences between a processed image and the original one">
   <p>
 <p align="center">
   <a href="https://apt.izzysoft.de/fdroid/index/apk/com.je.dejpeg"><img src="https://raw.githubusercontent.com/jeeneo/dejpeg/refs/heads/main/assets/IzzyOnDroid.png" width="220" alt="IzzyOnDroid"></a>
