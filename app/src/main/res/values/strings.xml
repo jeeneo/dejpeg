@@ -126,7 +126,7 @@
     <string name="arrow_text_format">%1$s %2$s</string>
 
     <string name="FAQ1_text">
-        this app is designed to remove JPEG compression artifacts (FBCNN) and denoise images (SCUNet)\n\nhowever, this isn\'t \"AI\" or image upscaling, your images stay the same resolution. It\'s meant to provide a cleaner image, which can produce better results if you do use \"AI enhancers\", that can make them look uglier or create unpleasant artifacts/blending (my opinion). This app preserves details (mostly) and doesn\'t harm or ruin the final image.
+        this app is designed to remove JPEG compression artifacts (FBCNN) and denoise images (SCUNet)\n\nhowever, this isn\'t \"AI\" or image upscaling, your images stay the same resolution. It\'s meant to provide a cleaner image, which can produce better results if you do use \"AI enhancers\", but that can make them look uglier or create unpleasant artifacts/blending (my opinion). This app preserves details (mostly) and doesn\'t harm or ruin the final image.
     </string>
 
     <string name="FAQ2_text">
