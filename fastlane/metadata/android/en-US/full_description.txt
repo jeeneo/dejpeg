@@ -1,13 +1,20 @@
-<p><b>De<i>JPEG</i></b> is an Android app for removing jpeg compression artifacts and denoising images using <a href='https://github.com/jiaxi-jiang/FBCNN' target='_blank' rel='nofollow noopener'>FBCNN</a> and <a href='https://github.com/cszn/SCUNet' target='_blank' rel='nofollow noopener'>SCUNet</a>.</p>
-<p><b>Features:</b></p>
+<p>De<i>JPEG</i> is an image compression remover and denoising app</p>
+
+<h2>features:</h2>
 <ul>
-    <li>batch processing</li>
-    <li>transparency re-mapping</li>
-    <li>fully offline</li>
+  <li>batch processing</li>
+  <li>supports most image formats</li>
+  <li>before/after view</li>
+  <li>fully offline</li>
 </ul>
-<p>note: this is not a "super resolution AI upscaler", but a simple non-destructive way to clean up compressed/noisy images.</p>
-<p><b>limitations:</b></p>
+
+<p>this is not a "super resolution AI upscaler", but a simple non-destructive way to clean up compressed/noisy images</p>
+
+<p>external models are required as a download (links in-app or on GitHub)</p>
+
+<h2>limitations:</h2>
 <ul>
-    <li>processed locally, a device with 4gb of ram and a CPU with at least 4 threads is recommended</li>
+  <li>processed locally, a device with 4gb of ram and a CPU with at least 4 threads is recommended.</li>
 </ul>
-<p><b>Note: </b><b>De<i>JPEG</i></b> is not affiliated or related to Topaz <code>DEJPEG</code> or any other software/project.</p>
+
+<p>(note: De<i>JPEG</i> is not affiliated or related with Topaz DEJPEG or any other similarly named software/project)</p>
