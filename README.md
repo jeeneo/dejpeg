@@ -32,6 +32,8 @@
 
 info [here](https://github.com/jeeneo/dejpeg/wiki/model-types) (also in the apps FAQ)
 
+you can also run other experimental models, more info [here](https://github.com/jeeneo/dejpeg-experimental)
+
 ## limitations:
 - processed locally, a device with 4gb of ram and a CPU with at least 4 threads is recommended.
 
