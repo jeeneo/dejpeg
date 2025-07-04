@@ -36,6 +36,9 @@
     <string name="save_image">save image</string>
     <string name="save_all_images">save all images</string>
 
+    <string name="saving_image_title">saving image</string>
+    <string name="saving_status">saving...</string>
+
     <!-- error dialogs -->
     <string name="copy_button">copy</string>
     <string name="dismiss_button">dismiss</string>

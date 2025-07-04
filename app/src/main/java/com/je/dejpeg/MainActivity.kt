@@ -140,7 +140,11 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        (application as dejpeg).registerActivityLifecycleCallbacks(AppLifecycleTracker)
+        try {
+            (application as dejpeg).registerActivityLifecycleCallbacks(AppLifecycleTracker)
+        } catch (e: Exception) {
+            showErrorDialog("failed to register lifecycle callbacks (try disabling battery optimization/restrictions), exception: " + e.message)
+        }
 
         vibrationManager = VibrationManager(this)
         notificationHandler = NotificationHandler(this)
@@ -534,19 +538,18 @@ class MainActivity : AppCompatActivity() {
     private fun showHashMismatchDialog(modelUri: Uri, modelName: String, expected: String, actual: String) {
         runOnUiThread {
             MaterialAlertDialogBuilder(this)
-                .setTitle("Model Hash Mismatch")
+                .setTitle("import warning")
                 .setMessage(
-                    "The selected model file's hash does not match the expected value.\n\n" +
-                    "Model: $modelName\n" +
-                    "Expected: $expected\n" +
-                    "Actual: $actual\n\n" +
-                    "This may indicate the file is corrupted or tampered with. Do you want to import anyway?"
+                    "the picked model isn't officially supported\n\n" +
+                    "model: $modelName\n" +
+                    "this is in an experimental stage, and these models might perform slower, produce unexpected results, or straight up crash/error out, proceed with caution.\n\n" +
+                    "if this model was on the Experimental Models page and has problems when processing, file an issue on GitHub and mention the image size, model type, device and OS version.\n\n"
                 )
-                .setPositiveButton("Import Anyway") { _, _ ->
+                .setPositiveButton("I understand") { _, _ ->
                     vibrationManager.vibrateDialogChoice()
                     copyAndLoadModel(modelUri, force = true)
                 }
-                .setNegativeButton("Cancel", null)
+                .setNegativeButton("cancel", null)
                 .show()
         }
     }
@@ -737,22 +740,51 @@ class MainActivity : AppCompatActivity() {
         updateStrengthSliderVisibility()
         updateImageViews()
     }
-
     private fun saveImageToGallery(bitmap: Bitmap) {
-        try {
-            val fileName = "DeJPEG_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}"
-            val outputFile = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), 
-                "$fileName.png")
-            FileOutputStream(outputFile).use { out ->
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_progress, null)
+        val progressBar = dialogView.findViewById<ProgressBar>(R.id.progressBar)
+        val progressText = dialogView.findViewById<TextView>(R.id.progressText)
+        
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.saving_image_title)
+            .setView(dialogView)
+            .setCancelable(false)
+            .create()
+            
+        dialog.show()
+
+        Thread {
+            try {
+                val fileName = "DeJPEG_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}"
+                val outputFile = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), 
+                    "$fileName.png")
+                    
+                runOnUiThread { progressText.text = getString(R.string.saving_status) }
+                
+                FileOutputStream(outputFile).use { out ->
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+                }
+                
+                runOnUiThread { 
+                    progressText.text = getString(R.string.saving_status)
+                    progressBar.progress = 50 // "halfway done" TvT this is just a placeholder and im lazy
+                }
+                
+                MediaScannerConnection.scanFile(this, arrayOf(outputFile.toString()), null, null)
+                
+                runOnUiThread {
+                    dialog.dismiss()
+                    Toast.makeText(this, getString(R.string.image_saved_toast), Toast.LENGTH_SHORT).show()
+                    vibrationManager.vibrateButton()
+                }
+            } catch (e: Exception) {
+                runOnUiThread {
+                    dialog.dismiss()
+                    showErrorDialog(getString(R.string.error_saving_image_dialog) + " " + e.message)
+                    vibrationManager.vibrateError()
+                }
             }
-            MediaScannerConnection.scanFile(this, arrayOf(outputFile.toString()), null, null)
-            Toast.makeText(this, getString(R.string.image_saved_toast), Toast.LENGTH_SHORT).show()
-            vibrationManager.vibrateButton()
-        } catch (e: Exception) {
-            showErrorDialog(getString(R.string.error_saving_image_dialog) + " " + e.message)
-            vibrationManager.vibrateError()
-        }
+        }.start()
     }
 
     private fun shareImage(bitmap: Bitmap) {

@@ -44,6 +44,9 @@ public class ImageProcessor {
     private final TensorProcessor tensorProcessor;
     private final BitmapProcessor bitmapProcessor;
 
+    private Map<String, NodeInfo> inputInfoMap;
+    private Map<String, NodeInfo> outputInfoMap;
+
     public interface ProcessCallback {
         void onComplete(Bitmap result);
         void onError(String error);
@@ -89,16 +92,28 @@ public class ImageProcessor {
     }
 
     private void initializeModelSession() throws Exception {
+        // Unload any existing session before loading a new one
+        modelManager.unloadModel();
         OrtSession session = modelManager.loadModel();
         String modelName = modelManager.getActiveModelName();
+
+        // Save input/output info for dynamic tensor handling
+        inputInfoMap = session.getInputInfo();
+        outputInfoMap = session.getOutputInfo();
+
+        boolean isKnown = modelManager.isKnownModel(modelName);
 
         if (modelName.startsWith("scunet_")) {
             setScunetSession(session, !modelManager.isColorModel(modelName));
         } else if (modelName.startsWith("fbcnn_")) {
             setFbcnnSession(session, !modelManager.isColorModel(modelName));
         } else {
-            throw new Exception("Unknown model type: " + modelName);
+            // For unknown models, always use dynamic adjustment
+            setScunetSession(session, false); // fallback, type doesn't matter for unknown
         }
+
+        // For unknown models, always use dynamic adjustment in processChunk
+        // (handled below in processChunk)
     }
 
     private Bitmap processBitmap(Bitmap inputBitmap, ChunkConfig chunkConfig, ProcessCallback callback, int index, int total) throws Exception {
@@ -149,28 +164,87 @@ public class ImageProcessor {
 
     private Bitmap processChunk(Bitmap chunk) throws Exception {
         checkCancellation();
-        
+
         ImageData imageData = bitmapProcessor.extractImageData(chunk);
-        float[] inputArray = tensorProcessor.prepareInputTensor(imageData, isGrayscaleModel);
-        
+        String modelName = modelManager.getActiveModelName();
+        boolean isKnown = modelManager.isKnownModel(modelName);
+
+        // For unknown models, always use dynamic adjustment
+        if (!isKnown) {
+            // Dynamic adjustment for unknown/3rd party models
+            // ...existing dynamic code (already present below)...
+            // (No change needed, just always use dynamic logic for unknown models)
+        }
+
+        // Dynamically find the input tensor for image data
+        String imageInputName = null;
+        long[] imageInputShape = null;
+        boolean isImageInputGrayscale = false;
+        for (Map.Entry<String, NodeInfo> entry : inputInfoMap.entrySet()) {
+            NodeInfo info = entry.getValue();
+            if (info.getInfo() instanceof TensorInfo) {
+                TensorInfo tinfo = (TensorInfo) info.getInfo();
+                long[] shape = tinfo.getShape();
+                // Heuristic: look for 4D float tensor (NCHW or NHWC)
+                if (tinfo.type == OnnxJavaType.FLOAT && shape.length == 4) {
+                    imageInputName = entry.getKey();
+                    // Replace -1 in shape with actual values
+                    imageInputShape = shape.clone();
+                    // Assume NCHW: [N, C, H, W]
+                    if (imageInputShape[0] == -1) imageInputShape[0] = 1;
+                    if (imageInputShape[1] == -1) imageInputShape[1] = (shape[1] == 1) ? 1 : 3;
+                    if (imageInputShape[2] == -1) imageInputShape[2] = imageData.height;
+                    if (imageInputShape[3] == -1) imageInputShape[3] = imageData.width;
+                    isImageInputGrayscale = (imageInputShape[1] == 1); // NCHW: C==1 means grayscale
+                    break;
+                }
+            }
+        }
+        if (imageInputName == null) throw new Exception("Could not find image input tensor");
+
+        float[] inputArray = tensorProcessor.prepareInputTensor(imageData, isImageInputGrayscale);
         if (ortEnv == null) {
             ortEnv = OrtEnvironment.getEnvironment();
         }
 
-        long[] inputShape = new long[]{1, isGrayscaleModel ? 1 : 3, imageData.height, imageData.width};
-        
-        try (OnnxTensor inputTensor = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(inputArray), inputShape);
-             OnnxTensor qfTensor = createQualityFactorTensor()) {
+        // Prepare input tensors dynamically
+        Map<String, OnnxTensor> inputs = new HashMap<>();
+        OnnxTensor imageTensor = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(inputArray), imageInputShape);
+        inputs.put(imageInputName, imageTensor);
 
-            checkCancellation();
-            
-            Map<String, OnnxTensor> inputs = buildInputMap(inputTensor, qfTensor);
-            System.gc();
-
-            try (OrtSession.Result result = getCurrentSession().run(inputs)) {
-                float[] outputArray = tensorProcessor.extractOutputArray(result);
-                return bitmapProcessor.createResultBitmap(imageData, outputArray, isGrayscaleModel);
+        // Handle any additional input tensors (e.g., quality factor)
+        for (Map.Entry<String, NodeInfo> entry : inputInfoMap.entrySet()) {
+            String name = entry.getKey();
+            if (name.equals(imageInputName)) continue;
+            NodeInfo info = entry.getValue();
+            if (info.getInfo() instanceof TensorInfo) {
+                TensorInfo tinfo = (TensorInfo) info.getInfo();
+                long[] shape = tinfo.getShape();
+                // Replace -1 in shape with 1 for qf or similar tensors
+                long[] fixedShape = shape.clone();
+                for (int i = 0; i < fixedShape.length; i++) {
+                    if (fixedShape[i] == -1) fixedShape[i] = 1;
+                }
+                // Example: look for 2D float tensor for quality factor
+                if (tinfo.type == OnnxJavaType.FLOAT && fixedShape.length == 2) {
+                    // Heuristic: fill with strength if shape is [1,1]
+                    float[] qf = new float[]{strength / 100.0f};
+                    OnnxTensor qfTensor = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(qf), fixedShape);
+                    inputs.put(name, qfTensor);
+                }
+                // Add more heuristics here if needed for other input types
             }
+        }
+
+        checkCancellation();
+        System.gc();
+
+        try (OrtSession.Result result = getCurrentSession().run(inputs)) {
+            // Dynamically extract output tensor
+            float[] outputArray = tensorProcessor.extractDynamicOutputArray(result, outputInfoMap);
+            return bitmapProcessor.createResultBitmap(imageData, outputArray, isImageInputGrayscale);
+        } finally {
+            for (OnnxTensor t : inputs.values()) t.close();
         }
     }
 
@@ -458,19 +532,21 @@ public class ImageProcessor {
             return inputArray;
         }
 
-        float[] extractOutputArray(OrtSession.Result result) throws OrtException {
-            Object outputValue = result.get(0).getValue();
-            if (outputValue == null) {
-                throw new RuntimeException("ONNX model output is null");
+        float[] extractDynamicOutputArray(OrtSession.Result result, Map<String, NodeInfo> outputInfoMap) throws OrtException {
+            // Try all outputs in order, return the first float[] or float[][][][] found
+            for (int i = 0; i < result.size(); i++) {
+                OnnxValue val = result.get(i);
+                if (val == null) continue;
+                Object outputValue = val.getValue();
+                if (outputValue == null) continue;
+                if (outputValue instanceof float[]) {
+                    return (float[]) outputValue;
+                } else if (outputValue instanceof float[][][][]) {
+                    return flatten4DArray((float[][][][]) outputValue);
+                }
+                // Add more cases if needed for other output types
             }
-            
-            if (outputValue instanceof float[]) {
-                return (float[]) outputValue;
-            } else if (outputValue instanceof float[][][][]) {
-                return flatten4DArray((float[][][][]) outputValue);
-            } else {
-                throw new RuntimeException("Unexpected ONNX output type: " + outputValue.getClass());
-            }
+            throw new RuntimeException("Unexpected ONNX output type");
         }
 
         private float[] flatten4DArray(float[][][][] arr) {

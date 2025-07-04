@@ -91,9 +91,8 @@ public class ModelManager {
     }
 
     public OrtSession loadModel() throws Exception {
-        if (currentSession != null) {
-            return currentSession;
-        }
+        // Always unload the current session to ensure a fresh load
+        unloadModel();
         String activeModel = prefs.getString(ACTIVE_MODEL_KEY, null);
         if (activeModel == null) throw new Exception("No active model set");
         File modelFile = new File(context.getFilesDir(), activeModel);
@@ -123,7 +122,8 @@ public class ModelManager {
         File[] files = context.getFilesDir().listFiles();
         if (files != null) {
             for (File file : files) {
-                if (VALID_MODELS.contains(file.getName())) {
+                // Accept any .onnx file, not just VALID_MODELS
+                if (file.getName().toLowerCase().endsWith(".onnx")) {
                     models.add(file.getName());
                 }
             }
@@ -136,71 +136,59 @@ public class ModelManager {
         public final boolean hashMatches;
         public final String expectedHash;
         public final String actualHash;
+        public final String filename;
 
-        public ResolveResult(String matchedModel, boolean hashMatches, String expectedHash, String actualHash) {
+        public ResolveResult(String matchedModel, boolean hashMatches, String expectedHash, String actualHash, String filename) {
             this.matchedModel = matchedModel;
             this.hashMatches = hashMatches;
             this.expectedHash = expectedHash;
             this.actualHash = actualHash;
+            this.filename = filename;
         }
     }
 
-    public ResolveResult resolveFilenameWithHash(Uri modelUri) throws Exception {
+    /**
+     * Compute the hash of the file and match against known hashes.
+     * If a match is found, matchedModel is set, otherwise null.
+     * Always returns the filename as determined from the Uri.
+     */
+    public ResolveResult resolveHashOnly(Uri modelUri) throws Exception {
         String filename = null;
-        
         try (Cursor cursor = context.getContentResolver().query(modelUri, null, null, null, null)) {
             if (cursor != null && cursor.moveToFirst()) {
                 int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
                 if (nameIndex >= 0) {
                     filename = cursor.getString(nameIndex);
-                    Log.d("ModelManager", "Got filename from cursor: " + filename);
                 }
             }
         }
-
         if (filename == null) {
             String path = modelUri.getPath();
             if (path != null) {
                 filename = path.substring(path.lastIndexOf('/') + 1);
             }
         }
-
         if (filename == null) {
             filename = modelUri.getLastPathSegment();
         }
-
         if (filename == null) {
             throw new Exception("Could not determine filename");
         }
+        filename = filename.trim();
 
-        int queryIndex = filename.indexOf('?');
-        if (queryIndex > 0) {
-            filename = filename.substring(0, queryIndex);
+        String actualHash = computeFileHash(modelUri);
+        String matchedModel = null;
+        String expectedHash = null;
+        boolean hashMatches = false;
+        for (Map.Entry<String, String> entry : MODEL_HASHES.entrySet()) {
+            if (entry.getValue().equalsIgnoreCase(actualHash)) {
+                matchedModel = entry.getKey();
+                expectedHash = entry.getValue();
+                hashMatches = true;
+                break;
+            }
         }
-        
-        int slashIndex = filename.lastIndexOf('/');
-        if (slashIndex > 0) {
-            filename = filename.substring(slashIndex + 1);
-        }
-        
-        final String cleanFilename = filename.trim();
-
-        String matchedModel = VALID_MODELS.stream()
-            .filter(model -> model.equalsIgnoreCase(cleanFilename))
-            .findFirst()
-            .orElseThrow(() -> new Exception(
-                "invalid model filename: " + cleanFilename + 
-                "\nexpected one of: " + String.join(", ", VALID_MODELS)
-            ));
-
-        String expectedHash = MODEL_HASHES.get(matchedModel);
-        String actualHash = null;
-        boolean hashMatches = true;
-        if (expectedHash != null) {
-            actualHash = computeFileHash(modelUri);
-            hashMatches = expectedHash.equalsIgnoreCase(actualHash);
-        }
-        return new ResolveResult(matchedModel, hashMatches, expectedHash, actualHash);
+        return new ResolveResult(matchedModel, hashMatches, expectedHash, actualHash, filename);
     }
 
     private String computeFileHash(Uri fileUri) throws Exception {
@@ -223,17 +211,17 @@ public class ModelManager {
     }
 
     public boolean importModel(Uri modelUri, boolean force) throws Exception {
-        ResolveResult result = resolveFilenameWithHash(modelUri);
+        ResolveResult result = resolveHashOnly(modelUri);
         if (!result.hashMatches && !force) {
-            throw new Exception("HASH_MISMATCH:" + result.matchedModel + ":" + result.expectedHash + ":" + result.actualHash);
+            throw new Exception("HASH_MISMATCH:unknown:" + result.expectedHash + ":" + result.actualHash);
         }
-        return importModelInternal(modelUri, result.matchedModel, null);
+        return importModelInternal(modelUri, result.filename, null);
     }
 
     public boolean importModel(Uri modelUri, ModelCallback callback, boolean force) throws Exception {
         ResolveResult result;
         try {
-            result = resolveFilenameWithHash(modelUri);
+            result = resolveHashOnly(modelUri);
         } catch (Exception e) {
             if (!force) {
                 if (callback != null) {
@@ -249,11 +237,11 @@ public class ModelManager {
         }
         if (!result.hashMatches && !force) {
             if (callback != null) {
-                callback.onError("HASH_MISMATCH:" + result.matchedModel + ":" + result.expectedHash + ":" + result.actualHash);
+                callback.onError("HASH_MISMATCH:unknown:" + result.expectedHash + ":" + result.actualHash);
             }
             return false;
         }
-        return importModelInternal(modelUri, result.matchedModel, callback);
+        return importModelInternal(modelUri, result.filename, callback);
     }
 
     private boolean importModelInternal(Uri modelUri, String filename, ModelCallback callback) throws Exception {
@@ -330,6 +318,8 @@ public class ModelManager {
 
     public void setActiveModel(String modelName) {
         prefs.edit().putString(ACTIVE_MODEL_KEY, modelName).apply();
+        // Unload the current model to ensure the new one is loaded fresh
+        unloadModel();
     }
 
     public String getActiveModelName() {
@@ -338,6 +328,10 @@ public class ModelManager {
 
     public boolean isColorModel(String modelName) {
         return modelName != null && modelName.contains("color");
+    }
+
+    public boolean isKnownModel(String modelName) {
+        return modelName != null && VALID_MODELS.contains(modelName);
     }
 
     public interface ModelCallback {
