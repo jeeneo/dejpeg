@@ -14,7 +14,7 @@
 
 <h2>limitations:</h2>
 <ul>
-  <li>processed locally, a device with 4gb of ram and a CPU with at least 4 threads is recommended.</li>
+  <li>processed locally, minimum 4gb ram and 4 threads recommended.</li>
 </ul>
 
 <p>(note: De<i>JPEG</i> is not affiliated or related with Topaz DEJPEG or any other similarly named software/project)</p>

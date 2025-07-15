@@ -35,13 +35,15 @@ info [here](https://github.com/jeeneo/dejpeg/wiki/model-types) (also in the apps
 you can also run other experimental models, more info [here](https://github.com/jeeneo/dejpeg-experimental)
 
 ## limitations:
-- processed locally, a device with 4gb of ram and a CPU with at least 4 threads is recommended.
+- processed locally, minimum 4gb ram and 4 threads recommended
+
+see the [wiki](https://github.com/jeeneo/dejpeg/wiki) for more information
 
 ## note:
 De*JPEG* is not affiliated or related with Topaz `DEJPEG` or any other similarly named software/project
 
 ## credits:
-[@adrianerrea](https://github.com/adrianerrea/fromPytorchtoMobile) for base application, [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and [SCUNet](https://github.com/cszn/SCUNet) creators for the majority of the work; this app is just a wrapper for their models
+[@adrianerrea](https://github.com/adrianerrea/fromPytorchtoMobile) for base application, [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and [SCUNet](https://github.com/cszn/SCUNet) creators and all other model creators, this is only a wrapper for `1x` ONNX models
 
 ## license:
 all models used are under their respective licenses
