@@ -66,15 +66,20 @@ public class ImageProcessor {
     }
 
     public void processImage(Bitmap inputBitmap, float strength, ProcessCallback callback, int index, int total) {
+
         isCancelled = false;
         this.strength = strength;
-        
+
         ProcessingState.Companion.updateImageProgress(index + 1, total);
         ProcessingState.lastImageWidth = inputBitmap.getWidth();
         ProcessingState.lastImageHeight = inputBitmap.getHeight();
-        
+
         ChunkConfig chunkConfig = calculateChunkConfig(inputBitmap);
         ProcessingState.Companion.updateChunkProgress(chunkConfig.totalChunks);
+
+        String modelName = modelManager.getActiveModelName();
+        if (modelName == null) modelName = "unknown";
+        ProcessingState.Companion.initializeTimeEstimation(context, modelName, chunkConfig.totalChunks);
 
         if (callback != null) {
             callback.onProgress(ProcessingState.Companion.getStatusString(context));
@@ -92,12 +97,10 @@ public class ImageProcessor {
     }
 
     private void initializeModelSession() throws Exception {
-        // Unload any existing session before loading a new one
         modelManager.unloadModel();
         OrtSession session = modelManager.loadModel();
         String modelName = modelManager.getActiveModelName();
 
-        // Save input/output info for dynamic tensor handling
         inputInfoMap = session.getInputInfo();
         outputInfoMap = session.getOutputInfo();
 
@@ -108,12 +111,8 @@ public class ImageProcessor {
         } else if (modelName.startsWith("fbcnn_")) {
             setFbcnnSession(session, !modelManager.isColorModel(modelName));
         } else {
-            // For unknown models, always use dynamic adjustment
-            setScunetSession(session, false); // fallback, type doesn't matter for unknown
+            setScunetSession(session, false);
         }
-
-        // For unknown models, always use dynamic adjustment in processChunk
-        // (handled below in processChunk)
     }
 
     private Bitmap processBitmap(Bitmap inputBitmap, ChunkConfig chunkConfig, ProcessCallback callback, int index, int total) throws Exception {
@@ -132,12 +131,16 @@ public class ImageProcessor {
 
     private Bitmap processLargeImage(Bitmap inputBitmap, ChunkConfig chunkConfig, ProcessCallback callback) throws Exception {
         chunkManager.prepareDirectories();
-        
+
         List<ChunkInfo> chunks = chunkManager.createChunks(inputBitmap, chunkConfig);
         ProcessingState.Companion.updateChunkProgress(chunks.size());
         ProcessingState.Companion.getCompletedChunks().set(0);
 
-        // Process each chunk
+        // Start timing for the first chunk
+        if (com.je.dejpeg.models.ProcessingState.Companion.getTimeEstimator() != null) {
+            com.je.dejpeg.models.ProcessingState.Companion.getTimeEstimator().startChunk();
+        }
+
         for (ChunkInfo chunk : chunks) {
             if (isCancelled) throw new RuntimeException("Processing cancelled");
 
@@ -145,20 +148,20 @@ public class ImageProcessor {
             Bitmap processed = processChunk(chunkBitmap);
 
             chunk.processedFile = chunkManager.saveProcessedChunk(processed, chunk);
-            
+
             chunkBitmap.recycle();
             processed.recycle();
 
-            ProcessingState.Companion.getCompletedChunks().incrementAndGet();
+            ProcessingState.Companion.onChunkCompleted(); // Will handle timeEstimator chunk end/start
+
             if (callback != null) {
                 callback.onProgress(ProcessingState.Companion.getStatusString(context));
             }
         }
 
-        // Reassemble the image
         Bitmap result = bitmapProcessor.reassembleChunks(inputBitmap, chunks, chunkConfig);
         chunkManager.cleanup();
-        
+
         return result;
     }
 
@@ -169,14 +172,10 @@ public class ImageProcessor {
         String modelName = modelManager.getActiveModelName();
         boolean isKnown = modelManager.isKnownModel(modelName);
 
-        // For unknown models, always use dynamic adjustment
         if (!isKnown) {
-            // Dynamic adjustment for unknown/3rd party models
-            // ...existing dynamic code (already present below)...
-            // (No change needed, just always use dynamic logic for unknown models)
+            // nothing
         }
 
-        // Dynamically find the input tensor for image data
         String imageInputName = null;
         long[] imageInputShape = null;
         boolean isImageInputGrayscale = false;
@@ -185,17 +184,14 @@ public class ImageProcessor {
             if (info.getInfo() instanceof TensorInfo) {
                 TensorInfo tinfo = (TensorInfo) info.getInfo();
                 long[] shape = tinfo.getShape();
-                // Heuristic: look for 4D float tensor (NCHW or NHWC)
                 if (tinfo.type == OnnxJavaType.FLOAT && shape.length == 4) {
                     imageInputName = entry.getKey();
-                    // Replace -1 in shape with actual values
                     imageInputShape = shape.clone();
-                    // Assume NCHW: [N, C, H, W]
                     if (imageInputShape[0] == -1) imageInputShape[0] = 1;
                     if (imageInputShape[1] == -1) imageInputShape[1] = (shape[1] == 1) ? 1 : 3;
                     if (imageInputShape[2] == -1) imageInputShape[2] = imageData.height;
                     if (imageInputShape[3] == -1) imageInputShape[3] = imageData.width;
-                    isImageInputGrayscale = (imageInputShape[1] == 1); // NCHW: C==1 means grayscale
+                    isImageInputGrayscale = (imageInputShape[1] == 1);
                     break;
                 }
             }
@@ -207,12 +203,10 @@ public class ImageProcessor {
             ortEnv = OrtEnvironment.getEnvironment();
         }
 
-        // Prepare input tensors dynamically
         Map<String, OnnxTensor> inputs = new HashMap<>();
         OnnxTensor imageTensor = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(inputArray), imageInputShape);
         inputs.put(imageInputName, imageTensor);
 
-        // Handle any additional input tensors (e.g., quality factor)
         for (Map.Entry<String, NodeInfo> entry : inputInfoMap.entrySet()) {
             String name = entry.getKey();
             if (name.equals(imageInputName)) continue;
@@ -220,19 +214,15 @@ public class ImageProcessor {
             if (info.getInfo() instanceof TensorInfo) {
                 TensorInfo tinfo = (TensorInfo) info.getInfo();
                 long[] shape = tinfo.getShape();
-                // Replace -1 in shape with 1 for qf or similar tensors
                 long[] fixedShape = shape.clone();
                 for (int i = 0; i < fixedShape.length; i++) {
                     if (fixedShape[i] == -1) fixedShape[i] = 1;
                 }
-                // Example: look for 2D float tensor for quality factor
                 if (tinfo.type == OnnxJavaType.FLOAT && fixedShape.length == 2) {
-                    // Heuristic: fill with strength if shape is [1,1]
                     float[] qf = new float[]{strength / 100.0f};
                     OnnxTensor qfTensor = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(qf), fixedShape);
                     inputs.put(name, qfTensor);
                 }
-                // Add more heuristics here if needed for other input types
             }
         }
 
@@ -363,12 +353,11 @@ public class ImageProcessor {
         }
     }
 
-    // Data class for chunk information
     public static class ChunkInfo {
         final int x, y;
         final int width, height;
         final File chunkFile;
-        final int gridX, gridY; // Grid position for easier reassembly
+        final int gridX, gridY;
         File processedFile;
 
         ChunkInfo(int x, int y, int width, int height, File chunkFile, int gridX, int gridY) {
@@ -544,7 +533,6 @@ public class ImageProcessor {
                 } else if (outputValue instanceof float[][][][]) {
                     return flatten4DArray((float[][][][]) outputValue);
                 }
-                // Add more cases if needed for other output types
             }
             throw new RuntimeException("Unexpected ONNX output type");
         }
@@ -683,7 +671,6 @@ public class ImageProcessor {
                         srcBottom -= config.overlap / 2;
                     }
                     
-                    // Ensure we don't go beyond the original image boundaries
                     int copyWidth = Math.min(srcRight - srcLeft, originalWidth - dstLeft);
                     int copyHeight = Math.min(srcBottom - srcTop, originalHeight - dstTop);
                     
@@ -692,11 +679,9 @@ public class ImageProcessor {
                         processed.getPixels(pixels, 0, copyWidth, srcLeft, srcTop, copyWidth, copyHeight);
                         result.setPixels(pixels, 0, copyWidth, dstLeft, dstTop, copyWidth, copyHeight);
                     }
-                    
                     processed.recycle();
                 }
             }
-            
             return result;
         }
     }

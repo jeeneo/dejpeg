@@ -101,6 +101,9 @@ public class ModelManager {
             ortEnv = OrtEnvironment.getEnvironment();
         }
         OrtSession.SessionOptions sessionOptions = new OrtSession.SessionOptions();
+
+        // set intra-op and inter-op thread counts
+        // use 1 thread for <= 2 processors, otherwise 75% of available processors
         int availableProcessors = Runtime.getRuntime().availableProcessors();
         int numThreads;
         if (availableProcessors <= 2) { numThreads = 1; } else { numThreads = (availableProcessors * 3) / 4; }
@@ -114,6 +117,13 @@ public class ModelManager {
             sessionOptions.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.NO_OPT); // no optimizations for SCUNet models, causes issues
         }
         currentSession = ortEnv.createSession(modelFile.getAbsolutePath(), sessionOptions);
+
+        // Store active model name for time estimation
+        String activeModelName = getActiveModelName();
+        if (activeModelName != null) {
+            prefs.edit().putString("current_processing_model", activeModelName).apply();
+        }
+
         return currentSession;
     }
 
@@ -122,7 +132,6 @@ public class ModelManager {
         File[] files = context.getFilesDir().listFiles();
         if (files != null) {
             for (File file : files) {
-                // Accept any .onnx file, not just VALID_MODELS
                 if (file.getName().toLowerCase().endsWith(".onnx")) {
                     models.add(file.getName());
                 }

@@ -116,8 +116,7 @@
     <string name="processing_parallel">processing %1$d images in parallel...</string>
     <string name="processing_large_image">processing large image %1$d of %2$d</string>
     <string name="processing_chunked_single_range">processing chunks %1$s</string>
-    <string name="processing_status_format">processing image %1\$d/%2\$d - chunks %3\$d/%4\$d</string>
-    
+    <string name="processing_status_format">processing %1$d/%2$d images • chunk %3$d/%4$d</string>    
     <string name="about_title">about</string>
     <string name="FAQ_button">FAQs</string>
 
@@ -127,6 +126,8 @@
     <string name="header2_text">which models to use for which?</string>
     <string name="header3_text">what are the other different models for?</string>
     <string name="arrow_text_format">%1$s %2$s</string>
+
+    <!-- TODO: add GitHub FAQs edits -->
 
     <string name="FAQ1_text">
         this app is designed to remove JPEG compression artifacts (FBCNN) and denoise images (SCUNet)\n\nhowever, this isn\'t \"AI\" or image upscaling, your images stay the same resolution. It\'s meant to provide a cleaner image, which can produce better results if you do use \"AI enhancers\", but that can make them look uglier or create unpleasant artifacts/blending (my opinion). This app preserves details (mostly) and doesn\'t harm or ruin the final image.

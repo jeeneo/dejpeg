@@ -8,6 +8,7 @@ import com.je.dejpeg.ModelManager
 import java.util.concurrent.atomic.AtomicInteger
 import com.je.dejpeg.utils.NotificationHandler
 import com.je.dejpeg.R
+import com.je.dejpeg.utils.TimeEstimator
 
 class ProcessingProgress {
     val currentImageIndex = AtomicInteger(0)
@@ -23,6 +24,9 @@ class ProcessingProgress {
     private var queuedImages: Int = 0
     private var allImagesCompleted: Boolean = false
     private var originalEstimate: Long? = null
+
+    public var timeEstimator: TimeEstimator? = null
+    private var lastEstimateUpdate: Long = 0
 
     interface StatusListener {
         fun onStatusChanged(status: String)
@@ -45,15 +49,43 @@ class ProcessingProgress {
         totalChunks.set(chunkCounts.sum())
     }
 
+    fun initializeTimeEstimation(context: Context, modelName: String, totalChunks: Int) {
+        timeEstimator = TimeEstimator(context, modelName)
+        timeEstimator?.startProcessing()
+        val initialEstimate = timeEstimator?.getInitialEstimate(totalChunks) ?: 0
+        notifyStatusChanged("Starting processing... Estimated time: ${timeEstimator?.formatTimeRemaining(initialEstimate)}")
+    }
+
     fun onChunkCompleted(imageIdx: Int) {
+        timeEstimator?.endChunk()
         if (imageIdx in chunksCompletedPerImage.indices) {
             chunksCompletedPerImage[imageIdx]++
         }
         completedChunks.incrementAndGet()
+        timeEstimator?.startChunk()
+        updateEstimateIfNeeded()
     }
 
     fun onChunkCompleted() {
+        timeEstimator?.endChunk()
         completedChunks.incrementAndGet()
+        timeEstimator?.startChunk()
+        updateEstimateIfNeeded()
+    }
+
+    private fun updateEstimateIfNeeded() {
+        val now = System.currentTimeMillis()
+        if (now - lastEstimateUpdate > 3000) {
+            lastEstimateUpdate = now
+            val remainingTime = timeEstimator?.getEstimatedTimeRemaining(
+                completedChunks.get(),
+                totalChunks.get()
+            ) ?: 0
+            val timeString = timeEstimator?.formatTimeRemaining(remainingTime) ?: ""
+            if (timeString.isNotEmpty()) {
+                notifyStatusChanged(timeString)
+            }
+        }
     }
 
     fun updateImageProgress(current: Int, total: Int) {
@@ -79,13 +111,22 @@ class ProcessingProgress {
         if (currentImageIndex.get() == 0 && totalImages.get() == 0) {
             return context.getString(R.string.loading_status)
         }
-        
+
         val currentImage = currentImageIndex.get()
         val totalImage = totalImages.get()
         val currentImageIdx = currentImage - 1
-
         val (activeChunk, totalChunk) = getChunkProgress(currentImageIdx)
-        return context.getString(R.string.processing_status_format, currentImage, totalImage, activeChunk, totalChunk)
+        val baseStatus = context.getString(R.string.processing_status_format, currentImage, totalImage, activeChunk, totalChunk)
+        val remainingTime = timeEstimator?.getEstimatedTimeRemaining(
+            completedChunks.get(),
+            totalChunks.get()
+        ) ?: 0
+        val timeString = timeEstimator?.formatTimeRemaining(remainingTime) ?: ""
+        return if (timeString.isNotEmpty()) {
+            "$baseStatus • $timeString"
+        } else {
+            baseStatus
+        }
     }
 
     private fun getDisplayImageNumber(currentImage: Int, currentImageIdx: Int): Int {
@@ -148,6 +189,16 @@ sealed class ProcessingState {
             processingProgress.updateImageDimensions(width, height)
         }
 
+        fun initializeTimeEstimation(context: Context, modelName: String, totalChunks: Int) {
+            processingProgress.initializeTimeEstimation(context, modelName, totalChunks)
+        }
+
+        fun getTimeEstimate(completedChunks: Int, totalChunks: Int): String {
+            return processingProgress.timeEstimator?.formatTimeRemaining(
+                processingProgress.timeEstimator?.getEstimatedTimeRemaining(completedChunks, totalChunks) ?: 0
+            ) ?: ""
+        }
+
         fun getCompletedChunks() = processingProgress.completedChunks
         fun getTotalChunks() = processingProgress.totalChunks
 
@@ -173,5 +224,7 @@ sealed class ProcessingState {
             processingProgress.totalChunks.set(0)
             processingProgress.chunksCompletedPerImage.clear()
         }
+
+        fun getTimeEstimator(): TimeEstimator? = processingProgress.timeEstimator
     }
 }
