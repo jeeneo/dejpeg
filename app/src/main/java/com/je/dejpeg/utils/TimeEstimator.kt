@@ -10,7 +10,7 @@ class TimeEstimator(private val context: Context, private val modelName: String)
     private var inMemoryAverage: Long = 0
     private var lastInitialEstimate: Long = 0
 
-    private fun getStoredAverageTime(): Long {
+    fun getStoredAverageTime(): Long {
         return prefs.getLong("avg_${modelName}", getDefaultEstimate())
     }
 
@@ -18,17 +18,17 @@ class TimeEstimator(private val context: Context, private val modelName: String)
         prefs.edit().putLong("avg_${modelName}", avgTime).apply()
     }
 
+    // TODO: replace with device specs test and return INFINITE for unknown models
     private fun getDefaultEstimate(): Long {
         return when {
             modelName.startsWith("fbcnn_") -> 10000L
             modelName.startsWith("scunet_") -> 11000L
-            else -> 1110L
+            else -> 10000L
         }
     }
 
     fun startProcessing() {
         processingStartTime = System.currentTimeMillis()
-        // Load stored average as in-memory average if no chunks yet
         if (chunkTimes.isEmpty()) {
             inMemoryAverage = getStoredAverageTime()
         }

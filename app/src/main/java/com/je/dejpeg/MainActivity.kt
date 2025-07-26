@@ -635,10 +635,8 @@ class MainActivity : AppCompatActivity() {
         processingQueue.clear()
         isProcessingQueue = false
         images.forEachIndexed { index, image -> 
-            val strength = if (applyToAllSwitch.isChecked) lastStrength * 100f 
-                          else perImageStrengthFactors[index] * 100f
-            val needsChunking = image.inputBitmap.width > ImageProcessor.MAX_CHUNK_SIZE || 
-                               image.inputBitmap.height > ImageProcessor.MAX_CHUNK_SIZE
+            val strength = if (applyToAllSwitch.isChecked) lastStrength * 100f else perImageStrengthFactors[index] * 100f
+            val needsChunking = image.inputBitmap.width > ImageProcessor.DEFAULT_CHUNK_SIZE || image.inputBitmap.height > ImageProcessor.DEFAULT_CHUNK_SIZE
             processingQueue.add(QueueItem(image, strength, needsChunking, index))
         }
         processingQueue.sortBy { !it.requiresChunking }

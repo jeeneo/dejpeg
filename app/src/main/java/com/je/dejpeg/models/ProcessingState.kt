@@ -23,7 +23,7 @@ class ProcessingProgress {
     private var lastImageHeight: Int = 0
     private var queuedImages: Int = 0
     private var allImagesCompleted: Boolean = false
-    private var originalEstimate: Long? = null
+    public var originalEstimate: Long? = null
 
     public var timeEstimator: TimeEstimator? = null
     private var lastEstimateUpdate: Long = 0
@@ -226,5 +226,13 @@ sealed class ProcessingState {
         }
 
         fun getTimeEstimator(): TimeEstimator? = processingProgress.timeEstimator
+
+        fun setTimeEstimator(estimator: TimeEstimator?) {
+            processingProgress.timeEstimator = estimator
+        }
+
+        fun setInitialTimeEstimate(estimate: Long) {
+            processingProgress.originalEstimate = estimate
+        }
     }
 }

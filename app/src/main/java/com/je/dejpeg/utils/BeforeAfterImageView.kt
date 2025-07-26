@@ -1,5 +1,10 @@
 package com.je.dejpeg.utils
 
+/**
+* bug: large images (~4000+) cause performance issues when zoomed out (due to no smoothing?) and insane images above 10000 crashes. 
+* lock images at a hard-cap of no larger than 9000px and warn user in MainActivity.kt
+*/
+
 import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet

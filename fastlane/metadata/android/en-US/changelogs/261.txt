@@ -1,0 +1,3 @@
+added time estimation
+fixed gaps in large images
+small dialog fixes
