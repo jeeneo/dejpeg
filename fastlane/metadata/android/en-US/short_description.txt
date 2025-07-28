@@ -1,1 +1,1 @@
-remove image compression from photos
+remove noise and compression from photos

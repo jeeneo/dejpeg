@@ -146,7 +146,7 @@ class MainActivity : AppCompatActivity() {
         try {
             (application as dejpeg).registerActivityLifecycleCallbacks(AppLifecycleTracker)
         } catch (e: Exception) {
-            showErrorDialog("failed to register lifecycle callbacks (try disabling battery optimization/restrictions), exception: " + e.message)
+            showErrorDialog("failed to start background service (try disabling battery optimization/restrictions), exception: " + e.message)
         }
 
         vibrationManager = VibrationManager(this)

@@ -1,4 +1,4 @@
-<p>De<i>JPEG</i> is an image compression remover and denoising app</p>
+<p>De<i>JPEG</i> - an app for removing noise and compression from photos</p>
 
 <h2>features:</h2>
 <ul>

@@ -2,7 +2,11 @@ package com.je.dejpeg;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
 import android.os.Looper;
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -23,10 +27,16 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import com.je.dejpeg.models.ProcessingState;
 
+/***
+ * TODO:
+ * - Allow user-configurable chunk size and overlap
+ */
+
 public class ImageProcessor {
     public static final int DEFAULT_CHUNK_SIZE = 1200;
-    public static final int SCUNET_CHUNK_SIZE = 800;
+    public static final int SCUNET_CHUNK_SIZE = 1000;
     public static final int OVERLAP = 32;
+    public static final int SCUNET_OVERLAP = 128; // needs larger overlap for better blending, doesn't handle edge artifacts well
     private boolean isCancelled = false;
     private OrtEnvironment ortEnv;
     private OrtSession scunetSession;
@@ -64,11 +74,14 @@ public class ImageProcessor {
         ProcessingState.lastImageWidth = inputBitmap.getWidth();
         ProcessingState.lastImageHeight = inputBitmap.getHeight();
 
-        String modelName = modelManager.getActiveModelName();
-        int effectiveChunkSize = getChunkSizeForModel(modelName);
         int width = inputBitmap.getWidth();
         int height = inputBitmap.getHeight();
-        int totalChunks = (width > effectiveChunkSize || height > effectiveChunkSize) ? ((int)Math.ceil((double)width / (effectiveChunkSize - OVERLAP))) * ((int)Math.ceil((double)height / (effectiveChunkSize - OVERLAP))): 1;
+        String modelName = modelManager.getActiveModelName();
+        int effectiveChunkSize = getChunkSizeForModel(modelName);
+        int overlap = getOverlapForModel(modelName);
+        int totalChunks = (width > effectiveChunkSize || height > effectiveChunkSize) ? 
+            ((int)Math.ceil((double)width / (effectiveChunkSize - overlap))) * 
+            ((int)Math.ceil((double)height / (effectiveChunkSize - overlap))) : 1;
         ProcessingState.Companion.updateChunkProgress(totalChunks);
         ProcessingState.Companion.initializeTimeEstimation(context, modelName != null ? modelName : "unknown", totalChunks);
 
@@ -97,7 +110,12 @@ public class ImageProcessor {
                     if (callback != null) callback.onComplete(result);
                 }
             } catch (Exception e) {
-                if (callback != null) callback.onError(e.getMessage() != null ? e.getMessage() : "Unknown error");
+                android.util.Log.e("ImageProcessor", "Error processing image", e);
+                String errorMsg = "Error: " + e.getClass().getSimpleName();
+                if (e.getMessage() != null) {
+                    errorMsg += ": " + e.getMessage();
+                }
+                if (callback != null) callback.onError(errorMsg);
             }
         }).start();
     }
@@ -111,12 +129,19 @@ public class ImageProcessor {
         int height = inputBitmap.getHeight();
         String modelName = modelManager.getActiveModelName();
         int effectiveChunkSize = getChunkSizeForModel(modelName);
+        int overlap = getOverlapForModel(modelName);
+        int totalChunks = (width > effectiveChunkSize || height > effectiveChunkSize) ? 
+            ((int)Math.ceil((double)width / (effectiveChunkSize - overlap))) * 
+            ((int)Math.ceil((double)height / (effectiveChunkSize - overlap))) : 1;
+        ProcessingState.Companion.updateChunkProgress(totalChunks);
+        ProcessingState.Companion.initializeTimeEstimation(context, modelName != null ? modelName : "unknown", totalChunks);
 
-        // Detect if any transparency exists in the input image
         boolean hasTransparency = false;
         if (inputBitmap.hasAlpha()) {
-            int[] pixels = new int[Math.min(width * height, 4096)];
-            inputBitmap.getPixels(pixels, 0, width, 0, 0, Math.min(width, 64), Math.min(height, 64));
+            int sampleWidth = Math.min(width, 64);
+            int sampleHeight = Math.min(height, 64);
+            int[] pixels = new int[sampleWidth * sampleHeight];
+            inputBitmap.getPixels(pixels, 0, sampleWidth, 0, 0, sampleWidth, sampleHeight);
             for (int i = 0; i < pixels.length; i++) {
                 if ((pixels[i] >>> 24) != 0xFF) {
                     hasTransparency = true;
@@ -171,25 +196,7 @@ public class ImageProcessor {
                 }
             }
 
-            Bitmap result = Bitmap.createBitmap(width, height, processingConfig);
-            for (ChunkInfo chunk : chunks) {
-                File processedFile = chunk.processedFile;
-                Bitmap processed = BitmapFactory.decodeFile(processedFile.getAbsolutePath());
-                int chunkW = processed.getWidth();
-                int chunkH = processed.getHeight();
-
-                int left = chunk.x == 0 ? 0 : OVERLAP / 2;
-                int top = chunk.y == 0 ? 0 : OVERLAP / 2;
-                int right = (chunk.x + chunkW >= width) ? chunkW : chunkW - OVERLAP / 2;
-                int bottom = (chunk.y + chunkH >= height) ? chunkH : chunkH - OVERLAP / 2;
-
-                int copyW = right - left;
-                int copyH = bottom - top;
-                int[] pixels = new int[copyW * copyH];
-                processed.getPixels(pixels, 0, copyW, left, top, copyW, copyH);
-                result.setPixels(pixels, 0, copyW, chunk.x + left, chunk.y + top, copyW, copyH);
-                processed.recycle();
-            }
+            Bitmap result = reassembleChunksWithFeathering(chunks, width, height, processingConfig);
             clearCacheDirs(chunkDir);
             clearCacheDirs(processedDir);
             return result;
@@ -410,25 +417,7 @@ public class ImageProcessor {
                 }
             }
 
-            Bitmap result = Bitmap.createBitmap(width, height, processingConfig);
-            for (ChunkInfo chunk : chunks) {
-                File processedFile = chunk.processedFile;
-                Bitmap processed = BitmapFactory.decodeFile(processedFile.getAbsolutePath());
-                int chunkW = processed.getWidth();
-                int chunkH = processed.getHeight();
-
-                int left = chunk.x == 0 ? 0 : OVERLAP / 2;
-                int top = chunk.y == 0 ? 0 : OVERLAP / 2;
-                int right = (chunk.x + chunkW >= width) ? chunkW : chunkW - OVERLAP / 2;
-                int bottom = (chunk.y + chunkH >= height) ? chunkH : chunkH - OVERLAP / 2;
-
-                int copyW = right - left;
-                int copyH = bottom - top;
-                int[] pixels = new int[copyW * copyH];
-                processed.getPixels(pixels, 0, copyW, left, top, copyW, copyH);
-                result.setPixels(pixels, 0, copyW, chunk.x + left, chunk.y + top, copyW, copyH);
-                processed.recycle();
-            }
+            Bitmap result = reassembleChunksWithFeathering(chunks, width, height, processingConfig);
             clearCacheDirs(chunkDir);
             clearCacheDirs(processedDir);
             return result;
@@ -624,6 +613,144 @@ public class ImageProcessor {
         }
     }
 
+    private Bitmap reassembleChunksWithFeathering(List<ChunkInfo> chunks, int width, int height, Bitmap.Config config) {
+        Bitmap result = Bitmap.createBitmap(width, height, config);
+        Canvas canvas = new Canvas(result);
+        
+        for (ChunkInfo chunk : chunks) {
+            Bitmap processed = BitmapFactory.decodeFile(chunk.processedFile.getAbsolutePath());
+            int chunkW = processed.getWidth();
+            int chunkH = processed.getHeight();
+            
+            // Create alpha mask for feathered blending
+            Bitmap blendedChunk = createFeatheredChunk(processed, chunk, width, height);
+            
+            // Draw with proper blending
+            Paint paint = new Paint();
+            paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_OVER));
+            canvas.drawBitmap(blendedChunk, chunk.x, chunk.y, paint);
+            
+            processed.recycle();
+            blendedChunk.recycle();
+        }
+        
+        return result;
+    }
+
+    private Bitmap createFeatheredChunk(Bitmap chunk, ChunkInfo chunkInfo, int totalWidth, int totalHeight) {
+        int chunkW = chunk.getWidth();
+        int chunkH = chunk.getHeight();
+        
+        // Create copy with alpha channel for blending
+        Bitmap feathered = chunk.copy(Bitmap.Config.ARGB_8888, true);
+        int[] pixels = new int[chunkW * chunkH];
+        feathered.getPixels(pixels, 0, chunkW, 0, 0, chunkW, chunkH);
+        
+        int featherSize = getOverlapForModel(modelManager.getActiveModelName()) / 2;
+        
+        for (int y = 0; y < chunkH; y++) {
+            for (int x = 0; x < chunkW; x++) {
+                int idx = y * chunkW + x;
+                int pixel = pixels[idx];
+                
+                // Calculate alpha based on distance from edges
+                float alpha = 1.0f;
+                
+                // Left edge feathering (except for leftmost chunks)
+                if (chunkInfo.x > 0 && x < featherSize) {
+                    alpha = Math.min(alpha, (float) x / featherSize);
+                }
+                
+                // Top edge feathering (except for topmost chunks)
+                if (chunkInfo.y > 0 && y < featherSize) {
+                    alpha = Math.min(alpha, (float) y / featherSize);
+                }
+                
+                // Right edge feathering (except for rightmost chunks)
+                if (chunkInfo.x + chunkW < totalWidth && x >= chunkW - featherSize) {
+                    alpha = Math.min(alpha, (float) (chunkW - x) / featherSize);
+                }
+                
+                // Bottom edge feathering (except for bottommost chunks)
+                if (chunkInfo.y + chunkH < totalHeight && y >= chunkH - featherSize) {
+                    alpha = Math.min(alpha, (float) (chunkH - y) / featherSize);
+                }
+                
+                // Apply alpha to pixel
+                int newAlpha = (int) (alpha * 255);
+                pixels[idx] = (pixel & 0x00FFFFFF) | (newAlpha << 24);
+            }
+        }
+        
+        feathered.setPixels(pixels, 0, chunkW, 0, 0, chunkW, chunkH);
+        return feathered;
+    }
+
+    // Alternative: Simple linear blend approach
+    private void blendChunkLinear(Bitmap result, ChunkInfo chunk, Bitmap processed) {
+        int chunkW = processed.getWidth();
+        int chunkH = processed.getHeight();
+        int resultW = result.getWidth();
+        int resultH = result.getHeight();
+        
+        int[] chunkPixels = new int[chunkW * chunkH];
+        processed.getPixels(chunkPixels, 0, chunkW, 0, 0, chunkW, chunkH);
+        
+        for (int y = 0; y < chunkH; y++) {
+            for (int x = 0; x < chunkW; x++) {
+                int globalX = chunk.x + x;
+                int globalY = chunk.y + y;
+                
+                if (globalX >= resultW || globalY >= resultH) continue;
+                
+                int chunkPixel = chunkPixels[y * chunkW + x];
+                
+                // Check if this pixel is in an overlap region
+                boolean inOverlap = false;
+                float blendWeight = 1.0f;
+                
+                // Calculate blend weight based on position in overlap
+                if (chunk.x > 0 && x < OVERLAP / 2) {
+                    inOverlap = true;
+                    blendWeight = (float) x / (OVERLAP / 2);
+                }
+                if (chunk.y > 0 && y < OVERLAP / 2) {
+                    inOverlap = true;
+                    blendWeight = Math.min(blendWeight, (float) y / (OVERLAP / 2));
+                }
+                
+                if (inOverlap) {
+                    // Blend with existing pixel
+                    int existingPixel = result.getPixel(globalX, globalY);
+                    int blendedPixel = blendPixels(existingPixel, chunkPixel, blendWeight);
+                    result.setPixel(globalX, globalY, blendedPixel);
+                } else {
+                    // Direct copy
+                    result.setPixel(globalX, globalY, chunkPixel);
+                }
+            }
+        }
+    }
+
+    private int blendPixels(int pixel1, int pixel2, float weight) {
+        int a1 = (pixel1 >>> 24) & 0xFF;
+        int r1 = (pixel1 >>> 16) & 0xFF;
+        int g1 = (pixel1 >>> 8) & 0xFF;
+        int b1 = pixel1 & 0xFF;
+        
+        int a2 = (pixel2 >>> 24) & 0xFF;
+        int r2 = (pixel2 >>> 16) & 0xFF;
+        int g2 = (pixel2 >>> 8) & 0xFF;
+        int b2 = pixel2 & 0xFF;
+        
+        int a = (int) (a1 * (1 - weight) + a2 * weight);
+        int r = (int) (r1 * (1 - weight) + r2 * weight);
+        int g = (int) (g1 * (1 - weight) + g2 * weight);
+        int b = (int) (b1 * (1 - weight) + b2 * weight);
+        
+        return (a << 24) | (r << 16) | (g << 8) | b;
+    }
+
     // Helper methods for fallback chunk size if needed
     private int chunkWidth(ChunkInfo chunk) {
         return Math.min(DEFAULT_CHUNK_SIZE, ProcessingState.lastImageWidth - chunk.x);
@@ -638,16 +765,43 @@ public class ImageProcessor {
         int height = input.getHeight();
         String modelName = modelManager.getActiveModelName();
         int effectiveChunkSize = getChunkSizeForModel(modelName);
-
-        for (int y = 0; y < height; y += effectiveChunkSize - OVERLAP) {
-            for (int x = 0; x < width; x += effectiveChunkSize - OVERLAP) {
-                int chunkWidth = Math.min(effectiveChunkSize, width - x);
-                int chunkHeight = Math.min(effectiveChunkSize, height - y);
-                Bitmap chunk = Bitmap.createBitmap(input, x, y, chunkWidth, chunkHeight);
-                File chunkFile = new File(chunkDir, "chunk_" + x + "_" + y + ".png");
+        int overlap = getOverlapForModel(modelName);
+        
+        // Calculate grid dimensions
+        int cols = (int) Math.ceil((double) width / (effectiveChunkSize - overlap));
+        int rows = (int) Math.ceil((double) height / (effectiveChunkSize - overlap));
+        
+        for (int row = 0; row < rows; row++) {
+            for (int col = 0; col < cols; col++) {
+                // Calculate chunk position with symmetric overlap
+                int startX = col * (effectiveChunkSize - overlap);
+                int startY = row * (effectiveChunkSize - overlap);
+                
+                // Extend into overlap regions
+                int chunkX = Math.max(0, startX - (col > 0 ? overlap / 2 : 0));
+                int chunkY = Math.max(0, startY - (row > 0 ? overlap / 2 : 0));
+                
+                // Calculate actual chunk dimensions
+                int chunkWidth = Math.min(effectiveChunkSize + (col > 0 ? overlap / 2 : 0), width - chunkX);
+                int chunkHeight = Math.min(effectiveChunkSize + (row > 0 ? overlap / 2 : 0), height - chunkY);
+                
+                // Ensure we don't exceed image boundaries
+                chunkWidth = Math.min(chunkWidth, width - chunkX);
+                chunkHeight = Math.min(chunkHeight, height - chunkY);
+                
+                if (chunkWidth <= 0 || chunkHeight <= 0) continue;
+                
+                Bitmap chunk = Bitmap.createBitmap(input, chunkX, chunkY, chunkWidth, chunkHeight);
+                File chunkFile = new File(chunkDir, "chunk_" + chunkX + "_" + chunkY + ".png");
                 saveBitmapToFile(chunk, chunkFile);
                 chunk.recycle();
-                chunks.add(new ChunkInfo(x, y, chunkFile));
+                
+                ChunkInfo chunkInfo = new ChunkInfo(chunkX, chunkY, chunkFile);
+                chunkInfo.originalStartX = startX;
+                chunkInfo.originalStartY = startY;
+                chunkInfo.row = row;
+                chunkInfo.col = col;
+                chunks.add(chunkInfo);
             }
         }
         return chunks;
@@ -679,10 +833,17 @@ public class ImageProcessor {
         return modelName != null && modelName.startsWith("scunet_") ? SCUNET_CHUNK_SIZE : DEFAULT_CHUNK_SIZE;
     }
 
+    private int getOverlapForModel(String modelName) {
+        return modelName != null && modelName.startsWith("scunet_") ? SCUNET_OVERLAP : OVERLAP;
+    }
     private static class ChunkInfo {
         final int x, y;
         final File chunkFile;
         File processedFile;
+        
+        // Additional fields for symmetric blending
+        int originalStartX, originalStartY;
+        int row, col;
 
         ChunkInfo(int x, int y, File chunkFile) {
             this.x = x;
@@ -690,7 +851,7 @@ public class ImageProcessor {
             this.chunkFile = chunkFile;
         }
     }
-
+    
     public static void clearCacheDirs(File dir) {
         if (dir.exists() && dir.isDirectory()) {
             File[] files = dir.listFiles();

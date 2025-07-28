@@ -1,3 +1,4 @@
 added time estimation
 fixed gaps in large images
 small dialog fixes
+fixes overlap issues on SCUNet
