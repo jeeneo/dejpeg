@@ -784,7 +784,7 @@ class MainActivity : AppCompatActivity() {
                 if (loadedCount > 0) {
                     currentPage = 0
                     processButton.isEnabled = modelManager.hasActiveModel()
-                    applyToAllSwitch.visibility = if (loadedCount > 1) View.VISIBLE else View.GONE
+                    applyToAllSwitch.visibility = if (loadedCount > 1 && modelManager.getActiveModelName()?.startsWith("fbcnn_") == true) View.VISIBLE else View.GONE
                     strengthSeekBar.setValues(perImageStrengthFactors[currentPage] * 100f)
                     Toast.makeText(this, getString(R.string.batch_images_loaded_toast, loadedCount), Toast.LENGTH_SHORT).show()
                     showPreviews = true

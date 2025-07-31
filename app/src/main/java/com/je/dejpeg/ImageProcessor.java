@@ -33,8 +33,8 @@ import com.je.dejpeg.models.ProcessingState;
  */
 
 public class ImageProcessor {
-    public static final int DEFAULT_CHUNK_SIZE = 1200;
-    public static final int SCUNET_CHUNK_SIZE = 1000;
+    public static final int DEFAULT_CHUNK_SIZE = 1200; // normal?
+    public static final int SCUNET_CHUNK_SIZE = 640; // + overlap = no more than ~720ish should help prevent crashing with scunet
     public static final int OVERLAP = 32;
     public static final int SCUNET_OVERLAP = 128; // needs larger overlap for better blending, doesn't handle edge artifacts well
     private boolean isCancelled = false;
@@ -103,10 +103,6 @@ public class ImageProcessor {
                         throw new Exception("Unknown model type: " + modelNameInner);
                     }
                     Bitmap result = processBitmap(inputBitmap, callback, index, total);
-                    if (callback != null) callback.onComplete(result);
-                } else {
-                    // dynamic tensor detection for unknown models
-                    Bitmap result = processBitmapDynamic(session, inputBitmap, callback, index, total);
                     if (callback != null) callback.onComplete(result);
                 }
             } catch (Exception e) {
