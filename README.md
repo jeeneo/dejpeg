@@ -39,6 +39,10 @@ you can also run other experimental models, more info [here](https://github.com/
 
 see the [wiki](https://github.com/jeeneo/dejpeg/wiki) for more information
 
+## desktop
+
+there's a beta version of DeJPEG for desktops (Linux and Windows) [here](https://github.com/jeeneo/dejpeg-desktop) (made WITHOUT electron, about 50mb + whatever model you want)
+
 ## note:
 De*JPEG* is not affiliated or related with Topaz `DEJPEG` or any other similarly named software/project
 
