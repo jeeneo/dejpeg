@@ -41,7 +41,7 @@ see the [wiki](https://github.com/jeeneo/dejpeg/wiki) for more information
 
 ## desktop
 
-there's a beta version of DeJPEG for desktops (Linux and Windows) [here](https://github.com/jeeneo/dejpeg-desktop) (made WITHOUT electron, size is 50mb)
+for desktops, you can try [chaiNNer](https://github.com/chaiNNer-org/chaiNNer), it has a bit of a learning curve and takes a bit to set up, but works pretty well and has some decent GPU acceleration.
 
 ## note:
 De*JPEG* is not affiliated or related with Topaz `DEJPEG` or any other similarly named software/project

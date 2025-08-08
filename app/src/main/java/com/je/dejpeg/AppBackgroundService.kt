@@ -82,7 +82,6 @@ class AppBackgroundService : Service() {
         )
         setContentIntent(pendingIntent)
 
-
             val stopIntent = Intent(this@AppBackgroundService, AppBackgroundService::class.java).apply {
                 action = ACTION_STOP_SERVICE
             }
