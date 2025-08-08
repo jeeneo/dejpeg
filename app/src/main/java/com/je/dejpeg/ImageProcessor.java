@@ -42,7 +42,6 @@ public class ImageProcessor {
 
     private Context context;
     private ModelManager modelManager;
-    private BufferPool bufferPool = new BufferPool();
     private ChunkProcessor chunkProcessor;
     private ModelInfo modelInfo;
 
@@ -143,11 +142,11 @@ public class ImageProcessor {
     private Bitmap processChunkUnified(OrtSession session, Bitmap chunk, Bitmap.Config config, boolean hasAlpha, ModelInfo info) throws Exception {
         int w = chunk.getWidth(), h = chunk.getHeight();
         int channels = info.isGrayscale ? 1 : 3;
-        int[] pixels = bufferPool.getIntBuffer(w * h);
+        int[] pixels = new int[w * h]; // allocate new buffer
         chunk.getPixels(pixels, 0, w, 0, 0, w, h);
 
-        float[] inputArray = bufferPool.getFloatBuffer(channels * w * h);
-        float[] alphaChannel = hasAlpha ? bufferPool.getAlphaBuffer(w * h) : null;
+        float[] inputArray = new float[channels * w * h]; // allocate new buffer
+        float[] alphaChannel = hasAlpha ? new float[w * h] : null; // allocate new buffer if needed
 
         for (int i = 0; i < w * h; i++) {
             int color = pixels[i];
@@ -165,7 +164,7 @@ public class ImageProcessor {
         if (info.env == null) info.env = OrtEnvironment.getEnvironment();
         long[] inputShape = new long[]{1, channels, h, w};
         Map<String, OnnxTensor> inputs = new HashMap<>();
-        OnnxTensor inputTensor = OnnxTensor.createTensor(info.env, FloatBuffer.wrap(inputArray), inputShape); // Fixed: use FloatBuffer.wrap
+        OnnxTensor inputTensor = OnnxTensor.createTensor(info.env, FloatBuffer.wrap(inputArray), inputShape);
         inputs.put(info.inputName, inputTensor);
 
         // Attach extra float inputs if present
@@ -184,7 +183,7 @@ public class ImageProcessor {
             try (OrtSession.Result result = session.run(inputs)) {
                 float[] outputArray = extractOutputArray(result.get(0).getValue(), channels, h, w);
                 Bitmap resultBitmap = Bitmap.createBitmap(w, h, config);
-                int[] outPixels = bufferPool.getIntBuffer(w * h);
+                int[] outPixels = new int[w * h]; // allocate new buffer
                 for (int i = 0; i < w * h; i++) {
                     int r, g, b, gray, alpha;
                     if (channels == 1) {
@@ -227,7 +226,7 @@ public class ImageProcessor {
         int w = bitmap.getWidth(), h = bitmap.getHeight();
         if (!bitmap.hasAlpha()) return false;
         int sampleW = Math.min(w, 64), sampleH = Math.min(h, 64);
-        int[] pixels = bufferPool.getIntBuffer(sampleW * sampleH);
+        int[] pixels = new int[sampleW * sampleH]; // allocate new buffer
         bitmap.getPixels(pixels, 0, sampleW, 0, 0, sampleW, sampleH);
         for (int i = 0; i < pixels.length; i++) {
             if ((pixels[i] >>> 24) != 0xFF) return true;
@@ -243,26 +242,6 @@ public class ImageProcessor {
         String msg = "Error: " + e.getClass().getSimpleName();
         if (e.getMessage() != null) msg += ": " + e.getMessage();
         return msg;
-    }
-
-    // --- BufferPool for unified buffer management ---
-    private static class BufferPool {
-        private int[] intBuffer;
-        private float[] floatBuffer;
-        private float[] alphaBuffer;
-
-        int[] getIntBuffer(int size) {
-            if (intBuffer == null || intBuffer.length < size) intBuffer = new int[size];
-            return intBuffer;
-        }
-        float[] getFloatBuffer(int size) {
-            if (floatBuffer == null || floatBuffer.length < size) floatBuffer = new float[size];
-            return floatBuffer;
-        }
-        float[] getAlphaBuffer(int size) {
-            if (alphaBuffer == null || alphaBuffer.length < size) alphaBuffer = new float[size];
-            return alphaBuffer;
-        }
     }
 
     // --- ModelInfo for session/model metadata ---
