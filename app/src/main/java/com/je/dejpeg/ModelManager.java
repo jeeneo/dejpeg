@@ -15,6 +15,32 @@ import ai.onnxruntime.*;
 
 import com.je.dejpeg.utils.VibrationManager;
 
+/**
+ * ModelManager handles the import, validation, and management of ONNX models.
+ * 
+ * FEATURES:
+ * - Hash-based model validation
+ * - Model-specific import warnings
+ * - Progress tracking during import
+ * - Automatic model optimization settings
+ * 
+ * MODEL WARNING SYSTEM:
+ * The system automatically shows specific warning dialogs for certain models based on their hash.
+ * To add a new model warning:
+ * 1. Add the model hash to MODEL_HASHES
+ * 2. Add a corresponding ModelWarning entry to MODEL_WARNINGS
+ * 3. The warning will automatically appear when that model is imported
+ * 
+ * Example warning types:
+ * - Experimental/beta models
+ * - Hardware requirement warnings
+ * - Memory usage warnings
+ * - Compatibility warnings
+ * - Performance warnings
+ * 
+ * The warning system integrates with DialogManager to show user-friendly dialogs
+ * that allow users to proceed or cancel the import based on the warning content.
+ */
 public class ModelManager {
     private static final String PREFS_NAME = "ModelPrefs";
     private static final String ACTIVE_MODEL_KEY = "activeModel";
@@ -33,8 +59,40 @@ public class ModelManager {
         Map.entry("scunet_color_real_psnr.onnx", "341eb061ed4d7834dbe6cdab3fb509c887f82aa29be8819c7d09b3d9bfa4892d"),
         Map.entry("scunet_gray_15.onnx", "10d33552b5754ab9df018cb119e20e1f2b18546eff8e28954529a51e5a6ae255"),
         Map.entry("scunet_gray_25.onnx", "01b5838a85822ae21880062106a80078f06e7a82aa2ffc8847e32f4462b4c928"),
-        Map.entry("scunet_gray_50.onnx", "a8d9cbbbb2696ac116a87a5055496291939ed873fe28d7f560373675bb970833")
+        Map.entry("scunet_gray_50.onnx", "a8d9cbbbb2696ac116a87a5055496291939ed873fe28d7f560373675bb970833"),
+        Map.entry("1x_DitherDeleterV3-Smooth-32._115000_G.onnx", "4d36e4e33ac49d46472fe77b232923c1731094591a7b5646326698be851c80d7"),
+        Map.entry("1x_Bandage-Smooth-64._105000_G.onnx", "ff04b61a9c19508bfa70431dbffc89e218ab0063de31396e5ce9ac9a2f117d20")
     );
+
+    // Specific import warnings for certain model hashes
+    private static final Map<String, ModelWarning> MODEL_WARNINGS = Map.ofEntries(
+        Map.entry("1x_DitherDeleterV3-Smooth-32._115000_G.onnx", new ModelWarning(
+            "performance warning",
+            "DitherDeleterV3 is resource-intensive and not recommended, it will take a long time to process images over 500px on even high-end devices",
+            "import anyway",
+            "cancel"
+        )),
+        Map.entry("1x_Bandage-Smooth-64._105000_G.onnx", new ModelWarning(
+            "performance warning",
+            "Bandage-Smooth is resource-intensive and not recommended, it will take a long time to process images over 500px on even high-end devices",
+            "import anyway",
+            "cancel"
+        ))
+    );
+    
+    public static class ModelWarning {
+        public final String title;
+        public final String message;
+        public final String positiveButtonText;
+        public final String negativeButtonText;
+        
+        public ModelWarning(String title, String message, String positiveButtonText, String negativeButtonText) {
+            this.title = title;
+            this.message = message;
+            this.positiveButtonText = positiveButtonText;
+            this.negativeButtonText = negativeButtonText;
+        }
+    }
 
     private final Context context;
     private final SharedPreferences prefs;
@@ -120,8 +178,15 @@ public class ModelManager {
     public static class ResolveResult {
         public final String matchedModel, expectedHash, actualHash, filename;
         public final boolean hashMatches;
+        public final ModelWarning modelWarning;
+        
         public ResolveResult(String m, boolean h, String e, String a, String f) {
-            matchedModel = m; hashMatches = h; expectedHash = e; actualHash = a; filename = f;
+            matchedModel = m; 
+            hashMatches = h; 
+            expectedHash = e; 
+            actualHash = a; 
+            filename = f;
+            modelWarning = m != null ? MODEL_WARNINGS.get(m) : null;
         }
     }
 
@@ -168,13 +233,24 @@ public class ModelManager {
         ResolveResult result;
         try { result = resolveHashOnly(modelUri); }
         catch (Exception e) {
-            if (!force) { if (callback != null) callback.onError("HASH_CALCULATION_ERROR:" + e.getMessage()); return false; }
+            if (!force) { 
+                if (callback != null) callback.onError("HASH_CALCULATION_ERROR:" + e.getMessage()); 
+                return false; 
+            }
             return importModelInternal(modelUri, uriLastName(modelUri), callback);
         }
+        
         if (!result.hashMatches && !force) {
             if (callback != null) callback.onError("HASH_MISMATCH:unknown:" + result.expectedHash + ":" + result.actualHash);
             return false;
         }
+        
+        // Check if this model has a specific warning
+        if (result.modelWarning != null && !force) {
+            if (callback != null) callback.onError("MODEL_WARNING:" + result.matchedModel + ":" + result.modelWarning.title + ":" + result.modelWarning.message + ":" + result.modelWarning.positiveButtonText + ":" + result.modelWarning.negativeButtonText);
+            return false;
+        }
+        
         return importModelInternal(modelUri, result.filename, callback);
     }
 
@@ -242,6 +318,36 @@ public class ModelManager {
 
     public boolean isColorModel(String modelName) { return modelName != null && modelName.contains("color"); }
     public boolean isKnownModel(String modelName) { return modelName != null && VALID_MODELS.contains(modelName); }
+
+    /**
+     * Check if a specific model has import warnings
+     */
+    public boolean hasModelWarning(String modelName) {
+        return modelName != null && MODEL_WARNINGS.containsKey(modelName);
+    }
+
+    /**
+     * Get the warning information for a specific model
+     */
+    public ModelWarning getModelWarning(String modelName) {
+        return modelName != null ? MODEL_WARNINGS.get(modelName) : null;
+    }
+
+    /**
+     * Get all models that have warnings
+     */
+    public Set<String> getModelsWithWarnings() {
+        return MODEL_WARNINGS.keySet();
+    }
+
+    /**
+     * Add a new model warning (useful for runtime configuration)
+     */
+    public void addModelWarning(String modelName, ModelWarning warning) {
+        // Note: This would require making MODEL_WARNINGS non-final or using a different approach
+        // For now, this is a placeholder showing how you could extend the system
+        Log.d("ModelManager", "Would add warning for model: " + modelName);
+    }
 
     public interface ModelCallback { void onSuccess(String modelName); void onError(String error); void onProgress(int progress); }
     public interface ModelDeleteCallback { void onModelDeleted(String modelName); }

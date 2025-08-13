@@ -412,50 +412,57 @@ class DialogManager(
     }
 
     fun showFAQDialog() {
-        val dialogView = activity.layoutInflater.inflate(R.layout.dialog_faq, null)
+        val markwon = Markwon.create(activity)
+        val faqFiles = activity.assets.list("faq")?.sorted().orEmpty()
 
-        fun toggleSection(header: TextView, detail: View, textResId: Int) {
-            vibrationManager.vibrateDialogChoice()
-            val isVisible = detail.visibility == View.VISIBLE
-            detail.visibility = if (isVisible) View.GONE else View.VISIBLE
-
-            val arrow = if (isVisible) activity.getString(R.string.arrow_side) else activity.getString(R.string.arrow_open)
-            val label = activity.getString(textResId)
-            val fullText = activity.getString(R.string.arrow_text_format, arrow, label)
-            header.text = fullText
+        if (faqFiles.isEmpty()) {
+            return
         }
 
-        val header1 = dialogView.findViewById<TextView>(R.id.header1)
-        val detail1 = dialogView.findViewById<TextView>(R.id.detail1)
-        val text1 = activity.getString(R.string.arrow_text_format, activity.getString(R.string.arrow_side), activity.getString(R.string.header1_text))
-        header1.text = text1
-        header1.setOnClickListener {
-            toggleSection(header1, detail1, R.string.header1_text)
+        val faqData = faqFiles.map { filename ->
+            try {
+                val content = activity.assets.open("faq/$filename").bufferedReader().use { it.readText() }
+                val title = content.lines().firstOrNull { it.startsWith("##") }?.removePrefix("##")?.trim() ?: filename
+                val strippedContent = content.lines().dropWhile { it.startsWith("##") }.joinToString("\n").trim()
+                title to strippedContent
+            } catch (e: Exception) {
+                filename to "**Error loading this FAQ**\n\n${e.message}"
+            }
         }
 
-        val header2 = dialogView.findViewById<TextView>(R.id.header2)
-        val detail2 = dialogView.findViewById<TextView>(R.id.detail2)
-        val text2 = activity.getString(R.string.arrow_text_format, activity.getString(R.string.arrow_side), activity.getString(R.string.header2_text))
-        header2.text = text2
-        header2.setOnClickListener {
-            toggleSection(header2, detail2, R.string.header2_text)
+        val container = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(16, 16, 16, 16)
         }
 
-        val header3 = dialogView.findViewById<TextView>(R.id.header3)
-        val detail3 = dialogView.findViewById<TextView>(R.id.detail3)
-        val text3 = activity.getString(R.string.arrow_text_format, activity.getString(R.string.arrow_side), activity.getString(R.string.header3_text))
-        header3.text = text3
-        header3.setOnClickListener {
-            toggleSection(header3, detail3, R.string.header3_text)
+        faqData.forEach { (title, content) ->
+            val contentView = TextView(activity).apply {
+                visibility = View.GONE
+                movementMethod = android.text.method.LinkMovementMethod.getInstance()
+                setPadding(32, 0, 0, 0)
+                markwon.setMarkdown(this, content)
+            }
+
+            val headerView = TextView(activity).apply {
+                text = "▶ $title"
+                textSize = 18f
+                setPadding(0, 16, 0, 8)
+                setOnClickListener {
+                    val isVisible = contentView.visibility == View.VISIBLE
+                    contentView.visibility = if (isVisible) View.GONE else View.VISIBLE
+                    text = if (isVisible) "▶ $title" else "▼ $title"
+                }
+            }
+
+            container.addView(headerView)
+            container.addView(contentView)
         }
 
         MaterialAlertDialogBuilder(activity)
             .setTitle(R.string.faq_dialog_title)
-            .setView(dialogView)
+            .setView(ScrollView(activity).apply { addView(container) })
             .setPositiveButton(R.string.ok_button, null)
-            .setOnDismissListener {
-                vibrationManager.vibrateDialogChoice()
-            }
+            .setOnDismissListener { vibrationManager.vibrateDialogChoice() }
             .show()
     }
 }

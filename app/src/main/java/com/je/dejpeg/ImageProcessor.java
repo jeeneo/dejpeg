@@ -63,28 +63,29 @@ public class ImageProcessor {
 
     public void processImage(Bitmap inputBitmap, float strength, ProcessCallback callback, int index, int total) {
         isCancelled = false;
-        String modelName = modelManager.getActiveModelName();
-        modelInfo = new ModelInfo(modelManager, modelName, strength);
-
-        ProcessingState.Companion.updateImageProgress(index + 1, total);
-        ProcessingState.Companion.updateImageDimensions(inputBitmap.getWidth(), inputBitmap.getHeight()); // <-- use method instead of direct field access
-
-        int width = inputBitmap.getWidth();
-        int height = inputBitmap.getHeight();
-        int effectiveChunkSize = modelInfo.chunkSize;
-        int overlap = modelInfo.overlap;
-        int totalChunks = (width > effectiveChunkSize || height > effectiveChunkSize) ?
-            ((int)Math.ceil((double)width / (effectiveChunkSize - overlap))) *
-            ((int)Math.ceil((double)height / (effectiveChunkSize - overlap))) : 1;
-        ProcessingState.Companion.updateChunkProgress(totalChunks);
-        ProcessingState.Companion.initializeTimeEstimation(context, modelName != null ? modelName : "unknown", totalChunks);
-
-        if (callback != null) {
-            callback.onProgress(ProcessingState.Companion.getStatusString(context));
-        }
-
+        // Move everything to the executor thread
         executor.submit(() -> {
             try {
+                String modelName = modelManager.getActiveModelName();
+                modelInfo = new ModelInfo(modelManager, modelName, strength);
+
+                ProcessingState.Companion.updateImageProgress(index + 1, total);
+                ProcessingState.Companion.updateImageDimensions(inputBitmap.getWidth(), inputBitmap.getHeight());
+
+                int width = inputBitmap.getWidth();
+                int height = inputBitmap.getHeight();
+                int effectiveChunkSize = modelInfo.chunkSize;
+                int overlap = modelInfo.overlap;
+                int totalChunks = (width > effectiveChunkSize || height > effectiveChunkSize) ?
+                    ((int)Math.ceil((double)width / (effectiveChunkSize - overlap))) *
+                    ((int)Math.ceil((double)height / (effectiveChunkSize - overlap))) : 1;
+                ProcessingState.Companion.updateChunkProgress(totalChunks);
+                ProcessingState.Companion.initializeTimeEstimation(context, modelName != null ? modelName : "unknown", totalChunks);
+
+                if (callback != null) {
+                    callback.onProgress(ProcessingState.Companion.getStatusString(context));
+                }
+
                 OrtSession session = modelManager.loadModel();
                 Bitmap result = processBitmapUnified(session, inputBitmap, callback, modelInfo);
                 if (callback != null) callback.onComplete(result);
