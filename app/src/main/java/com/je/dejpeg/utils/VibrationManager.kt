@@ -147,6 +147,6 @@ class VibrationManager(private val context: Context) {
     }
     
     fun performHapticFeedback(view: View, feedbackConstant: Int = HapticFeedbackConstants.CONTEXT_CLICK) {
-        view.performHapticFeedback(feedbackConstant, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+        view.performHapticFeedback(feedbackConstant, HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING)
     }
 }

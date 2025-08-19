@@ -98,7 +98,7 @@ class DialogManager(
             .setOnDismissListener {
                 vibrationManager.vibrateDialogChoice()
             }
-            .show()
+        .show()
     }
 
     fun showServiceInfoDialog() {
@@ -109,7 +109,7 @@ class DialogManager(
             .setOnDismissListener {
                 vibrationManager.vibrateDialogChoice()
             }
-            .show()
+        .show()
     }
 
     fun showModelDownloadDialog(showModelManagementDialog: () -> Unit) {
@@ -163,7 +163,7 @@ class DialogManager(
                 vibrationManager.vibrateDialogChoice()
                 showModelManagementDialog()
             }
-            .show()
+        .show()
     }
 
     fun copyAndLoadModel(
@@ -242,7 +242,7 @@ class DialogManager(
                     copyAndLoadModel(modelUri, true)
                 }
                 .setNegativeButton("cancel", null)
-                .show()
+            .show()
         }
     }
 
@@ -259,7 +259,7 @@ class DialogManager(
             .setOnDismissListener {
                 if (!modelManager.hasActiveModel()) promptModelSelection()
             }
-            .show()
+        .show()
     }
 
     fun showWarningDialog(message: String, onContinue: () -> Unit) {
@@ -268,7 +268,7 @@ class DialogManager(
             .setMessage(message)
             .setPositiveButton("continue") { _, _ -> onContinue() }
             .setNegativeButton("cancel", null)
-            .show()
+        .show()
     }
 
     fun showImportProgressDialog() {
@@ -321,7 +321,7 @@ class DialogManager(
             .setNegativeButton(R.string.cancel_button) { _, _ ->
                 vibrationManager.vibrateDialogChoice()
             }
-            .show()
+        .show()
     }
 
     fun showConfigDialog(showModelManagementDialog: () -> Unit) {
@@ -345,7 +345,7 @@ class DialogManager(
                 vibrationManager.vibrateDialogChoice()
             }
             .setView(dialogView)
-            .show()
+        .show()
     }
 
     fun showImagePickerDialog(
@@ -387,7 +387,7 @@ class DialogManager(
             .setOnDismissListener {
                 vibrationManager.vibrateDialogChoice()
             }
-            .show()
+        .show()
     }
 
     fun showAboutDialog(showFAQDialog: () -> Unit) {
@@ -408,7 +408,7 @@ class DialogManager(
             .setOnDismissListener {
                 vibrationManager.vibrateDialogChoice()
             }
-            .show()
+        .show()
     }
 
     fun showFAQDialog() {
@@ -458,11 +458,17 @@ class DialogManager(
             container.addView(contentView)
         }
 
+        val scrollView = ScrollView(activity).apply {
+            addView(container)
+            isVerticalScrollBarEnabled = true
+            isScrollbarFadingEnabled = false
+        }
+
         MaterialAlertDialogBuilder(activity)
             .setTitle(R.string.faq_dialog_title)
-            .setView(ScrollView(activity).apply { addView(container) })
+            .setView(scrollView)
             .setPositiveButton(R.string.ok_button, null)
             .setOnDismissListener { vibrationManager.vibrateDialogChoice() }
-            .show()
+        .show()
     }
 }

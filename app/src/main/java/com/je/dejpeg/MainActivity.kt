@@ -836,8 +836,7 @@ class MainActivity : AppCompatActivity() {
             .setTitle(R.string.saving_image_title)
             .setView(dialogView)
             .setCancelable(false)
-            .create()
-            
+            .create() 
         dialog.show()
 
         Thread {
@@ -854,7 +853,7 @@ class MainActivity : AppCompatActivity() {
                 
                 runOnUiThread { 
                     progressText.text = getString(R.string.saving_status)
-                    progressBar.progress = 50 // "halfway done" TvT this is just a placeholder and im lazy
+                    progressBar.progress = 50 // "halfway done" ;-; this is just a placeholder and im lazy
                 }
                 
                 MediaScannerConnection.scanFile(this, arrayOf(outputFile.toString()), null, null)
@@ -973,13 +972,13 @@ class MainActivity : AppCompatActivity() {
         inner class ViewHolder(private val imageView: ImageView) : RecyclerView.ViewHolder(imageView) {
             init {
                 imageView.setOnClickListener { 
-                    val position = adapterPosition
+                    val position = bindingAdapterPosition
                     if (position != RecyclerView.NO_POSITION) {
                         onClick(position)
                     }
                 }
                 imageView.setOnLongClickListener {
-                    val position = adapterPosition
+                    val position = bindingAdapterPosition
                     if (position != RecyclerView.NO_POSITION) {
                         onLongClick(position)
                     }
