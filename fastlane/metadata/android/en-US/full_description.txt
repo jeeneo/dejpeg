@@ -8,13 +8,14 @@
   <li>fully offline</li>
 </ul>
 
-<p>this is not a "super resolution AI upscaler", but a simple non-destructive way to clean up compressed/noisy images</p>
+<p>this is not a "super resolution AI upscaler", but simple non-destructive method for cleaning up/restoring images</p>
 
 <p>external models are required as a download (links in-app or on GitHub)</p>
 
 <h2>limitations:</h2>
 <ul>
   <li>processed locally, minimum 4gb ram and 4 threads recommended.</li>
+  <li>limited to images below 8000 pixels, and images above 4000px will affect performance.</li>
 </ul>
 
-<p>(note: De<i>JPEG</i> is not affiliated or related with Topaz DEJPEG or any other similarly named software/project)</p>
+<p>(note/disclaimer: De<i>JPEG</i> is not affiliated or related with Topaz DEJPEG or any other similarly named software/project. this app stems from personal uses and was modified for public release)</p>

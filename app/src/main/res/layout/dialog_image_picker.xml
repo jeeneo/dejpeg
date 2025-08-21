@@ -5,11 +5,129 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <com.google.android.material.materialswitch.MaterialSwitch
-        android:id="@+id/setDefaultSwitch"
+    <!-- Gallery Picker -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="@string/set_as_default_action" />
+        android:orientation="horizontal"
+        android:layout_marginBottom="8dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_gallery_picker"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/gallery_picker"
+            style="@style/Widget.Material3.Button.TonalButton" />
+
+        <ImageButton
+            android:id="@+id/btn_gallery_help"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_help"
+            android:contentDescription="@string/gallery_picker_help" />
+
+    </LinearLayout>
+
+    <!-- Internal Photo Picker -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="8dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_internal_picker"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/internal_picker"
+            style="@style/Widget.Material3.Button.TonalButton" />
+
+        <ImageButton
+            android:id="@+id/btn_internal_help"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_help"
+            android:contentDescription="@string/internal_picker_help" />
+
+    </LinearLayout>
+
+    <!-- Documents Picker -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="8dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_documents_picker"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/documents_picker"
+            style="@style/Widget.Material3.Button.TonalButton" />
+
+        <ImageButton
+            android:id="@+id/btn_documents_help"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_help"
+            android:contentDescription="@string/documents_picker_help" />
+
+    </LinearLayout>
+
+    <!-- Camera -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="16dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_camera"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/camera"
+            style="@style/Widget.Material3.Button.TonalButton" />
+
+        <ImageButton
+            android:id="@+id/btn_camera_help"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_help"
+            android:contentDescription="@string/camera_help" />
+
+    </LinearLayout>
+
+    <!-- Separator -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginVertical="8dp"
+        android:background="@color/outline_variant" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp">
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/setDefaultSwitch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/set_as_default_action" />
+    </LinearLayout>
 
 </LinearLayout>

@@ -109,7 +109,7 @@ class ProcessingProgress {
 
     fun getStatusString(context: Context): String {
         if (currentImageIndex.get() == 0 && totalImages.get() == 0) {
-            return context.getString(R.string.loading_status)
+            return context.getString(R.string.processing_preparing)
         }
 
         val currentImage = currentImageIndex.get()

@@ -5,6 +5,8 @@
     <!-- links -->
     <string name="FBCNN_link">https://github.com/jeeneo/fbcnn-mobile/releases/latest</string>
     <string name="SCUNet_link">https://github.com/jeeneo/scunet-mobile/releases/latest</string>
+    <string name="experimental_link">https://github.com/jeeneo/dejpeg-experimental/releases/latest</string>
+    <string name="experimental_model">experimental models</string>
 
     <!-- main ui -->
     <string name="select_image">add</string>
@@ -17,10 +19,10 @@
     <string name="warning_dialog_title">warning</string>
     <string name="ok_button">ok</string>
 
-    <string name="set_as_default_action">set as default action</string>
+    <string name="set_as_default_action">set as default</string>
     <string name="pick_image_method">pick image from</string>
-    <string name="clear_default_action">clear picker action</string>
-    <string name="default_action_cleared_toast">default picker action cleared</string>
+    <string name="clear_default_action">clear picker defaults</string>
+    <string name="default_action_cleared_toast">default picker cleared</string>
 
     <string name="background_service_title">DeJPEG service</string>
     <string name="stop_background_service_text">stop</string>
@@ -35,6 +37,18 @@
     <string name="share_image">share image</string>
     <string name="save_image">save image</string>
     <string name="save_all_images">save all images</string>
+    
+    <!-- added 2025-08-21 -->
+    <string name="save_dialog_title">save image</string>
+    <string name="save_dialog_filename_hint">filename (always png)</string>
+    <string name="save_dialog_save_all">save all processed images</string>
+    <string name="save_dialog_skip_next_time">skip this dialog next time</string>
+    <string name="save_dialog_clear_skip_option">clear save dialog</string>
+    <string name="save_dialog_skip_cleared_toast">save dialog cleared</string>
+    <string name="save_dialog_saving_all">saving all images...</string>
+    <string name="save_dialog_all_saved_toast">all images saved to gallery</string>
+    <string name="save_dialog_save_button">save</string>
+    <string name="save_dialog_cancel_button">cancel</string>
 
     <string name="saving_image_title">saving image</string>
     <string name="saving_status">saving...</string>
@@ -48,14 +62,22 @@
     <string name="error_camera_dialog">camera import error</string>
     
     <string name="gallery_picker">gallery</string>
+    <string name="gallery_picker_help">help</string>
     <string name="internal_picker">photo picker</string>
+    <string name="internal_picker_help">help</string>
     <string name="documents_picker">file picker</string>
+    <string name="documents_picker_help">help</string>
     <string name="camera">camera</string>
+    <string name="camera_help">help</string>
     
-    <string name="default_picker_title">default image picker:</string>
-
+    <!-- Image picker help text -->
+    <string name="gallery_picker_help_text">uses your device\'s or 3rd-party gallery app to select images. this method is recommended and works on most devices with filename support.</string>
+    <string name="internal_picker_help_text">uses Android\'s built-in photo picker but more privacy aware and restricts filenames.</string>
+    <string name="documents_picker_help_text">opens the standard file picker. useful for accessing images in folders or other locations.</string>
+    <string name="camera_help_text">opens your device\'s camera, photos taken will be imported automatically.</string>
+    
     <!-- model ui -->
-    <string name="select_model">select model</string>
+    <string name="manage_models">manage models</string>
     <string name="no_models">no models found.\n\nplease download a model from one of the buttons below, then import</string>
     <string name="model_switched">switched to model: %1$s</string>
     <string name="import_model_button">import</string>
@@ -71,7 +93,7 @@
     <string name="model_imported_dialog_error">error importing model: %1$s</string>
     
     <string name="loading_model">loading model</string>
-    <string name="loading_status">loading...</string>
+    <!-- <string name="processing_preparing">preparing...</string> -->
 
     <!-- image imports -->
     <string name="single_image_loaded_toast">image loaded</string>
@@ -114,8 +136,8 @@
     <string name="processing_image_status">image %1$d: processing</string>
     <string name="processing_image_chunked_status">image %1$d: processing chunk %2$d of %3$d</string>
     <string name="processing_parallel">processing %1$d images in parallel...</string>
-    <string name="processing_large_image">processing large image %1$d of %2$d</string>
-    <string name="processing_chunked_single_range">processing chunks %1$s</string>
+    <!-- <string name="processing_large_image">processing large image %1$d of %2$d</string> -->
+    <!-- <string name="processing_chunked_single_range">processing chunks %1$s</string> -->
     <string name="processing_status_format">processing %1$d/%2$d images • chunk %3$d/%4$d</string>    
     <string name="about_title">about</string>
     <string name="FAQ_button">FAQs</string>

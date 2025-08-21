@@ -33,35 +33,53 @@ class DialogManager(
     private var importProgressText: TextView? = null
 
     fun promptModelSelection(modelPickerLauncher: ActivityResultLauncher<Intent>) {
+        val dialogView = LayoutInflater.from(activity).inflate(R.layout.dialog_model_selection, null)
+        
         val dialog = MaterialAlertDialogBuilder(activity)
-            .setTitle(R.string.select_model)
+            .setTitle(R.string.manage_models)
             .setMessage(R.string.no_models)
+            .setView(dialogView)
             .setNeutralButton(R.string.import_model_button) { _, _ ->
-                val intent = Intent(Intent.ACTION_GET_CONTENT).apply { type = "*/*" }
+                val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+                    type = "*/*"
+                    putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("application/octet-stream"))
+                }
                 modelPickerLauncher.launch(intent)
             }
-            .setPositiveButton("FBCNN", null)
-            .setNegativeButton("SCUNet", null)
-            .setOnDismissListener {
-                vibrationManager.vibrateDialogChoice()
-            }
             .setCancelable(false)
-            .create()
+        .create()
+  
+        dialog.setCanceledOnTouchOutside(false)
 
-        dialog.setOnShowListener {
-            dialog.getButton(DialogInterface.BUTTON_POSITIVE)?.setOnClickListener {
-                vibrationManager.vibrateDialogChoice()
-                val fbcnnLink = activity.getString(R.string.FBCNN_link)
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(fbcnnLink))
-                activity.startActivity(intent)
-            }
-            dialog.getButton(DialogInterface.BUTTON_NEGATIVE)?.setOnClickListener {
-                vibrationManager.vibrateDialogChoice()
-                val scunetLink = activity.getString(R.string.SCUNet_link)
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(scunetLink))
-                activity.startActivity(intent)
-            }
+        dialogView.findViewById<Button>(R.id.btn_fbcnn)?.setOnClickListener {
+            vibrationManager.vibrateDialogChoice()
+            val fbcnnLink = activity.getString(R.string.FBCNN_link)
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(fbcnnLink))
+            activity.startActivity(intent)
         }
+
+        dialogView.findViewById<Button>(R.id.btn_scunet)?.setOnClickListener {
+            vibrationManager.vibrateDialogChoice()
+            val scunetLink = activity.getString(R.string.SCUNet_link)
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(scunetLink))
+            activity.startActivity(intent)
+        }
+
+        dialogView.findViewById<Button>(R.id.btn_experimental)?.setOnClickListener {
+            vibrationManager.vibrateDialogChoice()
+            val experimentalLink = activity.getString(R.string.experimental_link)
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(experimentalLink))
+            activity.startActivity(intent)
+        }
+
+        // dialogView.findViewById<Button>(R.id.btn_model4)?.setOnClickListener {
+        //     vibrationManager.vibrateDialogChoice()
+        //     val model4Link = activity.getString(R.string.model4_link)
+        //     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(model4Link))
+        //     activity.startActivity(intent)
+        //     dialog.dismiss()
+        // }
+
         dialog.show()
     }
 
@@ -72,33 +90,60 @@ class DialogManager(
     ) {
         val models = modelManager.getInstalledModels()
         val activeModel = modelManager.getActiveModelName()
-        val items = models.toTypedArray()
-        MaterialAlertDialogBuilder(activity)
-            .setTitle(R.string.select_model)
-            .setSingleChoiceItems(items, models.indexOf(activeModel))
-            { dialog: DialogInterface, which: Int ->
-                vibrationManager.vibrateMenuTap()
-                modelManager.unloadModel()
-                modelManager.setActiveModel(models[which])
-                Toast.makeText(activity, activity.getString(R.string.model_switched, models[which]), Toast.LENGTH_SHORT).show()
-                activity.processButton.isEnabled = activity.images.isNotEmpty()
-                activity.updateStrengthSliderVisibility()
-                dialog.dismiss()
+        val dialogView = LayoutInflater.from(activity).inflate(R.layout.dialog_model_management, null)
+        
+        val dialog = MaterialAlertDialogBuilder(activity)
+            .setTitle(R.string.manage_models)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        // Set up radio buttons for model selection
+        val radioGroup = dialogView.findViewById<RadioGroup>(R.id.model_radio_group)
+        models.forEachIndexed { index, modelName ->
+            val radioButton = RadioButton(activity).apply {
+                id = index
+                text = modelName
+                isChecked = modelName == activeModel
+                setOnCheckedChangeListener { _, isChecked ->
+                    if (isChecked) {
+                        vibrationManager.vibrateMenuTap()
+                        modelManager.unloadModel()
+                        modelManager.setActiveModel(modelName)
+                        Toast.makeText(activity, activity.getString(R.string.model_switched, modelName), Toast.LENGTH_SHORT).show()
+                        activity.processButton.isEnabled = activity.images.isNotEmpty()
+                        activity.updateStrengthSliderVisibility()
+                    }
+                }
             }
-            .setPositiveButton(R.string.import_model_button) { _, _ ->
-                val intent = Intent(Intent.ACTION_GET_CONTENT).apply { type = "*/*" }
-                modelPickerLauncher.launch(intent)
-            }
-            .setNeutralButton(R.string.delete_model_button) { _, _ ->
-                showDeleteModelDialog(models)
-            }
-            .setNegativeButton(R.string.download_button) { _, _ ->
-                showModelDownloadDialog()
-            }
-            .setOnDismissListener {
-                vibrationManager.vibrateDialogChoice()
-            }
-        .show()
+            radioGroup.addView(radioButton)
+        }
+
+        // Set up action buttons
+        dialogView.findViewById<Button>(R.id.btn_import_model)?.setOnClickListener {
+            vibrationManager.vibrateDialogChoice()
+            val intent = Intent(Intent.ACTION_GET_CONTENT).apply { type = "*/*" }
+            modelPickerLauncher.launch(intent)
+            dialog.dismiss()
+        }
+
+        dialogView.findViewById<Button>(R.id.btn_delete_model)?.setOnClickListener {
+            vibrationManager.vibrateDialogChoice()
+            showDeleteModelDialog(models)
+            dialog.dismiss()
+        }
+
+        dialogView.findViewById<Button>(R.id.btn_download_model)?.setOnClickListener {
+            vibrationManager.vibrateDialogChoice()
+            showModelDownloadDialog()
+            dialog.dismiss()
+        }
+
+        dialog.setOnDismissListener {
+            vibrationManager.vibrateDialogChoice()
+        }
+
+        dialog.show()
     }
 
     fun showServiceInfoDialog() {
@@ -115,11 +160,12 @@ class DialogManager(
     fun showModelDownloadDialog(showModelManagementDialog: () -> Unit) {
         MaterialAlertDialogBuilder(activity)
             .setTitle(R.string.download_models_title)
-            .setItems(arrayOf("FBCNN", "SCUNet")) { _, which ->
+            .setItems(arrayOf("FBCNN", "SCUNet", "experimental models")) { _, which ->
                 vibrationManager.vibrateDialogChoice()
                 val link = when (which) {
                     0 -> activity.getString(R.string.FBCNN_link)
-                    else -> activity.getString(R.string.SCUNet_link)
+                    1 -> activity.getString(R.string.SCUNet_link)
+                    else -> activity.getString(R.string.experimental_link)
                 }
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link))
                 activity.startActivity(intent)
@@ -130,7 +176,7 @@ class DialogManager(
             .setOnDismissListener {
                 vibrationManager.vibrateDialogChoice()
             }
-            .show()
+        .show()
     }
 
     fun showDeleteModelDialog(
@@ -226,7 +272,8 @@ class DialogManager(
         modelName: String,
         expected: String,
         actual: String,
-        copyAndLoadModel: (Uri, Boolean) -> Unit
+        copyAndLoadModel: (Uri, Boolean) -> Unit,
+        modelPickerLauncher: ActivityResultLauncher<Intent>
     ) {
         activity.runOnUiThread {
             MaterialAlertDialogBuilder(activity)
@@ -243,6 +290,9 @@ class DialogManager(
                 }
                 .setNegativeButton("cancel", null)
             .show()
+            .setOnDismissListener {
+                if (!modelManager.hasActiveModel()) promptModelSelection(modelPickerLauncher)
+            }
         }
     }
 
@@ -324,28 +374,44 @@ class DialogManager(
         .show()
     }
 
-    fun showConfigDialog(showModelManagementDialog: () -> Unit) {
+    fun showConfigDialog(showModelManagementDialog: () -> Unit, clearSkipSaveDialogOption: () -> Unit) {
         val prefs = activity.getSharedPreferences(activity.PREFS_NAME, android.content.Context.MODE_PRIVATE)
         val dialogView = LayoutInflater.from(activity).inflate(R.layout.dialog_config, null)
-
-        MaterialAlertDialogBuilder(activity)
+        
+        val dialog = MaterialAlertDialogBuilder(activity)
             .setTitle(R.string.config_dialog_title)
-            .setPositiveButton(R.string.clear_default_action) { _, _ ->
-                activity.getSharedPreferences(activity.PREFS_NAME, android.content.Context.MODE_PRIVATE)
-                    .edit()
-                    .remove(activity.DEFAULT_ACTION_KEY)
-                    .apply()
-                activity.defaultImageAction = -1
-                Toast.makeText(activity, R.string.default_action_cleared_toast, Toast.LENGTH_SHORT).show()
-            }
-            .setNeutralButton(R.string.manage_models_button) { _, _ ->
-                showModelManagementDialog()
-            }
-            .setOnDismissListener {
-                vibrationManager.vibrateDialogChoice()
-            }
             .setView(dialogView)
-        .show()
+            .setCancelable(true)
+            .create()
+
+        dialogView.findViewById<Button>(R.id.btn_clear_picker_action)?.setOnClickListener {
+            vibrationManager.vibrateDialogChoice()
+            activity.getSharedPreferences(activity.PREFS_NAME, android.content.Context.MODE_PRIVATE)
+                .edit()
+                .remove(activity.DEFAULT_ACTION_KEY)
+                .apply()
+            activity.defaultImageAction = -1
+            Toast.makeText(activity, R.string.default_action_cleared_toast, Toast.LENGTH_SHORT).show()
+            dialog.dismiss()
+        }
+
+        dialogView.findViewById<Button>(R.id.btn_manage_models)?.setOnClickListener {
+            vibrationManager.vibrateDialogChoice()
+            showModelManagementDialog()
+            dialog.dismiss()
+        }
+
+        dialogView.findViewById<Button>(R.id.btn_clear_skip_dialog)?.setOnClickListener {
+            vibrationManager.vibrateDialogChoice()
+            clearSkipSaveDialogOption()
+            dialog.dismiss()
+        }
+
+        dialog.setOnDismissListener {
+            vibrationManager.vibrateDialogChoice()
+        }
+
+        dialog.show()
     }
 
     fun showImagePickerDialog(
@@ -361,33 +427,91 @@ class DialogManager(
             vibrationManager.vibrateSwitcher()
         }
 
-        MaterialAlertDialogBuilder(activity)
+        val dialog = MaterialAlertDialogBuilder(activity)
             .setTitle(R.string.pick_image_method)
             .setView(dialogView)
-            .setItems(arrayOf(
-                activity.getString(R.string.gallery_picker),
-                activity.getString(R.string.internal_picker),
-                activity.getString(R.string.documents_picker),
-                activity.getString(R.string.camera)
-            )) { _, which ->
-                if (setDefaultSwitch.isChecked) {
-                    activity.getSharedPreferences(activity.PREFS_NAME, android.content.Context.MODE_PRIVATE)
-                        .edit()
-                        .putInt(activity.DEFAULT_ACTION_KEY, which)
-                        .apply()
-                    activity.defaultImageAction = which
-                }
-                when (which) {
-                    0 -> launchGalleryPicker()
-                    1 -> launchInternalPhotoPicker()
-                    2 -> launchDocumentsPicker()
-                    3 -> launchCamera()
-                }
+            .setCancelable(true)
+            .create()
+
+        // Set up picker buttons
+        dialogView.findViewById<Button>(R.id.btn_gallery_picker)?.setOnClickListener {
+            vibrationManager.vibrateDialogChoice()
+            if (setDefaultSwitch.isChecked) {
+                activity.getSharedPreferences(activity.PREFS_NAME, android.content.Context.MODE_PRIVATE)
+                    .edit()
+                    .putInt(activity.DEFAULT_ACTION_KEY, 0)
+                    .apply()
+                activity.defaultImageAction = 0
             }
-            .setOnDismissListener {
-                vibrationManager.vibrateDialogChoice()
+            launchGalleryPicker()
+            dialog.dismiss()
+        }
+
+        dialogView.findViewById<Button>(R.id.btn_internal_picker)?.setOnClickListener {
+            vibrationManager.vibrateDialogChoice()
+            if (setDefaultSwitch.isChecked) {
+                activity.getSharedPreferences(activity.PREFS_NAME, android.content.Context.MODE_PRIVATE)
+                    .edit()
+                    .putInt(activity.DEFAULT_ACTION_KEY, 1)
+                    .apply()
+                activity.defaultImageAction = 1
             }
-        .show()
+            launchInternalPhotoPicker()
+            dialog.dismiss()
+        }
+
+        dialogView.findViewById<Button>(R.id.btn_documents_picker)?.setOnClickListener {
+            vibrationManager.vibrateDialogChoice()
+            if (setDefaultSwitch.isChecked) {
+                activity.getSharedPreferences(activity.PREFS_NAME, android.content.Context.MODE_PRIVATE)
+                    .edit()
+                    .putInt(activity.DEFAULT_ACTION_KEY, 2)
+                    .apply()
+                activity.defaultImageAction = 2
+            }
+            launchDocumentsPicker()
+            dialog.dismiss()
+        }
+
+        dialogView.findViewById<Button>(R.id.btn_camera)?.setOnClickListener {
+            vibrationManager.vibrateDialogChoice()
+            if (setDefaultSwitch.isChecked) {
+                activity.getSharedPreferences(activity.PREFS_NAME, android.content.Context.MODE_PRIVATE)
+                    .edit()
+                    .putInt(activity.DEFAULT_ACTION_KEY, 3)
+                    .apply()
+                activity.defaultImageAction = 3
+            }
+            launchCamera()
+            dialog.dismiss()
+        }
+
+        // Set up help buttons
+        dialogView.findViewById<ImageButton>(R.id.btn_gallery_help)?.setOnClickListener {
+            vibrationManager.vibrateDialogChoice()
+            showHelpDialog(R.string.gallery_picker, R.string.gallery_picker_help_text)
+        }
+
+        dialogView.findViewById<ImageButton>(R.id.btn_internal_help)?.setOnClickListener {
+            vibrationManager.vibrateDialogChoice()
+            showHelpDialog(R.string.internal_picker, R.string.internal_picker_help_text)
+        }
+
+        dialogView.findViewById<ImageButton>(R.id.btn_documents_help)?.setOnClickListener {
+            vibrationManager.vibrateDialogChoice()
+            showHelpDialog(R.string.documents_picker, R.string.documents_picker_help_text)
+        }
+
+        dialogView.findViewById<ImageButton>(R.id.btn_camera_help)?.setOnClickListener {
+            vibrationManager.vibrateDialogChoice()
+            showHelpDialog(R.string.camera, R.string.camera_help_text)
+        }
+
+        dialog.setOnDismissListener {
+            vibrationManager.vibrateDialogChoice()
+        }
+
+        dialog.show()
     }
 
     fun showAboutDialog(showFAQDialog: () -> Unit) {
@@ -451,6 +575,7 @@ class DialogManager(
                     val isVisible = contentView.visibility == View.VISIBLE
                     contentView.visibility = if (isVisible) View.GONE else View.VISIBLE
                     text = if (isVisible) "▶ $title" else "▼ $title"
+                    vibrationManager.vibrateSwitcher()
                 }
             }
 
@@ -469,6 +594,17 @@ class DialogManager(
             .setView(scrollView)
             .setPositiveButton(R.string.ok_button, null)
             .setOnDismissListener { vibrationManager.vibrateDialogChoice() }
+        .show()
+    }
+
+    private fun showHelpDialog(titleResId: Int, messageResId: Int) {
+        MaterialAlertDialogBuilder(activity)
+            .setTitle(activity.getString(titleResId))
+            .setMessage(activity.getString(messageResId))
+            .setPositiveButton(R.string.ok_button, null)
+            .setOnDismissListener {
+                vibrationManager.vibrateDialogChoice()
+            }
         .show()
     }
 }

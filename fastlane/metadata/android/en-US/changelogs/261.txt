@@ -2,3 +2,5 @@ added time estimation
 fixed gaps in large images
 small dialog fixes
 fixes overlap issues on SCUNet
+prevented images over 8000px
+new dialogs

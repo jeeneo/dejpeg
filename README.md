@@ -4,9 +4,9 @@
   an app for removing noise and compression from photos
   <h2></h2>
   <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/01.png" 
-       style="width: 300px; max-width: 100%; height: auto; margin: 10px;" alt="an image of two rectangular areas of the same picture of yellow tulips, the one at the top is 50 percent compression, the one below has 0 percent compression but still has noticeable PNG compression artifacts">
+       style="width: 300px; max-width: 100%; height: auto; margin: 10px;" alt="">
   <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/02.png" 
-       style="width: 300px; max-width: 100%; height: auto; margin: 10px;" alt="an image fruit, two purple figs sitting directly on a table. one fig is behind the other fig. the fig in the front is cut in half but still remaining upright. text on the left near the first fig reads fig 1. text near the fig on the right reads fig 2. both figs are sitting on top of a table that has the text table 1. there's a slider down the middle of the image showing the differences between a processed image and the original one">
+       style="width: 300px; max-width: 100%; height: auto; margin: 10px;" alt="">
   <p>
 <p align="center">
   <a href="https://apt.izzysoft.de/fdroid/index/apk/com.je.dejpeg"><img src="https://raw.githubusercontent.com/jeeneo/dejpeg/refs/heads/main/assets/IzzyOnDroid.png" width="220" alt="IzzyOnDroid"></a>
@@ -23,7 +23,7 @@
 - before/after view
 - [fully offline](https://github.com/jeeneo/dejpeg/blob/main/app/src/main/AndroidManifest.xml)
 
-(this is not a "super resolution AI upscaler", but a simple non-destructive way to clean up compressed/noisy images)
+this is not a "super resolution AI upscaler", but simple non-destructive method for cleaning up/restoring images
 
 ## models (required):
 [FBCNN](https://github.com/jeeneo/FBCNN-mobile/releases/latest) (JPEG compression)
@@ -36,18 +36,22 @@ you can also run other experimental models, more info [here](https://github.com/
 
 ## limitations:
 - processed locally, minimum 4gb ram and 4 threads recommended
+- limited to images below 8000 pixels, and images above 4000px will affect performance
 
 see the [wiki](https://github.com/jeeneo/dejpeg/wiki) for more information
 
 ## desktop
+for desktops, you can try [chaiNNer](https://github.com/chaiNNer-org/chaiNNer), it has a learning curve and takes a bit to set up, but works pretty well.
 
-for desktops, you can try [chaiNNer](https://github.com/chaiNNer-org/chaiNNer), it has a bit of a learning curve and takes a bit to set up, but works pretty well and has some decent GPU acceleration.
+## note/disclaimer:
+De*JPEG* is not affiliated or related with Topaz `DEJPEG` or any other similarly named software/project.
 
-## note:
-De*JPEG* is not affiliated or related with Topaz `DEJPEG` or any other similarly named software/project
+this app stems from personal uses and was modified for public release
 
 ## credits:
-[@adrianerrea](https://github.com/adrianerrea/fromPytorchtoMobile) for base application, [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and [SCUNet](https://github.com/cszn/SCUNet) creators and all other model creators, this is only a wrapper for `1x` ONNX models
+[@adrianerrea](https://github.com/adrianerrea/fromPytorchtoMobile) for the base application, [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and [SCUNet](https://github.com/cszn/SCUNet) creators plus all other model creators.
+
+this is a GUI wrapper for a select amount of `1x` ONNX image processing models
 
 ## license:
 all models used are under their respective licenses

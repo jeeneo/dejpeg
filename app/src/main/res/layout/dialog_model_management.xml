@@ -5,15 +5,13 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_manage_models"
+    <RadioGroup
+        android:id="@+id/model_radio_group"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        android:text="@string/manage_models_button"
-        style="@style/Widget.Material3.Button.TonalButton" />
+        android:layout_marginBottom="8dp" />
 
-    <!-- seperator -->
+    <!-- Action buttons section -->
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
@@ -21,19 +19,27 @@
         android:background="@color/outline_variant" />
 
     <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_clear_picker_action"
+        android:id="@+id/btn_import_model"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
-        android:text="@string/clear_default_action"
+        android:text="@string/import_model_button"
         style="@style/Widget.Material3.Button.TonalButton" />
 
     <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_clear_skip_dialog"
+        android:id="@+id/btn_delete_model"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
-        android:text="@string/save_dialog_clear_skip_option"
+        android:text="@string/delete_model_button"
+        style="@style/Widget.Material3.Button.TonalButton" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_download_model"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="@string/download_button"
         style="@style/Widget.Material3.Button.TonalButton" />
 
 </LinearLayout>
