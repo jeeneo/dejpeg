@@ -33,6 +33,8 @@ class DialogManager(
     private var importProgressText: TextView? = null
 
     fun promptModelSelection(modelPickerLauncher: ActivityResultLauncher<Intent>) {
+        if (modelManager.hasActiveModel()) return
+
         val dialogView = LayoutInflater.from(activity).inflate(R.layout.dialog_model_selection, null)
         
         val dialog = MaterialAlertDialogBuilder(activity)
@@ -71,14 +73,6 @@ class DialogManager(
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(experimentalLink))
             activity.startActivity(intent)
         }
-
-        // dialogView.findViewById<Button>(R.id.btn_model4)?.setOnClickListener {
-        //     vibrationManager.vibrateDialogChoice()
-        //     val model4Link = activity.getString(R.string.model4_link)
-        //     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(model4Link))
-        //     activity.startActivity(intent)
-        //     dialog.dismiss()
-        // }
 
         dialog.show()
     }
@@ -214,8 +208,7 @@ class DialogManager(
 
     fun copyAndLoadModel(
         modelUri: Uri,
-        force: Boolean = false,
-        showHashMismatchDialog: (Uri, String, String, String) -> Unit
+        promptModelSelection: (() -> Unit)? = null
     ) {
         activity.runOnUiThread { showImportProgressDialog() }
         Thread {
@@ -233,14 +226,47 @@ class DialogManager(
                     override fun onError(error: String) {
                         activity.runOnUiThread {
                             dismissImportProgressDialog()
-                            if (error.startsWith("HASH_MISMATCH:")) {
-                                val parts = error.split(":")
-                                val modelName = parts.getOrNull(1) ?: "unknown"
-                                val expected = parts.getOrNull(2) ?: "?"
-                                val actual = parts.getOrNull(3) ?: "?"
-                                showHashMismatchDialog(modelUri, modelName, expected, actual)
+                            if (error.contains(":") && error.split(":").size >= 5) {
+                                val parts = error.split(":", limit = 5)
+                                val modelName = parts[0]
+                                val title = parts[1]
+                                val message = parts[2]
+                                val positive = parts[3]
+                                val negative = parts[4]
+                                showModelWarningDialog(
+                                    modelUri,
+                                    modelName,
+                                    title,
+                                    message,
+                                    positive,
+                                    negative,
+                                    promptModelSelection
+                                )
+                            } else if (error == "GENERIC_MODEL_WARNING") {
+                                val modelName = try {
+                                    val cursor = activity.contentResolver.query(modelUri, null, null, null, null)
+                                    cursor?.use {
+                                        if (it.moveToFirst()) {
+                                            val idx = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                                            if (idx >= 0) it.getString(idx) else null
+                                        } else null
+                                    } ?: modelUri.lastPathSegment ?: "unknown"
+                                } catch (e: Exception) {
+                                    modelUri.lastPathSegment ?: "unknown"
+                                }
+                                showModelWarningDialog(
+                                    modelUri,
+                                    modelName,
+                                    activity.getString(R.string.generic_model_warning_title),
+                                    activity.getString(R.string.generic_model_warning_message),
+                                    activity.getString(R.string.generic_model_warning_positive),
+                                    activity.getString(R.string.generic_model_warning_negative),
+                                    promptModelSelection
+                                )
                             } else {
-                                showErrorDialog(activity.getString(R.string.model_imported_dialog_error, error), {})
+                                showErrorDialog(error) {
+                                    if (!modelManager.hasActiveModel()) promptModelSelection?.invoke()
+                                }
                             }
                         }
                     }
@@ -248,52 +274,87 @@ class DialogManager(
                         activity.runOnUiThread { updateImportProgressDialog(progress) }
                     }
                 }
-                modelManager.importModel(modelUri, callback, force)
+                activity.runOnUiThread { showImportProgressDialog() }
+                modelManager.importModel(modelUri, callback, false)
             } catch (e: Exception) {
                 activity.runOnUiThread {
                     dismissImportProgressDialog()
-                    val msg = e.message ?: ""
-                    if (msg.startsWith("HASH_MISMATCH:")) {
-                        val parts = msg.split(":")
-                        val modelName = parts.getOrNull(1) ?: "unknown"
-                        val expected = parts.getOrNull(2) ?: "?"
-                        val actual = parts.getOrNull(3) ?: "?"
-                        showHashMismatchDialog(modelUri, modelName, expected, actual)
-                    } else {
-                        showErrorDialog(activity.getString(R.string.model_imported_dialog_error, e.message), {})
+                    showErrorDialog(e.message ?: "") {
+                        if (!modelManager.hasActiveModel()) promptModelSelection?.invoke()
                     }
                 }
             }
         }.start()
     }
 
-    fun showHashMismatchDialog(
+    fun showModelWarningDialog(
         modelUri: Uri,
         modelName: String,
-        expected: String,
-        actual: String,
-        copyAndLoadModel: (Uri, Boolean) -> Unit,
-        modelPickerLauncher: ActivityResultLauncher<Intent>
+        title: String,
+        message: String,
+        positiveButton: String,
+        negativeButton: String,
+        promptModelSelection: (() -> Unit)? = null
     ) {
-        activity.runOnUiThread {
-            MaterialAlertDialogBuilder(activity)
-                .setTitle("import warning")
-                .setMessage(
-                    "the picked model isn't officially supported\n\n" +
-                    "model: $modelName\n" +
-                    "this is in an experimental stage, and these models might perform slower, produce unexpected results, or straight up crash/error out, proceed with caution.\n\n" +
-                    "if this model was on the Experimental Models page and has problems when processing, file an issue on GitHub and mention the image size, model type, device and OS version.\n\n"
-                )
-                .setPositiveButton("I understand") { _, _ ->
-                    vibrationManager.vibrateDialogChoice()
-                    copyAndLoadModel(modelUri, true)
-                }
-                .setNegativeButton("cancel", null)
-            .show()
-            .setOnDismissListener {
-                if (!modelManager.hasActiveModel()) promptModelSelection(modelPickerLauncher)
+        MaterialAlertDialogBuilder(activity)
+            .setCancelable(false)
+            .setTitle(title)
+            .setMessage(
+                "model: $modelName\n\n$message\n\nif you experience issues, please report them on GitHub with details about your device, OS, model, and image size."
+            )
+            .setPositiveButton(positiveButton) { _, _ ->
+                vibrationManager.vibrateDialogChoice()
+                copyAndLoadModelForce(modelUri, promptModelSelection)
             }
-        }
+            .setNegativeButton(negativeButton) { _, _ ->
+                vibrationManager.vibrateDialogChoice()
+                if (!modelManager.hasActiveModel()) {
+                    promptModelSelection?.invoke()
+                }
+            }
+            .show()
+    }
+
+    private fun copyAndLoadModelForce(
+        modelUri: Uri,
+        promptModelSelection: (() -> Unit)? = null
+    ) {
+        activity.runOnUiThread { showImportProgressDialog() }
+        Thread {
+            try {
+                val callback = object : ModelManager.ModelCallback {
+                    override fun onSuccess(modelName: String) {
+                        activity.runOnUiThread {
+                            dismissImportProgressDialog()
+                            modelManager.setActiveModel(modelName)
+                            Toast.makeText(activity.applicationContext, activity.getString(R.string.model_imported_toast_success), Toast.LENGTH_SHORT).show()
+                            activity.processButton.isEnabled = activity.images.isNotEmpty()
+                            activity.updateStrengthSliderVisibility()
+                        }
+                    }
+                    override fun onError(error: String) {
+                        activity.runOnUiThread {
+                            dismissImportProgressDialog()
+                            showErrorDialog(error) {
+                                if (!modelManager.hasActiveModel()) promptModelSelection?.invoke()
+                            }
+                        }
+                    }
+                    override fun onProgress(progress: Int) {
+                        activity.runOnUiThread { updateImportProgressDialog(progress) }
+                    }
+                }
+                activity.runOnUiThread { showImportProgressDialog() }
+                modelManager.importModel(modelUri, callback, true)
+            } catch (e: Exception) {
+                activity.runOnUiThread {
+                    dismissImportProgressDialog()
+                    showErrorDialog(e.message ?: "") {
+                        if (!modelManager.hasActiveModel()) promptModelSelection?.invoke()
+                    }
+                }
+            }
+        }.start()
     }
 
     fun showErrorDialog(message: String, promptModelSelection: () -> Unit) {

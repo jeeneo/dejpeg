@@ -91,6 +91,11 @@
     <string name="importing_model">importing model</string>
     <string name="model_imported_toast_success">model imported successfully</string>
     <string name="model_imported_dialog_error">error importing model: %1$s</string>
+
+    <string name="generic_model_warning_title">unknown model</string>
+    <string name="generic_model_warning_message">this model is not recognized and may not work correctly</string>
+    <string name="generic_model_warning_positive">import anyway</string>
+    <string name="generic_model_warning_negative">cancel</string>
     
     <string name="loading_model">loading model</string>
     <!-- <string name="processing_preparing">preparing...</string> -->

@@ -64,7 +64,6 @@ public class ModelManager {
         Map.entry("1x_Bandage-Smooth-64._105000_G.onnx", "ff04b61a9c19508bfa70431dbffc89e218ab0063de31396e5ce9ac9a2f117d20")
     );
 
-    // Specific import warnings for certain model hashes
     private static final Map<String, ModelWarning> MODEL_WARNINGS = Map.ofEntries(
         Map.entry("1x_DitherDeleterV3-Smooth-32._115000_G.onnx", new ModelWarning(
             "performance warning",
@@ -233,24 +232,30 @@ public class ModelManager {
         ResolveResult result;
         try { result = resolveHashOnly(modelUri); }
         catch (Exception e) {
-            if (!force) { 
-                if (callback != null) callback.onError("HASH_CALCULATION_ERROR:" + e.getMessage()); 
-                return false; 
+            if (callback != null && !force) {
+                callback.onError("GENERIC_MODEL_WARNING");
+                return false;
             }
             return importModelInternal(modelUri, uriLastName(modelUri), callback);
         }
-        
-        if (!result.hashMatches && !force) {
-            if (callback != null) callback.onError("HASH_MISMATCH:unknown:" + result.expectedHash + ":" + result.actualHash);
-            return false;
-        }
-        
-        // Check if this model has a specific warning
+
         if (result.modelWarning != null && !force) {
-            if (callback != null) callback.onError("MODEL_WARNING:" + result.matchedModel + ":" + result.modelWarning.title + ":" + result.modelWarning.message + ":" + result.modelWarning.positiveButtonText + ":" + result.modelWarning.negativeButtonText);
+            if (callback != null) callback.onError(
+                result.matchedModel + ":" +
+                result.modelWarning.title + ":" +
+                result.modelWarning.message + ":" +
+                result.modelWarning.positiveButtonText + ":" +
+                result.modelWarning.negativeButtonText
+            );
             return false;
         }
-        
+        if (result.matchedModel == null && !force) {
+            if (callback != null) {
+                callback.onError("GENERIC_MODEL_WARNING");
+                return false;
+            }
+        }
+
         return importModelInternal(modelUri, result.filename, callback);
     }
 
@@ -319,35 +324,33 @@ public class ModelManager {
     public boolean isColorModel(String modelName) { return modelName != null && modelName.contains("color"); }
     public boolean isKnownModel(String modelName) { return modelName != null && VALID_MODELS.contains(modelName); }
 
-    /**
-     * Check if a specific model has import warnings
-     */
-    public boolean hasModelWarning(String modelName) {
-        return modelName != null && MODEL_WARNINGS.containsKey(modelName);
-    }
+    // /**
+    //  * Check if a specific model has import warnings
+    //  */
+    // public boolean hasModelWarning(String modelName) {
+    //     return modelName != null && MODEL_WARNINGS.containsKey(modelName);
+    // }
 
     /**
-     * Get the warning information for a specific model
-     */
-    public ModelWarning getModelWarning(String modelName) {
-        return modelName != null ? MODEL_WARNINGS.get(modelName) : null;
-    }
+    //  * Get the warning information for a specific model
+    //  */
+    // public ModelWarning getModelWarning(String modelName) {
+    //     return modelName != null ? MODEL_WARNINGS.get(modelName) : null;
+    // }
 
-    /**
-     * Get all models that have warnings
-     */
-    public Set<String> getModelsWithWarnings() {
-        return MODEL_WARNINGS.keySet();
-    }
+    // /**
+    //  * Get all models that have warnings
+    //  */
+    // public Set<String> getModelsWithWarnings() {
+    //     return MODEL_WARNINGS.keySet();
+    // }
 
-    /**
-     * Add a new model warning (useful for runtime configuration)
-     */
-    public void addModelWarning(String modelName, ModelWarning warning) {
-        // Note: This would require making MODEL_WARNINGS non-final or using a different approach
-        // For now, this is a placeholder showing how you could extend the system
-        Log.d("ModelManager", "Would add warning for model: " + modelName);
-    }
+    // /**
+    //  * Add a new model warning (useful for runtime configuration)
+    //  */
+    // public void addModelWarning(String modelName, ModelWarning warning) {
+    //     Log.d("ModelManager", "Would add warning for model: " + modelName);
+    // }
 
     public interface ModelCallback { void onSuccess(String modelName); void onError(String error); void onProgress(int progress); }
     public interface ModelDeleteCallback { void onModelDeleted(String modelName); }
