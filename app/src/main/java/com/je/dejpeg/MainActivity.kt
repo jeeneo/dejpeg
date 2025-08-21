@@ -112,6 +112,7 @@ class MainActivity : AppCompatActivity() {
             try {
                 if (result.resultCode == RESULT_OK) {
                     result.data?.clipData?.let { handleMultipleImages(it) }
+                        ?: result.data?.data?.let { onImageSelected(it) }
                         ?: currentPhotoUri?.let { onImageSelected(it); currentPhotoUri = null }
                 }
             } catch (e: Exception) { showErrorDialog(getString(R.string.error_opening_image_dialog) + " " + e.message) }

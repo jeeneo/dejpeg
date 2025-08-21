@@ -21,7 +21,7 @@
 
     <string name="set_as_default_action">set as default</string>
     <string name="pick_image_method">pick image from</string>
-    <string name="clear_default_action">clear picker defaults</string>
+    <string name="clear_default_action">clear picker default</string>
     <string name="default_action_cleared_toast">default picker cleared</string>
 
     <string name="background_service_title">DeJPEG service</string>
