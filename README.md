@@ -16,6 +16,7 @@
   </p>
 </div>
 
+### note: see [this issue](https://github.com/jeeneo/dejpeg/issues/26) before downloading
 
 ## features:
 - batch processing
