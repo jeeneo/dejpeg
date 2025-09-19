@@ -47,7 +47,8 @@ public class ImageProcessor {
 
     /***
      * TODO:
-     * - Allow user-configurable chunk size and overlap
+     * - allow user-configurable chunk size and overlap
+     * - fix the SCUNet thing where images look weirdly chunked and artifacts left over
      */
 
     public ImageProcessor(Context context, ModelManager modelManager) {
@@ -63,7 +64,6 @@ public class ImageProcessor {
 
     public void processImage(Bitmap inputBitmap, float strength, ProcessCallback callback, int index, int total) {
         isCancelled = false;
-        // Move everything to the executor thread
         executor.submit(() -> {
             try {
                 String modelName = modelManager.getActiveModelName();
@@ -168,7 +168,7 @@ public class ImageProcessor {
         OnnxTensor inputTensor = OnnxTensor.createTensor(info.env, FloatBuffer.wrap(inputArray), inputShape);
         inputs.put(info.inputName, inputTensor);
 
-        // Attach extra float inputs if present
+        // dont think this needed tbh but..
         for (Map.Entry<String, NodeInfo> entry : info.inputInfoMap.entrySet()) {
             if (entry.getKey().equals(info.inputName)) continue;
             if (entry.getValue().getInfo() instanceof TensorInfo tinfo && tinfo.type == OnnxJavaType.FLOAT) {
@@ -244,8 +244,6 @@ public class ImageProcessor {
         if (e.getMessage() != null) msg += ": " + e.getMessage();
         return msg;
     }
-
-    // --- ModelInfo for session/model metadata ---
     private static class ModelInfo {
         OrtEnvironment env;
         String inputName;
@@ -280,8 +278,6 @@ public class ImageProcessor {
             }
         }
     }
-
-    // --- ChunkProcessor for chunk/tiling logic ---
     private static class ChunkProcessor {
         private File chunkDir, processedDir;
         private Context context;
