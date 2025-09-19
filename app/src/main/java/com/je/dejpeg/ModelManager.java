@@ -6,41 +6,12 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.util.Log;
 import android.provider.OpenableColumns;
-
 import java.io.*;
 import java.security.MessageDigest;
 import java.util.*;
-
 import ai.onnxruntime.*;
-
 import com.je.dejpeg.utils.VibrationManager;
 
-/**
- * ModelManager handles the import, validation, and management of ONNX models.
- * 
- * FEATURES:
- * - Hash-based model validation
- * - Model-specific import warnings
- * - Progress tracking during import
- * - Automatic model optimization settings
- * 
- * MODEL WARNING SYSTEM:
- * The system automatically shows specific warning dialogs for certain models based on their hash.
- * To add a new model warning:
- * 1. Add the model hash to MODEL_HASHES
- * 2. Add a corresponding ModelWarning entry to MODEL_WARNINGS
- * 3. The warning will automatically appear when that model is imported
- * 
- * Example warning types:
- * - Experimental/beta models
- * - Hardware requirement warnings
- * - Memory usage warnings
- * - Compatibility warnings
- * - Performance warnings
- * 
- * The warning system integrates with DialogManager to show user-friendly dialogs
- * that allow users to proceed or cancel the import based on the warning content.
- */
 public class ModelManager {
     private static final String PREFS_NAME = "ModelPrefs";
     private static final String ACTIVE_MODEL_KEY = "activeModel";
@@ -323,34 +294,6 @@ public class ModelManager {
 
     public boolean isColorModel(String modelName) { return modelName != null && modelName.contains("color"); }
     public boolean isKnownModel(String modelName) { return modelName != null && VALID_MODELS.contains(modelName); }
-
-    // /**
-    //  * Check if a specific model has import warnings
-    //  */
-    // public boolean hasModelWarning(String modelName) {
-    //     return modelName != null && MODEL_WARNINGS.containsKey(modelName);
-    // }
-
-    /**
-    //  * Get the warning information for a specific model
-    //  */
-    // public ModelWarning getModelWarning(String modelName) {
-    //     return modelName != null ? MODEL_WARNINGS.get(modelName) : null;
-    // }
-
-    // /**
-    //  * Get all models that have warnings
-    //  */
-    // public Set<String> getModelsWithWarnings() {
-    //     return MODEL_WARNINGS.keySet();
-    // }
-
-    // /**
-    //  * Add a new model warning (useful for runtime configuration)
-    //  */
-    // public void addModelWarning(String modelName, ModelWarning warning) {
-    //     Log.d("ModelManager", "Would add warning for model: " + modelName);
-    // }
 
     public interface ModelCallback { void onSuccess(String modelName); void onError(String error); void onProgress(int progress); }
     public interface ModelDeleteCallback { void onModelDeleted(String modelName); }
