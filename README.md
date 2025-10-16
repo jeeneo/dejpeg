@@ -42,7 +42,8 @@ you can also run other experimental models, more info [here](https://github.com/
 see the [wiki](https://github.com/jeeneo/dejpeg/wiki) for more information
 
 ## desktop
-for desktops, you can try my [desktop version](https://github.com/jeeneo/dejpeg-desktop), or more advanced, [chaiNNer](https://github.com/chaiNNer-org/chaiNNer) (it has a learning curve and takes a bit to set up, but works pretty well.)
+the desktop version was deprecated and lacking many features, please use [chaiNNer](https://github.com/chaiNNer-org/chaiNNer)
+
 
 ## note/disclaimer:
 De*JPEG* is not affiliated or related with Topaz `DEJPEG` or any other similarly named software/project.
