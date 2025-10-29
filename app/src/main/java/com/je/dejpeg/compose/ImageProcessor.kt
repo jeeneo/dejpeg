@@ -180,9 +180,7 @@ class ImageProcessor(
                 processed.recycle()
                 feathered.recycle()
                 val timeRemaining = timeEstimator.getEstimatedTimeRemaining(chunkIndex, totalChunks)
-                val progressMessage = if (total > 1) {
-                    context.getString(R.string.image_x_of_y_chunk_x_of_y, index + 1, total, chunkIndex, totalChunks)
-                } else if (totalChunks > 1) {
+                val progressMessage = if (totalChunks > 1) {
                     context.getString(R.string.processing_chunk_x_of_y, chunkIndex, totalChunks)
                 } else {
                     context.getString(R.string.processing)
