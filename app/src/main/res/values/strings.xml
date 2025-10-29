@@ -1,153 +1,147 @@
 <resources>
     <string name="app_name">DeJPEG</string>
-    <string name="app_slogan">non-destructive restoration</string>
-
-    <!-- links -->
-    <string name="FBCNN_link">https://github.com/jeeneo/fbcnn-mobile/releases/latest</string>
-    <string name="SCUNet_link">https://github.com/jeeneo/scunet-mobile/releases/latest</string>
-    <string name="experimental_link">https://github.com/jeeneo/dejpeg-experimental/releases/latest</string>
-    <string name="experimental_model">experimental models</string>
-
-    <!-- main ui -->
-    <string name="select_image">add</string>
-    <string name="process_button">process</string>
-    <string name="cancel_button">cancel</string>
-    <string name="apply_to_all">apply to all</string>
-    <string name="faq_dialog_title">FAQs</string>
-    <string name="config_dialog_title">config</string>
-    <string name="error_dialog_title">error</string>
-    <string name="warning_dialog_title">warning</string>
-    <string name="ok_button">ok</string>
-
-    <string name="set_as_default_action">set as default</string>
-    <string name="pick_image_method">pick image from</string>
-    <string name="clear_default_action">clear picker default</string>
-    <string name="default_action_cleared_toast">default picker cleared</string>
-
-    <string name="background_service_title">DeJPEG service</string>
-    <string name="stop_background_service_text">stop</string>
-    <string name="background_service_message">this is intended to prevent the system from killing the app when in background.</string>
-    <string name="background_service_additional_message">\n\nyou shouldn\'t need to stop it, but it can be stopped from the notification or by dismissing the app from recents.</string>
-
-    <string name="error_copied_to_clipboard_toast">error copied to clipboard</string>
-
-    <string name="png">png</string>
-    <string name="output_format_set_toast">output format set to: %1$s</string>
-
-    <string name="share_image">share image</string>
-    <string name="save_image">save image</string>
-    <string name="save_all_images">save all images</string>
+    <string name="close">Close</string>
+    <string name="image">Image</string>
+    <string name="share">Share</string>
+    <string name="save">Save</string>
+    <string name="before">Before</string>
+    <string name="after">After</string>
+    <string name="save_image">Save Image</string>
+    <string name="filename">Filename</string>
+    <string name="save_all">Save all</string>
+    <string name="dont_show_dialog">Don\'t show this dialog</string>
+    <string name="cancel">Cancel</string>
+    <!-- if translated, must be all lowercase, used inside middle of dialog -->
+    <string name="all_images">all images</string>
+    <string name="remove_image_title">Remove image?</string>
+    <string name="remove_image_question">Do you want to remove %1$s?</string>
+    <string name="remove">Remove</string>
+    <string name="stop_processing_title">Stop processing?</string>
+    <string name="stop_processing_question">Are you sure you want to stop processing %1$s?</string>
+    <string name="nope">Nope</string>
+    <string name="yes_stop">Yes, stop</string>
+    <string name="background_service_error">Background service error</string>
+    <string name="background_service_error_detail">The background processing service has encountered an error and needs to stop. Please try again.</string>
+    <string name="error_saving_image">Error saving image: %1$s</string>
+    <string name="image_saved_to_gallery">Image saved to gallery</string>
+    <string name="share_image">Share Image</string>
+    <string name="error_sharing_image">Error sharing image: %1$s</string>
+    <string name="all_images_saved_to_gallery">All %1$d images saved to gallery</string>
+    <string name="error_saving_images">Error saving images: %1$s</string>
+    <string name="battery_optimization_explanation">To process images in the background, this app needs to be exempted from battery optimization.</string>
+    <string name="open_battery_optimization_settings">Would you like to open battery optimization settings?</string>
+    <string name="open_settings">Open settings</string>
+    <string name="select_image_source">Select image source</string>
+    <string name="gallery">Gallery</string>
+    <string name="gallery_picker_title">Gallery picker</string>
+    <string name="gallery_picker_desc">Uses your device\'s or 3rd-party gallery app to select images. This method is recommended and works on most devices and supports filenames.</string>
+    <string name="internal_picker">Internal picker</string>
+    <string name="internal_picker_title">Internal picker</string>
+    <string name="internal_picker_desc">Uses Android\'s built-in photo picker, more privacy aware and restricts filenames.</string>
+    <string name="documents">Documents</string>
+    <string name="documents_picker_title">Documents picker</string>
+    <string name="documents_picker_desc">Opens the standard SAF picker. Useful for accessing images in folders or other locations/providers.</string>
+    <string name="camera">Camera</string>
+    <string name="camera_title">Camera</string>
+    <string name="camera_desc">Opens your device\'s camera, photos taken will be imported automatically.</string>
+    <string name="set_as_default">Set as default</string>
+    <string name="help">Help</string>
+    <string name="ok">OK</string>
+    <string name="images">Images (%1$d)</string>
+    <string name="strength">Strength: %1$d</string>
+    <string name="no_images_yet">No images yet</string>
+    <string name="tap_to_add_images">Tap + to add images</string>
+    <string name="no_model_installed_title">No model installed</string>
+    <string name="no_model_installed_desc">You need to import a model before you can process images. Would you like to go to settings to import one?</string>
+    <string name="go_to_settings">Go to settings</string>
+    <string name="active_model">Active model: %1$s</string>
+    <string name="import_error">Import error</string>
+    <string name="model_management">Model management</string>
+    <string name="no_models_installed">No models installed. Import a model to get started.</string>
+    <string name="active">Active</string>
+    <string name="download">Download</string>
+    <string name="delete">Delete</string>
+    <string name="delete_models">Delete models</string>
+    <string name="download_models">Download Models</string>
+    <string name="choose_model_to_download">Choose a model to download:</string>
+    <string name="importing_model">Importing model</string>
+    <string name="chunk_settings">Chunk settings</string>
+    <string name="chunk_size">Chunk size</string>
+    <string name="overlap_size">Overlap size</string>
+    <string name="note_chunk_overlap">Note: Larger chunks use more memory. Overlap helps blend chunks.</string>
+    <string name="preferences">Preferences</string>
+    <string name="haptic_feedback">Haptic feedback</string>
+    <string name="vibration_on_touch">Vibration on touch</string>
+    <string name="haptic_feedback_desc">Enable small vibrations for button presses and gestures</string>
+    <string name="unknown_model">Unknown model</string>
+    <string name="faqs">FAQs</string>
+    <string name="processing">Processing</string>
+    <string name="finishing_up">Finishing up...</string>
+    <string name="status_preparing">Preparing...</string>
+    <string name="status_complete">Complete</string>
+    <string name="status_cancelled">Cancelled</string>
+    <string name="status_canceling">Canceling...</string>
+    <string name="settings">Settings</string>
+    <string name="add_images">Add Images</string>
+    <string name="process">Process</string>
+    <string name="cancel_processing">Cancel</string>
+    <string name="process_all">Process all</string>
+    <!-- settingsscreen.kt -->
+    <string name="model">Model</string>
+    <string name="no_model_loaded">No model loaded</string>
+    <string name="chunk_size_px">%1$d px</string>
+    <string name="overlap_size_px">%1$d px</string>
+    <string name="app">App</string>
+    <string name="manage_save_dialog_and_source">Manage save dialog and image source</string>
+    <string name="about">About</string>
+    <string name="version_info_and_credits">Version info and license</string>
+    <string name="show_frequently_asked_questions">Show frequently asked questions</string>
+    <string name="imported_model">Imported %1$s</string>
+    <string name="deleted_model">Deleted %1$s</string>
+    <string name="warning_emoji">⚠</string>
+    <string name="import_anyway">Import anyway</string>
+    <string name="use_anyway">Use anyway</string>
+    <string name="model_incompatible">This model may be incompatible. Import anyway?</string>
+    <string name="model_name_format">Model: %1$s\n\n%2$s</string>
+    <string name="warning">Warning</string>
+    <string name="import_text">Import</string>
+    <string name="progress_percent">%1$d%%</string>
+    <string name="px_suffix">px</string>
+    <string name="dejpeg_title">DeJPEG v3.0</string>
+    <string name="non_destructive_restoration">Non-destructive restoration</string>
+    <string name="open_source_app_description">An open source app for removing noise and compression from photos</string>
+    <string name="license_text">Licensed under GPLv3</string>
+    <string name="save_dialog">Save dialog</string>
+    <string name="currently_shown_hidden">Currently: %1$s</string>
+    <string name="shown">shown</string>
+    <string name="hidden">hidden</string>
+    <string name="show_save_dialog">Show save dialog</string>
+    <string name="save_dialog_shown">Save dialog is shown</string>
+    <string name="default_image_source">Default image source</string>
+    <string name="currently_default_source">Currently: %1$s</string>
+    <string name="none">None</string>
+    <string name="photos">Photos</string>
+    <string name="clear_default_source">Clear default source</string>
+    <string name="no_default_source">No default source set</string>
+    <string name="cannot_open_link">Cannot open link</string>
+    <string name="cannot_open_link_detail">Cannot open link: %1$s</string>
+    <string name="expand">Expand</string>
+    <string name="collapse">Collapse</string>
+    <string name="fbcnn_model">FBCNN</string>
+    <string name="scunet_model">SCUNet</string>
+    <string name="experimental_models">Experimental models</string>
     
-    <!-- added 2025-08-21 -->
-    <string name="save_dialog_title">save image</string>
-    <string name="save_dialog_filename_hint">filename (always png)</string>
-    <string name="save_dialog_save_all">save all processed images</string>
-    <string name="save_dialog_skip_next_time">skip this dialog next time</string>
-    <string name="save_dialog_clear_skip_option">clear save dialog</string>
-    <string name="save_dialog_skip_cleared_toast">save dialog cleared</string>
-    <string name="save_dialog_saving_all">saving all images...</string>
-    <string name="save_dialog_all_saved_toast">all images saved to gallery</string>
-    <string name="save_dialog_save_button">save</string>
-    <string name="save_dialog_cancel_button">cancel</string>
-
-    <string name="saving_image_title">saving image</string>
-    <string name="saving_status">saving...</string>
-
-    <!-- error dialogs -->
-    <string name="copy_button">copy</string>
-    <string name="dismiss_button">dismiss</string>
-
-    <!-- image picker -->
-    <!-- <string name="single_image">single image</string> -->
-    <string name="error_camera_dialog">camera import error</string>
+    <!-- model warnings -->
+    <string name="model_warning_performance_title">Performance warning</string>
+    <string name="model_warning_ditherdeleter_message">DitherDeleterV3 is resource-intensive and not recommended, it will take a long time to process images over 500px on even high-end devices</string>
+    <string name="model_warning_bandage_message">Bandage-Smooth is resource-intensive and not recommended, it will take a long time to process images over 500px on even high-end devices</string>
+    <string name="model_warning_outdated_title">Outdated model</string>
+    <string name="model_warning_outdated_message">This is an older f32 model. A newer/faster f16 version is available, check model management\'s download button</string>
     
-    <string name="gallery_picker">gallery</string>
-    <string name="gallery_picker_help">help</string>
-    <string name="internal_picker">photo picker</string>
-    <string name="internal_picker_help">help</string>
-    <string name="documents_picker">file picker</string>
-    <string name="documents_picker_help">help</string>
-    <string name="camera">camera</string>
-    <string name="camera_help">help</string>
-    
-    <!-- Image picker help text -->
-    <string name="gallery_picker_help_text">uses your device\'s or 3rd-party gallery app to select images. this method is recommended and works on most devices with filename support.</string>
-    <string name="internal_picker_help_text">uses Android\'s built-in photo picker but more privacy aware and restricts filenames.</string>
-    <string name="documents_picker_help_text">opens the standard file picker. useful for accessing images in folders or other locations.</string>
-    <string name="camera_help_text">opens your device\'s camera, photos taken will be imported automatically.</string>
-    
-    <!-- model ui -->
-    <string name="manage_models">manage models</string>
-    <string name="no_models">no models found.\n\nplease download a model from one of the buttons below, then import</string>
-    <string name="model_switched">switched to model: %1$s</string>
-    <string name="import_model_button">import</string>
-    <string name="delete_model_button">delete model</string>
-    <string name="model_deleted_toast">model deleted: %1$s</string>
-    <string name="download_button">download</string>
-    <string name="download_models_title">downloads models</string>
-    <string name="delete_models_title">delete models</string>
-    <!-- model imports -->
-    <string name="manage_models_button">manage models</string>
-    <string name="importing_model">importing model</string>
-    <string name="model_imported_toast_success">model imported successfully</string>
-    <string name="model_imported_dialog_error">error importing model: %1$s</string>
-
-    <string name="generic_model_warning_title">unknown model</string>
-    <string name="generic_model_warning_message">this model is not recognized and may not work correctly</string>
-    <string name="generic_model_warning_positive">import anyway</string>
-    <string name="generic_model_warning_negative">cancel</string>
-    
-    <string name="loading_model">loading model</string>
-    <!-- <string name="processing_preparing">preparing...</string> -->
-
-    <!-- image imports -->
-    <string name="single_image_loaded_toast">image loaded</string>
-    <string name="batch_images_loaded_toast">loaded %1$d images</string>
-    <string name="image_saved_toast">image saved to gallery</string>
-    <string name="error_opening_image_dialog">error adding image:</string>
-    <string name="error_loading_image_dialog">error loading image:</string>
-    <string name="no_images_loaded_toast">no images loaded</string>
-    <string name="error_saving_image_dialog">error saving image:</string>
-    <string name="error_sharing_image_dialog">error sharing image:</string>
-    <string name="error_loading_all_images_batch_dialog">error loading all images: %s</string>
-    <string name="remove_this_image_button">remove this image</string>
-    <string name="remove_all_images_button">remove all images</string>
-    <string name="remove_all_but_this_button">remove all but this</string>
-    <string name="remove_image_title">remove image</string>
-
-    <!-- processing -->
-    <string name="processing_chunked_single">processing chunk %1$d of %2$d</string>
-    <string name="processing_batch_chunked">batch: %1$d/%2$d images, %3$d/%4$d chunks</string>
-    <string name="processing_batch">batch: %1$d/%2$d images</string>
-    <string name="processing_image_single">processing single image</string>
-    <string name="processing_preparing">preparing...</string>
-    <string name="processing_cancelled_toast">processing cancelled!</string>
-
-    <!-- processing_in_progress_toast -->
-    
-    <string name="processing_in_progress_toast">not available while processing</string>
-
-    <string name="processing_complete_batch">batch processing complete - %1$d images processed</string>
-    <string name="processing_complete_single">processing complete</string>
-    
-    <string name="processing_complete_description">tap to view results</string>
-
-    <string name="processing_updates_description">shows updates for image processing tasks</string>
-    <string name="processing_updates_reason_for_notifications">processing updates</string>
-    <string name="processing_error_title_notification">processing error</string>
-
-    <!-- <string name="processing_preparing">preparing images for processing…</string> -->
-    <string name="processing_multiple_images">processing %1$d of %2$d images in parallel</string>
-    <string name="processing_image_status">image %1$d: processing</string>
-    <string name="processing_image_chunked_status">image %1$d: processing chunk %2$d of %3$d</string>
-    <string name="processing_parallel">processing %1$d images in parallel...</string>
-    <!-- <string name="processing_large_image">processing large image %1$d of %2$d</string> -->
-    <!-- <string name="processing_chunked_single_range">processing chunks %1$s</string> -->
-    <string name="processing_status_format">processing %1$d/%2$d images • chunk %3$d/%4$d</string>    
-    <string name="about_title">about</string>
-    <string name="FAQ_button">FAQs</string>
-
-    <!-- <string name="arrow_side">▶</string>
-    <string name="arrow_open">▼</string> -->
-    <!-- TODO: add GitHub FAQs edits -->
+    <!-- ImageProcessor strings -->
+    <string name="error_failed_to_load_model">Failed to load model</string>
+    <string name="error_processing_cancelled">Processing cancelled</string>
+    <string name="processing_image_x_of_y">Processing image %1$d/%2$d</string>
+    <string name="processing_chunk_x_of_y">Processing chunk %1$d/%2$d</string>
+    <string name="image_x_of_y_chunk_x_of_y">Image %1$d/%2$d: chunk %3$d/%4$d</string>
 </resources>
