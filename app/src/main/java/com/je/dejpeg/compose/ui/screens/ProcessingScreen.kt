@@ -142,7 +142,11 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
             LazyColumn(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(images, key = { it.id }) { image ->
                     val swipeState = remember { mutableStateOf(0f) }
-                    SwipeToDismissWrapper(swipeOffset = swipeState, onDismissed = { handleImageRemoval(image.id) }) {
+                    SwipeToDismissWrapper(
+                        swipeOffset = swipeState,
+                        isProcessing = image.isProcessing, // pass isProcessing
+                        onDismissed = { handleImageRemoval(image.id) }
+                    ) {
                         ImageCard(
                             image = image,
                             supportsStrength = supportsStrength,
@@ -273,7 +277,7 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
 }
 
 @Composable
-fun SwipeToDismissWrapper(swipeOffset: MutableState<Float>, onDismissed: () -> Unit, content: @Composable () -> Unit) {
+fun SwipeToDismissWrapper(swipeOffset: MutableState<Float>, isProcessing: Boolean, onDismissed: () -> Unit, content: @Composable () -> Unit) {
     val scope = rememberCoroutineScope()
     val animatedOffset by animateFloatAsState(swipeOffset.value, label = "swipe")
     var widthPx by remember { mutableIntStateOf(0) }
@@ -281,22 +285,12 @@ fun SwipeToDismissWrapper(swipeOffset: MutableState<Float>, onDismissed: () -> U
     val haptic = com.je.dejpeg.ui.utils.rememberHapticFeedback()
     var hasStartedDrag by remember { mutableStateOf(false) }
     var hasReachedThreshold by remember { mutableStateOf(false) }
-    
     Box(Modifier.fillMaxWidth().height(80.dp).onSizeChanged { widthPx = it.width }) {
-        if (animatedOffset > 0f) Box(Modifier.width((animatedOffset / density).dp).height(80.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFEF5350)), Alignment.Center) { Icon(Icons.Filled.Delete, "Delete", Modifier.size(28.dp), Color.White) }
+        if (animatedOffset > 0f) Box(Modifier.width((animatedOffset / density).dp).height(80.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFEF5350)), Alignment.Center) {
+            Icon(if (isProcessing) Icons.Filled.Close else Icons.Filled.Delete, if (isProcessing) "Cancel" else "Delete", Modifier.size(28.dp), Color.White)
+        }
         Box(Modifier.fillMaxWidth().height(80.dp).offset { IntOffset(animatedOffset.roundToInt(), 0) }.pointerInput(Unit) {
-            detectHorizontalDragGestures(
-                onDragStart = { if (!hasStartedDrag) { haptic.gestureStart(); hasStartedDrag = true } },
-                onHorizontalDrag = { _, dragAmount -> 
-                    swipeOffset.value = max(0f, swipeOffset.value + dragAmount)
-                    if (widthPx > 0 && swipeOffset.value > widthPx * 0.35f && !hasReachedThreshold) { haptic.medium(); hasReachedThreshold = true }
-                    else if (swipeOffset.value <= widthPx * 0.35f) hasReachedThreshold = false
-                },
-                onDragEnd = { 
-                    if (widthPx > 0 && swipeOffset.value > widthPx * 0.35f) { haptic.heavy(); onDismissed() }
-                    scope.launch { swipeOffset.value = 0f; hasStartedDrag = false; hasReachedThreshold = false }
-                }
-            )
+            detectHorizontalDragGestures(onDragStart = { if (!hasStartedDrag) { haptic.gestureStart(); hasStartedDrag = true } }, onHorizontalDrag = { _, dragAmount -> swipeOffset.value = max(0f, swipeOffset.value + dragAmount); if (widthPx > 0 && swipeOffset.value > widthPx * 0.35f && !hasReachedThreshold) { haptic.medium(); hasReachedThreshold = true } else if (swipeOffset.value <= widthPx * 0.35f) hasReachedThreshold = false }, onDragEnd = { if (widthPx > 0 && swipeOffset.value > widthPx * 0.35f) { haptic.heavy(); onDismissed() }; scope.launch { swipeOffset.value = 0f; hasStartedDrag = false; hasReachedThreshold = false } })
         }) { content() }
     }
 }
@@ -362,7 +356,7 @@ fun ImageCard(image: ImageItem, supportsStrength: Boolean, onStrengthChange: (Fl
                     }
                 } else if (image.outputBitmap != null) {
                     Spacer(modifier = Modifier.height(2.dp))
-                    Text(text = "Complete", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium, fontSize = 11.sp)
+                    Text(text = stringResource(R.string.status_complete_ui), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium, fontSize = 11.sp)
                 }
             }
             Column(modifier = Modifier.align(Alignment.CenterVertically), verticalArrangement = Arrangement.spacedBy(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {

@@ -96,21 +96,31 @@ fun BeforeAfterScreen(viewModel: ProcessingViewModel, imageId: String, navContro
         },
         bottomBar = {
             if (afterBitmap != null) {
-                Surface(color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.fillMaxWidth()) {
-                    Row(Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 16.dp, start = 16.dp, end = 16.dp)
-                        .navigationBarsPadding(), Arrangement.SpaceEvenly) {
-                        IconButton(onClick = { haptic.light(); ImageActions.shareImage(context, afterBitmap) }) {
-                            Icon(Icons.Filled.Share, "Share", modifier = Modifier.size(32.dp))
-                        }
-                        IconButton(onClick = {
-                            haptic.medium()
-                            val skip = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE).getBoolean("skipSaveDialog", false)
-                            if (skip) viewModel.saveImage(context, imageId) else showSaveDialog = true
-                        }) {
-                            Icon(Icons.Filled.Save, "Save", modifier = Modifier.size(32.dp))
-                        }
-                    }
+            Surface(color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.fillMaxWidth()) {
+                Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                    top = 8.dp + with(LocalDensity.current) { 22f.toDp() },
+                    bottom = 16.dp,
+                    start = 16.dp,
+                    end = 16.dp
+                    )
+                    .navigationBarsPadding(),
+                Arrangement.SpaceEvenly
+                ) {
+                IconButton(onClick = { haptic.light(); ImageActions.shareImage(context, afterBitmap) }) {
+                    Icon(Icons.Filled.Share, "Share", modifier = Modifier.size(32.dp))
                 }
+                IconButton(onClick = {
+                    haptic.medium()
+                    val skip = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE).getBoolean("skipSaveDialog", false)
+                    if (skip) viewModel.saveImage(context, imageId) else showSaveDialog = true
+                }) {
+                    Icon(Icons.Filled.Save, "Save", modifier = Modifier.size(32.dp))
+                }
+                }
+            }
             }
         }
     ) { paddingValues ->
@@ -149,7 +159,6 @@ private fun SliderView(
             .onGloballyPositioned { containerSize = it.size },
         Alignment.Center
     ) {
-        // Before image (left side)
         Box(
             Modifier
                 .fillMaxSize()
@@ -174,8 +183,6 @@ private fun SliderView(
                 )
             }
         }
-        
-        // After image (right side)
         Box(
             Modifier
                 .fillMaxSize()
@@ -200,12 +207,9 @@ private fun SliderView(
                 )
             }
         }
-        
-        // Slider handle
         if (containerSize.width > 0) {
             val sliderX = containerSize.width * sliderPosition
             Box(Modifier.fillMaxSize()) {
-                // Slider line
                 Box(
                     Modifier
                         .fillMaxHeight()
@@ -226,8 +230,6 @@ private fun SliderView(
                             androidx.compose.foundation.shape.RoundedCornerShape(2.dp)
                         )
                 )
-                
-                // Drag handle
                 Box(
                     Modifier
                         .fillMaxHeight()
@@ -246,7 +248,6 @@ private fun SliderView(
                                     sliderPosition = (sliderPosition + dragAmount.x / containerSize.width)
                                         .coerceIn(0f, 1f)
                                     
-                                    // Haptic feedback when crossing center
                                     if (!hasDraggedToCenter && sliderPosition >= 0.48f && sliderPosition <= 0.52f) {
                                         haptic.light()
                                         hasDraggedToCenter = true

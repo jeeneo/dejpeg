@@ -14,7 +14,7 @@
     <!-- if translated, must be all lowercase, used inside middle of dialog -->
     <string name="all_images">all images</string>
     <string name="remove_image_title">Remove image?</string>
-    <string name="remove_image_question">Do you want to remove %1$s?</string>
+    <string name="remove_image_question">You haven\'t saved %1$s yet, do you want to remove it?</string>
     <string name="remove">Remove</string>
     <string name="stop_processing_title">Stop processing?</string>
     <string name="stop_processing_question">Are you sure you want to stop processing %1$s?</string>
@@ -79,6 +79,7 @@
     <string name="finishing_up">Finishing up...</string>
     <string name="status_preparing">Preparing...</string>
     <string name="status_complete">Complete</string>
+    <string name="status_complete_ui">Complete - tap to view</string>
     <string name="status_cancelled">Cancelled</string>
     <string name="status_canceling">Canceling...</string>
     <string name="settings">Settings</string>

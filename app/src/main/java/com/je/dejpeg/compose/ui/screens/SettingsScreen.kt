@@ -205,6 +205,7 @@ data class FAQSectionData(
 
 @Composable fun ModelDialog(models: List<String>, active: String?, viewModel: ProcessingViewModel, onSelect: (String) -> Unit, onImport: () -> Unit, onDelete: () -> Unit, onDownload: () -> Unit, onDismiss: () -> Unit) {
     val haptic = com.je.dejpeg.ui.utils.rememberHapticFeedback()
+    val context = LocalContext.current
     AlertDialog(onDismissRequest = onDismiss, title = { Text(stringResource(R.string.model_management)) },
         text = {
             Column {
@@ -222,7 +223,9 @@ data class FAQSectionData(
                             }
                             if (name == active) Text(stringResource(R.string.active), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                             if (warning != null) {
-                                Text(warning.title, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                                val warningTitleId = context.resources.getIdentifier(warning.title, "string", context.packageName)
+                                val warningTitle = if (warningTitleId != 0) stringResource(warningTitleId) else warning.title
+                                Text(warningTitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                             }
                         }
                         RadioButton(selected = name == active, onClick = { haptic.medium(); onSelect(name) })

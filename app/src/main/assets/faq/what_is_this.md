@@ -1,4 +1,4 @@
-## what is this app for?
+## What is this app for?
 
 This app is designed to remove image compression, noise, or other unpleasant artifacts
 
