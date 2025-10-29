@@ -1,7 +1,0 @@
-<resources>
-    <attr name="colorInversePrimary" format="color" />
-    <attr name="colorInverseSurface" format="color" />
-    <attr name="colorInverseOnSurface" format="color" />
-    <attr name="colorScrim" format="color" />
-    <attr name="colorSurfaceTint" format="color" />
-</resources>

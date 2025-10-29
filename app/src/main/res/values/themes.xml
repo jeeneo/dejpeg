@@ -1,58 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="theme.dejpeg" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:windowLightStatusBar">true</item>
-        <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowLightNavigationBar">true</item>
-        <item name="android:windowBackground">@color/background_light</item>
-        <item name="android:colorBackground">@color/background_light</item>
-        <item name="colorPrimary">@color/black</item>
-        <item name="colorOnPrimary">@color/white</item>
-        <item name="colorPrimaryContainer">@color/button_enabled_light</item>
-        <item name="colorOnPrimaryContainer">@color/white</item>
-        <item name="colorSecondary">@color/on_surface_variant</item>
-        <item name="colorOnSecondary">@color/black</item>
-        <item name="colorSecondaryContainer">@color/grid_background_light</item>
-        <item name="colorOnSecondaryContainer">@color/black</item>
-        <item name="colorTertiary">@color/grid_background_light</item>
-        <item name="colorOnTertiary">@color/black</item>
-        <item name="colorTertiaryContainer">@color/selected_item_light</item>
-        <item name="colorOnTertiaryContainer">@color/black</item>
-        <item name="colorSurface">@color/background_light</item>
-        <item name="colorOnSurface">@color/black</item>
-        <item name="colorSurfaceVariant">@color/surface_variant</item>
-        <item name="colorOnSurfaceVariant">@color/on_surface_variant</item>
-        <item name="colorSurfaceContainer">@color/grid_background_light</item>
-        <item name="colorSurfaceContainerHigh">@color/selected_item_light</item>
-        <item name="colorSurfaceContainerHighest">@color/button_enabled_light</item>
-        <item name="colorSurfaceContainerLow">@color/background_light</item>
-        <item name="colorSurfaceContainerLowest">@color/white</item>
-        <item name="colorSurfaceBright">@color/background_light</item>
-        <item name="colorSurfaceDim">@color/outline_variant</item>
-        <item name="colorError">@color/error</item>
-        <item name="colorOnError">@color/on_error</item>
-        <item name="colorErrorContainer">@color/error_container</item>
-        <item name="colorOnErrorContainer">@color/on_error_container</item>
-        <item name="colorOutline">@color/outline</item>
-        <item name="colorOutlineVariant">@color/outline_variant</item>
-        <item name="colorInversePrimary">@color/selected_item_light</item>
-        <item name="colorInverseSurface">@color/black</item>
-        <item name="colorInverseOnSurface">@color/white</item>
-        <item name="colorScrim">@color/black</item>
-        <item name="colorSurfaceTint">@color/button_enabled_light</item>
-        <item name="android:windowContentOverlay">@null</item>
-        <item name="materialButtonStyle">@style/Widget.App.Button</item>
-        <!-- <item name="materialSwitchStyle">@style/Widget.App.Switch</item> -->
+    <style name="Theme.Fonts" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/dejpeg</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
+        <item name="postSplashScreenTheme">@style/Theme.DeJPEG</item>
     </style>
-    <style name="Widget.App.Button" parent="Widget.Material3.Button">
-        <item name="android:textColor">@color/white</item>
-        <item name="backgroundTint">@color/button_enabled_light</item>
-        <item name="android:stateListAnimator">@null</item>
-    </style>
-    <style name="Theme.ComposeDialog" parent="Theme.Material3.DayNight.Dialog">
-        <item name="android:windowIsFloating">false</item>
+    <style name="Theme.DeJPEG" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@android:color/transparent</item>
-        <item name="android:windowFullscreen">true</item>
-        <item name="android:windowNoTitle">true</item>
+        <item name="android:allowBackup">true</item>
     </style>
 </resources>

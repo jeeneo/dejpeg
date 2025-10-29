@@ -1,17 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="background_dark">#FF101010</color> <!-- slightly darker -->
-    <!-- <color name="grid_background_dark">#FFFFFFFF</color> -->
-    <color name="selected_item_dark">#FF2C2C2C</color> <!-- darker for contrast -->
-    <color name="button_enabled_dark">#FF404040</color> <!-- white for best contrast -->
-    <color name="filmstrip_background_dark">#802C2C2C</color>
-    <color name="error">#FFFFB4AB</color>
-    <color name="error_container">#FFC32220</color>
-    <color name="on_error">#FF580003</color>
-    <color name="on_error_container">#FFFFF6F5</color>
-    <color name="outline">#FF969696</color>
-    <color name="outline_variant">#FF505050</color>
-    <color name="surface_variant">#FF2C2C2C</color> <!-- darker for contrast -->
-    <color name="on_surface_variant">#FFFFFFFF</color> <!-- white for contrast -->
-    <color name="button_disabled">#FF505050</color>
+    <color name="splash_background">#1f1f1f</color>
 </resources>
