@@ -3,11 +3,11 @@
   <br>
   An open source app for removing noise and compression from photos
   <h2></h2>
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/01.png" 
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" 
        style="width: 240px; max-width: 100%; height: auto; margin: 10px;" alt="">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/02.png" 
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2.png" 
        style="width: 240px; max-width: 100%; height: auto; margin: 10px;" alt="">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/03.png" 
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.png" 
        style="width: 240px; max-width: 100%; height: auto; margin: 10px;" alt="">
   <p>
 <p align="center">
