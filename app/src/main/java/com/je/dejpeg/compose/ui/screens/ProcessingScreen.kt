@@ -41,7 +41,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.je.dejpeg.ui.components.BeforeAfterView
 import com.je.dejpeg.ui.components.BatteryOptimizationDialog
 import com.je.dejpeg.ui.components.RemoveImageDialog
 import com.je.dejpeg.ui.components.CancelProcessingDialog
@@ -65,10 +64,6 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
     val shouldShowBatteryOptimizationDialog by viewModel.shouldShowBatteryOptimizationDialog.collectAsState()
     val haptic = com.je.dejpeg.ui.utils.rememberHapticFeedback()
     val deprecatedModelWarning by viewModel.deprecatedModelWarning.collectAsState()
-    var selectedImage by remember { mutableStateOf<ImageItem?>(null) }
-    var beforeBitmapForDialog by remember { mutableStateOf<Bitmap?>(null) }
-    var afterBitmapForDialog by remember { mutableStateOf<Bitmap?>(null) }
-    var filenameForDialog by remember { mutableStateOf<String?>(null) }
     var imageIdToRemove by remember { mutableStateOf<String?>(null) }
     var imageIdToCancel by remember { mutableStateOf<String?>(null) }
     var showImageSourceDialog by remember { mutableStateOf(false) }
@@ -159,10 +154,8 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
                             },
                             onClick = {
                                 if (image.outputBitmap != null) {
-                                    beforeBitmapForDialog = image.inputBitmap
-                                    afterBitmapForDialog = image.outputBitmap
-                                    filenameForDialog = image.filename
-                                    selectedImage = image
+                                    haptic.light()
+                                    navController.navigate(com.je.dejpeg.ui.Screen.BeforeAfter.createRoute(image.id))
                                 }
                             }
                         )
@@ -193,20 +186,6 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
                 colors = if (uiState is ProcessingUiState.Processing) ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error) else ButtonDefaults.buttonColors()
             ) { Text(if (uiState is ProcessingUiState.Processing) stringResource(R.string.cancel_processing) else stringResource(R.string.process_all), fontSize = 16.sp) }
         }
-    }
-
-    selectedImage?.let { image ->
-        BeforeAfterView(
-            beforeBitmap = beforeBitmapForDialog,
-            afterBitmap = afterBitmapForDialog,
-            filename = filenameForDialog,
-            onDismiss = { selectedImage = null },
-            onSaveRequest = { chosenFilename, saveAll, skipNext ->
-                if (skipNext) context.getSharedPreferences("AppPrefs", android.content.Context.MODE_PRIVATE).edit().putBoolean("skipSaveDialog", true).apply()
-                if (saveAll) viewModel.saveAllImages(context) else viewModel.saveImage(context, image.id)
-            },
-            showSaveAllOption = images.any { it.outputBitmap != null }
-        )
     }
 
     imageIdToRemove?.let { targetId ->

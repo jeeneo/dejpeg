@@ -378,6 +378,7 @@ class ProcessingViewModel : ViewModel() {
     }
     fun setGlobalStrength(strength: Float) {
         _globalStrength.value = strength
+        _images.value = _images.value.map { it.copy(strengthFactor = strength / 100f) }
         appContext?.let { context ->
             prefs(context).edit()
                 .putFloat(KEY_GLOBAL_STRENGTH, strength)
@@ -641,7 +642,8 @@ class ProcessingViewModel : ViewModel() {
                     uri = uri,
                     filename = getFileNameFromUri(context, uri),
                     inputBitmap = bmp,
-                    size = "${bmp.width}x${bmp.height}"
+                    size = "${bmp.width}x${bmp.height}",
+                    strengthFactor = _globalStrength.value / 100f
                 )
             )
         }
