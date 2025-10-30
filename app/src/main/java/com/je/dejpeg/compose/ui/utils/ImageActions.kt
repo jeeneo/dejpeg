@@ -19,6 +19,14 @@ import kotlinx.coroutines.withContext
 import com.je.dejpeg.R
 
 object ImageActions {
+    fun checkFileExists(context: Context, filename: String): Boolean {
+        val fileNameRaw = filename.takeIf { it.isNotBlank() } ?: return false
+        val fileName = fileNameRaw.substringBeforeLast('.', fileNameRaw)
+        val picturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+        val outputFile = File(picturesDir, "$fileName.png")
+        return outputFile.exists()
+    }
+
     fun saveImage(context: Context, bitmap: Bitmap, filename: String? = null, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {
         @OptIn(DelicateCoroutinesApi::class)
         GlobalScope.launch(Dispatchers.IO) {
@@ -38,7 +46,7 @@ object ImageActions {
                 val errorMsg = context.getString(R.string.error_saving_image, e.message)
                 withContext(Dispatchers.Main) {
                     Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
-                    onError(errorMsg) // TODO: on errors, prevent from being removed from view
+                    onError(errorMsg)
                 }
             }
         }

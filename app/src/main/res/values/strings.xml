@@ -6,7 +6,9 @@
     <string name="save">Save</string>
     <string name="before">Before</string>
     <string name="after">After</string>
-    <string name="save_image">Save Image</string>
+    <string name="save_image">Save image</string>
+    <string name="overwrite_image">Overwrite image?</string>
+    <string name="already_exists">That image already exists. Overwrite?</string>
     <string name="filename">Filename</string>
     <string name="save_all">Save all</string>
     <string name="dont_show_dialog">Don\'t show this dialog</string>

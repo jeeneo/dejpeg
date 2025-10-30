@@ -45,6 +45,7 @@ import com.je.dejpeg.ui.components.BatteryOptimizationDialog
 import com.je.dejpeg.ui.components.RemoveImageDialog
 import com.je.dejpeg.ui.components.CancelProcessingDialog
 import com.je.dejpeg.ui.components.ImageSourceDialog
+import com.je.dejpeg.ui.utils.ImageActions
 import com.je.dejpeg.ui.viewmodel.ImageItem
 import com.je.dejpeg.ui.viewmodel.ProcessingUiState
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
@@ -69,6 +70,7 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
     var showImageSourceDialog by remember { mutableStateOf(false) }
     var showCancelAllDialog by remember { mutableStateOf(false) }
     var saveErrorMessage by remember { mutableStateOf<String?>(null) }
+    var overwriteDialogState by remember { mutableStateOf<Pair<String, String>?>(null) }
 
     val handleImageRemoval: (String) -> Unit = { imageId ->
         images.firstOrNull { it.id == imageId }?.let {
@@ -199,23 +201,14 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
                 imageFilename = image.filename,
                 hasOutput = image.outputBitmap != null,
                 onDismissRequest = { imageIdToRemove = null },
-                onRemove = {
-                    viewModel.removeImage(image.id)
-                    imageIdToRemove = null
-                },
+                onRemove = { viewModel.removeImage(image.id); imageIdToRemove = null },
                 onSaveAndRemove = {
-                    viewModel.saveImage(
-                        context = context,
-                        imageId = image.id,
-                        onSuccess = {
-                            viewModel.removeImage(image.id)
-                            imageIdToRemove = null
-                        },
-                        onError = { errorMsg ->
-                            imageIdToRemove = null
-                            saveErrorMessage = errorMsg
-                        }
-                    )
+                    if (ImageActions.checkFileExists(context, image.filename)) {
+                        imageIdToRemove = null
+                        overwriteDialogState = Pair(image.id, image.filename)
+                    } else {
+                        viewModel.saveImage(context, image.id, onSuccess = { viewModel.removeImage(image.id); imageIdToRemove = null }, onError = { imageIdToRemove = null; saveErrorMessage = it })
+                    }
                 }
             )
         } ?: run { imageIdToRemove = null }
@@ -294,6 +287,19 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
                 TextButton(onClick = { saveErrorMessage = null }) {
                     Text(stringResource(R.string.ok))
                 }
+            }
+        )
+    }
+
+    overwriteDialogState?.let { (id, fn) ->
+        com.je.dejpeg.ui.components.SaveImageDialog(
+            defaultFilename = fn,
+            showSaveAllOption = false,
+            initialSaveAll = false,
+            hideOptions = true,
+            onDismissRequest = { overwriteDialogState = null },
+            onSave = { name, _, _ ->
+                viewModel.saveImage(context, id, name, { viewModel.removeImage(id); overwriteDialogState = null }, { overwriteDialogState = null; saveErrorMessage = it })
             }
         )
     }

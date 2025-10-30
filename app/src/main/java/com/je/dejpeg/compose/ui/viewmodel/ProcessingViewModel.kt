@@ -492,13 +492,13 @@ class ProcessingViewModel : ViewModel() {
         return modelName?.contains("fbcnn", ignoreCase = true) == true
     }
 
-    fun saveImage(context: Context, imageId: String, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {
+    fun saveImage(context: Context, imageId: String, filename: String? = null, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {
         val image = _images.value.find { it.id == imageId }
         image?.outputBitmap?.let { bitmap ->
             ImageActions.saveImage(
                 context = context,
                 bitmap = bitmap,
-                filename = image.filename,
+                filename = filename ?: image.filename,
                 onSuccess = {
                     updateImageState(imageId) { it.copy(hasBeenSaved = true) }
                     onSuccess()

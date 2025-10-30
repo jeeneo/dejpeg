@@ -16,38 +16,52 @@ fun SaveImageDialog(
     defaultFilename: String,
     showSaveAllOption: Boolean = false,
     initialSaveAll: Boolean = false,
+    hideOptions: Boolean = false,
     onDismissRequest: () -> Unit,
     onSave: (String, Boolean, Boolean) -> Unit
 ) {
     val lastDot = defaultFilename.lastIndexOf('.')
-    var textState by remember {
-        mutableStateOf(TextFieldValue(defaultFilename, TextRange(0, if (lastDot > 0) lastDot else defaultFilename.length)))
-    }
+    var textState by remember { mutableStateOf(TextFieldValue(defaultFilename, TextRange(0, if (lastDot > 0) lastDot else defaultFilename.length))) }
     var saveAll by remember { mutableStateOf(initialSaveAll) }
     var skipNext by remember { mutableStateOf(false) }
     val haptic = com.je.dejpeg.ui.utils.rememberHapticFeedback()
-
     AlertDialog(
         onDismissRequest = onDismissRequest,
-        title = { Text(stringResource(R.string.save_image)) },
+        title = { Text(stringResource(if (hideOptions) R.string.overwrite_image else R.string.save_image)) },
         text = {
             Column {
-                OutlinedTextField(textState, { textState = it }, Modifier.fillMaxWidth(), singleLine = true, label = { Text(stringResource(R.string.filename)) })
-                Spacer(Modifier.height(12.dp))
-                if (showSaveAllOption) {
-                    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                if (hideOptions) Text(stringResource(R.string.already_exists), Modifier.padding(bottom = 12.dp))
+                OutlinedTextField(
+                    textState, { textState = it }, Modifier.fillMaxWidth(),
+                    singleLine = true, label = { Text(stringResource(R.string.filename)) }
+                )
+                if (!hideOptions) {
+                    Spacer(Modifier.height(12.dp))
+                    if (showSaveAllOption) Row(
+                        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
                         Text(stringResource(R.string.save_all))
                         Switch(saveAll, { haptic.light(); saveAll = it })
                     }
-                }
-                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(stringResource(R.string.dont_show_dialog))
-                    Switch(skipNext, { haptic.light(); skipNext = it })
+                    Row(
+                        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(stringResource(R.string.dont_show_dialog))
+                        Switch(skipNext, { haptic.light(); skipNext = it })
+                    }
                 }
             }
         },
         confirmButton = {
-            Button({ haptic.medium(); onSave(textState.text.trim(), saveAll, skipNext); onDismissRequest() }) { Text(stringResource(R.string.save)) }
+            Button({
+                haptic.medium()
+                onSave(textState.text.trim(), saveAll, skipNext)
+                onDismissRequest()
+            }) { Text(stringResource(R.string.save)) }
         },
         dismissButton = {
             TextButton({ haptic.light(); onDismissRequest() }) { Text(stringResource(R.string.cancel)) }
@@ -67,30 +81,15 @@ fun RemoveImageDialog(
     AlertDialog(
         onDismissRequest = onDismissRequest,
         title = { Text(stringResource(R.string.remove_image_title)) },
-        text = {
-            Column {
-                Text(stringResource(R.string.remove_image_question, imageFilename))
-            }
-        },
+        text = { Text(stringResource(R.string.remove_image_question, imageFilename)) },
         confirmButton = {
-            Row(
-                Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 TextButton({ haptic.heavy(); onRemove(); onDismissRequest() }) {
                     Text(stringResource(R.string.remove), color = MaterialTheme.colorScheme.error)
                 }
-                if (hasOutput) {
-                    Button(
-                        { haptic.medium(); onSaveAndRemove(); onDismissRequest() },
-                        Modifier.padding(start = 8.dp)
-                    ) {
-                        Text(stringResource(R.string.save))
-                    }
-                } else {
-                    Spacer(Modifier)
-                }
+                if (hasOutput) Button({ haptic.medium(); onSaveAndRemove(); onDismissRequest() }, Modifier.padding(start = 8.dp)) {
+                    Text(stringResource(R.string.save))
+                } else Spacer(Modifier)
             }
         },
         dismissButton = {}

@@ -58,6 +58,7 @@ fun BeforeAfterScreen(viewModel: ProcessingViewModel, imageId: String, navContro
     val images by viewModel.images.collectAsState()
     val image = images.firstOrNull { it.id == imageId }
     var showSaveDialog by remember { mutableStateOf(false) }
+    var overwriteDialogFilename by remember { mutableStateOf<String?>(null) }
     var saveErrorMessage by remember { mutableStateOf<String?>(null) }
     val isDarkTheme = isSystemInDarkTheme()
     
@@ -117,12 +118,16 @@ fun BeforeAfterScreen(viewModel: ProcessingViewModel, imageId: String, navContro
                     haptic.medium()
                     val skip = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE).getBoolean("skipSaveDialog", false)
                     if (skip) {
-                        viewModel.saveImage(
-                            context = context,
-                            imageId = imageId,
-                            onSuccess = {},
-                            onError = { errorMsg -> saveErrorMessage = errorMsg }
-                        )
+                        if (ImageActions.checkFileExists(context, filename)) {
+                            overwriteDialogFilename = filename
+                        } else {
+                            viewModel.saveImage(
+                                context = context,
+                                imageId = imageId,
+                                onSuccess = {},
+                                onError = { errorMsg -> saveErrorMessage = errorMsg }
+                            )
+                        }
                     } else {
                         showSaveDialog = true
                     }
@@ -141,7 +146,7 @@ fun BeforeAfterScreen(viewModel: ProcessingViewModel, imageId: String, navContro
     }
     
     if (showSaveDialog) {
-        SaveImageDialog(filename, showSaveAllOption, false, { showSaveDialog = false }) { name, all, skip ->
+        SaveImageDialog(filename, showSaveAllOption, false, false, { showSaveDialog = false }) { name, all, skip ->
             if (skip) context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE).edit().putBoolean("skipSaveDialog", true).apply()
             if (all) {
                 viewModel.saveAllImages(
@@ -150,21 +155,45 @@ fun BeforeAfterScreen(viewModel: ProcessingViewModel, imageId: String, navContro
                     onError = { errorMsg -> saveErrorMessage = errorMsg }
                 )
             } else {
-                afterBitmap?.let { bitmap ->
-                    ImageActions.saveImage(
-                        context = context,
-                        bitmap = bitmap,
-                        filename = name,
-                        onSuccess = {
-                            viewModel.markImageAsSaved(imageId)
-                        },
-                        onError = { errorMsg ->
-                            saveErrorMessage = errorMsg
-                        }
-                    )
+                if (ImageActions.checkFileExists(context, name)) {
+                    showSaveDialog = false
+                    overwriteDialogFilename = name
+                } else {
+                    afterBitmap?.let { bitmap ->
+                        ImageActions.saveImage(
+                            context = context,
+                            bitmap = bitmap,
+                            filename = name,
+                            onSuccess = {
+                                viewModel.markImageAsSaved(imageId)
+                            },
+                            onError = { errorMsg ->
+                                saveErrorMessage = errorMsg
+                            }
+                        )
+                    }
+                    showSaveDialog = false
                 }
             }
-            showSaveDialog = false
+        }
+    }
+    
+    overwriteDialogFilename?.let { fname ->
+        SaveImageDialog(fname, false, false, true, { overwriteDialogFilename = null }) { name, _, _ ->
+            afterBitmap?.let { bitmap ->
+                ImageActions.saveImage(
+                    context = context,
+                    bitmap = bitmap,
+                    filename = name,
+                    onSuccess = {
+                        viewModel.markImageAsSaved(imageId)
+                    },
+                    onError = { errorMsg ->
+                        saveErrorMessage = errorMsg
+                    }
+                )
+            }
+            overwriteDialogFilename = null
         }
     }
 
