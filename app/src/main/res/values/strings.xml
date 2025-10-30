@@ -116,14 +116,13 @@
     <string name="open_source_app_description">An open source app for removing noise and compression from photos</string>
     <string name="license_text">Licensed under GPLv3</string>
     <string name="save_dialog">Save dialog</string>
-    <string name="currently_shown_hidden">Currently: %1$s</string>
+    <string name="currently">Currently: %1$s</string>
     <string name="shown">shown</string>
     <string name="hidden">hidden</string>
     <string name="show_save_dialog">Show save dialog</string>
     <string name="save_dialog_shown">Save dialog is shown</string>
     <string name="default_image_source">Default image source</string>
-    <string name="currently_default_source">Currently: %1$s</string>
-    <string name="none">None</string>
+    <string name="none">none</string>
     <string name="photos">Photos</string>
     <string name="clear_default_source">Clear default source</string>
     <string name="no_default_source">No default source set</string>

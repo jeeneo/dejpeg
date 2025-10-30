@@ -349,7 +349,7 @@ fun PreferencesDialog(context: android.content.Context, onDismiss: () -> Unit) {
                 Text(stringResource(R.string.save_dialog), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                 Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-                    Text(stringResource(R.string.currently_shown_hidden, stringResource(if (skipSaveDialog) R.string.hidden else R.string.shown)), style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.currently, stringResource(if (skipSaveDialog) R.string.hidden else R.string.shown)), style = MaterialTheme.typography.bodyMedium)
                 }
                 Spacer(Modifier.height(8.dp))
                 if (skipSaveDialog) Button(onClick = { 
@@ -364,7 +364,7 @@ fun PreferencesDialog(context: android.content.Context, onDismiss: () -> Unit) {
                 Text(stringResource(R.string.default_image_source), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                 Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-                    Text(stringResource(R.string.currently_default_source, defaultImageSource?.let { when (it) { "gallery" -> stringResource(R.string.gallery); "internal" -> stringResource(R.string.photos); "documents" -> stringResource(R.string.documents); "camera" -> stringResource(R.string.camera); else -> stringResource(R.string.none) } } ?: stringResource(R.string.none)), style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.currently, defaultImageSource?.let { when (it) { "gallery" -> stringResource(R.string.gallery); "internal" -> stringResource(R.string.photos); "documents" -> stringResource(R.string.documents); "camera" -> stringResource(R.string.camera); else -> stringResource(R.string.none) } } ?: stringResource(R.string.none)), style = MaterialTheme.typography.bodyMedium)
                 }
                 Spacer(Modifier.height(8.dp))
                 if (defaultImageSource != null) Button(onClick = { 
