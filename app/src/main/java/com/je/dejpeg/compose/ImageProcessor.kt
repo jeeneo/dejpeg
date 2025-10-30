@@ -20,9 +20,8 @@ class ImageProcessor(
     var customOverlapSize: Int? = null
 
     companion object {
-        const val DEFAULT_CHUNK_SIZE = 1200
-        const val SCUNET_CHUNK_SIZE = 640
-        const val OVERLAP = 32
+        const val DEFAULT_CHUNK_SIZE = 1024
+        const val OVERLAP = 16
         const val SCUNET_OVERLAP = 128
         private const val TILE_MEMORY_THRESHOLD = 4096 * 4096
     }
@@ -424,16 +423,8 @@ class ImageProcessor(
         val inputInfoMap: Map<String, NodeInfo>
         val isGrayscale: Boolean
         val isFp16: Boolean
-        val chunkSize: Int = customChunkSize ?: if (modelName?.startsWith("scunet_") == true) {
-            SCUNET_CHUNK_SIZE
-        } else {
-            DEFAULT_CHUNK_SIZE
-        }
-        val overlap: Int = customOverlapSize ?: if (modelName?.startsWith("scunet_") == true) {
-            SCUNET_OVERLAP
-        } else {
-            OVERLAP
-        }
+        val chunkSize: Int = customChunkSize ?: DEFAULT_CHUNK_SIZE
+        val overlap: Int = customOverlapSize ?: OVERLAP
 
         init {
             android.util.Log.d("ModelInfo", "Initialized with customChunkSize: $customChunkSize, customOverlapSize: $customOverlapSize -> chunkSize: $chunkSize, overlap: $overlap")
