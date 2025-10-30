@@ -22,6 +22,7 @@
     <string name="yes_stop">Yes, stop</string>
     <string name="background_service_error">Background service error</string>
     <string name="background_service_error_detail">The background processing service has encountered an error and needs to stop. Please try again.</string>
+    <string name="error_saving_image_title">Error saving image</string>
     <string name="error_saving_image">Error saving image: %1$s</string>
     <string name="image_saved_to_gallery">Image saved to gallery</string>
     <string name="share_image">Share Image</string>
@@ -37,7 +38,7 @@
     <string name="gallery_picker_desc">Uses your device\'s or 3rd-party gallery app to select images. This method is recommended and works on most devices and supports filenames.</string>
     <string name="internal_picker">Internal picker</string>
     <string name="internal_picker_title">Internal picker</string>
-    <string name="internal_picker_desc">Uses Android\'s built-in photo picker, more privacy aware and restricts filenames.</string>
+    <string name="internal_picker_desc">Uses Android\'s built-in photo picker, more privacy aware but restricts filenames.</string>
     <string name="documents">Documents</string>
     <string name="documents_picker_title">Documents picker</string>
     <string name="documents_picker_desc">Opens the standard SAF picker. Useful for accessing images in folders or other locations/providers.</string>
@@ -88,7 +89,7 @@
     <string name="cancel_processing">Cancel</string>
     <string name="process_all">Process all</string>
     <!-- settingsscreen.kt -->
-    <string name="model">Model</string>
+    <!-- <string name="model">Model</string> -->
     <string name="no_model_loaded">No model loaded</string>
     <string name="chunk_size_px">%1$d px</string>
     <string name="overlap_size_px">%1$d px</string>
@@ -142,7 +143,6 @@
     <!-- ImageProcessor strings -->
     <string name="error_failed_to_load_model">Failed to load model</string>
     <string name="error_processing_cancelled">Processing cancelled</string>
-    <string name="processing_image_x_of_y">Processing image %1$d/%2$d</string>
-    <string name="processing_chunk_x_of_y">Processing chunk %1$d/%2$d</string>
-    <string name="image_x_of_y_chunk_x_of_y">Image %1$d/%2$d: chunk %3$d/%4$d</string>
+    <!-- <string name="processing_image_x_of_y">Processing image %1$d/%2$d</string> -->
+    <string name="processing_chunk_x_of_y">Processed chunk %1$d/%2$d</string>
 </resources>

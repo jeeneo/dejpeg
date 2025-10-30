@@ -471,6 +471,10 @@ class ProcessingViewModel : ViewModel() {
         _images.value = _images.value.map { if (it.id == id) transform(it) else it }
     }
 
+    fun markImageAsSaved(imageId: String) {
+        updateImageState(imageId) { it.copy(hasBeenSaved = true) }
+    }
+
     fun clearAll() {
         _images.value = emptyList()
         _uiState.value = ProcessingUiState.Idle
@@ -488,11 +492,23 @@ class ProcessingViewModel : ViewModel() {
         return modelName?.contains("fbcnn", ignoreCase = true) == true
     }
 
-    fun saveImage(context: Context, imageId: String) {
+    fun saveImage(context: Context, imageId: String, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {
         val image = _images.value.find { it.id == imageId }
         image?.outputBitmap?.let { bitmap ->
-            ImageActions.saveImage(context, bitmap, image.filename)
-            updateImageState(imageId) { it.copy(hasBeenSaved = true) }
+            ImageActions.saveImage(
+                context = context,
+                bitmap = bitmap,
+                filename = image.filename,
+                onSuccess = {
+                    updateImageState(imageId) { it.copy(hasBeenSaved = true) }
+                    onSuccess()
+                },
+                onError = { errorMsg ->
+                    onError(errorMsg)
+                }
+            )
+        } ?: run {
+            onError("Image not found or has no output")
         }
     }
 
@@ -503,13 +519,22 @@ class ProcessingViewModel : ViewModel() {
         }
     }
 
-    fun saveAllImages(context: Context) {
+    fun saveAllImages(context: Context, onComplete: () -> Unit = {}, onError: (String) -> Unit = {}) {
         val imagesToSave = _images.value.filter { it.outputBitmap != null }.map { it.filename to it.outputBitmap!! }
         if (imagesToSave.isNotEmpty()) {
-            ImageActions.saveAllImages(context, imagesToSave)
-            _images.value.filter { it.outputBitmap != null }.forEach { image ->
-                updateImageState(image.id) { it.copy(hasBeenSaved = true) }
-            }
+            ImageActions.saveAllImages(
+                context = context,
+                images = imagesToSave,
+                onComplete = {
+                    _images.value.filter { it.outputBitmap != null }.forEach { image ->
+                        updateImageState(image.id) { it.copy(hasBeenSaved = true) }
+                    }
+                    onComplete()
+                },
+                onError = { errorMsg ->
+                    onError(errorMsg)
+                }
+            )
         }
     }
 

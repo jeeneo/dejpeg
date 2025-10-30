@@ -30,11 +30,11 @@ android {
                 "proguard-rules.pro"
             )
         }
-        // getByName("debug") {
-        //     isDebuggable = true
-        //     applicationIdSuffix = ".debug"
-        //     versionNameSuffix = "-debug"
-        // }
+         getByName("debug") {
+             isDebuggable = true
+             applicationIdSuffix = ".debug"
+             versionNameSuffix = "-debug"
+         }
     }
 
     splits {

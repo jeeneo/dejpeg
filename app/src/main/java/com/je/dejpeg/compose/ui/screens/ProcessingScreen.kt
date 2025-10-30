@@ -68,6 +68,7 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
     var imageIdToCancel by remember { mutableStateOf<String?>(null) }
     var showImageSourceDialog by remember { mutableStateOf(false) }
     var showCancelAllDialog by remember { mutableStateOf(false) }
+    var saveErrorMessage by remember { mutableStateOf<String?>(null) }
 
     val handleImageRemoval: (String) -> Unit = { imageId ->
         images.firstOrNull { it.id == imageId }?.let {
@@ -203,9 +204,18 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
                     imageIdToRemove = null
                 },
                 onSaveAndRemove = {
-                    viewModel.saveImage(context, image.id)
-                    viewModel.removeImage(image.id)
-                    imageIdToRemove = null
+                    viewModel.saveImage(
+                        context = context,
+                        imageId = image.id,
+                        onSuccess = {
+                            viewModel.removeImage(image.id)
+                            imageIdToRemove = null
+                        },
+                        onError = { errorMsg ->
+                            imageIdToRemove = null
+                            saveErrorMessage = errorMsg
+                        }
+                    )
                 }
             )
         } ?: run { imageIdToRemove = null }
@@ -271,6 +281,19 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
             onGoToSettings = {
                 viewModel.dismissDeprecatedModelWarning()
                 navController.navigate("settings")
+            }
+        )
+    }
+
+    saveErrorMessage?.let { errorMsg ->
+        AlertDialog(
+            onDismissRequest = { saveErrorMessage = null },
+            title = { Text(stringResource(R.string.error_saving_image_title)) },
+            text = { Text(errorMsg) },
+            confirmButton = {
+                TextButton(onClick = { saveErrorMessage = null }) {
+                    Text(stringResource(R.string.ok))
+                }
             }
         )
     }

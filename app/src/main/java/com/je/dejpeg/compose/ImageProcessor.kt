@@ -99,13 +99,9 @@ class ImageProcessor(
             else inputBitmap
             timeEstimator.startChunk()
             val initialEstimate = timeEstimator.getInitialEstimate(1)
-            val progressMessage = if (total > 1) {
-                context.getString(R.string.processing_image_x_of_y, index + 1, total)
-            } else {
-                context.getString(R.string.processing)
-            }
+            val progressMessage = { context.getString(R.string.processing) }
             withContext(Dispatchers.Main) {
-                callback.onProgress(progressMessage)
+                callback.onProgress(progressMessage())
                 callback.onTimeEstimate(initialEstimate)
             }
             val result = processChunkUnified(session, bitmapToProcess, processingConfig, hasTransparency, info)
@@ -135,20 +131,7 @@ class ImageProcessor(
         val totalChunks = cols * rows
         val result = createBitmap(width, height, config)
         val canvas = android.graphics.Canvas(result)
-        var chunkIndex = 1
-        
-        val initialEstimate = timeEstimator.getInitialEstimate(totalChunks)
-        val progressMessage = if (total > 1) {
-            context.getString(R.string.processing_image_x_of_y, index + 1, total)
-        } else if (totalChunks > 1) {
-            context.getString(R.string.processing_chunk_x_of_y, 1, totalChunks)
-        } else {
-            context.getString(R.string.processing)
-        }
-        withContext(Dispatchers.Main) {
-            callback.onProgress(progressMessage)
-            callback.onTimeEstimate(initialEstimate)
-        }
+        var chunkIndex = 0
 
         for (row in 0 until rows) {
             for (col in 0 until cols) {
@@ -179,9 +162,15 @@ class ImageProcessor(
                 converted.recycle()
                 processed.recycle()
                 feathered.recycle()
-                val timeRemaining = timeEstimator.getEstimatedTimeRemaining(chunkIndex, totalChunks)
                 chunkIndex++
+                val timeRemaining = timeEstimator.getEstimatedTimeRemaining(chunkIndex, totalChunks)
+                val progressMessage = if (totalChunks > 1) {
+                    context.getString(R.string.processing_chunk_x_of_y, chunkIndex, totalChunks)
+                } else {
+                    context.getString(R.string.processing)
+                }
                 withContext(Dispatchers.Main) {
+                    callback.onProgress(progressMessage)
                     callback.onTimeEstimate(timeRemaining)
                 }
             }

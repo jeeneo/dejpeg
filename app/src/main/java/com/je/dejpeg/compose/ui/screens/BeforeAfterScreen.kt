@@ -58,6 +58,7 @@ fun BeforeAfterScreen(viewModel: ProcessingViewModel, imageId: String, navContro
     val images by viewModel.images.collectAsState()
     val image = images.firstOrNull { it.id == imageId }
     var showSaveDialog by remember { mutableStateOf(false) }
+    var saveErrorMessage by remember { mutableStateOf<String?>(null) }
     val isDarkTheme = isSystemInDarkTheme()
     
     DisposableEffect(isDarkTheme) {
@@ -115,7 +116,16 @@ fun BeforeAfterScreen(viewModel: ProcessingViewModel, imageId: String, navContro
                 IconButton(onClick = {
                     haptic.medium()
                     val skip = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE).getBoolean("skipSaveDialog", false)
-                    if (skip) viewModel.saveImage(context, imageId) else showSaveDialog = true
+                    if (skip) {
+                        viewModel.saveImage(
+                            context = context,
+                            imageId = imageId,
+                            onSuccess = {},
+                            onError = { errorMsg -> saveErrorMessage = errorMsg }
+                        )
+                    } else {
+                        showSaveDialog = true
+                    }
                 }) {
                     Icon(Icons.Filled.Save, "Save", modifier = Modifier.size(32.dp))
                 }
@@ -133,10 +143,42 @@ fun BeforeAfterScreen(viewModel: ProcessingViewModel, imageId: String, navContro
     if (showSaveDialog) {
         SaveImageDialog(filename, showSaveAllOption, false, { showSaveDialog = false }) { name, all, skip ->
             if (skip) context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE).edit().putBoolean("skipSaveDialog", true).apply()
-            if (all) viewModel.saveAllImages(context)
-            else coroutineScope.launch(Dispatchers.IO) { afterBitmap?.let { ImageActions.saveImage(context, it, filename = name) } }
+            if (all) {
+                viewModel.saveAllImages(
+                    context = context,
+                    onComplete = {},
+                    onError = { errorMsg -> saveErrorMessage = errorMsg }
+                )
+            } else {
+                afterBitmap?.let { bitmap ->
+                    ImageActions.saveImage(
+                        context = context,
+                        bitmap = bitmap,
+                        filename = name,
+                        onSuccess = {
+                            viewModel.markImageAsSaved(imageId)
+                        },
+                        onError = { errorMsg ->
+                            saveErrorMessage = errorMsg
+                        }
+                    )
+                }
+            }
             showSaveDialog = false
         }
+    }
+
+    saveErrorMessage?.let { errorMsg ->
+        AlertDialog(
+            onDismissRequest = { saveErrorMessage = null },
+            title = { Text(stringResource(R.string.error_saving_image_title)) },
+            text = { Text(errorMsg) },
+            confirmButton = {
+                TextButton(onClick = { saveErrorMessage = null }) {
+                    Text(stringResource(R.string.ok))
+                }
+            }
+        )
     }
 }
 

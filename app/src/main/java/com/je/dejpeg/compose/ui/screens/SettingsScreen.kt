@@ -65,7 +65,7 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
     }
 
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
-        SettingsSection(stringResource(R.string.model)) { SettingsItem(stringResource(R.string.active_model, ""), activeModelName ?: stringResource(R.string.no_model_loaded)) { dialogState = DialogState.Model } }
+        SettingsSection(stringResource(R.string.model_management)) { SettingsItem(stringResource(R.string.active_model, ""), activeModelName ?: stringResource(R.string.no_model_loaded)) { dialogState = DialogState.Model } }
         SettingsSection(stringResource(R.string.processing)) {
             SettingsItem(stringResource(R.string.chunk_size), stringResource(R.string.chunk_size_px, chunkSize)) { dialogState = DialogState.Chunk }
             HorizontalDivider()
