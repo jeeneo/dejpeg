@@ -679,13 +679,14 @@ class ProcessingViewModel : ViewModel() {
     
     private fun generateThumbnail(bitmap: Bitmap): Bitmap {
         val thumbnailSize = 256
-        val blurRadius = 8f
         val size = minOf(bitmap.width, bitmap.height)
         val x = (bitmap.width - size) / 2
         val y = (bitmap.height - size) / 2
-        val croppedBitmap = Bitmap.createBitmap(bitmap, x, y, size, size)
+        val croppedBitmap = Bitmap.createBitmap(size, size, bitmap.config ?: Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(croppedBitmap)
+        canvas.drawBitmap(bitmap, -x.toFloat(), -y.toFloat(), null)
         val resizedBitmap = Bitmap.createScaledBitmap(croppedBitmap, thumbnailSize, thumbnailSize, true)
-        if (croppedBitmap != resizedBitmap) croppedBitmap.recycle()
+        croppedBitmap.recycle()
         return resizedBitmap
     }
 
