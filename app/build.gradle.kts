@@ -1,3 +1,5 @@
+// ./gradlew clean assembleRelease -PsignApk=true
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -35,7 +37,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("release")
+            if (project.hasProperty("signApk") && project.property("signApk") == "true") {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
         getByName("debug") {
             isDebuggable = true
@@ -114,21 +118,25 @@ tasks.register("cleandir") {
     }
 }
 
-tasks.register("move") {
-    group = "build"
-    description = "move apks to the root ./apks directory."
-    doLast {
-        val apkDir = file("$buildDir/outputs/apk")
-        val destDir = file("${rootProject.rootDir}/apks")
-        if (!destDir.exists()) destDir.mkdirs()
-        apkDir.walkTopDown().filter { it.isFile && it.extension == "apk" }.forEach { apk ->
-            apk.copyTo(destDir.resolve(apk.name), overwrite = true)
+if (project.hasProperty("signApk") && project.property("signApk") == "true") {
+    tasks.register("move") {
+        group = "build"
+        description = "move apks to the root ./apks directory."
+        doLast {
+            val apkDir = file("$buildDir/outputs/apk")
+            val destDir = file("${rootProject.rootDir}/apks")
+            if (!destDir.exists()) destDir.mkdirs()
+            apkDir.walkTopDown().filter { it.isFile && it.extension == "apk" }.forEach { apk ->
+                apk.copyTo(destDir.resolve(apk.name), overwrite = true)
+            }
+            println("moved apks to $destDir")
         }
-        println("moved apks to $destDir")
     }
 }
 
 tasks.matching { it.name.startsWith("assemble") }.configureEach {
     dependsOn("cleandir")
-    finalizedBy("move")
+    if (project.hasProperty("signApk") && project.property("signApk") == "true") {
+        finalizedBy("move")
+    }
 }
