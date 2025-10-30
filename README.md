@@ -13,7 +13,7 @@
 <p align="center">
   <a href="https://apt.izzysoft.de/fdroid/index/apk/com.je.dejpeg"><img src="fastlane/githubassets/IzzyOnDroid.png" width="220" alt="IzzyOnDroid"></a>
   <a href="http://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/jeeneo/dejpeg"><img src="fastlane/githubassets/obtanium.png" width="220" alt="Obtanium"></a>
-  <a href="https://github.com/jeeneo/dejpeg/releases/latest"><img src="fastlane/githubassets/badge_github.png" width="220" alt="Get it on GitHub"></a>
+  <a href="https://github.com/jeeneo/dejpeg/releases/latest/download/dejpeg-arm64-v8a.apk"><img src="fastlane/githubassets/badge_github.png" width="220" alt="Get it on GitHub"></a>
 </p>
   </p>
 </div>
