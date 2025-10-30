@@ -88,32 +88,16 @@ fun BeforeAfterScreen(viewModel: ProcessingViewModel, imageId: String, navContro
         topBar = {
             TopAppBar(
                 title = { Text(filename, style = MaterialTheme.typography.titleMedium) },
-                navigationIcon = {
-                    IconButton(onClick = { haptic.light(); navController.popBackStack() }) {
-                        Icon(Icons.Filled.ArrowBack, "Back")
-                    }
-                },
+                navigationIcon = {IconButton(onClick = { haptic.light(); navController.popBackStack() }) {Icon(Icons.Filled.ArrowBack, "Back")}},
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
             )
         },
         bottomBar = {
             if (afterBitmap != null) {
             Surface(color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.fillMaxWidth()) {
-                Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(
-                    top = 8.dp + with(LocalDensity.current) { 22f.toDp() },
-                    bottom = 16.dp,
-                    start = 16.dp,
-                    end = 16.dp
-                    )
-                    .navigationBarsPadding(),
-                Arrangement.SpaceEvenly
-                ) {
-                IconButton(onClick = { haptic.light(); ImageActions.shareImage(context, afterBitmap) }) {
-                    Icon(Icons.Filled.Share, "Share", modifier = Modifier.size(32.dp))
-                }
+                Row(Modifier.fillMaxWidth().padding(top = 8.dp + with(LocalDensity.current) { 22f.toDp() }, bottom = 16.dp, start = 16.dp, end = 16.dp).navigationBarsPadding(),
+                Arrangement.SpaceEvenly) {
+                IconButton(onClick = { haptic.light(); ImageActions.shareImage(context, afterBitmap) }) { Icon(Icons.Filled.Share, "Share", modifier = Modifier.size(32.dp))}
                 IconButton(onClick = {
                     haptic.medium()
                     val skip = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE).getBoolean("skipSaveDialog", false)
@@ -132,7 +116,7 @@ fun BeforeAfterScreen(viewModel: ProcessingViewModel, imageId: String, navContro
                         showSaveDialog = true
                     }
                 }) {
-                    Icon(Icons.Filled.Save, "Save", modifier = Modifier.size(32.dp))
+                    Icon(Icons.Filled.Save, stringResource(id = R.string.save), modifier = Modifier.size(32.dp))
                 }
                 }
             }
