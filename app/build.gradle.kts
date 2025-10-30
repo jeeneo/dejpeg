@@ -18,7 +18,14 @@ android {
         versionName = "3.0.1"
         // testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
-
+    signingConfigs {
+        create("release") {
+            storeFile = file(System.getenv("KEYSTORE_PATH") ?: "")
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
+            keyAlias = System.getenv("KEYSTORE_ALIAS") ?: ""
+            keyPassword = System.getenv("KEY_PASSWORD") ?: ""
+        }
+    }
     buildTypes {
         getByName("release") {
             isMinifyEnabled = true
@@ -28,6 +35,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
         }
         getByName("debug") {
             isDebuggable = true
@@ -49,10 +57,15 @@ android {
         }
         applicationVariants.all {
             outputs.all {
-                val output = this
-                if (output is com.android.build.gradle.internal.api.BaseVariantOutputImpl) {
-                    output.outputFileName = "dejpeg-${name}.apk"
-                }
+            val output = this
+            val appName = "dejpeg"
+            val abiFilter = output.filters.find { it.filterType == com.android.build.api.variant.FilterConfiguration.FilterType.ABI.name }?.identifier
+            val variantName = name
+            val debugSuffix = if (variantName.contains("debug", ignoreCase = true)) "-debug" else ""
+            val apkName = if (abiFilter != null) "$appName-$abiFilter$debugSuffix.apk" else "$appName-universal$debugSuffix.apk"
+            if (output is com.android.build.gradle.internal.api.BaseVariantOutputImpl) {
+                output.outputFileName = apkName
+            }
             }
         }
     }
@@ -83,15 +96,39 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.coil.compose)
-    // testImplementation(libs.junit)
-    // androidTestImplementation(libs.androidx.junit)
-    // androidTestImplementation(libs.androidx.espresso.core)
-    // androidTestImplementation(platform(libs.androidx.compose.bom))
-    // androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-    // debugImplementation(libs.androidx.compose.ui.tooling)
-    // debugImplementation(libs.androidx.compose.ui.test.manifest)
     implementation(libs.onnxruntime.android)
     implementation(libs.zoomable)
     implementation(libs.androidx.exifinterface)
     implementation(libs.androidx.core.splashscreen)
+}
+
+tasks.register("cleandir") {
+    group = "build"
+    description = "clean ./apks directory before build."
+    doFirst {
+        val destDir = file("${rootProject.rootDir}/apks")
+        if (destDir.exists()) {
+            destDir.deleteRecursively()
+            println("deleted $destDir")
+        }
+    }
+}
+
+tasks.register("move") {
+    group = "build"
+    description = "move apks to the root ./apks directory."
+    doLast {
+        val apkDir = file("$buildDir/outputs/apk")
+        val destDir = file("${rootProject.rootDir}/apks")
+        if (!destDir.exists()) destDir.mkdirs()
+        apkDir.walkTopDown().filter { it.isFile && it.extension == "apk" }.forEach { apk ->
+            apk.copyTo(destDir.resolve(apk.name), overwrite = true)
+        }
+        println("moved apks to $destDir")
+    }
+}
+
+tasks.matching { it.name.startsWith("assemble") }.configureEach {
+    dependsOn("cleandir")
+    finalizedBy("move")
 }
