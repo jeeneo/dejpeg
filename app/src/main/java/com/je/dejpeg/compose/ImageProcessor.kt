@@ -57,9 +57,6 @@ class ImageProcessor(
             val modelInfo = ModelInfo(modelName, strength, session, customChunkSize, customOverlapSize)
             val timeEstimator = TimeEstimator(context, modelName ?: "unknown")
             timeEstimator.startProcessing()
-            // withContext(Dispatchers.Main) {
-            //     callback.onProgress("Warming up...")
-            // }
             val result = processBitmapUnified(session, inputBitmap, callback, modelInfo, timeEstimator, index, total)
             withContext(Dispatchers.Main) {
                 callback.onComplete(result)
@@ -370,7 +367,6 @@ class ImageProcessor(
         return "Error: ${e.javaClass.simpleName}${if (e.message != null) ": ${e.message}" else ""}"
     }
 
-    // Convert Float32 to Float16 (IEEE 754 half-precision)
     private fun floatToFloat16(value: Float): Short {
         val bits = java.lang.Float.floatToIntBits(value)
         val sign = (bits ushr 16) and 0x8000

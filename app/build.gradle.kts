@@ -14,10 +14,9 @@ android {
         applicationId = "com.je.dejpeg"
         minSdk = 24
         targetSdk = 36
-        versionCode = 300
-        versionName = "3.0.0"
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        versionCode = 301
+        versionName = "3.0.1"
+        // testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -30,11 +29,11 @@ android {
                 "proguard-rules.pro"
             )
         }
-         getByName("debug") {
-             isDebuggable = true
-             applicationIdSuffix = ".debug"
-             versionNameSuffix = "-debug"
-         }
+        getByName("debug") {
+            isDebuggable = true
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
     }
 
     splits {
@@ -51,20 +50,19 @@ android {
         applicationVariants.all {
             outputs.all {
                 val output = this
-                val baseAbiName = output.filters.find { it.filterType == "ABI" }?.identifier ?: "universal"
                 if (output is com.android.build.gradle.internal.api.BaseVariantOutputImpl) {
-                    output.outputFileName = "dejpeg-${name}-$baseAbiName.apk"
+                    output.outputFileName = "dejpeg-${name}.apk"
                 }
             }
         }
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
     buildFeatures {
         compose = true

@@ -147,7 +147,7 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
                     val swipeState = remember { mutableStateOf(0f) }
                     SwipeToDismissWrapper(
                         swipeOffset = swipeState,
-                        isProcessing = image.isProcessing, // pass isProcessing
+                        isProcessing = image.isProcessing,
                         onDismissed = { handleImageRemoval(image.id) }
                     ) {
                         ImageCard(

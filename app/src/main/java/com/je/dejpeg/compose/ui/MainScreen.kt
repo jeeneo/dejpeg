@@ -44,9 +44,7 @@ fun MainScreen(sharedUris: List<Uri> = emptyList()) {
     val currentRoute = navBackStackEntry?.destination?.route
     val isBeforeAfterScreen = currentRoute?.startsWith("beforeafter") ?: false
     
-    // Use a single NavHost with conditional Scaffold wrapping
     if (isBeforeAfterScreen) {
-        // Render BeforeAfter screen directly without Scaffold
         NavHost(navController, Screen.Processing.route, Modifier.fillMaxSize()) {
             composable(Screen.Processing.route) { ProcessingScreen(viewModel, navController, sharedUris) }
             composable(Screen.Settings.route) { SettingsScreen(viewModel) }
@@ -61,7 +59,6 @@ fun MainScreen(sharedUris: List<Uri> = emptyList()) {
             }
         }
     } else {
-        // Render with Scaffold for other screens
         Scaffold(
             topBar = {
                 TopAppBar(
