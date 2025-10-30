@@ -146,5 +146,5 @@
     <string name="error_failed_to_load_model">Failed to load model</string>
     <string name="error_processing_cancelled">Processing cancelled</string>
     <!-- <string name="processing_image_x_of_y">Processing image %1$d/%2$d</string> -->
-    <string name="processing_chunk_x_of_y">Processed chunk %1$d/%2$d</string>
+    <string name="processing_chunk_x_of_y">Processing chunk %1$d/%2$d</string>
 </resources>

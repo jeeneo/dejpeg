@@ -368,7 +368,8 @@ fun ImageCard(image: ImageItem, supportsStrength: Boolean, onStrengthChange: (Fl
     val haptic = com.je.dejpeg.ui.utils.rememberHapticFeedback()
     Card(modifier = Modifier.fillMaxWidth().height(80.dp).clickable(enabled = image.outputBitmap != null) { haptic.light(); onClick() }, shape = RoundedCornerShape(12.dp), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
         Row(modifier = Modifier.fillMaxSize().padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Image(bitmap = (image.outputBitmap ?: image.inputBitmap).asImageBitmap(), contentDescription = image.filename, modifier = Modifier.size(64.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant), contentScale = ContentScale.Crop)
+            val displayBitmap = image.thumbnailBitmap ?: image.outputBitmap ?: image.inputBitmap
+            Image(bitmap = displayBitmap.asImageBitmap(), contentDescription = image.filename, modifier = Modifier.size(64.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant), contentScale = ContentScale.Crop)
             Column(modifier = Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.Top) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(text = image.filename, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, modifier = Modifier.weight(1f, fill = false))

@@ -152,6 +152,17 @@ class ImageProcessor(
                 } else {
                     chunk
                 }
+                val currentChunkNumber = chunkIndex + 1
+                val progressMessage = if (totalChunks > 1) {
+                    context.getString(R.string.processing_chunk_x_of_y, currentChunkNumber, totalChunks)
+                } else {
+                    context.getString(R.string.processing)
+                }
+                val timeRemaining = timeEstimator.getEstimatedTimeRemaining(chunkIndex, totalChunks)
+                withContext(Dispatchers.Main) {
+                    callback.onProgress(progressMessage)
+                    callback.onTimeEstimate(timeRemaining)
+                }
                 timeEstimator.startChunk()
                 val processed = processChunkUnified(session, converted, config, hasTransparency, info)
                 timeEstimator.endChunk()
@@ -163,16 +174,6 @@ class ImageProcessor(
                 processed.recycle()
                 feathered.recycle()
                 chunkIndex++
-                val timeRemaining = timeEstimator.getEstimatedTimeRemaining(chunkIndex, totalChunks)
-                val progressMessage = if (totalChunks > 1) {
-                    context.getString(R.string.processing_chunk_x_of_y, chunkIndex, totalChunks)
-                } else {
-                    context.getString(R.string.processing)
-                }
-                withContext(Dispatchers.Main) {
-                    callback.onProgress(progressMessage)
-                    callback.onTimeEstimate(timeRemaining)
-                }
             }
         }
         return result

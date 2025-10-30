@@ -35,6 +35,7 @@ data class ImageItem(
     val filename: String,
     val inputBitmap: Bitmap,
     val outputBitmap: Bitmap? = null,
+    val thumbnailBitmap: Bitmap? = null,
     val size: String,
     val isProcessing: Boolean = false,
     val progress: String = "",
@@ -661,17 +662,31 @@ class ProcessingViewModel : ViewModel() {
 
     fun addImageFromUri(context: Context, uri: Uri) {
         loadBitmapWithRotation(context, uri)?.let { bmp ->
+            val thumbnail = generateThumbnail(bmp)
             addImage(
                 ImageItem(
                     id = UUID.randomUUID().toString(),
                     uri = uri,
                     filename = getFileNameFromUri(context, uri),
                     inputBitmap = bmp,
+                    thumbnailBitmap = thumbnail,
                     size = "${bmp.width}x${bmp.height}",
                     strengthFactor = _globalStrength.value / 100f
                 )
             )
         }
+    }
+    
+    private fun generateThumbnail(bitmap: Bitmap): Bitmap {
+        val thumbnailSize = 256
+        val blurRadius = 8f
+        val size = minOf(bitmap.width, bitmap.height)
+        val x = (bitmap.width - size) / 2
+        val y = (bitmap.height - size) / 2
+        val croppedBitmap = Bitmap.createBitmap(bitmap, x, y, size, size)
+        val resizedBitmap = Bitmap.createScaledBitmap(croppedBitmap, thumbnailSize, thumbnailSize, true)
+        if (croppedBitmap != resizedBitmap) croppedBitmap.recycle()
+        return resizedBitmap
     }
 
     private fun getFileNameFromUri(context: Context, uri: Uri): String {
