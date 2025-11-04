@@ -57,7 +57,9 @@ android {
             if (project.hasProperty("targetAbi")) {
                 include(project.property("targetAbi") as String)
             } else {
-                include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+                // Note: BRISQUE integration currently only supports arm64-v8a
+                // Add more ABIs when additional precompiled OpenCV libraries are available
+                include("arm64-v8a")
             }
             isUniversalApk = false
         }
@@ -80,11 +82,23 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        }
     }
     buildFeatures {
         compose = true
+    }
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+        }
+    }
+    sourceSets {
+        getByName("main") {
+            jniLibs.srcDir("src/main/jniLibs")
+        }
     }
 }
 
@@ -125,7 +139,7 @@ if (project.hasProperty("signApk") && project.property("signApk") == "true") {
         group = "build"
         description = "move apks to the root ./apks directory."
         doLast {
-            val apkDir = file("$buildDir/outputs/apk")
+            val apkDir = file("${layout.buildDirectory.get()}/outputs/apk")
             val destDir = file("${rootProject.rootDir}/apks")
             if (!destDir.exists()) destDir.mkdirs()
             apkDir.walkTopDown().filter { it.isFile && it.extension == "apk" }.forEach { apk ->

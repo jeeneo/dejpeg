@@ -172,19 +172,7 @@ class ProcessingViewModel : ViewModel() {
         appContext = context.applicationContext
         loadProcessingPreferences(context)
         
-        viewModelScope.launch {
-            _installedModels.value = modelManager?.getInstalledModels() ?: emptyList()
-            _hasCheckedModels.value = true
-            if (_installedModels.value.isEmpty()) {
-                _shouldShowNoModelDialog.value = true
-            } else {
-                val activeModel = modelManager?.getActiveModelName()
-                activeModel?.let { modelName ->
-                    val warning = modelManager?.getModelWarning(modelName)
-                    _deprecatedModelWarning.value = warning
-                }
-            }
-        }
+        viewModelScope.launch {/* Lines 183-194 omitted */}
         registerProcessingReceiver()
     }
     
@@ -362,9 +350,13 @@ class ProcessingViewModel : ViewModel() {
         _images.value = _images.value + item
     }
 
-    fun removeImage(id: String) {
+    fun removeImage(id: String, force: Boolean = false) {
         val target = getImageById(id)
-        if (target?.isProcessing == true && !target.isCancelling) {
+        if (target == null) {
+            processingQueue.remove(id)
+            return
+        }
+        if (!force && target.isProcessing && !target.isCancelling) {
             cancelInProgress = true
             updateImageState(id) { it.copy(isCancelling = true, progress = STATUS_CANCELING) }
             cancelProcessingService(id)

@@ -22,6 +22,7 @@ import androidx.navigation.NavType
 import com.je.dejpeg.ui.screens.ProcessingScreen
 import com.je.dejpeg.ui.screens.SettingsScreen
 import com.je.dejpeg.ui.screens.BeforeAfterScreen
+import com.je.dejpeg.ui.screens.BRISQUEScreen
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.R
 import com.je.dejpeg.ui.utils.rememberHapticFeedback
@@ -31,6 +32,9 @@ sealed class Screen(val route: String, val title: String) {
     object Settings : Screen("settings", "Settings")
     object BeforeAfter : Screen("beforeafter/{imageId}", "Before/After") {
         fun createRoute(imageId: String) = "beforeafter/$imageId"
+    }
+    object BRISQUE : Screen("brisque/{imageId}", "BRISQUE") {
+        fun createRoute(imageId: String) = "brisque/$imageId"
     }
 }
 
@@ -43,8 +47,10 @@ fun MainScreen(sharedUris: List<Uri> = emptyList()) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val isBeforeAfterScreen = currentRoute?.startsWith("beforeafter") ?: false
+    val isBRISQUEScreen = currentRoute?.startsWith("brisque") ?: false
+    val isFullscreenScreen = isBeforeAfterScreen || isBRISQUEScreen
     
-    if (isBeforeAfterScreen) {
+    if (isFullscreenScreen) {
         NavHost(navController, Screen.Processing.route, Modifier.fillMaxSize()) {
             composable(Screen.Processing.route) { ProcessingScreen(viewModel, navController, sharedUris) }
             composable(Screen.Settings.route) { SettingsScreen(viewModel) }
@@ -55,6 +61,15 @@ fun MainScreen(sharedUris: List<Uri> = emptyList()) {
                 val imageId = backStackEntry.arguments?.getString("imageId")
                 if (imageId != null) {
                     BeforeAfterScreen(viewModel, imageId, navController)
+                }
+            }
+            composable(
+                Screen.BRISQUE.route,
+                arguments = listOf(navArgument("imageId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val imageId = backStackEntry.arguments?.getString("imageId")
+                if (imageId != null) {
+                    BRISQUEScreen(viewModel, imageId, navController)
                 }
             }
         }
@@ -105,6 +120,15 @@ fun MainScreen(sharedUris: List<Uri> = emptyList()) {
                     val imageId = backStackEntry.arguments?.getString("imageId")
                     if (imageId != null) {
                         BeforeAfterScreen(viewModel, imageId, navController)
+                    }
+                }
+                composable(
+                    Screen.BRISQUE.route,
+                    arguments = listOf(navArgument("imageId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val imageId = backStackEntry.arguments?.getString("imageId")
+                    if (imageId != null) {
+                        BRISQUEScreen(viewModel, imageId, navController)
                     }
                 }
             }

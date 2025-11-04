@@ -71,12 +71,37 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
     var showCancelAllDialog by remember { mutableStateOf(false) }
     var saveErrorMessage by remember { mutableStateOf<String?>(null) }
     var overwriteDialogState by remember { mutableStateOf<Pair<String, String>?>(null) }
-
     val handleImageRemoval: (String) -> Unit = { imageId ->
-        images.firstOrNull { it.id == imageId }?.let {
-            if (it.isProcessing) imageIdToCancel = imageId
-            else if (it.outputBitmap != null && !it.hasBeenSaved) imageIdToRemove = imageId
-            else viewModel.removeImage(imageId)
+        images.firstOrNull { it.id == imageId }?.let { image ->
+            when {
+                image.isProcessing -> imageIdToCancel = imageId
+                image.outputBitmap != null && !image.hasBeenSaved -> imageIdToRemove = imageId
+                else -> viewModel.removeImage(imageId)
+            }
+        }
+    }
+
+    val performRemoval: (String) -> Unit = { imageId ->
+        viewModel.removeImage(imageId, force = true)
+        imageIdToRemove = null
+        imageIdToCancel = null
+    }
+    
+    LaunchedEffect(images) {
+        imageIdToRemove?.let { id ->
+            if (images.none { it.id == id }) {
+                imageIdToRemove = null
+            }
+        }
+        imageIdToCancel?.let { id ->
+            if (images.none { it.id == id }) {
+                imageIdToCancel = null
+            }
+        }
+        overwriteDialogState?.let { (id, _) ->
+            if (images.none { it.id == id }) {
+                overwriteDialogState = null
+            }
         }
     }
 
@@ -159,6 +184,10 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
                                 if (!viewModel.hasActiveModel()) viewModel.showNoModelDialog()
                                 else viewModel.processImage(image.id)
                             },
+                            onBrisque = {
+                                haptic.light()
+                                navController.navigate(com.je.dejpeg.ui.Screen.BRISQUE.createRoute(image.id))
+                            },
                             onClick = {
                                 if (image.outputBitmap != null) {
                                     haptic.light()
@@ -201,13 +230,21 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
                 imageFilename = image.filename,
                 hasOutput = image.outputBitmap != null,
                 onDismissRequest = { imageIdToRemove = null },
-                onRemove = { viewModel.removeImage(image.id); imageIdToRemove = null },
+                onRemove = { performRemoval(targetId) },
                 onSaveAndRemove = {
                     if (ImageActions.checkFileExists(context, image.filename)) {
                         imageIdToRemove = null
-                        overwriteDialogState = Pair(image.id, image.filename)
+                        overwriteDialogState = Pair(targetId, image.filename)
                     } else {
-                        viewModel.saveImage(context, image.id, onSuccess = { viewModel.removeImage(image.id); imageIdToRemove = null }, onError = { imageIdToRemove = null; saveErrorMessage = it })
+                        viewModel.saveImage(
+                            context = context,
+                            imageId = targetId,
+                            onSuccess = { performRemoval(targetId) },
+                            onError = { 
+                                imageIdToRemove = null
+                                saveErrorMessage = it
+                            }
+                        )
                     }
                 }
             )
@@ -219,8 +256,8 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
             CancelProcessingDialog(
                 imageFilename = image.filename,
                 onDismissRequest = { imageIdToCancel = null },
-                onConfirm = {
-                    viewModel.removeImage(image.id)
+                onConfirm = { 
+                    viewModel.cancelProcessingService(targetId)
                     imageIdToCancel = null
                 }
             )
@@ -299,7 +336,19 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
             hideOptions = true,
             onDismissRequest = { overwriteDialogState = null },
             onSave = { name, _, _ ->
-                viewModel.saveImage(context, id, name, { viewModel.removeImage(id); overwriteDialogState = null }, { overwriteDialogState = null; saveErrorMessage = it })
+                viewModel.saveImage(
+                    context = context,
+                    imageId = id,
+                    filename = name,
+                    onSuccess = { 
+                        performRemoval(id)
+                        overwriteDialogState = null
+                    },
+                    onError = { 
+                        overwriteDialogState = null
+                        saveErrorMessage = it
+                    }
+                )
             }
         )
     }
@@ -364,36 +413,39 @@ fun CountdownTimer(initialTimeMillis: Long, startTimeMillis: Long, isActive: Boo
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ImageCard(image: ImageItem, supportsStrength: Boolean, onStrengthChange: (Float) -> Unit, onRemove: () -> Unit, onProcess: () -> Unit, onClick: () -> Unit) {
+fun ImageCard(image: ImageItem, supportsStrength: Boolean, onStrengthChange: (Float) -> Unit, onRemove: () -> Unit, onProcess: () -> Unit, onBrisque: () -> Unit, onClick: () -> Unit) {
     val haptic = com.je.dejpeg.ui.utils.rememberHapticFeedback()
     Card(modifier = Modifier.fillMaxWidth().height(80.dp).clickable(enabled = image.outputBitmap != null) { haptic.light(); onClick() }, shape = RoundedCornerShape(12.dp), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
-        Row(modifier = Modifier.fillMaxSize().padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            val displayBitmap = image.thumbnailBitmap ?: image.outputBitmap ?: image.inputBitmap
-            Image(bitmap = displayBitmap.asImageBitmap(), contentDescription = image.filename, modifier = Modifier.size(64.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant), contentScale = ContentScale.Crop)
-            Column(modifier = Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.Top) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = image.filename, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, modifier = Modifier.weight(1f, fill = false))
-                    Text(text = image.size, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
-                }
-                if (image.isProcessing) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        if (image.progress.isNotEmpty()) Text(text = image.progress, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontSize = 10.sp, maxLines = 1, modifier = Modifier.weight(1f, fill = false))
-                        else Spacer(modifier = Modifier.weight(1f))
-                        if (image.timeEstimateMillis > 0) CountdownTimer(initialTimeMillis = image.timeEstimateMillis, startTimeMillis = image.timeEstimateStartMillis, isActive = image.isProcessing)
+        Box(modifier = Modifier.fillMaxSize().padding(8.dp)) {
+            Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val displayBitmap = image.thumbnailBitmap ?: image.outputBitmap ?: image.inputBitmap
+                Image(bitmap = displayBitmap.asImageBitmap(), contentDescription = image.filename, modifier = Modifier.size(64.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant), contentScale = ContentScale.Crop)
+                Column(modifier = Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.Top) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = image.filename, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, modifier = Modifier.weight(1f, fill = false))
+                        Text(text = image.size, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                     }
-                } else if (image.outputBitmap != null) {
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(text = stringResource(R.string.status_complete_ui), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium, fontSize = 11.sp)
+                    if (image.isProcessing) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            if (image.progress.isNotEmpty()) Text(text = image.progress, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontSize = 10.sp, maxLines = 1, modifier = Modifier.weight(1f, fill = false))
+                            else Spacer(modifier = Modifier.weight(1f))
+                            if (image.timeEstimateMillis > 0) CountdownTimer(initialTimeMillis = image.timeEstimateMillis, startTimeMillis = image.timeEstimateStartMillis, isActive = image.isProcessing)
+                        }
+                    } else if (image.outputBitmap != null) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(text = stringResource(R.string.status_complete_ui), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium, fontSize = 11.sp)
+                    }
                 }
             }
-            Column(modifier = Modifier.align(Alignment.CenterVertically), verticalArrangement = Arrangement.spacedBy(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Row(modifier = Modifier.align(Alignment.BottomEnd), horizontalArrangement = Arrangement.spacedBy(0.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (image.isProcessing) IconButton(onClick = { haptic.heavy(); onRemove() }, modifier = Modifier.size(36.dp)) { Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.cancel_processing), tint = Color(0xFFEF5350), modifier = Modifier.size(20.dp)) }
                 else {
                     IconButton(onClick = { haptic.medium(); onProcess() }, modifier = Modifier.size(36.dp)) { Icon(Icons.Filled.PlayArrow, contentDescription = stringResource(R.string.process), tint = Color(0xFF4CAF50), modifier = Modifier.size(20.dp)) }
                     IconButton(onClick = { haptic.heavy(); onRemove() }, modifier = Modifier.size(36.dp)) { Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.remove), tint = Color(0xFFEF5350), modifier = Modifier.size(18.dp)) }
+                    IconButton(onClick = { onBrisque() }, modifier = Modifier.size(36.dp)) { Text("B", style = MaterialTheme.typography.labelLarge.copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic), color = MaterialTheme.colorScheme.primary, fontSize = 16.sp) }
                 }
             }
         }
