@@ -65,7 +65,7 @@ You are free to embed parts of this app in your own project as long as it remain
 
 this app includes OpenCV with [BRISQUE analysis for descaling an image](https://github.com/jeeneo/dejpeg/issues/24), which is experimental but ive occasionally found it useful.
 
-you need the NDK installed to fully build with opencv + opencv contrib (for BRISQUE), else prebuilt binaries are included and you can just run `./gradlew clean assembleDebug`
+you need the NDK installed to fully build with [opencv](https://github.com/opencv/opencv) + [opencv contrib](https://github.com/opencv/opencv_contrib) (for BRISQUE), else prebuilt binaries are included and you can just run `./gradlew clean assembleDebug`
 
 use this to build OpenCV w/ BRISQUE (edit it respective to your location of the NDK):
 
