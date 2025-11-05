@@ -41,10 +41,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.je.dejpeg.ui.components.BatteryOptimizationDialog
-import com.je.dejpeg.ui.components.RemoveImageDialog
-import com.je.dejpeg.ui.components.CancelProcessingDialog
-import com.je.dejpeg.ui.components.ImageSourceDialog
+import com.je.dejpeg.compose.ui.components.BatteryOptimizationDialog
+import com.je.dejpeg.compose.ui.components.RemoveImageDialog
+import com.je.dejpeg.compose.ui.components.CancelProcessingDialog
+import com.je.dejpeg.compose.ui.components.ImageSourceDialog
 import com.je.dejpeg.ui.utils.ImageActions
 import com.je.dejpeg.ui.viewmodel.ImageItem
 import com.je.dejpeg.ui.viewmodel.ProcessingUiState
@@ -135,23 +135,44 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Row(Modifier.fillMaxWidth().padding(bottom = 16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.images, images.size), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            FloatingActionButton(onClick = {
-                haptic.light()
-                when (context.getSharedPreferences("AppPrefs", android.content.Context.MODE_PRIVATE).getString("defaultImageSource", null)) {
-                    "gallery" -> viewModel.launchGalleryPicker(context)
-                    "internal" -> viewModel.launchInternalPhotoPicker(context)
-                    "documents" -> viewModel.launchDocumentsPicker(context)
-                    "camera" -> viewModel.launchCamera(context)
-                    else -> showImageSourceDialog = true
-                }
-            }, containerColor = MaterialTheme.colorScheme.primary) { Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.add_images)) }
+            FloatingActionButton(
+                onClick = {
+                    haptic.light()
+                    when (context.getSharedPreferences("AppPrefs", android.content.Context.MODE_PRIVATE).getString("defaultImageSource", null)) {
+                        "gallery" -> viewModel.launchGalleryPicker(context)
+                        "internal" -> viewModel.launchInternalPhotoPicker(context)
+                        "documents" -> viewModel.launchDocumentsPicker(context)
+                        "camera" -> viewModel.launchCamera(context)
+                        else -> showImageSourceDialog = true
+                    }
+                }, 
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                shape = RoundedCornerShape(16.dp),
+                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
+            ) { 
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.add_images)) 
+            }
         }
 
         if (images.isNotEmpty() && supportsStrength) {
-            Card(Modifier.fillMaxWidth().padding(bottom = 16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                Column(Modifier.padding(10.dp)) {
-                    Text(stringResource(R.string.strength, globalStrength.toInt()), style = MaterialTheme.typography.bodySmall)
-                    Spacer(Modifier.height(4.dp))
+            Card(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp), 
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(Modifier.padding(12.dp)) {
+                    Text(
+                        stringResource(R.string.strength, globalStrength.toInt()), 
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(Modifier.height(8.dp))
                     var prevStrength by remember { mutableFloatStateOf(globalStrength) }
                     Slider(value = globalStrength, onValueChange = { val v = (it / 5).roundToInt() * 5f; if (v != prevStrength) { haptic.light(); prevStrength = v }; viewModel.setGlobalStrength(v) }, valueRange = 0f..100f, steps = 20, modifier = Modifier.fillMaxWidth().height(24.dp))
                 }
@@ -218,9 +239,26 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp).height(56.dp),
-                colors = if (uiState is ProcessingUiState.Processing) ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error) else ButtonDefaults.buttonColors()
-            ) { Text(if (uiState is ProcessingUiState.Processing) stringResource(R.string.cancel_processing) else stringResource(R.string.process_all), fontSize = 16.sp) }
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp)
+                    .height(56.dp),
+                colors = if (uiState is ProcessingUiState.Processing) 
+                    ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error) 
+                else 
+                    ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                shape = RoundedCornerShape(16.dp),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+            ) { 
+                Text(
+                    if (uiState is ProcessingUiState.Processing) 
+                        stringResource(R.string.cancel_processing) 
+                    else 
+                        stringResource(R.string.process_all), 
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                ) 
+            }
         }
     }
 
@@ -329,7 +367,7 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
     }
 
     overwriteDialogState?.let { (id, fn) ->
-        com.je.dejpeg.ui.components.SaveImageDialog(
+        com.je.dejpeg.compose.ui.components.SaveImageDialog(
             defaultFilename = fn,
             showSaveAllOption = false,
             initialSaveAll = false,
@@ -363,11 +401,19 @@ fun SwipeToDismissWrapper(swipeOffset: MutableState<Float>, isProcessing: Boolea
     val haptic = com.je.dejpeg.ui.utils.rememberHapticFeedback()
     var hasStartedDrag by remember { mutableStateOf(false) }
     var hasReachedThreshold by remember { mutableStateOf(false) }
-    Box(Modifier.fillMaxWidth().height(80.dp).onSizeChanged { widthPx = it.width }) {
-        if (animatedOffset > 0f) Box(Modifier.width((animatedOffset / density).dp).height(80.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFEF5350)), Alignment.Center) {
+    val cardHeight = 96.dp
+    Box(Modifier.fillMaxWidth().height(cardHeight).onSizeChanged { widthPx = it.width }) {
+        if (animatedOffset > 0f) Box(
+            Modifier
+                .width((animatedOffset / density).dp)
+                .height(cardHeight)
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color(0xFFEF5350)), 
+            Alignment.Center
+        ) {
             Icon(if (isProcessing) Icons.Filled.Close else Icons.Filled.Delete, if (isProcessing) "Cancel" else "Delete", Modifier.size(28.dp), Color.White)
         }
-        Box(Modifier.fillMaxWidth().height(80.dp).offset { IntOffset(animatedOffset.roundToInt(), 0) }.pointerInput(Unit) {
+        Box(Modifier.fillMaxWidth().height(cardHeight).offset { IntOffset(animatedOffset.roundToInt(), 0) }.pointerInput(Unit) {
             detectHorizontalDragGestures(onDragStart = { if (!hasStartedDrag) { haptic.gestureStart(); hasStartedDrag = true } }, onHorizontalDrag = { _, dragAmount -> swipeOffset.value = max(0f, swipeOffset.value + dragAmount); if (widthPx > 0 && swipeOffset.value > widthPx * 0.35f && !hasReachedThreshold) { haptic.medium(); hasReachedThreshold = true } else if (swipeOffset.value <= widthPx * 0.35f) hasReachedThreshold = false }, onDragEnd = { if (widthPx > 0 && swipeOffset.value > widthPx * 0.35f) { haptic.heavy(); onDismissed() }; scope.launch { swipeOffset.value = 0f; hasStartedDrag = false; hasReachedThreshold = false } })
         }) { content() }
     }
@@ -375,7 +421,15 @@ fun SwipeToDismissWrapper(swipeOffset: MutableState<Float>, isProcessing: Boolea
 
 @Composable
 fun NoModelDialog(onDismiss: () -> Unit, onGoToSettings: () -> Unit) {
-    AlertDialog(onDismissRequest = onDismiss, title = { Text(stringResource(R.string.no_model_installed_title)) }, text = { Text(stringResource(R.string.no_model_installed_desc)) }, confirmButton = { TextButton(onClick = onGoToSettings) { Text(stringResource(R.string.go_to_settings)) } }, dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } })
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(28.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        title = { Text(stringResource(R.string.no_model_installed_title)) }, 
+        text = { Text(stringResource(R.string.no_model_installed_desc)) }, 
+        confirmButton = { TextButton(onClick = onGoToSettings) { Text(stringResource(R.string.go_to_settings)) } }, 
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
+    )
 }
 
 @Composable
@@ -415,11 +469,39 @@ fun CountdownTimer(initialTimeMillis: Long, startTimeMillis: Long, isActive: Boo
 @Composable
 fun ImageCard(image: ImageItem, supportsStrength: Boolean, onStrengthChange: (Float) -> Unit, onRemove: () -> Unit, onProcess: () -> Unit, onBrisque: () -> Unit, onClick: () -> Unit) {
     val haptic = com.je.dejpeg.ui.utils.rememberHapticFeedback()
-    Card(modifier = Modifier.fillMaxWidth().height(80.dp).clickable(enabled = image.outputBitmap != null) { haptic.light(); onClick() }, shape = RoundedCornerShape(12.dp), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
-        Box(modifier = Modifier.fillMaxSize().padding(8.dp)) {
-            Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(96.dp)
+            .clickable(enabled = image.outputBitmap != null) { haptic.light(); onClick() }, 
+        shape = RoundedCornerShape(16.dp), 
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp,
+            pressedElevation = 4.dp
+        )
+    ) {
+        Box(modifier = Modifier.fillMaxSize().padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxSize(), 
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 val displayBitmap = image.thumbnailBitmap ?: image.outputBitmap ?: image.inputBitmap
-                Image(bitmap = displayBitmap.asImageBitmap(), contentDescription = image.filename, modifier = Modifier.size(64.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant), contentScale = ContentScale.Crop)
+                Surface(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .clip(RoundedCornerShape(12.dp)),
+                    color = MaterialTheme.colorScheme.surfaceVariant
+                ) {
+                    Image(
+                        bitmap = displayBitmap.asImageBitmap(), 
+                        contentDescription = image.filename, 
+                        modifier = Modifier.fillMaxSize(), 
+                        contentScale = ContentScale.Crop
+                    )
+                }
                 Column(modifier = Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.Top) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(text = image.filename, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, modifier = Modifier.weight(1f, fill = false))
@@ -427,7 +509,11 @@ fun ImageCard(image: ImageItem, supportsStrength: Boolean, onStrengthChange: (Fl
                     }
                     if (image.isProcessing) {
                         Spacer(modifier = Modifier.height(6.dp))
-                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        LinearProgressIndicator(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                        )
                         Spacer(modifier = Modifier.height(2.dp))
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                             if (image.progress.isNotEmpty()) Text(text = image.progress, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontSize = 10.sp, maxLines = 1, modifier = Modifier.weight(1f, fill = false))
@@ -435,8 +521,19 @@ fun ImageCard(image: ImageItem, supportsStrength: Boolean, onStrengthChange: (Fl
                             if (image.timeEstimateMillis > 0) CountdownTimer(initialTimeMillis = image.timeEstimateMillis, startTimeMillis = image.timeEstimateStartMillis, isActive = image.isProcessing)
                         }
                     } else if (image.outputBitmap != null) {
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(text = stringResource(R.string.status_complete_ui), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium, fontSize = 11.sp)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer
+                        ) {
+                            Text(
+                                text = stringResource(R.string.status_complete_ui), 
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -445,7 +542,7 @@ fun ImageCard(image: ImageItem, supportsStrength: Boolean, onStrengthChange: (Fl
                 else {
                     IconButton(onClick = { haptic.medium(); onProcess() }, modifier = Modifier.size(36.dp)) { Icon(Icons.Filled.PlayArrow, contentDescription = stringResource(R.string.process), tint = Color(0xFF4CAF50), modifier = Modifier.size(20.dp)) }
                     IconButton(onClick = { haptic.heavy(); onRemove() }, modifier = Modifier.size(36.dp)) { Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.remove), tint = Color(0xFFEF5350), modifier = Modifier.size(18.dp)) }
-                    IconButton(onClick = { onBrisque() }, modifier = Modifier.size(36.dp)) { Text("B", style = MaterialTheme.typography.labelLarge.copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic), color = MaterialTheme.colorScheme.primary, fontSize = 16.sp) }
+                    IconButton(onClick = { onBrisque() }, modifier = Modifier.size(36.dp)) { Icon(painter = androidx.compose.ui.res.painterResource(R.drawable.ic_brisque), contentDescription = stringResource(R.string.brisque), tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp)) }
                 }
             }
         }
@@ -463,12 +560,14 @@ fun DeprecatedModelWarningDialog(
     val haptic = com.je.dejpeg.ui.utils.rememberHapticFeedback()
     AlertDialog(
         onDismissRequest = onContinue,
-        title = { Text(stringResource(context.resources.getIdentifier(warning.title, "string", context.packageName))) },
+        shape = RoundedCornerShape(28.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        title = { Text(stringResource(warning.titleResId)) },
         text = { 
             Column {
                 Text("Active model: $modelName", fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(stringResource(context.resources.getIdentifier(warning.message, "string", context.packageName)))
+                Text(stringResource(warning.messageResId))
             }
         },
         confirmButton = { 

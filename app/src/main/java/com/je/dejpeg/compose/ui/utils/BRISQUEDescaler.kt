@@ -8,26 +8,30 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.yield
 import kotlin.coroutines.coroutineContext
 import kotlin.math.abs
+import kotlin.math.max
 import kotlin.math.sqrt
+import com.je.dejpeg.compose.ui.utils.ZipExtractor
 
-//
-// BrisqueDescaler.kt - licensed under GPLv3
-// 
-// BRISQUE is a library (https://github.com/krshrimali/No-Reference-Image-Quality-Assessment-using-BRISQUE-Model, https://github.com/rehanguha/brisque, https://docs.opencv.org/4.x/d8/d99/classcv_1_1quality_1_1QualityBRISQUE.html)
-// for guessing an image's perceptual quality, lower value, better quality.
-// This can be used in tandem with a rough Sharpness estimate to descale an image that was scaled up to a larger resolution without anything other than standard interpolation to extract its approximate original resolution.
-//
-// Example: an image scaled to 800px but originally 500px (currently unknown) can look blurred, if used 'as-is', it can't be upscaled or cleaned up without wasting resources or looking worse with little to no improvement, or manually resized until it looks right, which can get tedious.
-// Solution: implement a BRISQUE assessment with a rough Sharpness estimation for descaling an image to provide a better result which can be used by other models to remove artifacts later on.
-// see https://github.com/jeeneo/dejpeg/issues/24
-//
+/**
+BRISQUEDescaler.kt - licensed under GPLv3
+Copyleft (🄯) 2025
+BRISQUE is a library (https://github.com/krshrimali/No-Reference-Image-Quality-Assessment-using-BRISQUE-Model, https://github.com/rehanguha/brisque, https://docs.opencv.org/4.x/d8/d99/classcv_1_1quality_1_1QualityBRISQUE.html)
+for guessing an image's perceptual quality, lower value, better quality.
+This can be used in tandem with a rough Sharpness estimate to descale an image that was scaled up to a larger resolution without anything other than standard interpolation to extract its approximate original resolution.
 
-class BrisqueDescaler(
-    private val brisqueAssessor: BrisqueAssessor,
+Example: an image scaled to 800px but originally 500px (currently unknown) can look blurred, if used 'as-is', it can't be upscaled or cleaned up without wasting resources or looking worse with little to no improvement, or manually resized until it looks right, which can get tedious.
+Solution: implement a BRISQUE assessment with a rough Sharpness estimation for descaling an image to provide a better result which can be used by other models to remove artifacts later on.
+
+See https://github.com/jeeneo/dejspeg/issues/24
+It's not perfect but it helps sometimes.
+*/
+
+class BRISQUEDescaler(
+    private val brisqueAssessor: BRISQUEAssesser,
     private val context: Context
 ) {
     companion object {
-        private const val TAG = "BrisqueDescaler"
+        private const val TAG = "BRISQUEDescaler"
         private const val DEFAULT_COARSE_STEP = 20           // pixels step for coarse scan
         private const val DEFAULT_FINE_STEP = 5              // pixels step for fine scan
         private const val DEFAULT_FINE_RANGE = 30            // pixels range around coarse best
@@ -65,41 +69,43 @@ class BrisqueDescaler(
         val combinedScore: Float
     )
     
-    suspend fun analyzeAndDescale(
+    suspend fun descale(
         bitmap: Bitmap,
         coarseStep: Int = DEFAULT_COARSE_STEP,
         fineStep: Int = DEFAULT_FINE_STEP,
         fineRange: Int = DEFAULT_FINE_RANGE,
         minWidthRatio: Float = DEFAULT_MIN_WIDTH_RATIO,
+        brisqueWeight: Float = BRISQUE_WEIGHT,
+        sharpnessWeight: Float = SHARPNESS_WEIGHT,
         onProgress: ((ProgressUpdate) -> Unit)? = null
     ): DescaleResult {
         val origW = bitmap.width
         val origH = bitmap.height
         val minW = (origW * minWidthRatio).toInt()
-        Log.d(TAG, "Starting BRISQUE: ${origW}x${origH}")
+        Log.d(TAG, "Starting: ${origW}x${origH}")
         Log.d(TAG, "Min width: $minW, Coarse step: $coarseStep, Fine step: $fineStep")
         
         onProgress?.invoke(ProgressUpdate(
-            phase = "Initialization",
+            phase = "initialization",
             currentStep = 0,
             totalSteps = 100,
             currentSize = "${origW}x${origH}",
             message = "Analyzing original image..."
         ))
 
-        val originalBrisqueScore = computeBrisqueForBitmap(bitmap)
+        val originalBrisqueScore = computeBRISQUE(bitmap)
         val originalSharpness = estimateSharpness(bitmap)
         Log.d(TAG, "Original image BRISQUE: %.2f, Sharpness: %.2f".format(originalBrisqueScore, originalSharpness))
 
         onProgress?.invoke(ProgressUpdate(
-            phase = "Initialization",
+            phase = "initialization",
             currentStep = 5,
             totalSteps = 100,
             currentSize = "${origW}x${origH}",
             message = "Original BRISQUE: %.2f, Sharpness: %.2f".format(originalBrisqueScore, originalSharpness)
         ))
 
-        Log.d(TAG, "Starting coarse scan...")
+        Log.d(TAG, "Scanning (coarse)...")
         val coarseResults = mutableListOf<ScanResult>()
         var bestCoarseIdx = 0
         var bestCoarseScore = Float.MAX_VALUE
@@ -113,15 +119,15 @@ class BrisqueDescaler(
             val h = (origH * (w.toFloat() / origW)).toInt()
             coarseStepCount++
             onProgress?.invoke(ProgressUpdate(
-                phase = "Coarse scan",
+                phase = "coarse scan",
                 currentStep = 5 + (coarseStepCount * 45 / totalCoarseSteps),
                 totalSteps = 100,
                 currentSize = "${w}x${h}",
-                message = "Testing ${w}x${h} (${coarseStepCount}/${totalCoarseSteps})"
+                message = "Scaling ${w}x${h} (${coarseStepCount}/${totalCoarseSteps})"
             ))
             val resized = resizeBitmap(bitmap, w, h)
             try {
-                val brisqueScore = computeBrisqueForBitmap(resized)
+                val brisqueScore = computeBRISQUE(resized)
                 val sharpness = estimateSharpness(resized)
                 val combined = brisqueScore
                 val result = ScanResult(w, h, brisqueScore, sharpness, combined)
@@ -140,14 +146,14 @@ class BrisqueDescaler(
         Log.d(TAG, "Coarse best: ${bestCoarseResult.width}x${bestCoarseResult.height} with BRISQUE: %.2f".format(bestCoarseResult.brisqueScore))
         
         onProgress?.invoke(ProgressUpdate(
-            phase = "Coarse scan complete",
+            phase = "coarse scan complete",
             currentStep = 50,
             totalSteps = 100,
             currentSize = "${bestCoarseResult.width}x${bestCoarseResult.height}",
             message = "Best coarse result: ${bestCoarseResult.width}x${bestCoarseResult.height} (BRISQUE: %.2f)".format(bestCoarseResult.brisqueScore)
         ))
         
-        Log.d(TAG, "Starting fine scan...")
+        Log.d(TAG, "Scanning (fine)...")
         val fineResults = mutableListOf<ScanResult>()
         val startW = maxOf(minW, bestCoarseResult.width - fineRange)
         val endW = minOf(origW, bestCoarseResult.width + fineRange)
@@ -161,7 +167,7 @@ class BrisqueDescaler(
             val h = (origH * (w.toFloat() / origW)).toInt()
             fineStepCount++
             onProgress?.invoke(ProgressUpdate(
-                phase = "Fine scan",
+                phase = "fine scan",
                 currentStep = 50 + (fineStepCount * 40 / totalFineSteps),
                 totalSteps = 100,
                 currentSize = "${w}x${h}",
@@ -169,11 +175,10 @@ class BrisqueDescaler(
             ))
             val resized = resizeBitmap(bitmap, w, h)
             try {
-                val brisqueScore = computeBrisqueForBitmap(resized)
+                val brisqueScore = computeBRISQUE(resized)
                 val sharpness = estimateSharpness(resized)
                 val result = ScanResult(w, h, brisqueScore, sharpness, 0f)
                 fineResults.add(result)
-
                 Log.d(TAG, "Fine: ${w}x${h} - BRISQUE: %.2f, Sharpness: %.2f".format(brisqueScore, sharpness))
             } finally {
                 resized.recycle()
@@ -181,23 +186,8 @@ class BrisqueDescaler(
             w += fineStep
         }
         if (fineResults.isEmpty()) {
-            Log.w(TAG, "Fine scan produced nothing, using best coarse")
+            Log.w(TAG, "No fine results, using coarse best")
             val descaled = resizeBitmap(bitmap, bestCoarseResult.width, bestCoarseResult.height)
-            if (originalBrisqueScore < bestCoarseResult.brisqueScore) {
-                Log.d(TAG, "Original score better than descaled, keeping original.")
-                return DescaleResult(
-                    originalWidth = origW,
-                    originalHeight = origH,
-                    detectedOptimalWidth = origW,
-                    detectedOptimalHeight = origH,
-                    bestBrisqueScore = originalBrisqueScore,
-                    bestSharpness = originalSharpness,
-                    combinedScore = originalBrisqueScore,
-                    scaleBitmap = bitmap.copy(bitmap.config ?: Bitmap.Config.ARGB_8888, false),
-                    coarseScanResults = coarseResults,
-                    fineScanResults = fineResults
-                )
-            }
             return DescaleResult(
                 originalWidth = origW,
                 originalHeight = origH,
@@ -212,11 +202,11 @@ class BrisqueDescaler(
             )
         }
         onProgress?.invoke(ProgressUpdate(
-            phase = "Fine scan done",
+            phase = "fine scan done",
             currentStep = 90,
             totalSteps = 100,
             currentSize = "",
-            message = "Computing optimal result..."
+            message = "Analyzing..."
         ))
 
         val brisqueScores = fineResults.map { it.brisqueScore }
@@ -247,38 +237,15 @@ class BrisqueDescaler(
         ))
 
         onProgress?.invoke(ProgressUpdate(
-            phase = "Finalizing",
+            phase = "finalizing",
             currentStep = 95,
             totalSteps = 100,
             currentSize = "${bestFineResult.width}x${bestFineResult.height}",
             message = "Optimal size: ${bestFineResult.width}x${bestFineResult.height} (BRISQUE: %.2f)".format(bestFineResult.brisqueScore)
         ))
         val descaled = resizeBitmap(bitmap, bestFineResult.width, bestFineResult.height)
-        if (originalBrisqueScore < bestFineResult.brisqueScore) {
-            Log.d(TAG, "Original image BRISQUE is better than descaled. Keeping original.") // should allow user to accept/decline instead of forcing
-            onProgress?.invoke(ProgressUpdate(
-                phase = "Complete",
-                currentStep = 100,
-                totalSteps = 100,
-                currentSize = "${origW}x${origH}",
-                message = "Original image is already best"
-            ))
-            return DescaleResult(
-                originalWidth = origW,
-                originalHeight = origH,
-                detectedOptimalWidth = origW,
-                detectedOptimalHeight = origH,
-                bestBrisqueScore = originalBrisqueScore,
-                bestSharpness = originalSharpness,
-                combinedScore = originalBrisqueScore,
-                scaleBitmap = bitmap.copy(bitmap.config ?: Bitmap.Config.ARGB_8888, false),
-                coarseScanResults = coarseResults,
-                fineScanResults = combinedScores
-            )
-        }
-
         onProgress?.invoke(ProgressUpdate(
-            phase = "Complete",
+            phase = "complete",
             currentStep = 100,
             totalSteps = 100,
             currentSize = "${bestFineResult.width}x${bestFineResult.height}",
@@ -299,86 +266,49 @@ class BrisqueDescaler(
         )
     }
 
-    private fun estimateSharpness(bitmap: Bitmap): Float {
-        try {
-            val gray = if (bitmap.config == Bitmap.Config.ARGB_8888) {
-                Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
-            } else {
-                bitmap
-            }
-            
-            // Laplacian approximation using pixel differences
-            // use a simplified approach: variance of horizontal and vertical gradients
-            // will improve upon later
-            val pixels = IntArray(bitmap.width * bitmap.height)
-            bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
-            
-            var gradientSum = 0.0
-            var gradientSumSquared = 0.0
-            var count = 0
-            
-            for (i in 1 until bitmap.height - 1) {
-                for (j in 1 until bitmap.width - 1) {
-                    val idx = i * bitmap.width + j
-                    val centerPixel = pixels[idx]
-                    val centerBright = ((centerPixel shr 16) and 0xFF + (centerPixel shr 8) and 0xFF + (centerPixel) and 0xFF) / 3f
-                    val leftPixel = pixels[i * bitmap.width + (j - 1)]
-                    val rightPixel = pixels[i * bitmap.width + (j + 1)]
-                    val leftBright = ((leftPixel shr 16) and 0xFF + (leftPixel shr 8) and 0xFF + (leftPixel) and 0xFF) / 3f
-                    val rightBright = ((rightPixel shr 16) and 0xFF + (rightPixel shr 8) and 0xFF + (rightPixel) and 0xFF) / 3f
-                    val hGrad = rightBright - leftBright
-                    val topPixel = pixels[(i - 1) * bitmap.width + j]
-                    val botPixel = pixels[(i + 1) * bitmap.width + j]
-                    val topBright = ((topPixel shr 16) and 0xFF + (topPixel shr 8) and 0xFF + (topPixel) and 0xFF) / 3f
-                    val botBright = ((botPixel shr 16) and 0xFF + (botPixel shr 8) and 0xFF + (botPixel) and 0xFF) / 3f
-                    val vGrad = botBright - topBright
-                    val laplacian = 2f * centerBright - leftBright - rightBright + 2f * centerBright - topBright - botBright
-                    gradientSum += laplacian
-                    gradientSumSquared += laplacian * laplacian
-                    count++
+    fun estimateSharpness(bmp: Bitmap): Float {
+        return try {
+            val w = bmp.width
+            val h = bmp.height
+            val p = IntArray(w * h)
+            bmp.getPixels(p, 0, w, 0, 0, w, h)
+            var sum = 0.0
+            var sumSq = 0.0
+            var n = 0
+            for (y in 1 until h - 1) {
+                for (x in 1 until w - 1) {
+                    val i = y * w + x
+                    fun bright(c: Int): Float = ((c shr 16 and 0xFF) * 0.299f + (c shr 8 and 0xFF) * 0.587f + (c and 0xFF) * 0.114f)
+                    val c = bright(p[i])
+                    val lap = 4 * c - (bright(p[i - 1]) + bright(p[i + 1]) + bright(p[i - w]) + bright(p[i + w]))
+                    sum += lap
+                    sumSq += lap * lap
+                    n++
                 }
             }
-            
-            if (count == 0) return 0f
-            
-            val mean = gradientSum / count
-            val variance = (gradientSumSquared / count) - (mean * mean)
-            
-            return sqrt(maxOf(0.0, variance)).toFloat()
+            if (n == 0) 0f else {
+                val mean = sum / n
+                val varc = (sumSq / n) - mean * mean
+                sqrt(max(0.0, varc)).toFloat()
+            }
         } catch (e: Exception) {
-            Log.e(TAG, "Error estimating sharpness: ${e.message}")
-            return 0f
+            Log.e("Sharpness", e.message ?: "err")
+            0f
         }
     }
 
-    private fun computeBrisqueForBitmap(bitmap: Bitmap): Float {
+    private fun computeBRISQUE(bitmap: Bitmap): Float {
         return try {
-            val tempFile = java.io.File.createTempFile("brisque_descaler_${System.currentTimeMillis()}_", ".png", context.cacheDir)
+            val tempFile = java.io.File.createTempFile("brisque_${System.currentTimeMillis()}_", ".png", context.cacheDir)
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, tempFile.outputStream())
             try {
-                val modelFile = java.io.File(context.cacheDir, "brisque_model_live.yml")
-                val rangeFile = java.io.File(context.cacheDir, "brisque_range_live.yml")
-                if (!modelFile.exists()) {
-                    context.assets.open("brisque_model_live.yml").use { input ->
-                        modelFile.outputStream().use { output ->
-                            input.copyTo(output)
-                        }
-                    }
+                val modelFile = java.io.File(ZipExtractor.getModelsDir(context), "brisque_model_live.yml")
+                val rangeFile = java.io.File(ZipExtractor.getModelsDir(context), "brisque_range_live.yml")
+                if (!modelFile.exists() || !rangeFile.exists()) {
+                    Log.w(TAG, "Model files not found in app data directory")
+                    return 100f
                 }
-                if (!rangeFile.exists()) {
-                    context.assets.open("brisque_range_live.yml").use { input ->
-                        rangeFile.outputStream().use { output ->
-                            input.copyTo(output)
-                        }
-                    }
-                }
-                val score = brisqueAssessor.assessImageQuality(
-                    tempFile.absolutePath,
-                    modelFile.absolutePath,
-                    rangeFile.absolutePath
-                )
-                
-                if (score < 0) 100f else score
+                brisqueAssessor.assessImageQuality(tempFile.absolutePath, modelFile.absolutePath, rangeFile.absolutePath).takeIf { it >= 0 } ?: 100f
             } finally {
                 tempFile.delete()
             }

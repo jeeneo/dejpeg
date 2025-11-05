@@ -11,14 +11,12 @@ android {
     compileSdk {
         version = release(36)
     }
-
     defaultConfig {
         applicationId = "com.je.dejpeg"
         minSdk = 24
         targetSdk = 36
-        versionCode = 301
-        versionName = "3.0.1"
-        // testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        versionCode = 310
+        versionName = "3.1.0"
     }
     signingConfigs {
         if (project.hasProperty("signApk") && project.property("signApk") == "true") {
@@ -49,7 +47,6 @@ android {
             versionNameSuffix = "-debug"
         }
     }
-
     splits {
         abi {
             isEnable = true
@@ -57,8 +54,6 @@ android {
             if (project.hasProperty("targetAbi")) {
                 include(project.property("targetAbi") as String)
             } else {
-                // Note: BRISQUE integration currently only supports arm64-v8a
-                // Add more ABIs when additional precompiled OpenCV libraries are available
                 include("arm64-v8a")
             }
             isUniversalApk = false
@@ -77,7 +72,6 @@ android {
             }
         }
     }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -90,11 +84,15 @@ android {
     buildFeatures {
         compose = true
     }
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
+    if (System.getenv("BUILD_BRISQUE_JNI") == "ON") {
+        externalNativeBuild {
+            cmake {
+                path = file("src/main/cpp/CMakeLists.txt")
+                version = "3.22.1"
+            }
         }
     }
+    ndkVersion = "27.3.13750724"
     sourceSets {
         getByName("main") {
             jniLibs.srcDir("src/main/jniLibs")

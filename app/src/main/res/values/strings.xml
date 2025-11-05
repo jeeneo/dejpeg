@@ -35,6 +35,7 @@
     <string name="open_battery_optimization_settings">Would you like to open battery optimization settings?</string>
     <string name="open_settings">Open settings</string>
     <string name="select_image_source">Select image source</string>
+    <string name="set_as_default_desc">Remember this choice</string>
     <string name="gallery">Gallery</string>
     <string name="gallery_picker_title">Gallery picker</string>
     <string name="gallery_picker_desc">Uses your device\'s or 3rd-party gallery app to select images. This method is recommended and works on most devices and supports filenames.</string>
@@ -42,7 +43,7 @@
     <string name="internal_picker_title">Internal picker</string>
     <string name="internal_picker_desc">Uses Android\'s built-in photo picker, more privacy aware but restricts filenames.</string>
     <string name="documents">Documents</string>
-    <string name="documents_picker_title">Documents picker</string>
+    <string name="documents_picker_title">Documents provider</string>
     <string name="documents_picker_desc">Opens the standard SAF picker. Useful for accessing images in folders or other locations/providers.</string>
     <string name="camera">Camera</string>
     <string name="camera_title">Camera</string>
@@ -82,7 +83,7 @@
     <string name="finishing_up">Finishing up...</string>
     <string name="status_preparing">Preparing...</string>
     <string name="status_complete">Complete</string>
-    <string name="status_complete_ui">Complete - tap to view</string>
+    <string name="status_complete_ui">complete - tap to view</string>
     <string name="status_cancelled">Cancelled</string>
     <string name="status_canceling">Canceling...</string>
     <string name="settings">Settings</string>
@@ -90,6 +91,7 @@
     <string name="process">Process</string>
     <string name="cancel_processing">Cancel</string>
     <string name="process_all">Process all</string>
+    <string name="brisque">BRISQUE assessment and descaling</string>
     <!-- settingsscreen.kt -->
     <!-- <string name="model">Model</string> -->
     <string name="no_model_loaded">No model loaded</string>
@@ -108,13 +110,15 @@
     <string name="model_incompatible">This model may be incompatible. Import anyway?</string>
     <string name="model_name_format">Model: %1$s\n\n%2$s</string>
     <string name="warning">Warning</string>
-    <string name="import_text">Import</string>
+    <string name="import_text">Import</string>s
+    <string name="import_model_text">Import model</string>
     <string name="progress_percent">%1$d%%</string>
     <string name="px_suffix">px</string>
-    <string name="dejpeg_title">DeJPEG v3.0</string>
+    <string name="dejpeg_title">DeJPEG</string>
     <string name="non_destructive_restoration">Non-destructive restoration</string>
     <string name="open_source_app_description">An open source app for removing noise and compression from photos</string>
     <string name="license_text">Licensed under GPLv3</string>
+    <string name="github">GitHub</string>
     <string name="save_dialog">Save dialog</string>
     <string name="currently">Currently: %1$s</string>
     <string name="shown">shown</string>

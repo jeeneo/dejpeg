@@ -1,4 +1,4 @@
-package com.je.dejpeg.ui.components
+package com.je.dejpeg.compose.ui.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,11 +22,18 @@ enum class ImageSourceHelpType {
 }
 
 @Composable
-fun ImageSourceDialog(onDismiss: () -> Unit, onGallerySelected: () -> Unit, onInternalSelected: () -> Unit, onDocumentsSelected: () -> Unit, onCameraSelected: () -> Unit) {
+fun ImageSourceDialog(
+    onDismiss: () -> Unit, 
+    onGallerySelected: () -> Unit, 
+    onInternalSelected: () -> Unit, 
+    onDocumentsSelected: () -> Unit, 
+    onCameraSelected: () -> Unit
+) {
     val prefs = LocalContext.current.getSharedPreferences("AppPrefs", android.content.Context.MODE_PRIVATE)
     var helpInfo by remember { mutableStateOf<ImageSourceHelpType?>(null) }
     var setAsDefault by remember { mutableStateOf(false) }
     val haptic = com.je.dejpeg.ui.utils.rememberHapticFeedback()
+    
     val handleSelection: (String, () -> Unit) -> Unit = { key, action -> 
         if (setAsDefault) prefs.edit().putString("defaultImageSource", key).apply()
         onDismiss()
@@ -34,19 +41,108 @@ fun ImageSourceDialog(onDismiss: () -> Unit, onGallerySelected: () -> Unit, onIn
     }
 
     Dialog(onDismissRequest = onDismiss) {
-        Card(modifier = Modifier.fillMaxWidth().padding(16.dp), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-            Column(modifier = Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text(text = stringResource(R.string.select_image_source), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                ImageSourceOption(Icons.Outlined.PhotoLibrary, stringResource(R.string.gallery), { haptic.medium(); handleSelection("gallery", onGallerySelected) }, { haptic.light(); helpInfo = ImageSourceHelpType.GALLERY })
-                ImageSourceOption(Icons.Outlined.Photo, stringResource(R.string.internal_picker), { haptic.medium(); handleSelection("internal", onInternalSelected) }, { haptic.light(); helpInfo = ImageSourceHelpType.INTERNAL })
-                ImageSourceOption(Icons.Outlined.Folder, stringResource(R.string.documents), { haptic.medium(); handleSelection("documents", onDocumentsSelected) }, { haptic.light(); helpInfo = ImageSourceHelpType.DOCUMENTS })
-                ImageSourceOption(Icons.Outlined.CameraAlt, stringResource(R.string.camera), { haptic.medium(); handleSelection("camera", onCameraSelected) }, { haptic.light(); helpInfo = ImageSourceHelpType.CAMERA })
-                HorizontalDivider()
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = stringResource(R.string.set_as_default), style = MaterialTheme.typography.bodyMedium)
-                    Switch(checked = setAsDefault, onCheckedChange = { haptic.light(); setAsDefault = it })
+        // Changed to ElevatedCard with better elevation
+        ElevatedCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(28.dp),
+            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 6.dp),
+            colors = CardDefaults.elevatedCardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Enhanced header with icon
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.select_image_source),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
-                TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) { Text(stringResource(R.string.cancel)) }
+                
+                Spacer(Modifier.height(4.dp))
+                
+                ModernImageSourceOption(
+                    icon = Icons.Outlined.PhotoLibrary,
+                    title = stringResource(R.string.gallery),
+                    description = stringResource(R.string.gallery_picker_title),
+                    onClick = { haptic.medium(); handleSelection("gallery", onGallerySelected) },
+                    onHelpClick = { haptic.light(); helpInfo = ImageSourceHelpType.GALLERY }
+                )
+                
+                ModernImageSourceOption(
+                    icon = Icons.Outlined.Photo,
+                    title = stringResource(R.string.internal_picker),
+                    description = stringResource(R.string.internal_picker_title),
+                    onClick = { haptic.medium(); handleSelection("internal", onInternalSelected) },
+                    onHelpClick = { haptic.light(); helpInfo = ImageSourceHelpType.INTERNAL }
+                )
+                ModernImageSourceOption(
+                    icon = Icons.Outlined.Folder,
+                    title = stringResource(R.string.documents),
+                    description = stringResource(R.string.documents_picker_title),
+                    onClick = { haptic.medium(); handleSelection("documents", onDocumentsSelected) },
+                    onHelpClick = { haptic.light(); helpInfo = ImageSourceHelpType.DOCUMENTS }
+                )
+                ModernImageSourceOption(
+                    icon = Icons.Outlined.CameraAlt,
+                    title = stringResource(R.string.camera),
+                    description = stringResource(R.string.camera_title),
+                    onClick = { haptic.medium(); handleSelection("camera", onCameraSelected) },
+                    onHelpClick = { haptic.light(); helpInfo = ImageSourceHelpType.CAMERA }
+                )
+                Spacer(Modifier.height(4.dp))
+                ElevatedCard(
+                    colors = CardDefaults.elevatedCardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                    ),
+                    elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.set_as_default),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = stringResource(R.string.set_as_default_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = setAsDefault,
+                            onCheckedChange = { haptic.light(); setAsDefault = it }
+                        )
+                    }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(
+                        onClick = { haptic.light(); onDismiss() }
+                    ) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                }
             }
         }
     }
@@ -57,26 +153,90 @@ fun ImageSourceDialog(onDismiss: () -> Unit, onGallerySelected: () -> Unit, onIn
             ImageSourceHelpType.DOCUMENTS -> R.string.documents_picker_title to R.string.documents_picker_desc
             ImageSourceHelpType.CAMERA -> R.string.camera_title to R.string.camera_desc
         }
-        HelpDialog(title = stringResource(titleRes), text = stringResource(descRes)) { helpInfo = null }
+        HelpDialog(
+            title = stringResource(titleRes),
+            text = stringResource(descRes)
+        ) { helpInfo = null }
     }
 }
 
 @Composable
-private fun ImageSourceOption(icon: ImageVector, title: String, onClick: () -> Unit, onHelpClick: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-        Row(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Button(onClick = onClick, modifier = Modifier.weight(1f), shape = RoundedCornerShape(8.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(20.dp))
-                    Text(title)
+private fun ModernImageSourceOption(
+    icon: ImageVector,
+    title: String,
+    description: String,
+    onClick: () -> Unit,
+    onHelpClick: () -> Unit
+) {
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.elevatedCardColors(),
+        elevation = CardDefaults.elevatedCardElevation(1.dp, 3.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.08f),
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(icon, contentDescription = null, modifier = Modifier.size(22.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                    Text(text = title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                    Text(text = description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            IconButton(onClick = onHelpClick, modifier = Modifier.size(40.dp)) { Icon(imageVector = Icons.Default.Info, contentDescription = stringResource(R.string.help), tint = MaterialTheme.colorScheme.primary) }
+            IconButton(onClick = onHelpClick, modifier = Modifier.size(36.dp)) {
+                Icon(imageVector = Icons.Default.Info, contentDescription = stringResource(R.string.help), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }
 
 @Composable
 fun HelpDialog(title: String, text: String, onDismiss: () -> Unit) {
-    AlertDialog(onDismissRequest = onDismiss, icon = { Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }, title = { Text(text = title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }, text = { Text(text = text, style = MaterialTheme.typography.bodyMedium) }, confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.ok)) } })
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(28.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        icon = {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(32.dp)
+            )
+        },
+        title = {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyLarge
+            )
+        },
+        confirmButton = {
+            FilledTonalButton(onClick = onDismiss) {
+                Text(stringResource(R.string.ok))
+            }
+        }
+    )
 }

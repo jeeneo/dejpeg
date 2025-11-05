@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/6d1e6fde-58b6-4991-9bb3-57b64627fbcf" height="140" alt="">
+  <img src="fastlane/metadata/android/en-US/images/icon.png" height="140" alt="">
   <br>
   An open source app for removing noise and compression from photos
   <h2></h2>
@@ -22,7 +22,8 @@
 - batch processing
 - supports most image formats
 - before/after view
-- custom models
+- custom models (beta)
+- image descaling (beta)
 - [fully offline](https://github.com/jeeneo/dejpeg/blob/main/app/src/main/AndroidManifest.xml)
 
 This is not a "super resolution AI upscaler", but simple non-destructive method for cleaning up/restoring images
@@ -59,3 +60,73 @@ This is a GUI wrapper for a select amount of `1x` ONNX image processing models
 All models used are under their respective licenses
 
 You are free to embed parts of this app in your own project as long as it remains free/non-paywalled and must abide to the GPL v3 license
+
+## building
+
+this app includes OpenCV with [BRISQUE analysis for descaling an image](https://github.com/jeeneo/dejpeg/issues/24), which is experimental but ive occasionally found it useful.
+
+you need the NDK installed to fully build with opencv + opencv contrib (for BRISQUE), else prebuilt binaries are included and you can just run `./gradlew clean assembleDebug`
+
+use this to build OpenCV w/ BRISQUE (edit it respective to your location of the NDK):
+
+```bash
+cmake \
+  -DCMAKE_TOOLCHAIN_FILE=/home/<user>/Android/Sdk/ndk/27.3.13750724/build/cmake/android.toolchain.cmake \
+  -DANDROID_ABI=arm64-v8a \
+  -DANDROID_NATIVE_API_LEVEL=21 \
+  -DANDROID_STL=c++_shared \
+  -DCMAKE_BUILD_TYPE=MinSizeRel \
+  -DCMAKE_CXX_FLAGS_MINSIZEREL="-Os -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -ffunction-sections -fdata-sections" \
+  -DCMAKE_C_FLAGS_MINSIZEREL="-Os -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -ffunction-sections -fdata-sections" \
+  -DCMAKE_SHARED_LINKER_FLAGS="-Wl,--gc-sections" \
+  -DOPENCV_EXTRA_MODULES_PATH=/home/<user>/opencv/opencv_contrib/modules \
+  -DBUILD_SHARED_LIBS=ON \
+  -DBUILD_TESTS=OFF \
+  -DBUILD_PERF_TESTS=OFF \
+  -DBUILD_ANDROID_EXAMPLES=OFF \
+  -DBUILD_DOCS=OFF \
+  -DBUILD_opencv_java=OFF \
+  -DWITH_GSTREAMER=OFF \
+  -DWITH_V4L=OFF \
+  -DWITH_GTK=OFF \
+  -DWITH_QT=OFF \
+  -DWITH_IPP=OFF \
+  -DWITH_CUDA=OFF \
+  -DWITH_OPENCL=OFF \
+  -DWITH_VTK=OFF \
+  -DWITH_JASPER=OFF \
+  -DWITH_OPENEXR=OFF \
+  -DBUILD_EXAMPLES=OFF \
+  -DBUILD_PACKAGE=OFF \
+  -DBUILD_opencv_core=ON \
+  -DBUILD_opencv_imgproc=ON \
+  -DBUILD_opencv_ml=ON \
+  -DBUILD_opencv_imgcodecs=ON \
+  -DBUILD_opencv_quality=ON \
+  -DBUILD_opencv_dnn=OFF \
+  -DBUILD_opencv_video=OFF \
+  -DBUILD_opencv_features2d=OFF \
+  -DBUILD_opencv_calib3d=OFF \
+  /home/<user>/source/opencv/opencv
+```
+
+```bash
+ANDROID_HOME=/home/<user>/Android/Sdk ANDROID_SDK_ROOT=/home/<user>/Android/Sdk make
+```
+
+then strip debug symbols:
+```bash
+llvm-strip lib/arm64-v8a/libopencv_{core,imgproc,ml,imgcodecs,quality}.so
+```
+
+then copy out `core, imgproc, ml, imgcodecs and quality`.so files into `src/main/jniLibs`
+
+you can skip stripping and just copy the libs from `lib/arm64-v8a` to there and the next operation will strip them but you'll need to build a `Release` instead of `Debug` (and sign)
+
+delete `libbrisque_jni.so` from `jniLibs`else the build will fail then run
+
+```bash
+BUILD_BRISQUE_JNI=ON ./gradlew clean assembleDebug
+```
+
+note: the binaries in the official release are compressed using `upx --best --lzma` after being stripped of debug symbols, excluding `libbrisque_jni.so` and `libc++_shared.so` for IzzyOnDroid's 30mb limit, else you can skip with it being ~34mb if building fully from source

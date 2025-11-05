@@ -36,7 +36,7 @@ data class ImageItem(
     val inputBitmap: Bitmap,
     val outputBitmap: Bitmap? = null,
     val thumbnailBitmap: Bitmap? = null,
-    val size: String,
+    var size: String,
     val isProcessing: Boolean = false,
     val progress: String = "",
     val strengthFactor: Float = 0.5f,
@@ -172,7 +172,19 @@ class ProcessingViewModel : ViewModel() {
         appContext = context.applicationContext
         loadProcessingPreferences(context)
         
-        viewModelScope.launch {/* Lines 183-194 omitted */}
+        viewModelScope.launch {
+            _installedModels.value = modelManager?.getInstalledModels() ?: emptyList()
+            _hasCheckedModels.value = true
+            if (_installedModels.value.isEmpty()) {
+                _shouldShowNoModelDialog.value = true
+            } else {
+                val activeModel = modelManager?.getActiveModelName()
+                activeModel?.let { modelName ->
+                    val warning = modelManager?.getModelWarning(modelName)
+                    _deprecatedModelWarning.value = warning
+                }
+            }
+        }
         registerProcessingReceiver()
     }
     

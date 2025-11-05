@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.DragHandle
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
@@ -40,7 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.je.dejpeg.R
-import com.je.dejpeg.ui.components.SaveImageDialog
+import com.je.dejpeg.compose.ui.components.SaveImageDialog
 import com.je.dejpeg.ui.utils.ImageActions
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import kotlinx.coroutines.Dispatchers
@@ -214,134 +216,69 @@ private fun SliderView(
     afterBitmap: Bitmap,
     haptic: com.je.dejpeg.ui.utils.HapticFeedbackPerformer
 ) {
-    val zoomableState = rememberZoomableState(zoomSpec = ZoomSpec(maxZoomFactor = 20f))
+    val zoomableState = rememberZoomableState(ZoomSpec(maxZoomFactor = 20f))
     var sliderPosition by remember { mutableFloatStateOf(0.5f) }
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
-    val density = LocalDensity.current
-    var hasDraggedToCenter by remember { mutableStateOf(false) }
     var isDragging by remember { mutableStateOf(false) }
-    
-    Box(
-        Modifier
-            .fillMaxSize()
-            .onGloballyPositioned { containerSize = it.size },
-        Alignment.Center
-    ) {
-        Box(
-            Modifier
-                .fillMaxSize()
-                .drawWithContent {
-                    clipRect(0f, 0f, size.width * sliderPosition, size.height) {
+    var hasDraggedToCenter by remember { mutableStateOf(false) }
+    val density = LocalDensity.current
+
+    Box(Modifier.fillMaxSize().onGloballyPositioned { containerSize = it.size }, Alignment.Center) {
+        listOf(Pair(beforeBitmap, 0f to sliderPosition), Pair(afterBitmap, sliderPosition to 1f)).forEach { (bitmap, range) ->
+            Box(
+                Modifier.fillMaxSize().drawWithContent {
+                    clipRect(size.width * range.first, 0f, size.width * range.second, size.height) {
                         this@drawWithContent.drawContent()
                     }
                 }
-        ) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .zoomable(zoomableState, true),
-                Alignment.Center
             ) {
-                Image(
-                    beforeBitmap.asImageBitmap(),
-                    stringResource(id = R.string.before),
-                    Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Fit,
-                    filterQuality = FilterQuality.None
-                )
-            }
-        }
-        Box(
-            Modifier
-                .fillMaxSize()
-                .drawWithContent {
-                    clipRect(size.width * sliderPosition, 0f, size.width, size.height) {
-                        this@drawWithContent.drawContent()
-                    }
+                Box(Modifier.fillMaxSize().zoomable(zoomableState, true), Alignment.Center) {
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit,
+                        filterQuality = FilterQuality.None
+                    )
                 }
-        ) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .zoomable(zoomableState, true),
-                Alignment.Center
-            ) {
-                Image(
-                    afterBitmap.asImageBitmap(),
-                    stringResource(id = R.string.after),
-                    Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Fit,
-                    filterQuality = FilterQuality.None
-                )
             }
         }
         if (containerSize.width > 0) {
             val sliderX = containerSize.width * sliderPosition
             Box(Modifier.fillMaxSize()) {
                 Box(
-                    Modifier
-                        .fillMaxHeight()
-                        .width(4.dp)
-                        .offset(x = with(density) { sliderX.toDp() - 2.dp })
-                        .shadow(
-                            8.dp,
-                            androidx.compose.foundation.shape.RoundedCornerShape(2.dp)
-                        )
+                    Modifier.fillMaxHeight().width(4.dp).offset(x = with(density) { sliderX.toDp() - 2.dp })
+                        .shadow(8.dp, androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
                         .background(
                             Brush.verticalGradient(
-                                listOf(
-                                    Color.White.copy(0.9f),
-                                    Color.White.copy(0.95f),
-                                    Color.White.copy(0.9f)
-                                )
+                                listOf(Color.White.copy(0.9f), Color.White.copy(0.95f), Color.White.copy(0.9f))
                             ),
                             androidx.compose.foundation.shape.RoundedCornerShape(2.dp)
                         )
                 )
                 Box(
-                    Modifier
-                        .fillMaxHeight()
-                        .width(48.dp)
-                        .offset(x = with(density) { sliderX.toDp() - 24.dp })
+                    Modifier.fillMaxHeight().width(48.dp).offset(x = with(density) { sliderX.toDp() - 24.dp })
                         .pointerInput(Unit) {
                             detectDragGestures(
-                                onDragStart = {
-                                    if (!isDragging) {
-                                        haptic.gestureStart()
-                                        isDragging = true
-                                    }
-                                },
+                                onDragStart = { if (!isDragging) { haptic.gestureStart(); isDragging = true } },
                                 onDrag = { change, dragAmount ->
                                     change.consume()
-                                    sliderPosition = (sliderPosition + dragAmount.x / containerSize.width)
-                                        .coerceIn(0f, 1f)
-                                    
-                                    if (!hasDraggedToCenter && sliderPosition >= 0.48f && sliderPosition <= 0.52f) {
-                                        haptic.light()
-                                        hasDraggedToCenter = true
-                                    } else if (hasDraggedToCenter && (sliderPosition < 0.45f || sliderPosition > 0.55f)) {
+                                    sliderPosition = (sliderPosition + dragAmount.x / containerSize.width).coerceIn(0f, 1f)
+                                    if (!hasDraggedToCenter && sliderPosition in 0.48f..0.52f) {
+                                        haptic.light(); hasDraggedToCenter = true
+                                    } else if (hasDraggedToCenter && sliderPosition !in 0.45f..0.55f) {
                                         hasDraggedToCenter = false
                                     }
                                 },
-                                onDragEnd = {
-                                    isDragging = false
-                                }
+                                onDragEnd = { isDragging = false }
                             )
                         }
                 ) {
                     Box(
-                        Modifier
-                            .size(56.dp)
-                            .align(Alignment.Center)
-                            .clip(CircleShape)
-                            .background(Color.White.copy(0.3f)),
-                        Alignment.Center
+                        Modifier.size(56.dp).align(Alignment.Center).clip(CircleShape)
+                            .background(Color.White.copy(0.3f)), Alignment.Center
                     ) {
-                        Text(
-                            "◀▶",
-                            color = Color.White,
-                            style = MaterialTheme.typography.titleMedium
-                        )
+                        Icon(Icons.Filled.SwapHoriz, contentDescription = null, tint = Color.White)
                     }
                 }
             }

@@ -17,7 +17,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
 
     const char* libs[] = {
         "libopencv_core.so",
-        "libopencv_imgproc.so", 
+        "libopencv_imgproc.so",
         "libopencv_imgcodecs.so",
         "libopencv_quality.so"
     };
@@ -35,7 +35,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
 }
 
 extern "C" JNIEXPORT jfloat JNICALL
-Java_com_je_dejpeg_utils_BrisqueAssessor_computeBRISQUEFromFile(
+Java_com_je_dejpeg_utils_BRISQUEAssesser_computeBRISQUEFromFile(
         JNIEnv *env,
         jobject obj,
         jstring imagePath,
@@ -43,15 +43,14 @@ Java_com_je_dejpeg_utils_BrisqueAssessor_computeBRISQUEFromFile(
         jstring rangePath) {
     
     LOGD("Native method called");
-    
     const char *imagePathStr = env->GetStringUTFChars(imagePath, nullptr);
     const char *modelPathStr = env->GetStringUTFChars(modelPath, nullptr);
     const char *rangePathStr = env->GetStringUTFChars(rangePath, nullptr);
-    
+
     try {
         LOGD("Loading image from: %s", imagePathStr);
         cv::Mat image = cv::imread(imagePathStr);
-        
+
         if (image.empty()) {
             LOGE("Error: Could not load image from %s", imagePathStr);
             env->ReleaseStringUTFChars(imagePath, imagePathStr);
@@ -59,9 +58,9 @@ Java_com_je_dejpeg_utils_BrisqueAssessor_computeBRISQUEFromFile(
             env->ReleaseStringUTFChars(rangePath, rangePathStr);
             return -1.0f;
         }
-        
+
         LOGD("Image loaded successfully: %d x %d, channels: %d", image.cols, image.rows, image.channels());
-        
+
         cv::Mat grayImage;
         if (image.channels() == 3) {
             LOGD("Converting BGR to GRAY");
@@ -72,31 +71,23 @@ Java_com_je_dejpeg_utils_BrisqueAssessor_computeBRISQUEFromFile(
         } else {
             grayImage = image.clone();
         }
-
         if (grayImage.type() != CV_8U) {
             LOGD("Converting image to CV_8U");
             grayImage.convertTo(grayImage, CV_8U);
         }
-
         LOGD("Computing BRISQUE score using model: %s", modelPathStr);
-
         cv::Scalar scoreScalar = cv::quality::QualityBRISQUE::compute(
             grayImage,
             cv::String(modelPathStr),
             cv::String(rangePathStr)
         );
-
         float brisqueScore = static_cast<float>(scoreScalar[0]);
-
         LOGD("BRISQUE Score computed successfully: %f", brisqueScore);
-        
         image.release();
         grayImage.release();
-        
         env->ReleaseStringUTFChars(imagePath, imagePathStr);
         env->ReleaseStringUTFChars(modelPath, modelPathStr);
         env->ReleaseStringUTFChars(rangePath, rangePathStr);
-        
         return brisqueScore;
         
     } catch (const std::exception& e) {

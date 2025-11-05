@@ -8,8 +8,9 @@ import android.provider.MediaStore
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.je.dejpeg.utils.BrisqueAssessor
-import com.je.dejpeg.utils.BrisqueDescaler
+import com.je.dejpeg.utils.BRISQUEAssesser
+import com.je.dejpeg.utils.BRISQUEDescaler
+import com.je.dejpeg.compose.ui.utils.ZipExtractor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,13 +25,14 @@ data class BrisqueImageState(
     val originalBitmap: Bitmap,
     val filename: String,
     val brisqueScore: Float? = null,
+    val sharpnessScore: Float? = null,
     val isAssessing: Boolean = false,
     val assessError: String? = null,
     val descaledBitmap: Bitmap? = null,
     val descaleInfo: DescaleInfo? = null,
     val isDescaling: Boolean = false,
     val descaleError: String? = null,
-    val descaleProgress: com.je.dejpeg.utils.BrisqueDescaler.ProgressUpdate? = null,
+    val descaleProgress: com.je.dejpeg.utils.BRISQUEDescaler.ProgressUpdate? = null,
     val descaleLog: List<String> = emptyList()
 )
 
@@ -43,28 +45,94 @@ data class DescaleInfo(
     val sharpness: Float
 )
 
+data class BrisqueSettings(
+    val coarseStep: Int = 20,
+    val fineStep: Int = 5,
+    val fineRange: Int = 30,
+    val minWidthRatio: Float = 0.5f,
+    val brisqueWeight: Float = 0.7f,
+    val sharpnessWeight: Float = 0.3f
+)
+
 class BrisqueViewModel : ViewModel() {
-    private val brisqueAssessor = BrisqueAssessor()
-    private var brisqueDescaler: BrisqueDescaler? = null
+    private val brisqueAssessor = BRISQUEAssesser()
+    private var brisqueDescaler: BRISQUEDescaler? = null
     private var descaleJob: Job? = null
-    
+    private var appContext: Context? = null
+
     private val _imageState = MutableStateFlow<BrisqueImageState?>(null)
     val imageState: StateFlow<BrisqueImageState?> = _imageState.asStateFlow()
-    
+
+    private val _settings = MutableStateFlow(BrisqueSettings())
+    val settings: StateFlow<BrisqueSettings> = _settings.asStateFlow()
+
     companion object {
         private const val TAG = "BrisqueViewModel"
+        private const val PREFS_NAME = "BrisquePrefs"
+        private const val KEY_COARSE_STEP = "coarse_step"
+        private const val KEY_FINE_STEP = "fine_step"
+        private const val KEY_FINE_RANGE = "fine_range"
+        private const val KEY_MIN_WIDTH_RATIO = "min_width_ratio"
+        private const val KEY_BRISQUE_WEIGHT = "brisque_weight"
+        private const val KEY_SHARPNESS_WEIGHT = "sharpness_weight"
     }
-    
-    fun initialize(context: Context, bitmap: Bitmap, filename: String) {
-        if (brisqueDescaler == null) {
-            brisqueDescaler = BrisqueDescaler(brisqueAssessor, context.applicationContext)
+
+    private fun getPrefs(context: Context) = 
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    private fun loadSettings(context: Context) {
+        val prefs = getPrefs(context)
+        val loadedSettings = BrisqueSettings(
+            coarseStep = prefs.getInt(KEY_COARSE_STEP, 20),
+            fineStep = prefs.getInt(KEY_FINE_STEP, 5),
+            fineRange = prefs.getInt(KEY_FINE_RANGE, 30),
+            minWidthRatio = prefs.getFloat(KEY_MIN_WIDTH_RATIO, 0.5f),
+            brisqueWeight = prefs.getFloat(KEY_BRISQUE_WEIGHT, 0.7f),
+            sharpnessWeight = prefs.getFloat(KEY_SHARPNESS_WEIGHT, 0.3f)
+        )
+        _settings.value = loadedSettings
+    }
+
+    private fun saveSettings(context: Context, settings: BrisqueSettings) {
+        val prefs = getPrefs(context)
+        prefs.edit().apply {
+            putInt(KEY_COARSE_STEP, settings.coarseStep)
+            putInt(KEY_FINE_STEP, settings.fineStep)
+            putInt(KEY_FINE_RANGE, settings.fineRange)
+            putFloat(KEY_MIN_WIDTH_RATIO, settings.minWidthRatio)
+            putFloat(KEY_BRISQUE_WEIGHT, settings.brisqueWeight)
+            putFloat(KEY_SHARPNESS_WEIGHT, settings.sharpnessWeight)
+            apply()
         }
+    }
+
+    fun updateSettings(context: Context, settings: BrisqueSettings) {
+        _settings.value = settings
+        saveSettings(context, settings)
+    }
+
+    fun initialize(context: Context, bitmap: Bitmap, filename: String) {
+        appContext = context.applicationContext
+        if (!ZipExtractor.modelsExist(context)) {
+            Log.d(TAG, "Models not found, extracting from assets...")
+            if (ZipExtractor.extractFromAssets(context, "models.zip")) {
+                Log.d(TAG, "Successfully extracted models")
+            } else {
+                Log.e(TAG, "Failed to extract models from zip")
+            }
+        } else {
+            Log.d(TAG, "Models already extracted")
+        }
+        if (brisqueDescaler == null) {
+            brisqueDescaler = BRISQUEDescaler(brisqueAssessor, context.applicationContext)
+        }
+        loadSettings(context)
         _imageState.value = BrisqueImageState(
             originalBitmap = bitmap,
             filename = filename
         )
     }
-    
+
     fun assessQuality(context: Context) {
         val state = _imageState.value ?: return
         if (state.isAssessing) return
@@ -75,14 +143,18 @@ class BrisqueViewModel : ViewModel() {
                 val temp = File.createTempFile("brisque_assess_${System.currentTimeMillis()}_", ".png", context.cacheDir)
                 bmp.compress(Bitmap.CompressFormat.PNG, 100, temp.outputStream())
                 try {
-                    val model = File(context.cacheDir, "brisque_model_live.yml")
-                    val range = File(context.cacheDir, "brisque_range_live.yml")
-                    if (!model.exists()) context.assets.open("brisque_model_live.yml").use { it.copyTo(model.outputStream()) }
-                    if (!range.exists()) context.assets.open("brisque_range_live.yml").use { it.copyTo(range.outputStream()) }
+                    val model = File(ZipExtractor.getModelsDir(context), "brisque_model_live.yml")
+                    val range = File(ZipExtractor.getModelsDir(context), "brisque_range_live.yml")
+                    if (!model.exists() || !range.exists()) {
+                        throw IllegalStateException("Model files not found in app data directory. Please ensure models are extracted.")
+                    }
                     val score = brisqueAssessor.assessImageQuality(temp.absolutePath, model.absolutePath, range.absolutePath)
+                    val descaler = brisqueDescaler ?: BRISQUEDescaler(brisqueAssessor, context.applicationContext)
+                    val sharpness = descaler.estimateSharpness(bmp)
                     withContext(Dispatchers.Main) {
                         _imageState.value = _imageState.value?.copy(
                             brisqueScore = if (score < 0) null else score,
+                            sharpnessScore = sharpness,
                             isAssessing = false,
                             assessError = if (score < 0) "Failed to compute BRISQUE score (error code: $score)" else null
                         )
@@ -100,7 +172,7 @@ class BrisqueViewModel : ViewModel() {
             }
         }
     }
-    
+
     fun descaleImage(context: Context) {
         val state = _imageState.value ?: return
         if (state.isDescaling) return
@@ -108,14 +180,21 @@ class BrisqueViewModel : ViewModel() {
             isDescaling = true,
             descaleError = null,
             descaleProgress = null,
-            descaleLog = listOf("Starting descale analysis...")
+            descaleLog = listOf("Starting descale...")
         )
         descaleJob = viewModelScope.launch(Dispatchers.IO) {
             try {
                 val descaler = brisqueDescaler ?: throw IllegalStateException("Descaler not initialized")
                 val bmp = state.descaledBitmap ?: state.originalBitmap
-                val result = descaler.analyzeAndDescale(
+                val currentSettings = _settings.value
+                val result = descaler.descale(
                     bitmap = bmp,
+                    coarseStep = currentSettings.coarseStep,
+                    fineStep = currentSettings.fineStep,
+                    fineRange = currentSettings.fineRange,
+                    minWidthRatio = currentSettings.minWidthRatio,
+                    brisqueWeight = currentSettings.brisqueWeight,
+                    sharpnessWeight = currentSettings.sharpnessWeight,
                     onProgress = { progress ->
                         viewModelScope.launch(Dispatchers.Main) {
                             val log = _imageState.value?.descaleLog ?: emptyList()
@@ -170,9 +249,9 @@ class BrisqueViewModel : ViewModel() {
             }
         }
     }
-    
+
     fun cancelDescaling(context: Context) {
-        Log.d(TAG, "Cancelling descaling...")
+        Log.d(TAG, "Cancelling descale...")
         descaleJob?.cancel()
         descaleJob = null
         viewModelScope.launch(Dispatchers.IO) {
@@ -196,7 +275,7 @@ class BrisqueViewModel : ViewModel() {
             descaleLog = emptyList()
         )
     }
-    
+
     fun saveCurrentImage(context: Context, onSuccess: () -> Unit, onError: (String) -> Unit) {
         val state = _imageState.value ?: return
         val bmp = state.descaledBitmap ?: state.originalBitmap
@@ -229,15 +308,15 @@ class BrisqueViewModel : ViewModel() {
             }
         }
     }
-    
+
     fun clearDescaleError() {
         _imageState.value = _imageState.value?.copy(descaleError = null)
     }
-    
+
     fun clearAssessError() {
         _imageState.value = _imageState.value?.copy(assessError = null)
     }
-    
+
     override fun onCleared() {
         super.onCleared()
         _imageState.value?.descaledBitmap?.recycle()

@@ -1,4 +1,4 @@
-package com.je.dejpeg.ui.components
+package com.je.dejpeg.compose.ui.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -57,15 +57,25 @@ fun SaveImageDialog(
             }
         },
         confirmButton = {
-            Button({
-                haptic.medium()
-                onSave(textState.text.trim(), saveAll, skipNext)
-                onDismissRequest()
-            }) { Text(stringResource(R.string.save)) }
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(
+                    onClick = { haptic.light(); onDismissRequest() },
+                    modifier = Modifier.align(Alignment.CenterVertically)
+                ) {
+                    Text(stringResource(R.string.cancel))
+                }
+                Spacer(Modifier.weight(1f))
+                Button({
+                    haptic.medium()
+                    onSave(textState.text.trim(), saveAll, skipNext)
+                    onDismissRequest()
+                }) { Text(stringResource(R.string.save)) }
+            }
         },
-        dismissButton = {
-            TextButton({ haptic.light(); onDismissRequest() }) { Text(stringResource(R.string.cancel)) }
-        }
+        dismissButton = {}
     )
 }
 
@@ -83,13 +93,26 @@ fun RemoveImageDialog(
         title = { Text(stringResource(R.string.remove_image_title)) },
         text = { Text(stringResource(R.string.remove_image_question, imageFilename)) },
         confirmButton = {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                TextButton({ haptic.heavy(); onRemove(); onDismissRequest() }) {
-                    Text(stringResource(R.string.remove), color = MaterialTheme.colorScheme.error)
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton({ haptic.light(); onDismissRequest() }) {
+                    Text(stringResource(R.string.nope))
                 }
-                if (hasOutput) Button({ haptic.medium(); onSaveAndRemove(); onDismissRequest() }, Modifier.padding(start = 8.dp)) {
-                    Text(stringResource(R.string.save))
-                } else Spacer(Modifier)
+                Spacer(Modifier.weight(0.4f))
+                TextButton({ haptic.heavy(); onRemove(); onDismissRequest() }) {
+                    Text(
+                        stringResource(R.string.remove),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+                Spacer(Modifier.weight(0.1f))
+                if (hasOutput) {
+                    Button({ haptic.medium(); onSaveAndRemove(); onDismissRequest() }) {
+                        Text(stringResource(R.string.save))
+                    }
+                }
             }
         },
         dismissButton = {}
@@ -103,8 +126,21 @@ fun CancelProcessingDialog(imageFilename: String, onDismissRequest: () -> Unit, 
         onDismissRequest = onDismissRequest,
         title = { Text(stringResource(R.string.stop_processing_title)) },
         text = { Text(stringResource(R.string.stop_processing_question, imageFilename)) },
-        dismissButton = { TextButton({ haptic.light(); onDismissRequest() }) { Text(stringResource(R.string.nope)) } },
-        confirmButton = { TextButton({ haptic.heavy(); onConfirm(); onDismissRequest() }) { Text(stringResource(R.string.yes_stop), color = MaterialTheme.colorScheme.error) } }
+        confirmButton = {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton({ haptic.light(); onDismissRequest() }) {
+                    Text(stringResource(R.string.nope))
+                }
+                TextButton({ haptic.heavy(); onConfirm(); onDismissRequest() }) {
+                    Text(stringResource(R.string.yes_stop), color = MaterialTheme.colorScheme.error)
+                }
+            }
+        },
+        dismissButton = {}
     )
 }
 

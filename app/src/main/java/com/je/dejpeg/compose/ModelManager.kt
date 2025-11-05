@@ -65,34 +65,34 @@ class ModelManager(private val context: Context) {
 
         private val MODEL_WARNINGS = buildMap {
             put("1x_DitherDeleterV3-Smooth-32._115000_G.onnx", ModelWarning(
-                "model_warning_performance_title",
-                "model_warning_ditherdeleter_message",
-                "import_anyway",
-                "cancel"
+                R.string.model_warning_performance_title,
+                R.string.model_warning_ditherdeleter_message,
+                R.string.import_anyway,
+                R.string.cancel
             ))
             put("1x_Bandage-Smooth-64._105000_G.onnx", ModelWarning(
-                "model_warning_performance_title",
-                "model_warning_bandage_message",
-                "import_anyway",
-                "cancel"
+                R.string.model_warning_performance_title,
+                R.string.model_warning_bandage_message,
+                R.string.import_anyway,
+                R.string.cancel
             ))
             F32_LEGACY_MODELS.forEach { modelName ->
                 val f16ModelName = modelName.replace(".onnx", "_f16.onnx")
                 put(modelName, ModelWarning(
-                    "model_warning_outdated_title",
-                    "model_warning_outdated_message",
-                    "use_anyway",
-                    "cancel"
+                    R.string.model_warning_outdated_title,
+                    R.string.model_warning_outdated_message,
+                    R.string.use_anyway,
+                    R.string.cancel
                 ))
             }
         }
     }
 
     data class ModelWarning(
-        val title: String,
-        val message: String,
-        val positiveButtonText: String,
-        val negativeButtonText: String
+        val titleResId: Int,
+        val messageResId: Int,
+        val positiveButtonTextResId: Int,
+        val negativeButtonTextResId: Int
     )
 
     data class ResolveResult(
@@ -183,15 +183,11 @@ class ModelManager(private val context: Context) {
             val result = resolveHashOnly(modelUri)
         
             if (result.modelWarning != null && !force) {
-                if (onWarning != null) {
-                    onWarning(result.matchedModel ?: "", result.modelWarning)
-                } else {
-                    onError("MODEL_WARNING:${result.matchedModel}:${result.modelWarning.title}:${result.modelWarning.message}:${result.modelWarning.positiveButtonText}:${result.modelWarning.negativeButtonText}")
-                }
+                onWarning?.invoke(result.matchedModel ?: "", result.modelWarning)
                 return
             }
             if (result.matchedModel == null && !force) {
-                onError("GENERIC_MODEL_WARNING")
+                onError("Model not recognized. Import anyway?")
                 return
             }
             importModelInternal(modelUri, result.filename, onProgress, onSuccess, onError)

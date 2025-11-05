@@ -1,0 +1,2 @@
+minor UI fixes
+add image descaling (beta)
