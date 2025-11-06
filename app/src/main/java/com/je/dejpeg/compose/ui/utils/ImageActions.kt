@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import android.content.ClipData
 import com.je.dejpeg.R
 
 object ImageActions {
@@ -61,6 +62,7 @@ object ImageActions {
                 type = "image/png"
                 putExtra(Intent.EXTRA_STREAM, contentUri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                clipData = ClipData.newRawUri(null, contentUri)
             }
             context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.share_image)))
         } catch (e: Exception) {

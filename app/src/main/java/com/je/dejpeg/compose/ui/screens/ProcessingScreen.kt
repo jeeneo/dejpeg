@@ -34,6 +34,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -88,27 +89,15 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
     }
     
     LaunchedEffect(images) {
-        imageIdToRemove?.let { id ->
-            if (images.none { it.id == id }) {
-                imageIdToRemove = null
-            }
-        }
-        imageIdToCancel?.let { id ->
-            if (images.none { it.id == id }) {
-                imageIdToCancel = null
-            }
-        }
-        overwriteDialogState?.let { (id, _) ->
-            if (images.none { it.id == id }) {
-                overwriteDialogState = null
-            }
-        }
+        imageIdToRemove = imageIdToRemove?.takeIf { id -> images.any { it.id == id } }
+        imageIdToCancel = imageIdToCancel?.takeIf { id -> images.any { it.id == id } }
+        overwriteDialogState = overwriteDialogState?.takeIf { (id, _) -> images.any { it.id == id } }
     }
 
     LaunchedEffect(Unit) { viewModel.initialize(context) }
 
     val processedShareUris = remember { mutableStateOf(setOf<String>()) }
-    LaunchedEffect(initialSharedUris, images) {
+    LaunchedEffect(initialSharedUris) {
         if (initialSharedUris.isNotEmpty()) {
             val existing = images.mapNotNull { it.uri?.toString() }.toSet()
             val toAdd = initialSharedUris.filter { uri -> uri.toString() !in existing && uri.toString() !in processedShareUris.value }
@@ -133,7 +122,7 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
     LaunchedEffect(Unit) { viewModel.setImagePickerLauncher(imagePickerLauncher) }
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Row(Modifier.fillMaxWidth().padding(bottom = 16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(bottom = 16.dp), Arrangement.SpaceBetween, Alignment.CenterVertically) {
             Text(stringResource(R.string.images, images.size), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             FloatingActionButton(
                 onClick = {
@@ -145,33 +134,17 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
                         "camera" -> viewModel.launchCamera(context)
                         else -> showImageSourceDialog = true
                     }
-                }, 
+                },
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                shape = RoundedCornerShape(16.dp),
-                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
-            ) { 
-                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.add_images)) 
-            }
+                shape = RoundedCornerShape(16.dp)
+            ) { Icon(Icons.Filled.Add, stringResource(R.string.add_images)) }
         }
 
         if (images.isNotEmpty() && supportsStrength) {
-            Card(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp), 
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                shape = RoundedCornerShape(16.dp)
-            ) {
+            Card(Modifier.fillMaxWidth().padding(bottom = 16.dp), colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceContainer), shape = RoundedCornerShape(16.dp)) {
                 Column(Modifier.padding(12.dp)) {
-                    Text(
-                        stringResource(R.string.strength, globalStrength.toInt()), 
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
-                    )
+                    Text(stringResource(R.string.strength, globalStrength.toInt()), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                     Spacer(Modifier.height(8.dp))
                     var prevStrength by remember { mutableFloatStateOf(globalStrength) }
                     Slider(value = globalStrength, onValueChange = { val v = (it / 5).roundToInt() * 5f; if (v != prevStrength) { haptic.light(); prevStrength = v }; viewModel.setGlobalStrength(v) }, valueRange = 0f..100f, steps = 20, modifier = Modifier.fillMaxWidth().height(24.dp))
@@ -188,77 +161,33 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
                 }
             }
         } else {
+            val isProcessingActive = (uiState is ProcessingUiState.Processing) || images.any { it.isCancelling }
             LazyColumn(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(images, key = { it.id }) { image ->
+                items(images, { it.id }) { image ->
                     val swipeState = remember { mutableStateOf(0f) }
-                    SwipeToDismissWrapper(
-                        swipeOffset = swipeState,
-                        isProcessing = image.isProcessing,
-                        onDismissed = { handleImageRemoval(image.id) }
-                    ) {
+                    SwipeToDismissWrapper(swipeState, image.isProcessing, { handleImageRemoval(image.id) }) {
                         ImageCard(
                             image = image,
                             supportsStrength = supportsStrength,
                             onStrengthChange = { viewModel.updateImageStrength(image.id, it) },
                             onRemove = { handleImageRemoval(image.id) },
-                            onProcess = {
-                                if (!viewModel.hasActiveModel()) viewModel.showNoModelDialog()
-                                else viewModel.processImage(image.id)
-                            },
-                            onBrisque = {
-                                haptic.light()
-                                navController.navigate(com.je.dejpeg.ui.Screen.BRISQUE.createRoute(image.id))
-                            },
-                            onClick = {
-                                if (image.outputBitmap != null) {
-                                    haptic.light()
-                                    navController.navigate(com.je.dejpeg.ui.Screen.BeforeAfter.createRoute(image.id))
-                                }
-                            }
+                            onProcess = { if (!viewModel.hasActiveModel()) viewModel.showNoModelDialog() else viewModel.processImage(image.id) },
+                            onBrisque = { haptic.light(); navController.navigate(com.je.dejpeg.ui.Screen.BRISQUE.createRoute(image.id)) },
+                            onClick = { if (image.outputBitmap != null) { haptic.light(); navController.navigate(com.je.dejpeg.ui.Screen.BeforeAfter.createRoute(image.id)) } }
                         )
                     }
-                    LaunchedEffect(imageIdToRemove, imageIdToCancel) {
-                        if (imageIdToRemove != image.id && imageIdToCancel != image.id) swipeState.value = 0f
-                    }
+                    LaunchedEffect(imageIdToRemove, imageIdToCancel) { if (imageIdToRemove != image.id && imageIdToCancel != image.id) swipeState.value = 0f }
                 }
             }
         }
 
         if (images.isNotEmpty()) {
             Button(
-                onClick = { 
-                    if (uiState is ProcessingUiState.Processing) {
-                        haptic.heavy()
-                        showCancelAllDialog = true
-                    } else {
-                        if (!viewModel.hasActiveModel()) {
-                            viewModel.showNoModelDialog()
-                        } else {
-                            haptic.medium()
-                            viewModel.processImages()
-                        }
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp)
-                    .height(56.dp),
-                colors = if (uiState is ProcessingUiState.Processing) 
-                    ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error) 
-                else 
-                    ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                shape = RoundedCornerShape(16.dp),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
-            ) { 
-                Text(
-                    if (uiState is ProcessingUiState.Processing) 
-                        stringResource(R.string.cancel_processing) 
-                    else 
-                        stringResource(R.string.process_all), 
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium
-                ) 
-            }
+                { if (uiState is ProcessingUiState.Processing) { haptic.heavy(); showCancelAllDialog = true } else { if (!viewModel.hasActiveModel()) viewModel.showNoModelDialog() else { haptic.medium(); viewModel.processImages() } } },
+                Modifier.fillMaxWidth().padding(top = 16.dp).height(56.dp),
+                colors = if (uiState is ProcessingUiState.Processing) ButtonDefaults.buttonColors(MaterialTheme.colorScheme.error) else ButtonDefaults.buttonColors(MaterialTheme.colorScheme.primary),
+                shape = RoundedCornerShape(16.dp)
+            ) { Text(if (uiState is ProcessingUiState.Processing) stringResource(R.string.cancel_processing) else stringResource(R.string.process_all), fontSize = 16.sp, fontWeight = FontWeight.Medium) }
         }
     }
 
@@ -374,18 +303,9 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
             hideOptions = true,
             onDismissRequest = { overwriteDialogState = null },
             onSave = { name, _, _ ->
-                viewModel.saveImage(
-                    context = context,
-                    imageId = id,
-                    filename = name,
-                    onSuccess = { 
-                        performRemoval(id)
-                        overwriteDialogState = null
-                    },
-                    onError = { 
-                        overwriteDialogState = null
-                        saveErrorMessage = it
-                    }
+                viewModel.saveImage(context, id, name, 
+                    onSuccess = { performRemoval(id); overwriteDialogState = null },
+                    onError = { overwriteDialogState = null; saveErrorMessage = it }
                 )
             }
         )

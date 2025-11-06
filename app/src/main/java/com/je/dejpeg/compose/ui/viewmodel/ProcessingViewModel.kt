@@ -547,7 +547,6 @@ class ProcessingViewModel : ViewModel() {
         val ctx = appContext ?: return
         val image = getImageById(imageId) ?: return
         val uriStr = image.uri?.toString() ?: return
-        serviceProcessPid = null
         updateImageState(imageId) { it.copy(isProcessing = true, progress = STATUS_PREPARING, timeEstimateMillis = 0L, timeEstimateStartMillis = 0L) }
         com.je.dejpeg.NotificationHelper.show(ctx, STATUS_PREPARING)
         val p = prefs(ctx)
@@ -614,7 +613,7 @@ class ProcessingViewModel : ViewModel() {
 
     fun processImage(id: String) {
         viewModelScope.launch {
-            if (cancelInProgress) return@launch
+            if (cancelInProgress || isProcessingQueue || currentProcessingId != null || _images.value.any { it.isProcessing }) return@launch
             val image = getImageById(id) ?: return@launch
             if (image.uri == null) return@launch
             

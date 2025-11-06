@@ -119,11 +119,13 @@ class ImageProcessor(
     ): Bitmap {
         val width = inputBitmap.width
         val height = inputBitmap.height
-        val chunkSize = info.chunkSize
+        val maxChunkSize = info.chunkSize
         val overlap = info.overlap
-        android.util.Log.d("ImageProcessor", "Processing tiled with chunk_size: $chunkSize, overlap: $overlap")
-        val cols = ceil((width.toDouble()) / (chunkSize - overlap)).toInt()
-        val rows = ceil((height.toDouble()) / (chunkSize - overlap)).toInt()
+        val cols = Math.max(1, ceil(width.toDouble() / maxChunkSize).toInt())
+        val rows = Math.max(1, ceil(height.toDouble() / maxChunkSize).toInt())
+        val actualChunkWidth = (width + (cols - 1) * overlap) / cols
+        val actualChunkHeight = (height + (rows - 1) * overlap) / rows
+        android.util.Log.d("ImageProcessor", "Processing tiled: image=${width}x${height}, max=$maxChunkSize, actual=${actualChunkWidth}x${actualChunkHeight}, grid=${cols}x${rows}, overlap=$overlap")
         val totalChunks = cols * rows
         val result = createBitmap(width, height, config)
         val canvas = android.graphics.Canvas(result)
@@ -133,13 +135,13 @@ class ImageProcessor(
             for (col in 0 until cols) {
                 if (isCancelled) throw Exception(context.getString(R.string.error_processing_cancelled))
 
-                val startX = col * (chunkSize - overlap)
-                val startY = row * (chunkSize - overlap)
-                val chunkX = Math.max(0, startX - if (col > 0) overlap / 2 else 0)
-                val chunkY = Math.max(0, startY - if (row > 0) overlap / 2 else 0)
-                val chunkW = Math.min(chunkSize + if (col > 0) overlap / 2 else 0, width - chunkX)
-                val chunkH = Math.min(chunkSize + if (row > 0) overlap / 2 else 0, height - chunkY)
+                val chunkX = Math.max(0, col * (actualChunkWidth - overlap))
+                val chunkY = Math.max(0, row * (actualChunkHeight - overlap))
+                val chunkW = Math.min(actualChunkWidth, width - chunkX)
+                val chunkH = Math.min(actualChunkHeight, height - chunkY)
+                
                 if (chunkW <= 0 || chunkH <= 0) continue
+                
                 val chunk = Bitmap.createBitmap(inputBitmap, chunkX, chunkY, chunkW, chunkH)
                 val converted = if (chunk.config != config) {
                     val temp = chunk.copy(config, true)
@@ -162,7 +164,7 @@ class ImageProcessor(
                 timeEstimator.startChunk()
                 val processed = processChunkUnified(session, converted, config, hasTransparency, info)
                 timeEstimator.endChunk()
-                val feathered = createFeatheredChunk(processed, chunkX, chunkY, width, height, overlap)
+                val feathered = createFeatheredChunk(processed, chunkX, chunkY, width, height, overlap, cols, rows, col, row)
                 val paint = android.graphics.Paint()
                 paint.xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.SRC_OVER)
                 canvas.drawBitmap(feathered, chunkX.toFloat(), chunkY.toFloat(), paint)
@@ -175,7 +177,18 @@ class ImageProcessor(
         return result
     }
 
-    private fun createFeatheredChunk(chunk: Bitmap, chunkX: Int, chunkY: Int, totalWidth: Int, totalHeight: Int, overlap: Int): Bitmap {
+    private fun createFeatheredChunk(
+        chunk: Bitmap, 
+        chunkX: Int, 
+        chunkY: Int, 
+        totalWidth: Int, 
+        totalHeight: Int, 
+        overlap: Int,
+        totalCols: Int,
+        totalRows: Int,
+        col: Int,
+        row: Int
+    ): Bitmap {
         val chunkW = chunk.width
         val chunkH = chunk.height
         val feathered = chunk.copy(Bitmap.Config.ARGB_8888, true)
@@ -185,10 +198,13 @@ class ImageProcessor(
         for (y in 0 until chunkH) for (x in 0 until chunkW) {
             val idx = y * chunkW + x
             var alpha = 1.0f
-            if (chunkX > 0 && x < featherSize) alpha = alpha.coerceAtMost(x.toFloat() / featherSize)
-            if (chunkY > 0 && y < featherSize) alpha = alpha.coerceAtMost(y.toFloat() / featherSize)
-            if (chunkX + chunkW < totalWidth && x >= chunkW - featherSize) alpha = alpha.coerceAtMost((chunkW - x).toFloat() / featherSize)
-            if (chunkY + chunkH < totalHeight && y >= chunkH - featherSize) alpha = alpha.coerceAtMost((chunkH - y).toFloat() / featherSize)
+            
+            // Only feather edges that border other chunks
+            if (col > 0 && x < featherSize) alpha = alpha.coerceAtMost(x.toFloat() / featherSize)
+            if (row > 0 && y < featherSize) alpha = alpha.coerceAtMost(y.toFloat() / featherSize)
+            if (col < totalCols - 1 && x >= chunkW - featherSize) alpha = alpha.coerceAtMost((chunkW - x).toFloat() / featherSize)
+            if (row < totalRows - 1 && y >= chunkH - featherSize) alpha = alpha.coerceAtMost((chunkH - y).toFloat() / featherSize)
+            
             pixels[idx] = (pixels[idx] and 0x00FFFFFF) or ((alpha * 255).toInt() shl 24)
         }
 
