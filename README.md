@@ -74,7 +74,6 @@ $ tree -L 2
 ...
 ├── opencv
 │   ├── build_android
-│   ├── build_android_minimal
 │   ├── opencv
 │   ├── opencv_contrib
 ...
