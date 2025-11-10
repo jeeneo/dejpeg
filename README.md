@@ -66,7 +66,7 @@ create a directory called `opencv` after cloning dejpeg, then clone opencv + con
 git clone https://github.com/opencv/opencv.git
 git clone https://github.com/opencv/opencv_contrib.git
 ```
-and make a folder called `android_build`
+and make a folder called `build_android`
 
 ```bash
 cd opencv
