@@ -66,6 +66,12 @@ create a directory called `opencv` after cloning dejpeg, then clone opencv + con
 git clone https://github.com/opencv/opencv.git
 git clone https://github.com/opencv/opencv_contrib.git
 ```
+and make a folder called `android_build`
+
+```bash
+cd opencv
+mkdir build_android && cd build_android
+```
 
 structure should be like this
 
@@ -77,11 +83,6 @@ $ tree -L 2
 │   ├── opencv
 │   ├── opencv_contrib
 ...
-```
-
-```bash
-cd opencv
-mkdir build_android && cd build_android
 ```
 
 ```bash
