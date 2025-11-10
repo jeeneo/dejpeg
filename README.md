@@ -139,7 +139,6 @@ cp opencv/build_android/lib/arm64-v8a/libopencv_{core,imgproc,ml,imgcodecs,quali
 ```
 
 ```bash
-cd ../../
 rm app/src/main/jniLibs/arm64-v8a/libbrisque_jni.so
 BUILD_BRISQUE_JNI=ON ./gradlew clean assembleDebug
 ```
