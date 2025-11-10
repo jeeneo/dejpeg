@@ -1,4 +1,4 @@
-package com.je.dejpeg.ui.utils
+package com.je.dejpeg.compose.utils
 
 import android.content.Context
 import android.content.Intent
@@ -59,7 +59,7 @@ object ImageActions {
             FileOutputStream(cachePath).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
             val contentUri = FileProvider.getUriForFile(context, "${context.packageName}.provider", cachePath)
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                type = "image/png"
+                setType("image/png")
                 putExtra(Intent.EXTRA_STREAM, contentUri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 clipData = ClipData.newRawUri(null, contentUri)

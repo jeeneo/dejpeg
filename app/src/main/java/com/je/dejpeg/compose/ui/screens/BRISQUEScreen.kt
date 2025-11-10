@@ -1,4 +1,4 @@
-package com.je.dejpeg.ui.screens
+package com.je.dejpeg.compose.ui.screens
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -7,6 +7,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,7 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
@@ -32,20 +33,21 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.text.font.FontFamily
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.je.dejpeg.R
+import com.je.dejpeg.compose.utils.BRISQUEDescaler
 import kotlin.math.roundToInt
-import com.je.dejpeg.ui.utils.rememberHapticFeedback
-import com.je.dejpeg.ui.viewmodel.BrisqueViewModel
-import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
+import com.je.dejpeg.compose.utils.rememberHapticFeedback
+import com.je.dejpeg.compose.ui.viewmodel.BrisqueSettings
+import com.je.dejpeg.compose.ui.viewmodel.BrisqueViewModel
+import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
 import me.saket.telephoto.zoomable.ZoomSpec
 import me.saket.telephoto.zoomable.rememberZoomableState
 import me.saket.telephoto.zoomable.zoomable
@@ -54,7 +56,7 @@ import me.saket.telephoto.zoomable.zoomable
 @Composable
 fun BRISQUEScreen(processingViewModel: ProcessingViewModel, imageId: String, navController: NavController) {
     val context = LocalContext.current
-    val haptic = com.je.dejpeg.ui.utils.rememberHapticFeedback()
+    val haptic = rememberHapticFeedback()
     val images by processingViewModel.images.collectAsState()
     val image = images.firstOrNull { it.id == imageId } ?: run { LaunchedEffect(Unit) { navController.popBackStack() }; return }
     val brisqueViewModel: BrisqueViewModel = viewModel()
@@ -81,7 +83,7 @@ fun BRISQUEScreen(processingViewModel: ProcessingViewModel, imageId: String, nav
     Scaffold(topBar = {
         TopAppBar(
             title = { Text("BRISQUE analysis", style = MaterialTheme.typography.titleMedium) },
-            navigationIcon = { IconButton(onClick = { haptic.light(); navController.popBackStack() }) { Icon(Icons.Filled.ArrowBack, "Back") } },
+            navigationIcon = { IconButton(onClick = { haptic.light(); navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
             actions = {
                 IconButton(onClick = { haptic.light(); showInfoDialog = true }) { Icon(Icons.Filled.Info, "Info") }
                 IconButton(onClick = { haptic.light(); showBRISQUESettings = true }) { Icon(Icons.Filled.Settings, "Settings") }
@@ -212,7 +214,7 @@ private fun ImageViewerModal(bitmap: Bitmap, filename: String, onDismiss: () -> 
     val haptic = rememberHapticFeedback()
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnBackPress = true)) {
         Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-            Box(Modifier.fillMaxSize().zoomable(rememberZoomableState(zoomSpec = ZoomSpec(maxZoomFactor = 20f)), true), Alignment.Center) {
+            Box(Modifier.fillMaxSize().zoomable(rememberZoomableState(zoomSpec = ZoomSpec(maxZoomFactor = 20f)), enabled = true), Alignment.Center) {
                 Image(bitmap = bitmap.asImageBitmap(), contentDescription = filename, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit, filterQuality = FilterQuality.None)
             }
             IconButton(onClick = { haptic.light(); onDismiss() }, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))) {
@@ -256,7 +258,7 @@ private fun InfoDialog(context: Context, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun DescaleProgressDialog(progress: com.je.dejpeg.utils.BRISQUEDescaler.ProgressUpdate, logMessages: List<String>, onCancel: () -> Unit) {
+private fun DescaleProgressDialog(progress: BRISQUEDescaler.ProgressUpdate, logMessages: List<String>, onCancel: () -> Unit) {
     val haptic = rememberHapticFeedback()
     val logListState = rememberLazyListState()
     LaunchedEffect(logMessages.size) { if (logMessages.isNotEmpty()) logListState.animateScrollToItem(maxOf(0, logMessages.size - 1)) }
@@ -265,7 +267,7 @@ private fun DescaleProgressDialog(progress: com.je.dejpeg.utils.BRISQUEDescaler.
             Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("Descaling image", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    LinearProgressIndicator(progress = progress.currentStep.toFloat() / progress.totalSteps.toFloat(), Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)), color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.surfaceVariant)
+                    LinearProgressIndicator(progress = { progress.currentStep.toFloat() / progress.totalSteps.toFloat() }, Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)), color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.surfaceVariant)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("${progress.currentStep}%", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(progress.phase, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
@@ -285,7 +287,7 @@ private fun DescaleProgressDialog(progress: com.je.dejpeg.utils.BRISQUEDescaler.
                     if (logMessages.isEmpty()) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Waiting for logs...", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     else LazyColumn(Modifier.fillMaxSize().padding(12.dp), state = logListState, verticalArrangement = Arrangement.spacedBy(4.dp)) { items(logMessages) { LogEntry(text = it, isActive = it == logMessages.lastOrNull()) } }
                 }
-                OutlinedButton(onClick = { haptic.heavy(); onCancel() }, Modifier.fillMaxWidth(), colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error), border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error)) {
+                OutlinedButton(onClick = { haptic.heavy(); onCancel() }, Modifier.fillMaxWidth(), colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error), border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)) {
                     Icon(Icons.Filled.Close, contentDescription = "Cancel", Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
                     Text("Cancel")
@@ -299,14 +301,14 @@ private fun DescaleProgressDialog(progress: com.je.dejpeg.utils.BRISQUEDescaler.
 private fun LogEntry(text: String, isActive: Boolean = false) {
     Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
         Text("•", style = MaterialTheme.typography.bodySmall.copy(fontSize = 16.sp), color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(text, style = MaterialTheme.typography.bodySmall.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace), color = if (isActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text, style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace), color = if (isActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
 private fun BRISQUESettings(
     context: Context,
-    settings: com.je.dejpeg.ui.viewmodel.BrisqueSettings,
+    settings: BrisqueSettings,
     brisqueViewModel: BrisqueViewModel,
     imageWidth: Int,
     imageHeight: Int,
@@ -365,7 +367,9 @@ private fun BRISQUESettings(
         confirmButton = {
             Button(onClick = {
                 haptic.medium()
-                brisqueViewModel.updateSettings(context, com.je.dejpeg.ui.viewmodel.BrisqueSettings(coarseStep.toInt(), fineStep.toInt(), fineRange.toInt(), minWidthRatio, brisqueWeight, sharpnessWeight))
+                brisqueViewModel.updateSettings(context,
+                    BrisqueSettings(coarseStep.toInt(), fineStep.toInt(), fineRange.toInt(), minWidthRatio, brisqueWeight, sharpnessWeight)
+                )
                 onDismiss()
             }) { Text("Save") }
         },

@@ -1,4 +1,4 @@
-package com.je.dejpeg.utils
+package com.je.dejpeg.compose.utils
 
 import android.util.Log
 import java.io.File

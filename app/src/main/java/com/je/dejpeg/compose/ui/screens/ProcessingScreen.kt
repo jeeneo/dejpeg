@@ -1,10 +1,12 @@
-package com.je.dejpeg.ui.screens
+package com.je.dejpeg.compose.ui.screens
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
+import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.*
@@ -18,7 +20,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.animation.core.animateFloatAsState
@@ -34,7 +35,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -46,13 +46,18 @@ import com.je.dejpeg.compose.ui.components.BatteryOptimizationDialog
 import com.je.dejpeg.compose.ui.components.RemoveImageDialog
 import com.je.dejpeg.compose.ui.components.CancelProcessingDialog
 import com.je.dejpeg.compose.ui.components.ImageSourceDialog
-import com.je.dejpeg.ui.utils.ImageActions
-import com.je.dejpeg.ui.viewmodel.ImageItem
-import com.je.dejpeg.ui.viewmodel.ProcessingUiState
-import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
+import com.je.dejpeg.compose.utils.ImageActions
+import com.je.dejpeg.compose.ui.viewmodel.ImageItem
+import com.je.dejpeg.compose.ui.viewmodel.ProcessingUiState
+import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import com.je.dejpeg.ModelManager
 import com.je.dejpeg.R
+import com.je.dejpeg.compose.ui.components.SaveImageDialog
+import com.je.dejpeg.ui.Screen
+import com.je.dejpeg.compose.utils.rememberHapticFeedback
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,7 +69,7 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
     val supportsStrength = viewModel.supportsStrengthAdjustment()
     val shouldShowNoModelDialog by viewModel.shouldShowNoModelDialog.collectAsState()
     val shouldShowBatteryOptimizationDialog by viewModel.shouldShowBatteryOptimizationDialog.collectAsState()
-    val haptic = com.je.dejpeg.ui.utils.rememberHapticFeedback()
+    val haptic = rememberHapticFeedback()
     val deprecatedModelWarning by viewModel.deprecatedModelWarning.collectAsState()
     var imageIdToRemove by remember { mutableStateOf<String?>(null) }
     var imageIdToCancel by remember { mutableStateOf<String?>(null) }
@@ -107,7 +112,7 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
     }
 
     val imagePickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == android.app.Activity.RESULT_OK) {
+        if (result.resultCode == Activity.RESULT_OK) {
             val uris = mutableListOf<Uri>()
             result.data?.clipData?.let { clipData ->
                 for (i in 0 until clipData.itemCount) clipData.getItemAt(i).uri?.let { uris.add(it) }
@@ -127,7 +132,7 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
             FloatingActionButton(
                 onClick = {
                     haptic.light()
-                    when (context.getSharedPreferences("AppPrefs", android.content.Context.MODE_PRIVATE).getString("defaultImageSource", null)) {
+                    when (context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE).getString("defaultImageSource", null)) {
                         "gallery" -> viewModel.launchGalleryPicker(context)
                         "internal" -> viewModel.launchInternalPhotoPicker(context)
                         "documents" -> viewModel.launchDocumentsPicker(context)
@@ -172,8 +177,9 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
                             onStrengthChange = { viewModel.updateImageStrength(image.id, it) },
                             onRemove = { handleImageRemoval(image.id) },
                             onProcess = { if (!viewModel.hasActiveModel()) viewModel.showNoModelDialog() else viewModel.processImage(image.id) },
-                            onBrisque = { haptic.light(); navController.navigate(com.je.dejpeg.ui.Screen.BRISQUE.createRoute(image.id)) },
-                            onClick = { if (image.outputBitmap != null) { haptic.light(); navController.navigate(com.je.dejpeg.ui.Screen.BeforeAfter.createRoute(image.id)) } }
+                            onBrisque = { haptic.light(); navController.navigate(Screen.BRISQUE.createRoute(image.id)) },
+                            onClick = { if (image.outputBitmap != null) { haptic.light(); navController.navigate(
+                                Screen.BeforeAfter.createRoute(image.id)) } }
                         )
                     }
                     LaunchedEffect(imageIdToRemove, imageIdToCancel) { if (imageIdToRemove != image.id && imageIdToCancel != image.id) swipeState.value = 0f }
@@ -296,7 +302,7 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
     }
 
     overwriteDialogState?.let { (id, fn) ->
-        com.je.dejpeg.compose.ui.components.SaveImageDialog(
+        SaveImageDialog(
             defaultFilename = fn,
             showSaveAllOption = false,
             initialSaveAll = false,
@@ -318,7 +324,7 @@ fun SwipeToDismissWrapper(swipeOffset: MutableState<Float>, isProcessing: Boolea
     val animatedOffset by animateFloatAsState(swipeOffset.value, label = "swipe")
     var widthPx by remember { mutableIntStateOf(0) }
     val density = LocalResources.current.displayMetrics.density
-    val haptic = com.je.dejpeg.ui.utils.rememberHapticFeedback()
+    val haptic = rememberHapticFeedback()
     var hasStartedDrag by remember { mutableStateOf(false) }
     var hasReachedThreshold by remember { mutableStateOf(false) }
     val cardHeight = 96.dp
@@ -357,9 +363,10 @@ fun BatteryOptimizationDialogForProcessing(onDismiss: () -> Unit, context: Conte
     val errorMessage = context.getString(R.string.cannot_open_link_detail)
     BatteryOptimizationDialog(onDismissRequest = onDismiss, onOpenSettings = {
         try {
-            val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS) else Intent(android.provider.Settings.ACTION_SETTINGS)
+            val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS) else Intent(
+                Settings.ACTION_SETTINGS)
             context.startActivity(intent)
-        } catch (e: Exception) { android.widget.Toast.makeText(context, "$errorMessage: ${e.message ?: ""}", android.widget.Toast.LENGTH_SHORT).show() }
+        } catch (e: Exception) { Toast.makeText(context, "$errorMessage: ${e.message ?: ""}", Toast.LENGTH_SHORT).show() }
     })
 }
 
@@ -388,7 +395,7 @@ fun CountdownTimer(initialTimeMillis: Long, startTimeMillis: Long, isActive: Boo
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ImageCard(image: ImageItem, supportsStrength: Boolean, onStrengthChange: (Float) -> Unit, onRemove: () -> Unit, onProcess: () -> Unit, onBrisque: () -> Unit, onClick: () -> Unit) {
-    val haptic = com.je.dejpeg.ui.utils.rememberHapticFeedback()
+    val haptic = rememberHapticFeedback()
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -462,7 +469,7 @@ fun ImageCard(image: ImageItem, supportsStrength: Boolean, onStrengthChange: (Fl
                 else {
                     IconButton(onClick = { haptic.medium(); onProcess() }, modifier = Modifier.size(36.dp)) { Icon(Icons.Filled.PlayArrow, contentDescription = stringResource(R.string.process), tint = Color(0xFF4CAF50), modifier = Modifier.size(20.dp)) }
                     IconButton(onClick = { haptic.heavy(); onRemove() }, modifier = Modifier.size(36.dp)) { Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.remove), tint = Color(0xFFEF5350), modifier = Modifier.size(18.dp)) }
-                    IconButton(onClick = { onBrisque() }, modifier = Modifier.size(36.dp)) { Icon(painter = androidx.compose.ui.res.painterResource(R.drawable.ic_brisque), contentDescription = stringResource(R.string.brisque), tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp)) }
+                    IconButton(onClick = { onBrisque() }, modifier = Modifier.size(36.dp)) { Icon(painter = painterResource(R.drawable.ic_brisque), contentDescription = stringResource(R.string.brisque), tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp)) }
                 }
             }
         }
@@ -472,12 +479,12 @@ fun ImageCard(image: ImageItem, supportsStrength: Boolean, onStrengthChange: (Fl
 @Composable
 fun DeprecatedModelWarningDialog(
     modelName: String,
-    warning: com.je.dejpeg.ModelManager.ModelWarning,
+    warning: ModelManager.ModelWarning,
     onContinue: () -> Unit,
     onGoToSettings: () -> Unit
 ) {
     val context = LocalContext.current
-    val haptic = com.je.dejpeg.ui.utils.rememberHapticFeedback()
+    val haptic = rememberHapticFeedback()
     AlertDialog(
         onDismissRequest = onContinue,
         shape = RoundedCornerShape(28.dp),

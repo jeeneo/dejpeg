@@ -1,4 +1,4 @@
-package com.je.dejpeg.ui.screens
+package com.je.dejpeg.compose.ui.screens
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -13,8 +13,7 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.DragHandle
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Share
@@ -26,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
@@ -43,10 +43,10 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.je.dejpeg.R
 import com.je.dejpeg.compose.ui.components.SaveImageDialog
-import com.je.dejpeg.ui.utils.ImageActions
-import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import com.je.dejpeg.compose.utils.HapticFeedbackPerformer
+import com.je.dejpeg.compose.utils.ImageActions
+import com.je.dejpeg.compose.utils.rememberHapticFeedback
+import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
 import me.saket.telephoto.zoomable.ZoomSpec
 import me.saket.telephoto.zoomable.rememberZoomableState
 import me.saket.telephoto.zoomable.zoomable
@@ -56,7 +56,7 @@ import me.saket.telephoto.zoomable.zoomable
 fun BeforeAfterScreen(viewModel: ProcessingViewModel, imageId: String, navController: NavController) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    val haptic = com.je.dejpeg.ui.utils.rememberHapticFeedback()
+    val haptic = rememberHapticFeedback()
     val images by viewModel.images.collectAsState()
     val image = images.firstOrNull { it.id == imageId }
     var showSaveDialog by remember { mutableStateOf(false) }
@@ -90,7 +90,7 @@ fun BeforeAfterScreen(viewModel: ProcessingViewModel, imageId: String, navContro
         topBar = {
             TopAppBar(
                 title = { Text(filename, style = MaterialTheme.typography.titleMedium) },
-                navigationIcon = {IconButton(onClick = { haptic.light(); navController.popBackStack() }) {Icon(Icons.Filled.ArrowBack, "Back")}},
+                navigationIcon = {IconButton(onClick = { haptic.light(); navController.popBackStack() }) {Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")}},
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
             )
         },
@@ -214,7 +214,7 @@ fun BeforeAfterScreen(viewModel: ProcessingViewModel, imageId: String, navContro
 private fun SliderView(
     beforeBitmap: Bitmap,
     afterBitmap: Bitmap,
-    haptic: com.je.dejpeg.ui.utils.HapticFeedbackPerformer
+    haptic: HapticFeedbackPerformer
 ) {
     val zoomableState = rememberZoomableState(ZoomSpec(maxZoomFactor = 20f))
     var sliderPosition by remember { mutableFloatStateOf(0.5f) }
@@ -232,7 +232,7 @@ private fun SliderView(
                     }
                 }
             ) {
-                Box(Modifier.fillMaxSize().zoomable(zoomableState, true), Alignment.Center) {
+                Box(Modifier.fillMaxSize().zoomable(zoomableState, enabled = true), Alignment.Center) {
                     Image(
                         bitmap = bitmap.asImageBitmap(),
                         contentDescription = null,
@@ -248,7 +248,7 @@ private fun SliderView(
             Box(Modifier.fillMaxSize()) {
                 Box(
                     Modifier.fillMaxHeight().width(4.dp).offset(x = with(density) { sliderX.toDp() - 2.dp })
-                        .shadow(8.dp, androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
+                        .shadow(8.dp, RoundedCornerShape(2.dp))
                         .background(
                             Brush.verticalGradient(
                                 listOf(Color.White.copy(0.9f), Color.White.copy(0.95f), Color.White.copy(0.9f))

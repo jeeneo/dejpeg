@@ -35,13 +35,13 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
 }
 
 extern "C" JNIEXPORT jfloat JNICALL
-Java_com_je_dejpeg_utils_BRISQUEAssesser_computeBRISQUEFromFile(
+Java_com_je_dejpeg_compose_utils_BRISQUEAssesser_computeBRISQUEFromFile(
         JNIEnv *env,
         jobject obj,
         jstring imagePath,
         jstring modelPath,
         jstring rangePath) {
-    
+
     LOGD("Native method called");
     const char *imagePathStr = env->GetStringUTFChars(imagePath, nullptr);
     const char *modelPathStr = env->GetStringUTFChars(modelPath, nullptr);

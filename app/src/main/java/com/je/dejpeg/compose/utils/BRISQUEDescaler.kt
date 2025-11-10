@@ -1,16 +1,13 @@
-package com.je.dejpeg.utils
+package com.je.dejpeg.compose.utils
 
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.util.Log
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.yield
-import kotlin.coroutines.coroutineContext
-import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.sqrt
-import com.je.dejpeg.compose.ui.utils.ZipExtractor
+import java.io.File
 
 /**
 BRISQUEDescaler.kt - licensed under GPLv3
@@ -299,11 +296,11 @@ class BRISQUEDescaler(
 
     private fun computeBRISQUE(bitmap: Bitmap): Float {
         return try {
-            val tempFile = java.io.File.createTempFile("brisque_${System.currentTimeMillis()}_", ".png", context.cacheDir)
+            val tempFile = File.createTempFile("brisque_${System.currentTimeMillis()}_", ".png", context.cacheDir)
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, tempFile.outputStream())
             try {
-                val modelFile = java.io.File(ZipExtractor.getModelsDir(context), "brisque_model_live.yml")
-                val rangeFile = java.io.File(ZipExtractor.getModelsDir(context), "brisque_range_live.yml")
+                val modelFile = File(ZipExtractor.getModelsDir(context), "brisque_model_live.yml")
+                val rangeFile = File(ZipExtractor.getModelsDir(context), "brisque_range_live.yml")
                 if (!modelFile.exists() || !rangeFile.exists()) {
                     Log.w(TAG, "Model files not found in app data directory")
                     return 100f

@@ -1,4 +1,4 @@
-package com.je.dejpeg.ui.viewmodel
+package com.je.dejpeg.compose.ui.viewmodel
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -14,7 +14,7 @@ import androidx.lifecycle.viewModelScope
 import com.je.dejpeg.ImageProcessor
 import com.je.dejpeg.ModelManager
 import com.je.dejpeg.ProcessingService
-import com.je.dejpeg.ui.utils.ImageActions
+import com.je.dejpeg.compose.utils.ImageActions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import android.os.Build

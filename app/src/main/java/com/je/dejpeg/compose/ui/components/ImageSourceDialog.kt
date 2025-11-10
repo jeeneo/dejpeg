@@ -32,7 +32,7 @@ fun ImageSourceDialog(
     val prefs = LocalContext.current.getSharedPreferences("AppPrefs", android.content.Context.MODE_PRIVATE)
     var helpInfo by remember { mutableStateOf<ImageSourceHelpType?>(null) }
     var setAsDefault by remember { mutableStateOf(false) }
-    val haptic = com.je.dejpeg.ui.utils.rememberHapticFeedback()
+    val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
     
     val handleSelection: (String, () -> Unit) -> Unit = { key, action -> 
         if (setAsDefault) prefs.edit().putString("defaultImageSource", key).apply()

@@ -22,56 +22,72 @@
 - batch processing
 - supports most image formats
 - before/after view
+- [fully offline](https://github.com/jeeneo/dejpeg/blob/main/app/src/main/AndroidManifest.xml)
 - custom models (beta)
 - image descaling (beta)
-- [fully offline](https://github.com/jeeneo/dejpeg/blob/main/app/src/main/AndroidManifest.xml)
 
-This is not a "super resolution AI upscaler", but simple non-destructive method for cleaning up/restoring images
+this is not a "super resolution AI upscaler", but simple non-destructive method for cleaning up/restoring images
 
 ## models (required):
-[FBCNN](https://github.com/jeeneo/FBCNN-mobile/releases/latest) (JPEG compression)
+[FBCNN](https://github.com/jeeneo/FBCNN-mobile/releases/latest) (JPEG artifacts)
 
-[SCUNet](https://github.com/jeeneo/SCUNet-mobile/releases/latest) (Grain/Noise)
+[SCUNet](https://github.com/jeeneo/SCUNet-mobile/releases/latest) (noise/grain)
 
-Info [here](https://github.com/jeeneo/dejpeg/wiki/model-types) (also in the apps FAQ)
+Info [here](https://github.com/jeeneo/dejpeg/wiki/model-types) (see in-app FAQ also)
 
 you can also run other experimental models, more info [here](https://github.com/jeeneo/dejpeg-experimental)
 
 ## limitations:
 - processed locally, minimum 4gb ram and 4 threads recommended
-- very large images might cause crashes
+- very large images can cause crashes
+- TIFF and other special image formats are not supported.
+- GIF animations are not supported but planned.
 
 See the [wiki](https://github.com/jeeneo/dejpeg/wiki) for more information
 
-## desktop
-The desktop version was deprecated and lacking many features, please use [chaiNNer](https://github.com/chaiNNer-org/chaiNNer)
+## other platforms
+please use [chaiNNer](https://github.com/chaiNNer-org/chaiNNer) which should work well with these models (regardless if PyTorch or ONNX)
 
-## note/disclaimer:
-De*JPEG* is not affiliated or related with Topaz `DEJPEG` or any other similarly named software/project.
+for FBCNN, which chaiNNer does support but in a limited fashion, install [this custom node](chainner/README.md) and use the [original PyTorch models](https://github.com/jiaxi-jiang/FBCNN/releases/latest), not the mobile onnx.
 
-This app stems from personal uses and was modified for public release
-
-## credits:
-[@adrianerrea](https://github.com/adrianerrea/fromPytorchtoMobile) for the base application, [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and [SCUNet](https://github.com/cszn/SCUNet) creators plus all other model creators.
-
-This is a GUI wrapper for a select amount of `1x` ONNX image processing models
-
-## license:
-All models used are under their respective licenses
-
-You are free to embed parts of this app in your own project as long as it remains free/non-paywalled and must abide to the GPL v3 license
-
-## building
+<details>
+<summary><h3>building</h3></summary>
 
 this app includes OpenCV with [BRISQUE analysis for descaling an image](https://github.com/jeeneo/dejpeg/issues/24), which is experimental but ive occasionally found it useful.
 
-you need the NDK installed to fully build with [opencv](https://github.com/opencv/opencv) + [opencv contrib](https://github.com/opencv/opencv_contrib) (for BRISQUE), else prebuilt binaries are included and you can just run `./gradlew clean assembleDebug`
+required:
+- android NDK 27.3.x
+- cmake 3.x or newer
+- git
+- opencv + contrib
 
-use this to build OpenCV w/ BRISQUE (edit it respective to your location of the NDK):
+create a directory called `opencv` after cloning dejpeg, then clone opencv + contrib inside that folder
+```bash
+git clone https://github.com/opencv/opencv.git
+git clone https://github.com/opencv/opencv_contrib.git
+```
+
+structure should be like this
+
+```
+$ tree -L 2
+...
+├── opencv
+│   ├── build_android
+│   ├── build_android_minimal
+│   ├── opencv
+│   ├── opencv_contrib
+...
+```
+
+```bash
+cd opencv
+mkdir build_android && cd build_android
+```
 
 ```bash
 cmake \
-  -DCMAKE_TOOLCHAIN_FILE=/home/<user>/Android/Sdk/ndk/27.3.13750724/build/cmake/android.toolchain.cmake \
+  -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
   -DANDROID_ABI=arm64-v8a \
   -DANDROID_NATIVE_API_LEVEL=21 \
   -DANDROID_STL=c++_shared \
@@ -79,7 +95,7 @@ cmake \
   -DCMAKE_CXX_FLAGS_MINSIZEREL="-Os -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -ffunction-sections -fdata-sections" \
   -DCMAKE_C_FLAGS_MINSIZEREL="-Os -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -ffunction-sections -fdata-sections" \
   -DCMAKE_SHARED_LINKER_FLAGS="-Wl,--gc-sections" \
-  -DOPENCV_EXTRA_MODULES_PATH=/home/<user>/opencv/opencv_contrib/modules \
+  -DOPENCV_EXTRA_MODULES_PATH=../opencv_contrib/modules \
   -DBUILD_SHARED_LIBS=ON \
   -DBUILD_TESTS=OFF \
   -DBUILD_PERF_TESTS=OFF \
@@ -107,26 +123,39 @@ cmake \
   -DBUILD_opencv_video=OFF \
   -DBUILD_opencv_features2d=OFF \
   -DBUILD_opencv_calib3d=OFF \
-  /home/<user>/source/opencv/opencv
+  ../opencv && make
 ```
-
-```bash
-ANDROID_HOME=/home/<user>/Android/Sdk ANDROID_SDK_ROOT=/home/<user>/Android/Sdk make
-```
-
-then strip debug symbols:
-```bash
-llvm-strip lib/arm64-v8a/libopencv_{core,imgproc,ml,imgcodecs,quality}.so
-```
-
-then copy out `core, imgproc, ml, imgcodecs and quality`.so files into `src/main/jniLibs`
 
 you can skip stripping and just copy the libs from `lib/arm64-v8a` to there and the next operation will strip them but you'll need to build a `Release` instead of `Debug` (and sign)
 
-delete `libbrisque_jni.so` from `jniLibs`else the build will fail then run
+strip debug symbols:
+```bash
+llvm-strip opencv/build_android/lib/arm64-v8a/libopencv_{core,imgproc,ml,imgcodecs,quality}.so
+```
+
+copy:
+```bash
+cp opencv/build_android/lib/arm64-v8a/libopencv_{core,imgproc,ml,imgcodecs,quality}.so ./app/src/main/jniLibs/arm64-v8a/
+```
 
 ```bash
+cd ../../
+rm app/src/main/jniLibs/arm64-v8a/libbrisque_jni.so
 BUILD_BRISQUE_JNI=ON ./gradlew clean assembleDebug
 ```
 
-note: the binaries in the official release are compressed using `upx --best --lzma` after being stripped of debug symbols, excluding `libbrisque_jni.so` and `libc++_shared.so` for IzzyOnDroid's 30mb limit, else you can skip with it being ~34mb if building fully from source
+note: the binaries in the official release are compressed using `upx --best --lzma` after being stripped of debug symbols (excluding `libbrisque_jni.so` and `libc++_shared.so`) for IzzyOnDroid's 30mb limit. you can skip with it being ~34mb
+
+</details>
+
+<details>
+<summary><h3>credits and license</h3></summary>
+
+  [@adrianerrea](https://github.com/adrianerrea/fromPytorchtoMobile) for the base application, [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and [SCUNet](https://github.com/cszn/SCUNet) creators plus all other model owners.
+
+This is a GUI for a select amount of `1x` ONNX processing models. All are used under their respective licenses. You are free to embed parts of this app in your own project as long as it remains free/non-paywalled and must abide to the GPL v3 license
+
+### disclaimer:
+De*JPEG* is not affiliated or related with Topaz `DEJPEG` or any other similarly named software/project.
+
+</details>

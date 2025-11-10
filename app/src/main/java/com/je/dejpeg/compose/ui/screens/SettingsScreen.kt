@@ -1,5 +1,7 @@
-package com.je.dejpeg.ui.screens
+package com.je.dejpeg.compose.ui.screens
 
+import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -11,6 +13,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -19,7 +22,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
-import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
+import com.je.dejpeg.ModelManager
+import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.R
 import com.je.dejpeg.compose.ui.components.DownloadModelDialog
 import com.je.dejpeg.compose.ui.components.ModelDialog
@@ -29,6 +33,7 @@ import com.je.dejpeg.compose.ui.components.ChunkDialog
 import com.je.dejpeg.compose.ui.components.PreferencesDialog
 import com.je.dejpeg.compose.ui.components.AboutDialog
 import com.je.dejpeg.compose.ui.components.FAQDialog
+import com.je.dejpeg.compose.utils.rememberHapticFeedback
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,7 +42,7 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
     val installedModels by viewModel.installedModels.collectAsState()
     var dialogState by remember { mutableStateOf<DialogState>(DialogState.None) }
     var importProgress by remember { mutableIntStateOf(0) }
-    var pendingImportUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
     val chunkSize by viewModel.chunkSize.collectAsState()
     val overlapSize by viewModel.overlapSize.collectAsState()
     var activeModelName by remember { mutableStateOf(viewModel.getActiveModelName()) }
@@ -45,7 +50,7 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
     var warningState by remember { mutableStateOf<ModelWarningState?>(null) }
     LaunchedEffect(installedModels, dialogState) { activeModelName = viewModel.getActiveModelName() }
     val modelPickerLauncher = rememberLauncherForActivityResult(
-        contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
+        contract = ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let { it ->
             pendingImportUri = it
@@ -56,7 +61,7 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
                 onSuccess = { name ->
                     dialogState = DialogState.None
                     pendingImportUri = null
-                    android.widget.Toast.makeText(context, context.getString(R.string.imported_model, name), android.widget.Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.imported_model, name), Toast.LENGTH_SHORT).show()
                 },
                 onError = { err -> 
                     dialogState = DialogState.None
@@ -124,7 +129,7 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
             onDownload = { dialogState = DialogState.Download },
             onDismiss = { dialogState = DialogState.None })
         DialogState.Delete -> DeleteDialog(installedModels,
-            onConfirm = { selected -> dialogState = DialogState.None; viewModel.deleteModels(selected) { android.widget.Toast.makeText(context, context.getString(R.string.deleted_model, it), android.widget.Toast.LENGTH_SHORT).show() } },
+            onConfirm = { selected -> dialogState = DialogState.None; viewModel.deleteModels(selected) { Toast.makeText(context, context.getString(R.string.deleted_model, it), Toast.LENGTH_SHORT).show() } },
             onDismiss = { dialogState = DialogState.None })
         DialogState.ImportProgress -> ImportProgressDialog(importProgress)
         DialogState.Chunk -> ChunkDialog(chunkSize, overlapSize,
@@ -172,7 +177,7 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
                                         onSuccess = { name -> 
                                             dialogState = DialogState.None
                                             pendingImportUri = null
-                                            android.widget.Toast.makeText(context, context.getString(R.string.imported_model, name), android.widget.Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, context.getString(R.string.imported_model, name), Toast.LENGTH_SHORT).show()
                                         },
                                         onError = { err -> 
                                             dialogState = DialogState.None
@@ -222,7 +227,7 @@ sealed class DialogState { object None : DialogState(); object Model : DialogSta
 sealed class ModelWarningState {
     data class ModelWarning(
         val modelName: String,
-        val warning: com.je.dejpeg.ModelManager.ModelWarning,
+        val warning: ModelManager.ModelWarning,
         val isImport: Boolean
     ) : ModelWarningState()
     
@@ -251,7 +256,7 @@ sealed class ModelWarningState {
 }
 
 @Composable fun SettingsItem(title: String, subtitle: String, onClick: () -> Unit) {
-    val haptic = com.je.dejpeg.ui.utils.rememberHapticFeedback()
+    val haptic = rememberHapticFeedback()
     Surface(
         modifier = Modifier
             .fillMaxWidth()

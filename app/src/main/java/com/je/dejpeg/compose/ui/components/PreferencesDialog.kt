@@ -23,7 +23,7 @@ fun PreferencesDialog(
     var skipSaveDialog by remember { mutableStateOf(prefs.getBoolean("skipSaveDialog", false)) }
     var defaultImageSource by remember { mutableStateOf(prefs.getString("defaultImageSource", null)) }
     var hapticFeedbackEnabled by remember { mutableStateOf(prefs.getBoolean("hapticFeedbackEnabled", true)) }
-    val haptic = com.je.dejpeg.ui.utils.rememberHapticFeedback()
+    val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
 
     AlertDialog(
         onDismissRequest = onDismiss,

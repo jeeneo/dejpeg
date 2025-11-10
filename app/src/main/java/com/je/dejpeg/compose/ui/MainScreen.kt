@@ -19,13 +19,13 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.NavType
-import com.je.dejpeg.ui.screens.ProcessingScreen
-import com.je.dejpeg.ui.screens.SettingsScreen
-import com.je.dejpeg.ui.screens.BeforeAfterScreen
-import com.je.dejpeg.ui.screens.BRISQUEScreen
-import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
+import com.je.dejpeg.compose.ui.screens.ProcessingScreen
+import com.je.dejpeg.compose.ui.screens.SettingsScreen
+import com.je.dejpeg.compose.ui.screens.BeforeAfterScreen
+import com.je.dejpeg.compose.ui.screens.BRISQUEScreen
+import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.R
-import com.je.dejpeg.ui.utils.rememberHapticFeedback
+import com.je.dejpeg.compose.utils.rememberHapticFeedback
 
 sealed class Screen(val route: String, val title: String) {
     object Processing : Screen("processing", "Processing")

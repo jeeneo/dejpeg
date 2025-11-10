@@ -24,7 +24,7 @@ fun SaveImageDialog(
     var textState by remember { mutableStateOf(TextFieldValue(defaultFilename, TextRange(0, if (lastDot > 0) lastDot else defaultFilename.length))) }
     var saveAll by remember { mutableStateOf(initialSaveAll) }
     var skipNext by remember { mutableStateOf(false) }
-    val haptic = com.je.dejpeg.ui.utils.rememberHapticFeedback()
+    val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
     AlertDialog(
         onDismissRequest = onDismissRequest,
         title = { Text(stringResource(if (hideOptions) R.string.overwrite_image else R.string.save_image)) },
@@ -87,7 +87,7 @@ fun RemoveImageDialog(
     onRemove: () -> Unit,
     onSaveAndRemove: () -> Unit
 ) {
-    val haptic = com.je.dejpeg.ui.utils.rememberHapticFeedback()
+    val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
     AlertDialog(
         onDismissRequest = onDismissRequest,
         title = { Text(stringResource(R.string.remove_image_title)) },
@@ -121,7 +121,7 @@ fun RemoveImageDialog(
 
 @Composable
 fun CancelProcessingDialog(imageFilename: String, onDismissRequest: () -> Unit, onConfirm: () -> Unit) {
-    val haptic = com.je.dejpeg.ui.utils.rememberHapticFeedback()
+    val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
     AlertDialog(
         onDismissRequest = onDismissRequest,
         title = { Text(stringResource(R.string.stop_processing_title)) },
@@ -146,7 +146,7 @@ fun CancelProcessingDialog(imageFilename: String, onDismissRequest: () -> Unit, 
 
 @Composable
 fun BatteryOptimizationDialog(onDismissRequest: () -> Unit, onOpenSettings: () -> Unit) {
-    val haptic = com.je.dejpeg.ui.utils.rememberHapticFeedback()
+    val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
     AlertDialog(
         onDismissRequest = onDismissRequest,
         title = { Text(stringResource(R.string.background_service_error)) },

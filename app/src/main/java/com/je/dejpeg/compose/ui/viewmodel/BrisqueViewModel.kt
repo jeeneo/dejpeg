@@ -1,16 +1,15 @@
-package com.je.dejpeg.ui.viewmodel
+package com.je.dejpeg.compose.ui.viewmodel
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.net.Uri
 import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.je.dejpeg.utils.BRISQUEAssesser
-import com.je.dejpeg.utils.BRISQUEDescaler
-import com.je.dejpeg.compose.ui.utils.ZipExtractor
+import com.je.dejpeg.compose.utils.BRISQUEAssesser
+import com.je.dejpeg.compose.utils.BRISQUEDescaler
+import com.je.dejpeg.compose.utils.ZipExtractor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,7 +31,7 @@ data class BrisqueImageState(
     val descaleInfo: DescaleInfo? = null,
     val isDescaling: Boolean = false,
     val descaleError: String? = null,
-    val descaleProgress: com.je.dejpeg.utils.BRISQUEDescaler.ProgressUpdate? = null,
+    val descaleProgress: BRISQUEDescaler.ProgressUpdate? = null,
     val descaleLog: List<String> = emptyList()
 )
 

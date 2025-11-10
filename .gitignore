@@ -11,3 +11,6 @@ local.properties
 .kotlin
 apks
 local.properties
+.git-public
+.git-private
+opencv

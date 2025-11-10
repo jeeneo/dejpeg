@@ -23,7 +23,7 @@ fun ChunkDialog(
 ) {
     var chunkSize by remember { mutableIntStateOf(chunk) }
     var overlapSize by remember { mutableIntStateOf(overlap) }
-    val haptic = com.je.dejpeg.ui.utils.rememberHapticFeedback()
+    val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
     val chunkPowers = generateSequence(16) { it * 2 }.takeWhile { it <= 2048 }.toList()
     val overlapPowers = generateSequence(8) { it * 2 }.takeWhile { it <= 256 }.toList()
 
@@ -62,9 +62,20 @@ fun ChunkDialog(
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
                 powerSlider(stringResource(R.string.chunk_size), chunkSize, chunkPowers) { chunkSize = it }
+                if (chunkSize >= 2048) {
+                    Text(
+                        stringResource(R.string.large_chunk_warning, chunkSize),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
                 Spacer(Modifier.height(16.dp))
                 powerSlider(stringResource(R.string.overlap_size), overlapSize, overlapPowers) { overlapSize = it }
                 Spacer(Modifier.height(16.dp))
+                if (chunkSize <= overlapSize) {
+                    overlapSize = (chunkSize / 2).coerceAtLeast(overlapPowers.first())
+                }
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
@@ -72,7 +83,7 @@ fun ChunkDialog(
                     )
                 ) {
                     Text(
-                        stringResource(R.string.note_chunk_overlap),
+                        stringResource(R.string.note_chunk_info, chunkSize),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                         modifier = Modifier.padding(12.dp)
@@ -83,7 +94,6 @@ fun ChunkDialog(
         confirmButton = {
             TextButton(onClick = {
                 haptic.medium()
-                android.util.Log.d("ChunkDialog", "Saving chunk_size: $chunkSize, overlap_size: $overlapSize")
                 onChunkChange(chunkSize)
                 onOverlapChange(overlapSize)
                 onDismiss()

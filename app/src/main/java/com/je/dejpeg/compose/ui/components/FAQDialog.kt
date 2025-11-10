@@ -5,7 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
@@ -15,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -127,25 +127,34 @@ fun MarkdownText(
             append(text.substring(lastIndex, m.range.first))
             val start = length
             append(m.groupValues[1])
+            val url = m.groupValues[2]
             addStyle(SpanStyle(color = color, textDecoration = TextDecoration.Underline), start, length)
-            addStringAnnotation("URL", m.groupValues[2], start, length)
+            addLink(
+                LinkAnnotation.Clickable(
+                    tag = "URL",
+                    linkInteractionListener = {
+                        try {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                        } catch (_: Exception) {
+                            android.widget.Toast.makeText(
+                                context,
+                                context.getString(R.string.cannot_open_link_detail, url),
+                                android.widget.Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                ),
+                start,
+                length
+            )
             lastIndex = m.range.last + 1
         }
         if (lastIndex < text.length) append(text.substring(lastIndex))
     }
-    ClickableText(text = annotatedString, style = style.copy(color = color)) { offset ->
-        annotatedString.getStringAnnotations("URL", offset, offset).firstOrNull()?.let { a ->
-            try {
-                context.startActivity(Intent(Intent.ACTION_VIEW, a.item.toUri()))
-            } catch (_: Exception) {
-                android.widget.Toast.makeText(
-                    context,
-                    context.getString(R.string.cannot_open_link_detail, a.item),
-                    android.widget.Toast.LENGTH_SHORT
-                ).show()
-            }
-        }
-    }
+    Text(
+        text = annotatedString,
+        style = style.copy(color = color)
+    )
 }
 
 fun loadFAQSections(context: android.content.Context): List<FAQSectionData> {

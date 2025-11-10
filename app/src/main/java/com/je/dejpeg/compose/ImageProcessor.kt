@@ -20,9 +20,8 @@ class ImageProcessor(
     var customOverlapSize: Int? = null
 
     companion object {
-        const val DEFAULT_CHUNK_SIZE = 1024
+        const val DEFAULT_CHUNK_SIZE = 512
         const val OVERLAP = 16
-        const val SCUNET_OVERLAP = 128
         private const val TILE_MEMORY_THRESHOLD = 4096 * 4096
     }
 

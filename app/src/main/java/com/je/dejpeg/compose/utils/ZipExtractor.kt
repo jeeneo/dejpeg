@@ -1,4 +1,4 @@
-package com.je.dejpeg.compose.ui.utils
+package com.je.dejpeg.compose.utils
 
 import android.content.Context
 import android.util.Log

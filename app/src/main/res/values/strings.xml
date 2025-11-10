@@ -39,8 +39,8 @@
     <string name="gallery">Gallery</string>
     <string name="gallery_picker_title">Gallery picker</string>
     <string name="gallery_picker_desc">Uses your device\'s or 3rd-party gallery app to select images. This method is recommended and works on most devices and supports filenames.</string>
-    <string name="internal_picker">Internal picker</string>
-    <string name="internal_picker_title">Internal picker</string>
+    <string name="internal_picker">Photo picker</string>
+    <string name="internal_picker_title">Internal photo picker</string>
     <string name="internal_picker_desc">Uses Android\'s built-in photo picker, more privacy aware but restricts filenames.</string>
     <string name="documents">Documents</string>
     <string name="documents_picker_title">Documents provider</string>
@@ -72,7 +72,8 @@
     <string name="chunk_settings">Chunk settings</string>
     <string name="chunk_size">Chunk size</string>
     <string name="overlap_size">Overlap size</string>
-    <string name="note_chunk_overlap">Note: Larger chunks use more memory. Overlap helps blend chunks.</string>
+    <string name="note_chunk_info">Images over %1$d px will be sliced and processed in chunks, overlap blends these to prevent visible seams.</string>
+    <string name="large_chunk_warning">Large chunk sizes can cause issues on devices with low ram.</string>
     <string name="preferences">Preferences</string>
     <string name="haptic_feedback">Haptic feedback</string>
     <string name="vibration_on_touch">Vibration on touch</string>

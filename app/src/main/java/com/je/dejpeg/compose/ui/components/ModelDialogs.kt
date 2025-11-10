@@ -15,7 +15,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.je.dejpeg.R
-import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
+import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
 
 @Composable
 fun ModelDialog(
@@ -28,7 +28,7 @@ fun ModelDialog(
     onDownload: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    val haptic = com.je.dejpeg.ui.utils.rememberHapticFeedback()
+    val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
     val context = LocalContext.current
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -117,7 +117,7 @@ fun ModelGridCard(
     hasWarning: Boolean,
     onSelect: () -> Unit
 ) {
-    val haptic = com.je.dejpeg.ui.utils.rememberHapticFeedback()
+    val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -200,7 +200,7 @@ fun DeleteDialog(
     onDismiss: () -> Unit
 ) {
     val selected = remember { mutableStateListOf<String>() }
-    val haptic = com.je.dejpeg.ui.utils.rememberHapticFeedback()
+    val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
     AlertDialog(
         onDismissRequest = onDismiss,
         shape = RoundedCornerShape(28.dp),
