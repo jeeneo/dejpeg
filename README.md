@@ -143,7 +143,7 @@ rm app/src/main/jniLibs/arm64-v8a/libbrisque_jni.so
 BUILD_BRISQUE_JNI=ON ./gradlew clean assembleDebug
 ```
 
-note: the binaries in the official release are compressed using `upx --best --lzma` after being stripped of debug symbols (excluding `libbrisque_jni.so` and `libc++_shared.so`) for IzzyOnDroid's 30mb limit. you can skip with it being ~34mb
+note: the binaries in the official release are compressed using `upx --best --lzma --android-shlib` after being stripped of debug symbols (excluding `libbrisque_jni.so` and `libc++_shared.so`) for IzzyOnDroid's 30mb limit. you can skip with it being ~34mb
 
 </details>
 

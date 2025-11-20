@@ -52,7 +52,7 @@ fun MainScreen(sharedUris: List<Uri> = emptyList()) {
     
     if (isFullscreenScreen) {
         NavHost(navController, Screen.Processing.route, Modifier.fillMaxSize()) {
-            composable(Screen.Processing.route) { ProcessingScreen(viewModel, navController, sharedUris) }
+            composable(Screen.Processing.route) { ProcessingScreen(viewModel, navController, sharedUris, onRemoveSharedUri = { uri -> (sharedUris as? MutableList<android.net.Uri>)?.remove(uri) }) }
             composable(Screen.Settings.route) { SettingsScreen(viewModel) }
             composable(
                 Screen.BeforeAfter.route,
@@ -110,8 +110,8 @@ fun MainScreen(sharedUris: List<Uri> = emptyList()) {
                 }
             }
         ) { paddingValues ->
-            NavHost(navController, Screen.Processing.route, Modifier.padding(paddingValues)) {
-                composable(Screen.Processing.route) { ProcessingScreen(viewModel, navController, sharedUris) }
+                NavHost(navController, Screen.Processing.route, Modifier.padding(paddingValues)) {
+                composable(Screen.Processing.route) { ProcessingScreen(viewModel, navController, sharedUris, onRemoveSharedUri = { uri -> (sharedUris as? MutableList<android.net.Uri>)?.remove(uri) }) }
                 composable(Screen.Settings.route) { SettingsScreen(viewModel) }
                 composable(
                     Screen.BeforeAfter.route,

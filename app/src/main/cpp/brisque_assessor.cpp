@@ -14,14 +14,12 @@
 
 JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
     LOGI("JNI_OnLoad called for libbrisque_jni.so");
-
     const char* libs[] = {
         "libopencv_core.so",
         "libopencv_imgproc.so",
         "libopencv_imgcodecs.so",
         "libopencv_quality.so"
     };
-    
     for (const char* lib : libs) {
         void* handle = dlopen(lib, RTLD_NOW | RTLD_GLOBAL);
         if (!handle) {
@@ -30,7 +28,6 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
             LOGD("Successfully loaded %s with RTLD_GLOBAL", lib);
         }
     }
-    
     return JNI_VERSION_1_6;
 }
 
@@ -58,9 +55,7 @@ Java_com_je_dejpeg_compose_utils_BRISQUEAssesser_computeBRISQUEFromFile(
             env->ReleaseStringUTFChars(rangePath, rangePathStr);
             return -1.0f;
         }
-
         LOGD("Image loaded successfully: %d x %d, channels: %d", image.cols, image.rows, image.channels());
-
         cv::Mat grayImage;
         if (image.channels() == 3) {
             LOGD("Converting BGR to GRAY");
@@ -89,7 +84,6 @@ Java_com_je_dejpeg_compose_utils_BRISQUEAssesser_computeBRISQUEFromFile(
         env->ReleaseStringUTFChars(modelPath, modelPathStr);
         env->ReleaseStringUTFChars(rangePath, rangePathStr);
         return brisqueScore;
-        
     } catch (const std::exception& e) {
         LOGE("Error computing BRISQUE: %s", e.what());
         env->ReleaseStringUTFChars(imagePath, imagePathStr);

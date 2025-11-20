@@ -7,4 +7,4 @@ then download and copy [fbcnn_node.py](fbcnn_node.py) to your chaiNNer install u
 
 reopen and the new node should appear under PyTorch > Restoration > FBCNN
 
-![screenshot of the FBCNN node](screenshot.png)
+![screenshot of the FBCNN node](fbcnn_node.png)

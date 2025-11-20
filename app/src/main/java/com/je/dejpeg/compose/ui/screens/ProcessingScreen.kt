@@ -61,7 +61,12 @@ import com.je.dejpeg.compose.utils.rememberHapticFeedback
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavController, initialSharedUris: List<Uri> = emptyList()) {
+fun ProcessingScreen(
+    viewModel: ProcessingViewModel,
+    navController: NavController,
+    initialSharedUris: List<Uri> = emptyList(),
+    onRemoveSharedUri: (Uri) -> Unit = {}
+) {
     val context = LocalContext.current
     val images by viewModel.images.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
@@ -82,12 +87,23 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
             when {
                 image.isProcessing -> imageIdToCancel = imageId
                 image.outputBitmap != null && !image.hasBeenSaved -> imageIdToRemove = imageId
-                else -> viewModel.removeImage(imageId)
+                else -> {
+                    image.uri?.let { uri ->
+                        try { context.contentResolver.releasePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) { }
+                        try { onRemoveSharedUri(uri) } catch (_: Exception) { }
+                    }
+                    viewModel.removeImage(imageId)
+                }
             }
         }
     }
 
     val performRemoval: (String) -> Unit = { imageId ->
+        val targetUri = images.firstOrNull { it.id == imageId }?.uri
+        targetUri?.let { uri ->
+            try { context.contentResolver.releasePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) { }
+            try { onRemoveSharedUri(uri) } catch (_: Exception) { }
+        }
         viewModel.removeImage(imageId, force = true)
         imageIdToRemove = null
         imageIdToCancel = null
@@ -152,7 +168,7 @@ fun ProcessingScreen(viewModel: ProcessingViewModel, navController: NavControlle
                     Text(stringResource(R.string.strength, globalStrength.toInt()), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                     Spacer(Modifier.height(8.dp))
                     var prevStrength by remember { mutableFloatStateOf(globalStrength) }
-                    Slider(value = globalStrength, onValueChange = { val v = (it / 5).roundToInt() * 5f; if (v != prevStrength) { haptic.light(); prevStrength = v }; viewModel.setGlobalStrength(v) }, valueRange = 0f..100f, steps = 20, modifier = Modifier.fillMaxWidth().height(24.dp))
+                    Slider(value = globalStrength, onValueChange = { val v = (it / 5).roundToInt() * 5f; if (v != prevStrength) { haptic.light(); prevStrength = v }; viewModel.setGlobalStrength(v) }, valueRange = 0f..100f, steps = 19, modifier = Modifier.fillMaxWidth().height(24.dp))
                 }
             }
         }
