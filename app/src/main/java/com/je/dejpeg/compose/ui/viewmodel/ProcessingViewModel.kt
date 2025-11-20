@@ -77,6 +77,15 @@ class ProcessingViewModel : ViewModel() {
     val shouldShowBatteryOptimizationDialog: StateFlow<Boolean> = _shouldShowBatteryOptimizationDialog.asStateFlow()
     private val _deprecatedModelWarning = MutableStateFlow<ModelManager.ModelWarning?>(null)
     val deprecatedModelWarning: StateFlow<ModelManager.ModelWarning?> = _deprecatedModelWarning.asStateFlow()
+    private val _isLoadingImages = MutableStateFlow(false)
+    val isLoadingImages: StateFlow<Boolean> = _isLoadingImages.asStateFlow()
+    private val _loadingImagesProgress = MutableStateFlow<Pair<Int, Int>?>(null)
+    val loadingImagesProgress: StateFlow<Pair<Int, Int>?> = _loadingImagesProgress.asStateFlow()
+    private val _isSavingImages = MutableStateFlow(false)
+    val isSavingImages: StateFlow<Boolean> = _isSavingImages.asStateFlow()
+    private val _savingImagesProgress = MutableStateFlow<Pair<Int, Int>?>(null)
+    val savingImagesProgress: StateFlow<Pair<Int, Int>?> = _savingImagesProgress.asStateFlow()
+    private var activeProcessingTotal = 0
     private val processingQueue = mutableListOf<String>()
     private var isProcessingQueue = false
     private var cancelInProgress = false
@@ -97,6 +106,7 @@ class ProcessingViewModel : ViewModel() {
     private val STATUS_COMPLETE get() = appContext?.getString(com.je.dejpeg.R.string.status_complete) ?: "Complete"
     private val STATUS_CANCELLED get() = appContext?.getString(com.je.dejpeg.R.string.status_cancelled) ?: "Cancelled"
     private val STATUS_CANCELING get() = appContext?.getString(com.je.dejpeg.R.string.status_canceling) ?: "Canceling..."
+    private val STATUS_QUEUED get() = appContext?.getString(com.je.dejpeg.R.string.status_queued) ?: "queued"
 
     private fun prefs(context: Context) = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private fun getImageById(id: String) = _images.value.find { it.id == id }
@@ -285,9 +295,13 @@ class ProcessingViewModel : ViewModel() {
     }
 
     private fun advanceOrIdle() {
-        if (isProcessingQueue) viewModelScope.launch { processNextInQueue() }
-        else {
+        if (processingQueue.isNotEmpty()) {
+            isProcessingQueue = true
+            viewModelScope.launch { processNextInQueue() }
+        } else {
+            isProcessingQueue = false
             currentProcessingId = null
+            activeProcessingTotal = 0
             _uiState.value = ProcessingUiState.Idle
         }
     }
@@ -368,12 +382,20 @@ class ProcessingViewModel : ViewModel() {
             processingQueue.remove(id)
             return
         }
+        val wasQueued = processingQueue.contains(id)
         if (!force && target.isProcessing && !target.isCancelling) {
+            if (wasQueued && target.id != currentProcessingId) {
+                processingQueue.remove(id)
+                if (activeProcessingTotal > 0) activeProcessingTotal -= 1
+                updateImageState(id) { resetTimeEstimates(it).copy(isProcessing = false, progress = "", isCancelling = false) }
+                return
+            }
             cancelInProgress = true
             updateImageState(id) { it.copy(isCancelling = true, progress = STATUS_CANCELING) }
             cancelProcessingService(id)
             return
         }
+        if (wasQueued && activeProcessingTotal > 0) activeProcessingTotal -= 1
         processingQueue.remove(id)
         _images.value = _images.value.filter { it.id != id }
     }
@@ -425,6 +447,7 @@ class ProcessingViewModel : ViewModel() {
             
             processingQueue.clear()
             processingQueue.addAll(imagesToProcess.map { it.id })
+            activeProcessingTotal = processingQueue.size
             isProcessingQueue = true
             _uiState.value = ProcessingUiState.Processing(0, imagesToProcess.size)
             processNextInQueue()
@@ -434,6 +457,7 @@ class ProcessingViewModel : ViewModel() {
     private fun processNextInQueue() {
         if (processingQueue.isEmpty()) {
             isProcessingQueue = false
+            activeProcessingTotal = 0
             _uiState.value = ProcessingUiState.Idle
             currentProcessingId = null
             return
@@ -442,17 +466,20 @@ class ProcessingViewModel : ViewModel() {
         val imageId = processingQueue.removeAt(0)
         val image = _images.value.find { it.id == imageId } ?: return processNextInQueue()
         
-        val total = _images.value.count { it.uri != null }
+        val total = if (activeProcessingTotal > 0) activeProcessingTotal else _images.value.count { it.uri != null }
+        activeProcessingTotal = total
         val currentIndex = total - processingQueue.size - 1
         _uiState.value = ProcessingUiState.Processing(currentIndex, total)
         
         currentProcessingId = imageId
+        isProcessingQueue = processingQueue.isNotEmpty()
         startProcessingInService(imageId, image.strengthFactor * 100f)
     }
 
     fun cancelProcessing() {
         processingQueue.clear()
         isProcessingQueue = false
+        activeProcessingTotal = 0
         cancelInProgress = true
         currentProcessingId?.let { 
             updateImageState(it) { img -> img.copy(isCancelling = true, progress = STATUS_CANCELING) }
@@ -527,16 +554,25 @@ class ProcessingViewModel : ViewModel() {
     fun saveAllImages(context: Context, onComplete: () -> Unit = {}, onError: (String) -> Unit = {}) {
         val imagesToSave = _images.value.filter { it.outputBitmap != null }.map { it.filename to it.outputBitmap!! }
         if (imagesToSave.isNotEmpty()) {
+            _isSavingImages.value = true
+            _savingImagesProgress.value = Pair(0, imagesToSave.size)
             ImageActions.saveAllImages(
                 context = context,
                 images = imagesToSave,
+                onProgress = { current, total ->
+                    _savingImagesProgress.value = Pair(current, total)
+                },
                 onComplete = {
                     _images.value.filter { it.outputBitmap != null }.forEach { image ->
                         updateImageState(image.id) { it.copy(hasBeenSaved = true) }
                     }
+                    _isSavingImages.value = false
+                    _savingImagesProgress.value = null
                     onComplete()
                 },
                 onError = { errorMsg ->
+                    _isSavingImages.value = false
+                    _savingImagesProgress.value = null
                     onError(errorMsg)
                 }
             )
@@ -613,10 +649,29 @@ class ProcessingViewModel : ViewModel() {
 
     fun processImage(id: String) {
         viewModelScope.launch {
-            if (cancelInProgress || isProcessingQueue || currentProcessingId != null || _images.value.any { it.isProcessing }) return@launch
+            if (cancelInProgress) return@launch
             val image = getImageById(id) ?: return@launch
             if (image.uri == null) return@launch
+
+            val isProcessingActive = currentProcessingId != null || _images.value.any { it.isProcessing }
+            if (isProcessingActive || processingQueue.isNotEmpty()) {
+                if (id == currentProcessingId || processingQueue.contains(id)) return@launch
+                processingQueue.add(id)
+                isProcessingQueue = true
+                activeProcessingTotal = if (activeProcessingTotal == 0) {
+                    processingQueue.size + if (currentProcessingId != null) 1 else 0
+                } else {
+                    activeProcessingTotal + 1
+                }
+                val total = activeProcessingTotal
+                val queuedProgress = STATUS_QUEUED
+                updateImageState(id) { resetTimeEstimates(it).copy(isProcessing = true, progress = queuedProgress, isCancelling = false) }
+                val currentIndex = (total - processingQueue.size - 1).coerceAtLeast(0)
+                _uiState.value = ProcessingUiState.Processing(currentIndex, total)
+                return@launch
+            }
             
+            activeProcessingTotal = 1
             _uiState.value = ProcessingUiState.Processing(0, 1)
             currentProcessingId = id
             startProcessingInService(id, image.strengthFactor * 100f)
@@ -677,6 +732,43 @@ class ProcessingViewModel : ViewModel() {
                     strengthFactor = _globalStrength.value / 100f
                 )
             )
+        }
+    }
+    
+    fun addImagesFromUris(context: Context, uris: List<Uri>) {
+        if (uris.isEmpty()) return
+        
+        viewModelScope.launch {
+            _isLoadingImages.value = true
+            _loadingImagesProgress.value = Pair(0, uris.size)
+            
+            withContext(Dispatchers.IO) {
+                uris.forEachIndexed { index, uri ->
+                    try {
+                        loadBitmapWithRotation(context, uri)?.let { bmp ->
+                            val thumbnail = generateThumbnail(bmp)
+                            val imageItem = ImageItem(
+                                id = UUID.randomUUID().toString(),
+                                uri = uri,
+                                filename = getFileNameFromUri(context, uri),
+                                inputBitmap = bmp,
+                                thumbnailBitmap = thumbnail,
+                                size = "${bmp.width}x${bmp.height}",
+                                strengthFactor = _globalStrength.value / 100f
+                            )
+                            withContext(Dispatchers.Main) {
+                                addImage(imageItem)
+                                _loadingImagesProgress.value = Pair(index + 1, uris.size)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        // Silently skip failed images
+                    }
+                }
+            }
+            
+            _isLoadingImages.value = false
+            _loadingImagesProgress.value = null
         }
     }
     

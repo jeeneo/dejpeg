@@ -42,10 +42,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.compose.ui.text.font.FontStyle
 import com.je.dejpeg.compose.ui.components.BatteryOptimizationDialog
 import com.je.dejpeg.compose.ui.components.RemoveImageDialog
 import com.je.dejpeg.compose.ui.components.CancelProcessingDialog
 import com.je.dejpeg.compose.ui.components.ImageSourceDialog
+import com.je.dejpeg.compose.ui.components.LoadingDialog
 import com.je.dejpeg.compose.utils.ImageActions
 import com.je.dejpeg.compose.ui.viewmodel.ImageItem
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingUiState
@@ -76,6 +78,8 @@ fun ProcessingScreen(
     val shouldShowBatteryOptimizationDialog by viewModel.shouldShowBatteryOptimizationDialog.collectAsState()
     val haptic = rememberHapticFeedback()
     val deprecatedModelWarning by viewModel.deprecatedModelWarning.collectAsState()
+    val isLoadingImages by viewModel.isLoadingImages.collectAsState()
+    val loadingImagesProgress by viewModel.loadingImagesProgress.collectAsState()
     var imageIdToRemove by remember { mutableStateOf<String?>(null) }
     var imageIdToCancel by remember { mutableStateOf<String?>(null) }
     var showImageSourceDialog by remember { mutableStateOf(false) }
@@ -122,8 +126,10 @@ fun ProcessingScreen(
         if (initialSharedUris.isNotEmpty()) {
             val existing = images.mapNotNull { it.uri?.toString() }.toSet()
             val toAdd = initialSharedUris.filter { uri -> uri.toString() !in existing && uri.toString() !in processedShareUris.value }
-            toAdd.forEach { viewModel.addImageFromUri(context, it) }
-            if (toAdd.isNotEmpty()) processedShareUris.value += toAdd.map { it.toString() }
+            if (toAdd.isNotEmpty()) {
+                viewModel.addImagesFromUris(context, toAdd)
+                processedShareUris.value += toAdd.map { it.toString() }
+            }
         }
     }
 
@@ -136,7 +142,7 @@ fun ProcessingScreen(
                 uris.add(it)
                 viewModel.clearCameraPhotoUri()
             }
-            uris.forEach { viewModel.addImageFromUri(context, it) }
+            viewModel.addImagesFromUris(context, uris)
         }
     }
         
@@ -332,6 +338,15 @@ fun ProcessingScreen(
             }
         )
     }
+    
+    if (isLoadingImages) {
+        val progress = loadingImagesProgress
+        LoadingDialog(
+            title = stringResource(R.string.loading_images),
+            progress = progress?.let { it.first.toFloat() / it.second.toFloat() },
+            progressText = progress?.let { stringResource(R.string.loading_image_progress, it.first, it.second) }
+        )
+    }
 }
 
 @Composable
@@ -480,12 +495,27 @@ fun ImageCard(image: ImageItem, supportsStrength: Boolean, onStrengthChange: (Fl
                     }
                 }
             }
-            Row(modifier = Modifier.align(Alignment.BottomEnd), horizontalArrangement = Arrangement.spacedBy(0.dp), verticalAlignment = Alignment.CenterVertically) {
-                if (image.isProcessing) IconButton(onClick = { haptic.heavy(); onRemove() }, modifier = Modifier.size(36.dp)) { Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.cancel_processing), tint = Color(0xFFEF5350), modifier = Modifier.size(20.dp)) }
-                else {
-                    IconButton(onClick = { haptic.medium(); onProcess() }, modifier = Modifier.size(36.dp)) { Icon(Icons.Filled.PlayArrow, contentDescription = stringResource(R.string.process), tint = Color(0xFF4CAF50), modifier = Modifier.size(20.dp)) }
-                    IconButton(onClick = { haptic.heavy(); onRemove() }, modifier = Modifier.size(36.dp)) { Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.remove), tint = Color(0xFFEF5350), modifier = Modifier.size(18.dp)) }
-                    IconButton(onClick = { onBrisque() }, modifier = Modifier.size(36.dp)) { Icon(painter = painterResource(R.drawable.ic_brisque), contentDescription = stringResource(R.string.brisque), tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp)) }
+            Row(
+                Modifier.align(Alignment.BottomEnd),
+                horizontalArrangement = Arrangement.spacedBy(0.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (image.isProcessing) {
+                    IconButton({ haptic.heavy(); onRemove() }, Modifier.size(36.dp)) {
+                        Icon(Icons.Filled.Close, stringResource(R.string.cancel_processing), tint = Color(0xFFEF5350), modifier = Modifier.size(20.dp))
+                    }
+                } else {
+                    IconButton({ haptic.medium(); onProcess() }, Modifier.size(36.dp)) {
+                        Icon(Icons.Filled.PlayArrow, stringResource(R.string.process), tint = Color(0xFF4CAF50), modifier = Modifier.size(20.dp))
+                    }
+                    IconButton({ haptic.heavy(); onRemove() }, Modifier.size(36.dp)) {
+                        Icon(Icons.Filled.Delete, stringResource(R.string.remove), tint = Color(0xFFEF5350), modifier = Modifier.size(18.dp))
+                    }
+                    IconButton({ onBrisque() }, Modifier.size(36.dp)) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text("B", fontStyle = FontStyle.Italic, color = MaterialTheme.colorScheme.primary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             }
         }

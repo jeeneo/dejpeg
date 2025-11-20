@@ -55,7 +55,7 @@ class ImageProcessor(
             val modelInfo = ModelInfo(modelName, strength, session, customChunkSize, customOverlapSize)
             val timeEstimator = TimeEstimator(context, modelName ?: "unknown")
             timeEstimator.startProcessing()
-            val result = processBitmapUnified(session, inputBitmap, callback, modelInfo, timeEstimator, index, total)
+            val result = processBitmap(session, inputBitmap, callback, modelInfo, timeEstimator, index, total)
             withContext(Dispatchers.Main) {
                 callback.onComplete(result)
             }
@@ -72,7 +72,7 @@ class ImageProcessor(
         }
     }
 
-    private suspend fun processBitmapUnified(
+    private suspend fun processBitmap(
         session: OrtSession,
         inputBitmap: Bitmap,
         callback: ProcessCallback,

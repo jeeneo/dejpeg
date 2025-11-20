@@ -87,6 +87,7 @@
     <string name="status_complete_ui">complete - tap to view</string>
     <string name="status_cancelled">Cancelled</string>
     <string name="status_canceling">Canceling...</string>
+    <string name="status_queued">queued</string>
     <string name="settings">Settings</string>
     <string name="add_images">Add Images</string>
     <string name="process">Process</string>
@@ -151,4 +152,10 @@
     <string name="error_processing_cancelled">Processing cancelled</string>
     <!-- <string name="processing_image_x_of_y">Processing image %1$d/%2$d</string> -->
     <string name="processing_chunk_x_of_y">Processing chunk %1$d/%2$d</string>
+    
+    <!-- Loading dialog strings -->
+    <string name="loading_images">Loading images...</string>
+    <string name="loading_image_progress">Loading %1$d of %2$d</string>
+    <string name="saving_images">Saving images...</string>
+    <string name="saving_image_progress">Saving %1$d of %2$d</string>
 </resources>

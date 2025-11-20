@@ -43,6 +43,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.je.dejpeg.R
 import com.je.dejpeg.compose.ui.components.SaveImageDialog
+import com.je.dejpeg.compose.ui.components.LoadingDialog
 import com.je.dejpeg.compose.utils.HapticFeedbackPerformer
 import com.je.dejpeg.compose.utils.ImageActions
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
@@ -63,6 +64,8 @@ fun BeforeAfterScreen(viewModel: ProcessingViewModel, imageId: String, navContro
     var overwriteDialogFilename by remember { mutableStateOf<String?>(null) }
     var saveErrorMessage by remember { mutableStateOf<String?>(null) }
     val isDarkTheme = isSystemInDarkTheme()
+    val isSavingImages by viewModel.isSavingImages.collectAsState()
+    val savingImagesProgress by viewModel.savingImagesProgress.collectAsState()
     
     DisposableEffect(isDarkTheme) {
         (context as? ComponentActivity)?.enableEdgeToEdge(
@@ -206,6 +209,15 @@ fun BeforeAfterScreen(viewModel: ProcessingViewModel, imageId: String, navContro
                     Text(stringResource(R.string.ok))
                 }
             }
+        )
+    }
+    
+    if (isSavingImages) {
+        val progress = savingImagesProgress
+        LoadingDialog(
+            title = stringResource(R.string.saving_images),
+            progress = progress?.let { it.first.toFloat() / it.second.toFloat() },
+            progressText = progress?.let { stringResource(R.string.saving_image_progress, it.first, it.second) }
         )
     }
 }

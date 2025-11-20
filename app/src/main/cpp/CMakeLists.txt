@@ -34,7 +34,7 @@ if(CMAKE_BUILD_BRISQUE)
     set_target_properties(brisque_jni PROPERTIES
         CXX_STANDARD 17
         CXX_STANDARD_REQUIRED ON
-        LINK_FLAGS "-Wl,-rpath,/system/lib64:/data/data/com.je.dejpeg.debug/lib"
+        LINK_FLAGS "-Wl,-rpath,/system/lib64:/data/data/com.je.dejpeg.debug/lib -Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=4096"
     )
 else()
     message(STATUS "not building brisque_jni")

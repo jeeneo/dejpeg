@@ -94,48 +94,34 @@ cmake \
   -DCMAKE_BUILD_TYPE=MinSizeRel \
   -DCMAKE_CXX_FLAGS_MINSIZEREL="-Os -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -ffunction-sections -fdata-sections" \
   -DCMAKE_C_FLAGS_MINSIZEREL="-Os -DNDEBUG -fvisibility=hidden -fvisibility-inlines-hidden -ffunction-sections -fdata-sections" \
-  -DCMAKE_SHARED_LINKER_FLAGS="-Wl,--gc-sections" \
+  -DCMAKE_SHARED_LINKER_FLAGS="-Wl,--gc-sections -Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=4096" \
   -DOPENCV_EXTRA_MODULES_PATH=../opencv_contrib/modules \
   -DBUILD_SHARED_LIBS=ON \
-  -DBUILD_TESTS=OFF \
-  -DBUILD_PERF_TESTS=OFF \
-  -DBUILD_ANDROID_EXAMPLES=OFF \
-  -DBUILD_DOCS=OFF \
-  -DBUILD_opencv_java=OFF \
-  -DWITH_GSTREAMER=OFF \
-  -DWITH_V4L=OFF \
-  -DWITH_GTK=OFF \
-  -DWITH_QT=OFF \
-  -DWITH_IPP=OFF \
-  -DWITH_CUDA=OFF \
-  -DWITH_OPENCL=OFF \
-  -DWITH_VTK=OFF \
-  -DWITH_JASPER=OFF \
-  -DWITH_OPENEXR=OFF \
-  -DBUILD_EXAMPLES=OFF \
-  -DBUILD_PACKAGE=OFF \
-  -DBUILD_opencv_core=ON \
-  -DBUILD_opencv_imgproc=ON \
-  -DBUILD_opencv_ml=ON \
-  -DBUILD_opencv_imgcodecs=ON \
-  -DBUILD_opencv_quality=ON \
-  -DBUILD_opencv_dnn=OFF \
-  -DBUILD_opencv_video=OFF \
-  -DBUILD_opencv_features2d=OFF \
-  -DBUILD_opencv_calib3d=OFF \
-  ../opencv && make
+  -DBUILD_LIST=core,imgproc,imgcodecs,ml,quality \
+  -DBUILD_TESTS=OFF -DBUILD_PERF_TESTS=OFF -DBUILD_ANDROID_EXAMPLES=OFF -DBUILD_DOCS=OFF -DBUILD_EXAMPLES=OFF -DBUILD_PACKAGE=OFF -DBUILD_opencv_java=OFF \
+  -DWITH_JPEG=ON -DWITH_PNG=ON -DWITH_TIFF=OFF -DWITH_WEBP=OFF -DWITH_OPENEXR=OFF \
+  -DWITH_IPP=OFF -DWITH_EIGEN=OFF -DWITH_LAPACK=OFF -DWITH_TBB=OFF -DWITH_PTHREADS_PF=ON \
+  -DWITH_GSTREAMER=OFF -DWITH_V4L=OFF -DWITH_GTK=OFF -DWITH_QT=OFF -DWITH_OPENCL=OFF -DWITH_CUDA=OFF -DWITH_VTK=OFF \
+  -DBUILD_PROTOBUF=OFF -DBUILD_TBB=OFF -DBUILD_IPP_IW=OFF -DBUILD_ITT=OFF \
+  ../opencv && make -j$(nproc)
 ```
 
 you can skip stripping and just copy the libs from `lib/arm64-v8a` to there and the next operation will strip them but you'll need to build a `Release` instead of `Debug` (and sign)
 
 copy:
 ```bash
-cp opencv/build_android/lib/arm64-v8a/libopencv_{core,imgproc,ml,imgcodecs,quality}.so ./app/src/main/jniLibs/arm64-v8a/
+cp -r lib/arm64-v8a ../../app/src/main/jniLibs && cd ../../app/src/main/jniLibs/arm64-v8a
 ```
 
 strip debug symbols:
+
 ```bash
+cd 
 llvm-strip libopencv_{core,imgproc,ml,imgcodecs,quality}.so
+```
+upx compress (optional, for under 30mb release)
+```bash
+upx --best --lzma --android-shlib -i libopencv_{core,imgproc,ml,imgcodecs,quality}.so
 ```
 
 ```bash
