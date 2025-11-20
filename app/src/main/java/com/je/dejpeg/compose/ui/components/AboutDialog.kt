@@ -12,10 +12,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.je.dejpeg.R
+import com.je.dejpeg.compose.utils.rememberHapticFeedback
 
 @Composable
 fun AboutDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
+    val haptic = rememberHapticFeedback()
     val versionName = try {
         context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "Unknown"
     } catch (e: Exception) {
@@ -45,12 +47,13 @@ fun AboutDialog(onDismiss: () -> Unit) {
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = { haptic.light(); onDismiss() }) {
                 Text(stringResource(R.string.ok))
             }
         },
         dismissButton = {
             TextButton(onClick = {
+                haptic.medium()
                 try {
                     context.startActivity(
                         Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/jeeneo/dejpeg"))

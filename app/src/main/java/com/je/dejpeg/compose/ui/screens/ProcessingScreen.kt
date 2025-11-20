@@ -316,7 +316,7 @@ fun ProcessingScreen(
             title = { Text(stringResource(R.string.error_saving_image_title)) },
             text = { Text(errorMsg) },
             confirmButton = {
-                TextButton(onClick = { saveErrorMessage = null }) {
+                TextButton(onClick = { haptic.light(); saveErrorMessage = null }) {
                     Text(stringResource(R.string.ok))
                 }
             }
@@ -378,14 +378,15 @@ fun SwipeToDismissWrapper(swipeOffset: MutableState<Float>, isProcessing: Boolea
 
 @Composable
 fun NoModelDialog(onDismiss: () -> Unit, onGoToSettings: () -> Unit) {
+    val haptic = rememberHapticFeedback()
     AlertDialog(
         onDismissRequest = onDismiss,
         shape = RoundedCornerShape(28.dp),
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         title = { Text(stringResource(R.string.no_model_installed_title)) }, 
         text = { Text(stringResource(R.string.no_model_installed_desc)) }, 
-        confirmButton = { TextButton(onClick = onGoToSettings) { Text(stringResource(R.string.go_to_settings)) } }, 
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
+        confirmButton = { TextButton(onClick = { haptic.medium(); onGoToSettings() }) { Text(stringResource(R.string.go_to_settings)) } }, 
+        dismissButton = { TextButton(onClick = { haptic.light(); onDismiss() }) { Text(stringResource(R.string.cancel)) } }
     )
 }
 

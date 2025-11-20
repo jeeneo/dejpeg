@@ -43,7 +43,13 @@ fun SaveImageDialog(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(stringResource(R.string.save_all))
-                        Switch(saveAll, { haptic.light(); saveAll = it })
+                        Switch(
+                            checked = saveAll,
+                            onCheckedChange = {
+                                haptic.light()
+                                saveAll = it
+                            }
+                        )
                     }
                     Row(
                         Modifier.fillMaxWidth().padding(vertical = 4.dp),
@@ -51,7 +57,13 @@ fun SaveImageDialog(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(stringResource(R.string.dont_show_dialog))
-                        Switch(skipNext, { haptic.light(); skipNext = it })
+                        Switch(
+                            checked = skipNext,
+                            onCheckedChange = {
+                                haptic.light()
+                                skipNext = it
+                            }
+                        )
                     }
                 }
             }

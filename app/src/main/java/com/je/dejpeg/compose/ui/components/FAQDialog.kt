@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.je.dejpeg.R
+import com.je.dejpeg.compose.utils.rememberHapticFeedback
 
 data class FAQSectionData(
     val title: String,
@@ -33,6 +34,7 @@ data class FAQSectionData(
 fun FAQDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
     val faqSections = remember { loadFAQSections(context) }
+    val haptic = rememberHapticFeedback()
     AlertDialog(
         onDismissRequest = onDismiss,
         shape = RoundedCornerShape(28.dp),
@@ -56,7 +58,7 @@ fun FAQDialog(onDismiss: () -> Unit) {
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = { haptic.light(); onDismiss() }) {
                 Text(stringResource(R.string.close))
             }
         }
@@ -67,11 +69,12 @@ fun FAQDialog(onDismiss: () -> Unit) {
 fun FAQSection(title: String, content: String?, subSections: List<Pair<String, String>>? = null) {
     var expanded by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val haptic = rememberHapticFeedback()
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { expanded = !expanded }
+                .clickable { haptic.light(); expanded = !expanded }
                 .padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically

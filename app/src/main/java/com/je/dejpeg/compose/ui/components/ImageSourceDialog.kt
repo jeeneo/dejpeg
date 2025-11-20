@@ -33,7 +33,6 @@ fun ImageSourceDialog(
     var helpInfo by remember { mutableStateOf<ImageSourceHelpType?>(null) }
     var setAsDefault by remember { mutableStateOf(false) }
     val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
-    
     val handleSelection: (String, () -> Unit) -> Unit = { key, action -> 
         if (setAsDefault) prefs.edit().putString("defaultImageSource", key).apply()
         onDismiss()
@@ -41,7 +40,6 @@ fun ImageSourceDialog(
     }
 
     Dialog(onDismissRequest = onDismiss) {
-        // Changed to ElevatedCard with better elevation
         ElevatedCard(
             modifier = Modifier
                 .fillMaxWidth()
@@ -58,7 +56,6 @@ fun ImageSourceDialog(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Enhanced header with icon
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -69,32 +66,29 @@ fun ImageSourceDialog(
                         fontWeight = FontWeight.Bold
                     )
                 }
-                
                 Spacer(Modifier.height(4.dp))
-                
-                ModernImageSourceOption(
+                ImageSource(
                     icon = Icons.Outlined.PhotoLibrary,
                     title = stringResource(R.string.gallery),
                     description = stringResource(R.string.gallery_picker_title),
                     onClick = { haptic.medium(); handleSelection("gallery", onGallerySelected) },
                     onHelpClick = { haptic.light(); helpInfo = ImageSourceHelpType.GALLERY }
                 )
-                
-                ModernImageSourceOption(
+                ImageSource(
                     icon = Icons.Outlined.Photo,
                     title = stringResource(R.string.internal_picker),
                     description = stringResource(R.string.internal_picker_title),
                     onClick = { haptic.medium(); handleSelection("internal", onInternalSelected) },
                     onHelpClick = { haptic.light(); helpInfo = ImageSourceHelpType.INTERNAL }
                 )
-                ModernImageSourceOption(
+                ImageSource(
                     icon = Icons.Outlined.Folder,
                     title = stringResource(R.string.documents),
                     description = stringResource(R.string.documents_picker_title),
                     onClick = { haptic.medium(); handleSelection("documents", onDocumentsSelected) },
                     onHelpClick = { haptic.light(); helpInfo = ImageSourceHelpType.DOCUMENTS }
                 )
-                ModernImageSourceOption(
+                ImageSource(
                     icon = Icons.Outlined.CameraAlt,
                     title = stringResource(R.string.camera),
                     description = stringResource(R.string.camera_title),
@@ -161,7 +155,7 @@ fun ImageSourceDialog(
 }
 
 @Composable
-private fun ModernImageSourceOption(
+private fun ImageSource(
     icon: ImageVector,
     title: String,
     description: String,
@@ -208,6 +202,7 @@ private fun ModernImageSourceOption(
 
 @Composable
 fun HelpDialog(title: String, text: String, onDismiss: () -> Unit) {
+    val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
     AlertDialog(
         onDismissRequest = onDismiss,
         shape = RoundedCornerShape(28.dp),
@@ -234,7 +229,7 @@ fun HelpDialog(title: String, text: String, onDismiss: () -> Unit) {
             )
         },
         confirmButton = {
-            FilledTonalButton(onClick = onDismiss) {
+            FilledTonalButton(onClick = { haptic.light(); onDismiss() }) {
                 Text(stringResource(R.string.ok))
             }
         }

@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.je.dejpeg.R
+import com.je.dejpeg.compose.utils.rememberHapticFeedback
 
 data class ModelDownloadItem(
     val name: String,
@@ -30,6 +31,7 @@ fun DownloadModelDialog(
     onSuccess: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
+    val haptic = rememberHapticFeedback()
     val models = listOf(
         ModelDownloadItem(
             stringResource(R.string.fbcnn_model),
@@ -94,7 +96,7 @@ fun DownloadModelDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = { haptic.light(); onDismiss() }) {
                 Text(stringResource(R.string.close))
             }
         }
@@ -106,11 +108,12 @@ private fun ModelDownloadCard(
     model: ModelDownloadItem,
     onDownloadClick: () -> Unit
 ) {
+    val haptic = rememberHapticFeedback()
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         ),
         elevation = CardDefaults.elevatedCardElevation(
             defaultElevation = 2.dp
@@ -140,7 +143,10 @@ private fun ModelDownloadCard(
             Spacer(modifier = Modifier.height(12.dp))
 
             FilledTonalButton(
-                onClick = onDownloadClick,
+                onClick = {
+                    haptic.medium()
+                    onDownloadClick()
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(40.dp),
