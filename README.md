@@ -128,14 +128,14 @@ cmake \
 
 you can skip stripping and just copy the libs from `lib/arm64-v8a` to there and the next operation will strip them but you'll need to build a `Release` instead of `Debug` (and sign)
 
-strip debug symbols:
-```bash
-llvm-strip opencv/build_android/lib/arm64-v8a/libopencv_{core,imgproc,ml,imgcodecs,quality}.so
-```
-
 copy:
 ```bash
 cp opencv/build_android/lib/arm64-v8a/libopencv_{core,imgproc,ml,imgcodecs,quality}.so ./app/src/main/jniLibs/arm64-v8a/
+```
+
+strip debug symbols:
+```bash
+llvm-strip libopencv_{core,imgproc,ml,imgcodecs,quality}.so
 ```
 
 ```bash
