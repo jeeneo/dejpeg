@@ -7,7 +7,7 @@
 .externalNativeBuild
 .cxx
 local.properties
-.idea/
+.idea
 .kotlin
 apks
 local.properties
