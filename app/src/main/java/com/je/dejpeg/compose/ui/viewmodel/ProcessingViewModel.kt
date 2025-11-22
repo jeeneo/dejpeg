@@ -449,6 +449,11 @@ class ProcessingViewModel : ViewModel() {
             processingQueue.addAll(imagesToProcess.map { it.id })
             activeProcessingTotal = processingQueue.size
             isProcessingQueue = true
+            imagesToProcess.forEach { image ->
+                updateImageState(image.id) { 
+                    resetTimeEstimates(it).copy(isProcessing = true, progress = STATUS_QUEUED, isCancelling = false) 
+                }
+            }
             _uiState.value = ProcessingUiState.Processing(0, imagesToProcess.size)
             processNextInQueue()
         }
