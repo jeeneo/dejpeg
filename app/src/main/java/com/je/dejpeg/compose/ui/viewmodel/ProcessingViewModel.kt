@@ -518,10 +518,12 @@ class ProcessingViewModel : ViewModel() {
 
     fun getModelWarning(modelName: String?): com.je.dejpeg.ModelManager.ModelWarning? = 
         modelManager?.getModelWarning(modelName)
-
     fun supportsStrengthAdjustment(): Boolean {
         val modelName = getActiveModelName()
         return modelName?.contains("fbcnn", ignoreCase = true) == true
+    }
+    fun isCurrentlyProcessing(imageId: String): Boolean {
+        return currentProcessingId == imageId
     }
 
     fun saveImage(context: Context, imageId: String, filename: String? = null, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {

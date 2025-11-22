@@ -89,7 +89,10 @@ fun ProcessingScreen(
     val handleImageRemoval: (String) -> Unit = { imageId ->
         images.firstOrNull { it.id == imageId }?.let { image ->
             when {
-                image.isProcessing -> imageIdToCancel = imageId
+                image.isProcessing && viewModel.isCurrentlyProcessing(imageId) -> imageIdToCancel = imageId
+                image.isProcessing && !viewModel.isCurrentlyProcessing(imageId) -> {
+                    viewModel.removeImage(imageId)
+                }
                 image.outputBitmap != null && !image.hasBeenSaved -> imageIdToRemove = imageId
                 else -> {
                     image.uri?.let { uri ->
