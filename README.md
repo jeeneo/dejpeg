@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="fastlane/metadata/android/en-US/images/icon.png" height="140" alt="">
+  <!-- <img src="fastlane/metadata/android/en-US/images/icon.png" height="140" alt=""> -->
   <br>
   An open source app for removing noise and compression from photos
   <h2></h2>
