@@ -64,3 +64,18 @@
     java.lang.Object writeReplace();
     java.lang.Object readResolve();
 }
+
+# -optimizationpasses 5
+# -allowaccessmodification
+# -mergeinterfacesaggressively
+
+# -assumenosideeffects class android.util.Log {
+#     public static *** d(...);
+#     public static *** v(...);
+#     public static *** i(...);
+#     public static *** w(...);
+#     public static *** e(...);
+# }
+
+# -dontwarn kotlin.**
+# -dontwarn kotlinx.**

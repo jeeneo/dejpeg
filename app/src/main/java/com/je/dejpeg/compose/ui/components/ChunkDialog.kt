@@ -2,7 +2,6 @@ package com.je.dejpeg.compose.ui.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,35 +27,58 @@ fun ChunkDialog(
     val overlapPowers = generateSequence(8) { it * 2 }.takeWhile { it <= 256 }.toList()
 
     @Composable
-    fun powerSlider(label: String, value: Int, powers: List<Int>, onChange: (Int) -> Unit) {
-        var index by remember(value) { mutableIntStateOf(powers.indexOf(value).coerceAtLeast(0)) }
+    fun powerSlider(
+        label: String,
+        value: Int,
+        powers: List<Int>,
+        maxAllowed: Int = Int.MAX_VALUE,
+        onChange: (Int) -> Unit
+    ) {
+        val availablePowers = powers.filter { it < maxAllowed }
+        val effectivePowers = if (availablePowers.isEmpty()) listOf(powers.first()) else availablePowers
+        val clampedValue = value.coerceAtMost(effectivePowers.last())
+        var index by remember(clampedValue, effectivePowers) { 
+            mutableIntStateOf(effectivePowers.indexOf(clampedValue).coerceAtLeast(0)) 
+        }
+        LaunchedEffect(maxAllowed) {
+            if (value >= maxAllowed && effectivePowers.isNotEmpty()) {
+                onChange(effectivePowers.last())
+            }
+        }
+        
         Column {
             Text(label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium)
             Slider(
                 value = index.toFloat(),
                 onValueChange = {
-                    val newIdx = it.roundToInt().coerceIn(powers.indices)
+                    val newIdx = it.roundToInt().coerceIn(effectivePowers.indices)
                     if (newIdx != index) {
                         index = newIdx
                         haptic.light()
-                        onChange(powers[newIdx])
+                        onChange(effectivePowers[newIdx])
                     }
                 },
-                valueRange = 0f..(powers.lastIndex.toFloat()),
-                steps = powers.size - 2
+                valueRange = 0f..(effectivePowers.lastIndex.toFloat().coerceAtLeast(0f)),
+                steps = (effectivePowers.size - 2).coerceAtLeast(0),
+                enabled = effectivePowers.size > 1
             )
-            Text(
-                "${powers[index]}px",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary
-            )
+            Row {
+                Text(
+                    "${effectivePowers[index]}px",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
     }
 
+    val dialogWidth = rememberDialogWidth()
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(28.dp),
+        modifier = Modifier.dialogWidth(dialogWidth),
+        properties = DialogDefaults.Properties,
+        shape = DialogDefaults.Shape,
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         title = { Text(stringResource(R.string.chunk_settings)) },
         text = {
@@ -71,11 +93,14 @@ fun ChunkDialog(
                     )
                 }
                 Spacer(Modifier.height(16.dp))
-                powerSlider(stringResource(R.string.overlap_size), overlapSize, overlapPowers) { overlapSize = it }
+                powerSlider(
+                    label = stringResource(R.string.overlap_size),
+                    value = overlapSize,
+                    powers = overlapPowers,
+                    maxAllowed = chunkSize,
+                    onChange = { overlapSize = it }
+                )
                 Spacer(Modifier.height(16.dp))
-                if (chunkSize <= overlapSize) {
-                    overlapSize = (chunkSize / 2).coerceAtLeast(overlapPowers.first())
-                }
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(

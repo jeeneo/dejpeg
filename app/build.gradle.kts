@@ -60,15 +60,15 @@ android {
         }
         applicationVariants.all {
             outputs.all {
-            val output = this
-            val appName = "dejpeg"
-            val abiFilter = output.filters.find { it.filterType == com.android.build.api.variant.FilterConfiguration.FilterType.ABI.name }?.identifier
-            val variantName = name
-            val debugSuffix = if (variantName.contains("debug", ignoreCase = true)) "-debug" else ""
-            val apkName = if (abiFilter != null) "$appName-$abiFilter$debugSuffix.apk" else "$appName-universal$debugSuffix.apk"
-            if (output is com.android.build.gradle.internal.api.BaseVariantOutputImpl) {
-                output.outputFileName = apkName
-            }
+                val output = this
+                val appName = "dejpeg"
+                val abiFilter = output.filters.find { it.filterType == com.android.build.api.variant.FilterConfiguration.FilterType.ABI.name }?.identifier
+                val variantName = name
+                val debugSuffix = if (variantName.contains("debug", ignoreCase = true)) "-debug" else ""
+                val apkName = if (abiFilter != null) "$appName-$abiFilter$debugSuffix.apk" else "$appName-universal$debugSuffix.apk"
+                if (output is com.android.build.gradle.internal.api.BaseVariantOutputImpl) {
+                    output.outputFileName = apkName
+                }
             }
         }
     }
@@ -98,6 +98,11 @@ android {
             jniLibs.srcDir("src/main/jniLibs")
         }
     }
+    packaging {
+        jniLibs {
+            pickFirsts += "lib/*/libonnxruntime.so"
+        }
+    }
 }
 
 dependencies {
@@ -113,11 +118,12 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.material.icons.extended)
-    implementation(libs.coil.compose)
+    implementation(libs.google.material)
     implementation(libs.onnxruntime.android)
     implementation(libs.zoomable)
     implementation(libs.androidx.exifinterface)
     implementation(libs.androidx.core.splashscreen)
+    implementation(libs.androidx.datastore.preferences)
 }
 
 tasks.register("cleandir") {

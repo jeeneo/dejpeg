@@ -5,21 +5,17 @@ import android.os.Build
 import android.view.HapticFeedbackConstants
 import android.view.View
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import com.je.dejpeg.data.AppPreferences
 
 object HapticFeedback {
-    private const val PREFS_NAME = "AppPrefs"
-    private const val PREF_HAPTIC_ENABLED = "hapticFeedbackEnabled"
 
-    private fun isEnabled(context: Context): Boolean {
-        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .getBoolean(PREF_HAPTIC_ENABLED, true)
-    }
-
-    fun light(view: View, context: Context) {
-        if (!isEnabled(context)) return
+    fun light(view: View, isEnabled: Boolean) {
+        if (!isEnabled) return
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             view.performHapticFeedback(HapticFeedbackConstants.GESTURE_START)
@@ -28,8 +24,8 @@ object HapticFeedback {
         }
     }
 
-    fun medium(view: View, context: Context) {
-        if (!isEnabled(context)) return
+    fun medium(view: View, isEnabled: Boolean) {
+        if (!isEnabled) return
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
@@ -38,8 +34,8 @@ object HapticFeedback {
         }
     }
 
-    fun heavy(view: View, context: Context) {
-        if (!isEnabled(context)) return
+    fun heavy(view: View, isEnabled: Boolean) {
+        if (!isEnabled) return
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             view.performHapticFeedback(HapticFeedbackConstants.REJECT)
@@ -48,20 +44,20 @@ object HapticFeedback {
         }
     }
 
-    fun click(view: View, context: Context) {
-        if (!isEnabled(context)) return
+    fun click(view: View, isEnabled: Boolean) {
+        if (!isEnabled) return
         
         view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
     }
 
-    fun longPress(view: View, context: Context) {
-        if (!isEnabled(context)) return
+    fun longPress(view: View, isEnabled: Boolean) {
+        if (!isEnabled) return
         
         view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
     }
 
-    fun reject(view: View, context: Context) {
-        if (!isEnabled(context)) return
+    fun reject(view: View, isEnabled: Boolean) {
+        if (!isEnabled) return
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             view.performHapticFeedback(HapticFeedbackConstants.REJECT)
@@ -70,8 +66,8 @@ object HapticFeedback {
         }
     }
 
-    fun confirm(view: View, context: Context) {
-        if (!isEnabled(context)) return
+    fun confirm(view: View, isEnabled: Boolean) {
+        if (!isEnabled) return
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
@@ -80,8 +76,8 @@ object HapticFeedback {
         }
     }
 
-    fun error(view: View, context: Context) {
-        if (!isEnabled(context)) return
+    fun error(view: View, isEnabled: Boolean) {
+        if (!isEnabled) return
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             view.performHapticFeedback(HapticFeedbackConstants.REJECT)
@@ -90,8 +86,8 @@ object HapticFeedback {
         }
     }
 
-    fun success(view: View, context: Context) {
-        if (!isEnabled(context)) return
+    fun success(view: View, isEnabled: Boolean) {
+        if (!isEnabled) return
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
@@ -100,8 +96,8 @@ object HapticFeedback {
         }
     }
 
-    fun gestureStart(view: View, context: Context) {
-        if (!isEnabled(context)) return
+    fun gestureStart(view: View, isEnabled: Boolean) {
+        if (!isEnabled) return
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             view.performHapticFeedback(HapticFeedbackConstants.GESTURE_START)
@@ -110,8 +106,8 @@ object HapticFeedback {
         }
     }
 
-    fun gestureEnd(view: View, context: Context) {
-        if (!isEnabled(context)) return
+    fun gestureEnd(view: View, isEnabled: Boolean) {
+        if (!isEnabled) return
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             view.performHapticFeedback(HapticFeedbackConstants.GESTURE_END)
@@ -125,19 +121,22 @@ object HapticFeedback {
 fun rememberHapticFeedback(): HapticFeedbackPerformer {
     val view = LocalView.current
     val context = LocalContext.current
-    return remember(view, context) { HapticFeedbackPerformer(view, context) }
+    val appPreferences = remember { AppPreferences.getInstance(context) }
+    val isEnabled by appPreferences.hapticFeedbackEnabled.collectAsState(initial = true)
+    
+    return remember(view, isEnabled) { HapticFeedbackPerformer(view, isEnabled) }
 }
 
-class HapticFeedbackPerformer(private val view: View, private val context: Context) {
-    fun light() = HapticFeedback.light(view, context)
-    fun medium() = HapticFeedback.medium(view, context)
-    fun heavy() = HapticFeedback.heavy(view, context)
-    fun click() = HapticFeedback.click(view, context)
-    fun longPress() = HapticFeedback.longPress(view, context)
-    fun reject() = HapticFeedback.reject(view, context)
-    fun confirm() = HapticFeedback.confirm(view, context)
-    fun error() = HapticFeedback.error(view, context)
-    fun success() = HapticFeedback.success(view, context)
-    fun gestureStart() = HapticFeedback.gestureStart(view, context)
-    fun gestureEnd() = HapticFeedback.gestureEnd(view, context)
+class HapticFeedbackPerformer(private val view: View, private val isEnabled: Boolean) {
+    fun light() = HapticFeedback.light(view, isEnabled)
+    fun medium() = HapticFeedback.medium(view, isEnabled)
+    fun heavy() = HapticFeedback.heavy(view, isEnabled)
+    fun click() = HapticFeedback.click(view, isEnabled)
+    fun longPress() = HapticFeedback.longPress(view, isEnabled)
+    fun reject() = HapticFeedback.reject(view, isEnabled)
+    fun confirm() = HapticFeedback.confirm(view, isEnabled)
+    fun error() = HapticFeedback.error(view, isEnabled)
+    fun success() = HapticFeedback.success(view, isEnabled)
+    fun gestureStart() = HapticFeedback.gestureStart(view, isEnabled)
+    fun gestureEnd() = HapticFeedback.gestureEnd(view, isEnabled)
 }

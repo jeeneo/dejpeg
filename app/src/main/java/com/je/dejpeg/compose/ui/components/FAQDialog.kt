@@ -4,7 +4,6 @@ import android.content.Intent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
@@ -17,6 +16,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -35,9 +35,12 @@ fun FAQDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
     val faqSections = remember { loadFAQSections(context) }
     val haptic = rememberHapticFeedback()
+    val dialogWidth = rememberDialogWidth()
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(28.dp),
+        modifier = Modifier.dialogWidth(dialogWidth),
+        properties = DialogDefaults.Properties,
+        shape = DialogDefaults.Shape,
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         title = {
             Text(
@@ -124,32 +127,49 @@ fun MarkdownText(
     color: androidx.compose.ui.graphics.Color,
     context: android.content.Context
 ) {
+    val codeBackground = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
     val annotatedString = buildAnnotatedString {
+        val regex = """(`[^`]+`|\[([^]]+)]\(([^)]+)\))""".toRegex()
         var lastIndex = 0
-        """\[([^]]+)]\(([^)]+)\)""".toRegex().findAll(text).forEach { m ->
+        regex.findAll(text).forEach { m ->
             append(text.substring(lastIndex, m.range.first))
-            val start = length
-            append(m.groupValues[1])
-            val url = m.groupValues[2]
-            addStyle(SpanStyle(color = color, textDecoration = TextDecoration.Underline), start, length)
-            addLink(
-                LinkAnnotation.Clickable(
-                    tag = "URL",
-                    linkInteractionListener = {
-                        try {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
-                        } catch (_: Exception) {
-                            android.widget.Toast.makeText(
-                                context,
-                                context.getString(R.string.cannot_open_link_detail, url),
-                                android.widget.Toast.LENGTH_SHORT
-                            ).show()
+            val matchedText = m.value
+            if (matchedText.startsWith("`") && matchedText.endsWith("`")) {
+                val codeText = matchedText.removeSurrounding("`")
+                val start = length
+                append(codeText)
+                addStyle(
+                    SpanStyle(
+                        fontFamily = FontFamily.Monospace,
+                        background = codeBackground
+                    ),
+                    start,
+                    length
+                )
+            } else {
+                val start = length
+                append(m.groupValues[2])
+                val url = m.groupValues[3]
+                addStyle(SpanStyle(color = color, textDecoration = TextDecoration.Underline), start, length)
+                addLink(
+                    LinkAnnotation.Clickable(
+                        tag = "URL",
+                        linkInteractionListener = {
+                            try {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                            } catch (_: Exception) {
+                                android.widget.Toast.makeText(
+                                    context,
+                                    context.getString(R.string.cannot_open_link_detail, url),
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            }
                         }
-                    }
-                ),
-                start,
-                length
-            )
+                    ),
+                    start,
+                    length
+                )
+            }
             lastIndex = m.range.last + 1
         }
         if (lastIndex < text.length) append(text.substring(lastIndex))

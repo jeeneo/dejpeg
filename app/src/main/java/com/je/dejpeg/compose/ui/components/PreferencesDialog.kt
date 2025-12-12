@@ -2,123 +2,80 @@ package com.je.dejpeg.compose.ui.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.content.edit
 import com.je.dejpeg.R
+import com.je.dejpeg.compose.ui.components.ActionPreference
+import com.je.dejpeg.compose.ui.components.PreferenceDivider
+import com.je.dejpeg.compose.ui.components.PreferenceSection
+import com.je.dejpeg.compose.utils.HapticFeedback
+import com.je.dejpeg.compose.utils.rememberHapticFeedback
+import com.je.dejpeg.data.AppPreferences
+import androidx.compose.ui.platform.LocalView
+import kotlinx.coroutines.launch
 
 @Composable
 fun PreferencesDialog(
     context: android.content.Context,
     onDismiss: () -> Unit
 ) {
-    val prefs = context.getSharedPreferences("AppPrefs", android.content.Context.MODE_PRIVATE)
-    var skipSaveDialog by remember { mutableStateOf(prefs.getBoolean("skipSaveDialog", false)) }
-    var defaultImageSource by remember { mutableStateOf(prefs.getString("defaultImageSource", null)) }
-    var hapticFeedbackEnabled by remember { mutableStateOf(prefs.getBoolean("hapticFeedbackEnabled", true)) }
-    val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
+    val appPreferences = remember { AppPreferences(context) }
+    val scope = rememberCoroutineScope()
 
+    val skipSaveDialog by appPreferences.skipSaveDialog.collectAsState(initial = false)
+    val defaultImageSource by appPreferences.defaultImageSource.collectAsState(initial = null)
+    val hapticFeedbackEnabled by appPreferences.hapticFeedbackEnabled.collectAsState(initial = true)
+    val haptic = rememberHapticFeedback()
+    val view = LocalView.current
+
+    val dialogWidth = rememberDialogWidth()
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(28.dp),
+        modifier = Modifier.dialogWidth(dialogWidth),
+        properties = DialogDefaults.Properties,
+        shape = DialogDefaults.Shape,
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         title = { Text(stringResource(R.string.preferences)) },
         text = {
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
-                Text(
-                    stringResource(R.string.haptic_feedback),
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Spacer(Modifier.height(8.dp))
-                Row(
-                    Modifier.fillMaxWidth(),
-                    Arrangement.SpaceBetween,
-                    Alignment.CenterVertically
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            stringResource(R.string.vibration_on_touch),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            stringResource(R.string.haptic_feedback_desc),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Switch(
+                PreferenceSection(title = stringResource(R.string.haptic_feedback)) {
+                    MaterialSwitchPreference(
+                        title = stringResource(R.string.vibration_on_touch),
+                        summary = stringResource(R.string.haptic_feedback_desc),
                         checked = hapticFeedbackEnabled,
                         onCheckedChange = { enabled ->
-                            prefs.edit { putBoolean("hapticFeedbackEnabled", enabled) }
-                            hapticFeedbackEnabled = enabled
+                            if (enabled) {
+                                HapticFeedback.light(view, isEnabled = true)
+                            }
+                            scope.launch { appPreferences.setHapticFeedbackEnabled(enabled) }
                         }
                     )
                 }
-                Spacer(Modifier.height(24.dp))
-                HorizontalDivider()
-                Spacer(Modifier.height(16.dp))
-                Text(
-                    stringResource(R.string.save_dialog),
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Spacer(Modifier.height(8.dp))
-                Row(
-                    Modifier.fillMaxWidth(),
-                    Arrangement.SpaceBetween,
-                    Alignment.CenterVertically
-                ) {
-                    Text(
-                        stringResource(
+                PreferenceDivider()
+                PreferenceSection(title = stringResource(R.string.save_dialog)) {
+                    ActionPreference(
+                        title = stringResource(R.string.save_dialog),
+                        currentValue = stringResource(
                             R.string.currently,
                             stringResource(if (skipSaveDialog) R.string.hidden else R.string.shown)
-                        ),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-                Spacer(Modifier.height(8.dp))
-                if (skipSaveDialog) {
-                    Button(
-                        onClick = {
-                            haptic.medium()
-                            prefs.edit { putBoolean("skipSaveDialog", false) }
-                            skipSaveDialog = false
+                        ).lowercase(),
+                        buttonText = stringResource(R.string.show_save_dialog),
+                        onButtonClick = {
+                            scope.launch { appPreferences.setSkipSaveDialog(false) }
                         },
-                        Modifier.fillMaxWidth()
-                    ) {
-                        Text(stringResource(R.string.show_save_dialog))
-                    }
-                } else {
-                    Text(
-                        stringResource(R.string.save_dialog_shown),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        showButton = skipSaveDialog,
+                        infoText = stringResource(R.string.save_dialog_shown)
                     )
                 }
-                Spacer(Modifier.height(24.dp))
-                HorizontalDivider()
-                Spacer(Modifier.height(16.dp))
-                Text(
-                    stringResource(R.string.default_image_source),
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Spacer(Modifier.height(8.dp))
-                Row(
-                    Modifier.fillMaxWidth(),
-                    Arrangement.SpaceBetween,
-                    Alignment.CenterVertically
-                ) {
-                    Text(
-                        stringResource(
+                PreferenceDivider()
+                PreferenceSection(title = stringResource(R.string.default_image_source)) {
+                    ActionPreference(
+                        title = stringResource(R.string.default_image_source),
+                        currentValue = stringResource(
                             R.string.currently,
                             defaultImageSource?.let {
                                 when (it) {
@@ -129,27 +86,13 @@ fun PreferencesDialog(
                                     else -> stringResource(R.string.none)
                                 }
                             } ?: stringResource(R.string.none)
-                        ),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-                Spacer(Modifier.height(8.dp))
-                if (defaultImageSource != null) {
-                    Button(
-                        onClick = {
-                            haptic.medium()
-                            prefs.edit { remove("defaultImageSource") }
-                            defaultImageSource = null
+                        ).lowercase(),
+                        buttonText = stringResource(R.string.clear_default_source),
+                        onButtonClick = {
+                            scope.launch { appPreferences.clearDefaultImageSource() }
                         },
-                        Modifier.fillMaxWidth()
-                    ) {
-                        Text(stringResource(R.string.clear_default_source))
-                    }
-                } else {
-                    Text(
-                        stringResource(R.string.no_default_source),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        showButton = defaultImageSource != null,
+                        infoText = stringResource(R.string.no_default_source)
                     )
                 }
             }

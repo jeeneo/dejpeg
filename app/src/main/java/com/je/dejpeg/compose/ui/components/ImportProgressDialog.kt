@@ -1,7 +1,6 @@
 package com.je.dejpeg.compose.ui.components
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -12,9 +11,12 @@ import com.je.dejpeg.R
 
 @Composable
 fun ImportProgressDialog(progress: Int) {
+    val dialogWidth = rememberDialogWidth()
     AlertDialog(
         onDismissRequest = {},
-        shape = RoundedCornerShape(28.dp),
+        modifier = Modifier.dialogWidth(dialogWidth),
+        properties = DialogDefaults.Properties,
+        shape = DialogDefaults.Shape,
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         title = { Text(stringResource(R.string.importing_model)) },
         text = {

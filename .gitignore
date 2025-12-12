@@ -1,16 +1,14 @@
 *.iml
 .gradle
-/local.properties
+*.properties
 .DS_Store
 /build
 /captures
 .externalNativeBuild
 .cxx
-local.properties
 .idea
 .kotlin
 apks
-local.properties
 .git-public
 .git-private
 opencv

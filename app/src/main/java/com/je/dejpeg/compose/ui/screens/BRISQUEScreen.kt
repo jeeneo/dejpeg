@@ -32,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -42,15 +43,20 @@ import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.text.font.FontFamily
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.je.dejpeg.compose.utils.BRISQUEDescaler
+import com.je.dejpeg.compose.utils.BRISQUE.BRISQUEDescaler
 import kotlin.math.roundToInt
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
-import com.je.dejpeg.compose.ui.viewmodel.BrisqueSettings
+import com.je.dejpeg.data.BrisqueSettings
 import com.je.dejpeg.compose.ui.viewmodel.BrisqueViewModel
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
+import com.je.dejpeg.compose.ui.components.DialogDefaults
+import com.je.dejpeg.compose.ui.components.rememberDialogWidth
+import com.je.dejpeg.compose.ui.components.dialogWidth
 import me.saket.telephoto.zoomable.ZoomSpec
 import me.saket.telephoto.zoomable.rememberZoomableState
 import me.saket.telephoto.zoomable.zoomable
+
+// note: do not add to strings.xml yet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,7 +68,6 @@ fun BRISQUEScreen(processingViewModel: ProcessingViewModel, imageId: String, nav
     val brisqueViewModel: BrisqueViewModel = viewModel()
     val brisqueState by brisqueViewModel.imageState.collectAsState()
     val brisqueSettings by brisqueViewModel.settings.collectAsState()
-    
     var showImageModal by remember { mutableStateOf(false) }
     var showConfirm by remember { mutableStateOf(false) }
     var showInfoDialog by remember { mutableStateOf(false) }
@@ -76,10 +81,8 @@ fun BRISQUEScreen(processingViewModel: ProcessingViewModel, imageId: String, nav
         )
         onDispose { }
     }
-    
     BackHandler { navController.popBackStack() }
     LaunchedEffect(image.id) { brisqueViewModel.initialize(context, image.inputBitmap, image.filename) }
-    
     Scaffold(topBar = {
         TopAppBar(
             title = { Text("BRISQUE analysis", style = MaterialTheme.typography.titleMedium) },
@@ -109,7 +112,6 @@ fun BRISQUEScreen(processingViewModel: ProcessingViewModel, imageId: String, nav
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     InfoRow(label = "Original", value = "${info.originalWidth}×${info.originalHeight}", isSmall = true)
-                                    // Divider(Modifier.height(1.dp).fillMaxWidth(), color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
                                     InfoRow(label = "Descaled", value = "${info.detectedWidth}×${info.detectedHeight}", isSmall = true)
                                     InfoRow(label = "BRISQUE", value = "${String.format("%.1f", info.brisqueScore)} (${getScoreInfo(info.brisqueScore, isBRISQUE = true).label})", isSmall = true, color = getScoreInfo(info.brisqueScore, isBRISQUE = true).color)
                                     InfoRow(label = "Sharpness", value = "${String.format("%.1f", info.sharpness)} (${getScoreInfo(info.sharpness, isBRISQUE = false).label})", isSmall = true, color = getScoreInfo(info.sharpness, isBRISQUE = false).color)
@@ -124,10 +126,10 @@ fun BRISQUEScreen(processingViewModel: ProcessingViewModel, imageId: String, nav
                     val sharpness = brisqueState?.sharpnessScore
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         val qualityInfo = getScoreInfo(score, isBRISQUE = true)
-                        ScoreCard("BRISQUE", String.format("%.1f", score), qualityInfo.label, qualityInfo.color, Modifier.weight(1f))
+                        ScoreCard("BRISQUE", String.format(java.util.Locale.US, "%.1f", score), qualityInfo.label, qualityInfo.color, Modifier.weight(1f))
                         if (sharpness != null) {
                             val sharpnessInfo = getScoreInfo(sharpness, isBRISQUE = false)
-                            ScoreCard("Sharpness", String.format("%.2f", sharpness), sharpnessInfo.label, sharpnessInfo.color, Modifier.weight(1f))
+                            ScoreCard("Sharpness", String.format(java.util.Locale.US, "%.2f", sharpness), sharpnessInfo.label, sharpnessInfo.color, Modifier.weight(1f))
                         }
                     }
                 }
@@ -169,7 +171,7 @@ fun BRISQUEScreen(processingViewModel: ProcessingViewModel, imageId: String, nav
 @Composable
 private fun ScoreCard(label: String, value: String, sublabel: String, color: Color, modifier: Modifier) {
     Card(modifier.border(1.dp, color.copy(alpha = 0.3f), RoundedCornerShape(12.dp)), colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.12f))) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.Start) {
             Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = color)
             Text(value, style = MaterialTheme.typography.headlineMedium, color = color, fontWeight = FontWeight.Bold)
             Text(sublabel, style = MaterialTheme.typography.bodySmall, color = color, fontWeight = FontWeight.Medium)
@@ -234,9 +236,9 @@ private fun getScoreInfo(value: Float, isBRISQUE: Boolean = true): ScoreInfo = w
         else -> ScoreInfo(Color(0xFFF44336), "horrible!")
     }
     else -> when {
-        value >= 50 -> ScoreInfo(Color(0xFF4CAF50), "very sharp")
-        value >= 35 -> ScoreInfo(Color(0xFF2196F3), "sharp")
-        value >= 25 -> ScoreInfo(Color(0xFFFFC107), "moderate")
+        value >= 60 -> ScoreInfo(Color(0xFF4CAF50), "very sharp")
+        value >= 45 -> ScoreInfo(Color(0xFF2196F3), "sharp")
+        value >= 35 -> ScoreInfo(Color(0xFFFFC107), "moderate")
         value >= 10 -> ScoreInfo(Color(0xFFFF9800), "soft")
         else -> ScoreInfo(Color(0xFFF44336), "blurry")
     }
@@ -245,25 +247,46 @@ private fun getScoreInfo(value: Float, isBRISQUE: Boolean = true): ScoreInfo = w
 @Composable
 private fun InfoDialog(context: Context, onDismiss: () -> Unit) {
     val haptic = rememberHapticFeedback()
-    AlertDialog(
+    val dialogWidth = rememberDialogWidth()
+    Dialog(
         onDismissRequest = onDismiss,
-        title = { Text("About BRISQUE") },
-        text = { Text("BRISQUE (Blind/Referenceless Image Spatial Quality Evaluator) is a no-reference image quality score.\n\nIn plain English, it takes an image and assigns it a quality value between 0 and 100, lower being best and higher being worse.\n\nUsing this with a sharpness estimate can provide a semi-reliable method for getting an image that's been scaled to a larger size back down to close to it's original resolution.\n\nImages like this include screenshots of screenshots, overscaled memes, or old photos scaned at large DPIs.\n\nYou shouldn't need to apply this to every image, but only ones that look blurry or don't match the images true size.\n\nThis feature is under beta, feel free to experiment with.") },
-        confirmButton = {
-            Button(onClick = { haptic.light(); onDismiss() }) {
-                Text("OK")
+        properties = DialogDefaults.Properties
+    ) {
+        Card(
+            modifier = Modifier.dialogWidth(dialogWidth),
+            shape = DialogDefaults.Shape,
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Text(
+                    "About BRISQUE",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    "BRISQUE (Blind/Referenceless Image Spatial Quality Evaluator) is a no-reference image quality score.\n\nIn plain English, it takes an image and assigns it a quality value between 0 and 100, lower being best and higher being worse.\n\nUsing this with a sharpness estimate can provide a semi-reliable method for getting an image that's been scaled to a larger size back down to close to it's original resolution.\n\nImages like this include screenshots of screenshots, overscaled memes, or old photos scaned at large DPIs.\n\nYou shouldn't need to apply this to every image, but only ones that look blurry or don't match the images true size.\n\nThis feature is under beta, feel free to experiment with.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    Button(onClick = { haptic.light(); onDismiss() }) {
+                        Text("OK")
+                    }
+                }
             }
         }
-    )
+    }
 }
 
 @Composable
 private fun DescaleProgressDialog(progress: BRISQUEDescaler.ProgressUpdate, logMessages: List<String>, onCancel: () -> Unit) {
     val haptic = rememberHapticFeedback()
     val logListState = rememberLazyListState()
+    val dialogWidth = rememberDialogWidth()
     LaunchedEffect(logMessages.size) { if (logMessages.isNotEmpty()) logListState.animateScrollToItem(maxOf(0, logMessages.size - 1)) }
-    Dialog(onDismissRequest = { }, properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)) {
-        Card(Modifier.fillMaxWidth().heightIn(min = 300.dp, max = 500.dp), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+    Dialog(onDismissRequest = { }, properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false, usePlatformDefaultWidth = false)) {
+        Card(Modifier.dialogWidth(dialogWidth).heightIn(min = 300.dp, max = 500.dp), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("Descaling image", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -322,9 +345,7 @@ private fun BRISQUESettings(
     var brisqueWeight by remember { mutableStateOf(settings.brisqueWeight) }
     var sharpnessWeight by remember { mutableStateOf(settings.sharpnessWeight) }
     var expandedInfo by remember { mutableStateOf<String?>(null) }
-
     fun Float.clamp(min: Float, max: Float) = coerceIn(min, max)
-    
     val minSizePixels = (imageWidth * minWidthRatio).toInt()
     val maxSizePixels = (imageWidth * 0.9f).toInt()
     val minSizePixelsMin = (imageWidth * 0.1f).toInt()
@@ -351,8 +372,11 @@ private fun BRISQUESettings(
         }
     }
 
+    val dialogWidth = rememberDialogWidth()
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = Modifier.dialogWidth(dialogWidth),
+        properties = DialogDefaults.Properties,
         title = { Text("BRISQUE Settings") },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
@@ -367,7 +391,7 @@ private fun BRISQUESettings(
         confirmButton = {
             Button(onClick = {
                 haptic.medium()
-                brisqueViewModel.updateSettings(context,
+                brisqueViewModel.updateSettings(
                     BrisqueSettings(coarseStep.toInt(), fineStep.toInt(), fineRange.toInt(), minWidthRatio, brisqueWeight, sharpnessWeight)
                 )
                 onDismiss()

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">DeJPEG</string>
+    <string name="app_name" translatable="false">DeJPEG</string>
     <string name="close">Close</string>
     <string name="image">Image</string>
     <string name="share">Share</string>
@@ -13,8 +13,10 @@
     <string name="save_all">Save all</string>
     <string name="dont_show_dialog">Don\'t show this dialog</string>
     <string name="cancel">Cancel</string>
-    <!-- if translated, must be all lowercase, used inside middle of dialog -->
+
+    <!-- if translated, must be all lowercase, used inside middle of sentence -->
     <string name="all_images">all images</string>
+
     <string name="remove_image_title">Remove image?</string>
     <string name="remove_image_question">You haven\'t saved %1$s yet, do you want to remove it?</string>
     <string name="remove">Remove</string>
@@ -73,11 +75,11 @@
     <string name="chunk_size">Chunk size</string>
     <string name="overlap_size">Overlap size</string>
     <string name="note_chunk_info">Images over %1$d px will be sliced and processed in chunks, overlap blends these to prevent visible seams.</string>
-    <string name="large_chunk_warning">Large chunk sizes can cause issues on devices with low ram.</string>
+    <string name="large_chunk_warning">Large sizes can cause instability with low-end devices.</string>
     <string name="preferences">Preferences</string>
     <string name="haptic_feedback">Haptic feedback</string>
     <string name="vibration_on_touch">Vibration on touch</string>
-    <string name="haptic_feedback_desc">Enable small vibrations for button presses and gestures</string>
+    <string name="haptic_feedback_desc">Enable small vibrations for actions and gestures</string>
     <string name="unknown_model">Unknown model</string>
     <string name="faqs">FAQs</string>
     <string name="processing">Processing</string>
@@ -94,8 +96,6 @@
     <string name="cancel_processing">Cancel</string>
     <string name="process_all">Process all</string>
     <string name="brisque">BRISQUE assessment and descaling</string>
-    <!-- settingsscreen.kt -->
-    <!-- <string name="model">Model</string> -->
     <string name="no_model_loaded">No model loaded</string>
     <string name="chunk_size_px">%1$d px</string>
     <string name="overlap_size_px">%1$d px</string>
@@ -112,7 +112,7 @@
     <string name="model_incompatible">This model may be incompatible. Import anyway?</string>
     <string name="model_name_format">Model: %1$s\n\n%2$s</string>
     <string name="warning">Warning</string>
-    <string name="import_text">Import</string>s
+    <string name="import_text">Import</string>
     <string name="import_model_text">Import model</string>
     <string name="progress_percent">%1$d%%</string>
     <string name="px_suffix">px</string>
@@ -130,8 +130,8 @@
     <string name="default_image_source">Default image source</string>
     <string name="none">none</string>
     <string name="photos">Photos</string>
-    <string name="clear_default_source">Clear default source</string>
-    <string name="no_default_source">No default source set</string>
+    <string name="clear_default_source">Clear</string>
+    <string name="no_default_source">Not set</string>
     <string name="cannot_open_link">Cannot open link</string>
     <string name="cannot_open_link_detail">Cannot open link: %1$s</string>
     <string name="expand">Expand</string>
@@ -146,12 +146,12 @@
     <string name="model_warning_bandage_message">Bandage-Smooth is resource-intensive and not recommended, it will take a long time to process images over 500px on even high-end devices</string>
     <string name="model_warning_outdated_title">Outdated model</string>
     <string name="model_warning_outdated_message">This is an older f32 model. A newer/faster f16 version is available, check model management\'s download button</string>
-    
+
     <!-- ImageProcessor strings -->
     <string name="error_failed_to_load_model">Failed to load model</string>
     <string name="error_processing_cancelled">Processing cancelled</string>
-    <!-- <string name="processing_image_x_of_y">Processing image %1$d/%2$d</string> -->
     <string name="processing_chunk_x_of_y">Processing chunk %1$d/%2$d</string>
+    <string name="preparing_chunks">Preparing %1$d chunks...</string>
     
     <!-- Loading dialog strings -->
     <string name="loading_images">Loading images...</string>

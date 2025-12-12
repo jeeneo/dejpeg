@@ -25,8 +25,11 @@ fun SaveImageDialog(
     var saveAll by remember { mutableStateOf(initialSaveAll) }
     var skipNext by remember { mutableStateOf(false) }
     val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
+    val dialogWidth = rememberDialogWidth()
     AlertDialog(
         onDismissRequest = onDismissRequest,
+        modifier = Modifier.dialogWidth(dialogWidth),
+        properties = DialogDefaults.Properties,
         title = { Text(stringResource(if (hideOptions) R.string.overwrite_image else R.string.save_image)) },
         text = {
             Column {
@@ -37,34 +40,26 @@ fun SaveImageDialog(
                 )
                 if (!hideOptions) {
                     Spacer(Modifier.height(12.dp))
-                    if (showSaveAllOption) Row(
-                        Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(stringResource(R.string.save_all))
-                        Switch(
+                    if (showSaveAllOption) {
+                        MaterialSwitchRow(
+                            label = stringResource(R.string.save_all),
                             checked = saveAll,
                             onCheckedChange = {
                                 haptic.light()
                                 saveAll = it
-                            }
+                            },
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
-                    Row(
-                        Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(stringResource(R.string.dont_show_dialog))
-                        Switch(
-                            checked = skipNext,
-                            onCheckedChange = {
-                                haptic.light()
-                                skipNext = it
-                            }
-                        )
-                    }
+                    MaterialSwitchRow(
+                        label = stringResource(R.string.dont_show_dialog),
+                        checked = skipNext,
+                        onCheckedChange = {
+                            haptic.light()
+                            skipNext = it
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
         },
@@ -100,8 +95,11 @@ fun RemoveImageDialog(
     onSaveAndRemove: () -> Unit
 ) {
     val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
+    val dialogWidth = rememberDialogWidth()
     AlertDialog(
         onDismissRequest = onDismissRequest,
+        modifier = Modifier.dialogWidth(dialogWidth),
+        properties = DialogDefaults.Properties,
         title = { Text(stringResource(R.string.remove_image_title)) },
         text = { Text(stringResource(R.string.remove_image_question, imageFilename)) },
         confirmButton = {
@@ -134,8 +132,11 @@ fun RemoveImageDialog(
 @Composable
 fun CancelProcessingDialog(imageFilename: String, onDismissRequest: () -> Unit, onConfirm: () -> Unit) {
     val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
+    val dialogWidth = rememberDialogWidth()
     AlertDialog(
         onDismissRequest = onDismissRequest,
+        modifier = Modifier.dialogWidth(dialogWidth),
+        properties = DialogDefaults.Properties,
         title = { Text(stringResource(R.string.stop_processing_title)) },
         text = { Text(stringResource(R.string.stop_processing_question, imageFilename)) },
         confirmButton = {
@@ -159,8 +160,11 @@ fun CancelProcessingDialog(imageFilename: String, onDismissRequest: () -> Unit, 
 @Composable
 fun BatteryOptimizationDialog(onDismissRequest: () -> Unit, onOpenSettings: () -> Unit) {
     val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
+    val dialogWidth = rememberDialogWidth()
     AlertDialog(
         onDismissRequest = onDismissRequest,
+        modifier = Modifier.dialogWidth(dialogWidth),
+        properties = DialogDefaults.Properties,
         title = { Text(stringResource(R.string.background_service_error)) },
         text = {
             Column {

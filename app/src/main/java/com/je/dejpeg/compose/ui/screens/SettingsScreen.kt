@@ -1,6 +1,7 @@
 package com.je.dejpeg.compose.ui.screens
 
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -22,7 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
-import com.je.dejpeg.ModelManager
+import com.je.dejpeg.compose.ModelManager
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.R
 import com.je.dejpeg.compose.ui.components.DownloadModelDialog
@@ -48,6 +49,15 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
     var activeModelName by remember { mutableStateOf(viewModel.getActiveModelName()) }
     var pendingModelSelection by remember { mutableStateOf<String?>(null) }
     var warningState by remember { mutableStateOf<ModelWarningState?>(null) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            dialogState = DialogState.None
+            warningState = null
+            pendingModelSelection = null
+            pendingImportUri = null
+        }
+    }
 
     LaunchedEffect(installedModels, dialogState) { activeModelName = viewModel.getActiveModelName() }
 
@@ -109,14 +119,12 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
                 .verticalScroll(rememberScrollState())
         ) {
             Spacer(modifier = Modifier.height(16.dp))
-
             SettingsSectionCard(stringResource(R.string.model_management)) {
                 SettingsItem(
                     stringResource(R.string.active_model, ""),
                     activeModelName ?: stringResource(R.string.no_model_loaded)
                 ) { dialogState = DialogState.Model }
             }
-
             SettingsSectionCard(stringResource(R.string.processing)) {
                 SettingsItem(
                     stringResource(R.string.chunk_settings),
@@ -126,7 +134,6 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
                     )
                 ) { dialogState = DialogState.Chunk }
             }
-
             SettingsSectionCard(stringResource(R.string.app)) {
                 SettingsItem(
                     stringResource(R.string.preferences),
@@ -154,12 +161,16 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
             activeModelName,
             viewModel,
             onSelect = { modelName ->
+                Log.d("SettingsScreen", "onSelect called for model: $modelName")
                 val warning = viewModel.getModelWarning(modelName)
+                Log.d("SettingsScreen", "Model warning: $warning")
                 if (warning != null) {
+                    Log.d("SettingsScreen", "Setting pendingModelSelection to: $modelName")
                     pendingModelSelection = modelName
                     warningState =
                         ModelWarningState.ModelWarning(modelName, warning, isImport = false)
                 } else {
+                    Log.d("SettingsScreen", "No warning, setting active model directly")
                     viewModel.setActiveModelByName(modelName)
                     activeModelName = modelName
                 }
@@ -169,7 +180,6 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
             onDownload = { dialogState = DialogState.Download },
             onDismiss = { dialogState = DialogState.None }
         )
-
         DialogState.Delete -> DeleteDialog(
             installedModels,
             onConfirm = { selected ->
@@ -184,9 +194,7 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
             },
             onDismiss = { dialogState = DialogState.None }
         )
-
         DialogState.ImportProgress -> ImportProgressDialog(importProgress)
-
         DialogState.Chunk -> ChunkDialog(
             chunkSize,
             overlapSize,
@@ -194,18 +202,13 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
             onOverlapChange = { viewModel.setOverlapSize(it) },
             onDismiss = { dialogState = DialogState.None }
         )
-
         DialogState.Preferences -> PreferencesDialog(
             context,
             onDismiss = { dialogState = DialogState.None }
         )
-
         DialogState.About -> AboutDialog { dialogState = DialogState.None }
-
         DialogState.FAQ -> FAQDialog { dialogState = DialogState.None }
-
         DialogState.Download -> DownloadModelDialog(onDismiss = { dialogState = DialogState.Model })
-
         DialogState.None -> {}
     }
 
@@ -235,8 +238,6 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
                         TextButton(onClick = {
                             haptic.medium()
                             warningState = null
-                            pendingModelSelection = null
-
                             if (state.isImport) {
                                 pendingImportUri?.let { uri ->
                                     dialogState = DialogState.ImportProgress
@@ -261,11 +262,13 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
                                         }
                                     )
                                 }
+                                pendingModelSelection = null
                             } else {
                                 pendingModelSelection?.let {
                                     viewModel.setActiveModelByName(it)
                                     activeModelName = it
                                 }
+                                pendingModelSelection = null
                                 pendingImportUri = null
                             }
                         }) {

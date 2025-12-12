@@ -32,6 +32,7 @@ fun DownloadModelDialog(
 ) {
     val context = LocalContext.current
     val haptic = rememberHapticFeedback()
+    val dialogWidth = rememberDialogWidth()
     val models = listOf(
         ModelDownloadItem(
             stringResource(R.string.fbcnn_model),
@@ -52,7 +53,9 @@ fun DownloadModelDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(28.dp),
+        modifier = Modifier.dialogWidth(dialogWidth),
+        properties = DialogDefaults.Properties,
+        shape = DialogDefaults.Shape,
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         title = {
             Text(

@@ -2,6 +2,7 @@ package com.je.dejpeg
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import ai.onnxruntime.*
 import kotlinx.coroutines.Dispatchers
@@ -9,7 +10,12 @@ import kotlinx.coroutines.withContext
 import java.nio.FloatBuffer
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.io.File
+import java.io.FileOutputStream
 import androidx.core.graphics.createBitmap
+import com.je.dejpeg.compose.ModelManager
+import com.je.dejpeg.compose.utils.CacheManager
+import com.je.dejpeg.data.AppPreferences
 import kotlin.math.ceil
 
 class ImageProcessor(
@@ -18,12 +24,6 @@ class ImageProcessor(
 ) {
     var customChunkSize: Int? = null
     var customOverlapSize: Int? = null
-
-    companion object {
-        const val DEFAULT_CHUNK_SIZE = 512
-        const val OVERLAP = 16
-        private const val TILE_MEMORY_THRESHOLD = 4096 * 4096
-    }
 
     @Volatile
     private var isCancelled = false
@@ -53,7 +53,7 @@ class ImageProcessor(
             val session = modelManager.loadModel()
                 ?: throw Exception(context.getString(R.string.error_failed_to_load_model))
             val modelInfo = ModelInfo(modelName, strength, session, customChunkSize, customOverlapSize)
-            val timeEstimator = TimeEstimator(context, modelName ?: "unknown")
+            val timeEstimator = TimeEstimator(context, modelName ?: "unknown", modelInfo.chunkSize)
             timeEstimator.startProcessing()
             val result = processBitmap(session, inputBitmap, callback, modelInfo, timeEstimator, index, total)
             withContext(Dispatchers.Main) {
@@ -86,7 +86,7 @@ class ImageProcessor(
         val hasTransparency = detectTransparency(inputBitmap)
 
         val processingConfig = Bitmap.Config.ARGB_8888
-        val mustTile = (width > info.chunkSize || height > info.chunkSize) || (width * height) > TILE_MEMORY_THRESHOLD
+        val mustTile = width > info.chunkSize || height > info.chunkSize
         return if (mustTile) processTiled(session, inputBitmap, callback, info, processingConfig, hasTransparency, timeEstimator, index, total)
         else
         {
@@ -97,7 +97,7 @@ class ImageProcessor(
             val progressMessage = { context.getString(R.string.processing) }
             withContext(Dispatchers.Main) {
                 callback.onProgress(progressMessage())
-                callback.onTimeEstimate(initialEstimate)
+                if (initialEstimate > 0) callback.onTimeEstimate(initialEstimate)
             }
             val result = processChunkUnified(session, bitmapToProcess, processingConfig, hasTransparency, info)
             timeEstimator.endChunk()
@@ -126,54 +126,104 @@ class ImageProcessor(
         val actualChunkHeight = (height + (rows - 1) * overlap) / rows
         android.util.Log.d("ImageProcessor", "Processing tiled: image=${width}x${height}, max=$maxChunkSize, actual=${actualChunkWidth}x${actualChunkHeight}, grid=${cols}x${rows}, overlap=$overlap")
         val totalChunks = cols * rows
-        val result = createBitmap(width, height, config)
-        val canvas = android.graphics.Canvas(result)
-        var chunkIndex = 0
-
-        for (row in 0 until rows) {
-            for (col in 0 until cols) {
-                if (isCancelled) throw Exception(context.getString(R.string.error_processing_cancelled))
-
-                val chunkX = Math.max(0, col * (actualChunkWidth - overlap))
-                val chunkY = Math.max(0, row * (actualChunkHeight - overlap))
-                val chunkW = Math.min(actualChunkWidth, width - chunkX)
-                val chunkH = Math.min(actualChunkHeight, height - chunkY)
-                
-                if (chunkW <= 0 || chunkH <= 0) continue
-                
-                val chunk = Bitmap.createBitmap(inputBitmap, chunkX, chunkY, chunkW, chunkH)
-                val converted = if (chunk.config != config) {
-                    val temp = chunk.copy(config, true)
-                    chunk.recycle()
-                    temp
-                } else {
-                    chunk
+        val chunksDir = CacheManager.getChunksDir(context)
+        data class ChunkInfo(
+            val index: Int,
+            val file: File,
+            val x: Int,
+            val y: Int,
+            val width: Int,
+            val height: Int,
+            val col: Int,
+            val row: Int
+        )
+        
+        val chunkInfoList = mutableListOf<ChunkInfo>()
+        
+        try {
+            android.util.Log.d("ImageProcessor", "Phase 1: Extracting ${totalChunks} chunks to disk")
+            var chunkIndex = 0
+            for (row in 0 until rows) {
+                for (col in 0 until cols) {
+                    if (isCancelled) throw Exception(context.getString(R.string.error_processing_cancelled))
+                    val chunkX = Math.max(0, col * (actualChunkWidth - overlap))
+                    val chunkY = Math.max(0, row * (actualChunkHeight - overlap))
+                    val chunkW = Math.min(actualChunkWidth, width - chunkX)
+                    val chunkH = Math.min(actualChunkHeight, height - chunkY)
+                    if (chunkW <= 0 || chunkH <= 0) continue
+                    val chunk = Bitmap.createBitmap(inputBitmap, chunkX, chunkY, chunkW, chunkH)
+                    val converted = if (chunk.config != config) {
+                        val temp = chunk.copy(config, true)
+                        chunk.recycle()
+                        temp
+                    } else {
+                        chunk
+                    }
+                    val chunkFile = File(chunksDir, "chunk_${chunkIndex}.png")
+                    withContext(Dispatchers.IO) {
+                        FileOutputStream(chunkFile).use { 
+                            converted.compress(Bitmap.CompressFormat.PNG, 100, it) 
+                        }
+                    }
+                    converted.recycle()
+                    chunkInfoList.add(ChunkInfo(
+                        index = chunkIndex,
+                        file = chunkFile,
+                        x = chunkX,
+                        y = chunkY,
+                        width = chunkW,
+                        height = chunkH,
+                        col = col,
+                        row = row
+                    ))
+                    
+                    chunkIndex++
                 }
-                val currentChunkNumber = chunkIndex + 1
+            }
+            
+            android.util.Log.d("ImageProcessor", "Saved ${chunkInfoList.size} chunks to ${chunksDir.absolutePath}")
+            val result = createBitmap(width, height, config)
+            val canvas = android.graphics.Canvas(result)
+            
+            for (chunkInfo in chunkInfoList) {
+                if (isCancelled) throw Exception(context.getString(R.string.error_processing_cancelled))
+                
+                val currentChunkNumber = chunkInfo.index + 1
                 val progressMessage = if (totalChunks > 1) {
                     context.getString(R.string.processing_chunk_x_of_y, currentChunkNumber, totalChunks)
                 } else {
                     context.getString(R.string.processing)
                 }
-                val timeRemaining = timeEstimator.getEstimatedTimeRemaining(chunkIndex, totalChunks)
+                val timeRemaining = timeEstimator.getEstimatedTimeRemaining(chunkInfo.index, totalChunks)
                 withContext(Dispatchers.Main) {
                     callback.onProgress(progressMessage)
-                    callback.onTimeEstimate(timeRemaining)
+                    if (timeRemaining > 0) callback.onTimeEstimate(timeRemaining)
                 }
+                val loadedChunk = withContext(Dispatchers.IO) {
+                    BitmapFactory.decodeFile(chunkInfo.file.absolutePath)
+                } ?: throw Exception("Failed to load chunk ${chunkInfo.index}")
                 timeEstimator.startChunk()
-                val processed = processChunkUnified(session, converted, config, hasTransparency, info)
+                val processed = processChunkUnified(session, loadedChunk, config, hasTransparency, info)
                 timeEstimator.endChunk()
-                val feathered = createFeatheredChunk(processed, chunkX, chunkY, width, height, overlap, cols, rows, col, row)
+                loadedChunk.recycle()
+                withContext(Dispatchers.IO) {
+                    chunkInfo.file.delete()
+                }
+                val feathered = createFeatheredChunk(
+                    processed, chunkInfo.x, chunkInfo.y, width, height, 
+                    overlap, cols, rows, chunkInfo.col, chunkInfo.row
+                )
                 val paint = android.graphics.Paint()
                 paint.xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.SRC_OVER)
-                canvas.drawBitmap(feathered, chunkX.toFloat(), chunkY.toFloat(), paint)
-                converted.recycle()
+                canvas.drawBitmap(feathered, chunkInfo.x.toFloat(), chunkInfo.y.toFloat(), paint)
                 processed.recycle()
                 feathered.recycle()
-                chunkIndex++
             }
+            CacheManager.clearChunksSync(context)
+            return result
+        } catch (e: Exception) {
+            throw e
         }
-        return result
     }
 
     private fun createFeatheredChunk(
@@ -197,8 +247,6 @@ class ImageProcessor(
         for (y in 0 until chunkH) for (x in 0 until chunkW) {
             val idx = y * chunkW + x
             var alpha = 1.0f
-            
-            // Only feather edges that border other chunks
             if (col > 0 && x < featherSize) alpha = alpha.coerceAtMost(x.toFloat() / featherSize)
             if (row > 0 && y < featherSize) alpha = alpha.coerceAtMost(y.toFloat() / featherSize)
             if (col < totalCols - 1 && x >= chunkW - featherSize) alpha = alpha.coerceAtMost((chunkW - x).toFloat() / featherSize)
@@ -358,19 +406,7 @@ class ImageProcessor(
     }
 
     private fun detectTransparency(bitmap: Bitmap): Boolean {
-        if (!bitmap.hasAlpha()) return false
-        
-        val w = bitmap.width
-        val h = bitmap.height
-        val sampleW = Math.min(w, 64)
-        val sampleH = Math.min(h, 64)
-        val pixels = IntArray(sampleW * sampleH)
-        bitmap.getPixels(pixels, 0, sampleW, 0, 0, sampleW, sampleH)
-        
-        for (pixel in pixels) {
-            if ((pixel ushr 24) != 0xFF) return true
-        }
-        return false
+        return bitmap.hasAlpha()
     }
 
     private fun clamp255(v: Float): Int {
@@ -438,8 +474,8 @@ class ImageProcessor(
         val inputInfoMap: Map<String, NodeInfo>
         val isGrayscale: Boolean
         val isFp16: Boolean
-        val chunkSize: Int = customChunkSize ?: DEFAULT_CHUNK_SIZE
-        val overlap: Int = customOverlapSize ?: OVERLAP
+        val chunkSize: Int = customChunkSize ?: AppPreferences.DEFAULT_CHUNK_SIZE
+        val overlap: Int = customOverlapSize ?: AppPreferences.DEFAULT_OVERLAP_SIZE
 
         init {
             android.util.Log.d("ModelInfo", "Initialized with customChunkSize: $customChunkSize, customOverlapSize: $customOverlapSize -> chunkSize: $chunkSize, overlap: $overlap")

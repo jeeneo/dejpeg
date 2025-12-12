@@ -7,14 +7,18 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.util.Log
+import com.je.dejpeg.compose.utils.CacheManager
+import com.je.dejpeg.data.AppPreferences
 import kotlinx.coroutines.*
 import java.io.File
 import java.io.FileOutputStream
 import androidx.core.net.toUri
+import com.je.dejpeg.compose.ModelManager
 
 class ProcessingService : Service() {
     companion object {
         const val ACTION_PROCESS = "com.je.dejpeg.action.PROCESS"
+        const val ACTION_CANCEL = "com.je.dejpeg.action.CANCEL"
         const val EXTRA_URI = "extra_uri"
         const val EXTRA_FILENAME = "extra_filename"
         const val EXTRA_IMAGE_ID = "extra_image_id"
@@ -38,6 +42,11 @@ class ProcessingService : Service() {
     private var currentImageId: String? = null
     private var modelManager: ModelManager? = null
     private var imageProcessor: ImageProcessor? = null
+    private var lastTimeEstimate: Long? = null
+    private var totalTimeEstimate: Long? = null
+    private var processingStartTime: Long = 0L
+    private var currentProgressMessage: String = "Processing..."
+    private var notificationUpdateJob: Job? = null
     private val stopHandler = Handler(Looper.getMainLooper())
     private val autoStopRunnable = Runnable {
         Log.d("ProcessingService", "Auto-stopping service after idle period")
@@ -46,7 +55,7 @@ class ProcessingService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        NotificationHelper.ensureChannel(this)
+        NotificationHelper.checkChannel(this)
         startForeground(NotificationHelper.NOTIFICATION_ID, NotificationHelper.build(this, "Initializing..."))
         val pid = android.os.Process.myPid()
         Intent(PID_ACTION).apply {
@@ -55,10 +64,13 @@ class ProcessingService : Service() {
         }.also { sendBroadcast(it) }
         Log.d("ProcessingService", "Service started with PID: $pid")
         modelManager = ModelManager(applicationContext)
-        imageProcessor = ImageProcessor(applicationContext, modelManager!!).apply {
-            val prefs = applicationContext.getSharedPreferences("ProcessingPrefs", android.content.Context.MODE_PRIVATE)
-            customChunkSize = prefs.getInt("chunk_size", ImageProcessor.DEFAULT_CHUNK_SIZE)
-            customOverlapSize = prefs.getInt("overlap_size", ImageProcessor.OVERLAP)
+        imageProcessor = ImageProcessor(applicationContext, modelManager!!)
+        serviceScope.launch {
+            val appPreferences = AppPreferences.getInstance(applicationContext)
+            imageProcessor?.apply {
+                customChunkSize = appPreferences.getChunkSizeImmediate()
+                customOverlapSize = appPreferences.getOverlapSizeImmediate()
+            }
         }
     }
 
@@ -83,16 +95,20 @@ class ProcessingService : Service() {
                     return START_NOT_STICKY
                 }
                 Log.d("ProcessingService", "Processing $filename")
-                val chunkSize = intent.getIntExtra(EXTRA_CHUNK_SIZE, ImageProcessor.DEFAULT_CHUNK_SIZE)
-                val overlapSize = intent.getIntExtra(EXTRA_OVERLAP_SIZE, ImageProcessor.OVERLAP)
+                val chunkSize = intent.getIntExtra(EXTRA_CHUNK_SIZE, AppPreferences.DEFAULT_CHUNK_SIZE)
+                val overlapSize = intent.getIntExtra(EXTRA_OVERLAP_SIZE, AppPreferences.DEFAULT_OVERLAP_SIZE)
                 imageProcessor?.apply {
                     customChunkSize = chunkSize
                     customOverlapSize = overlapSize
                     Log.d("ProcessingService", "Loaded settings from Intent - chunk_size: $customChunkSize, overlap_size: $customOverlapSize")
                 }
+                processingStartTime = System.currentTimeMillis()
+                totalTimeEstimate = null
+                lastTimeEstimate = null
+                startNotificationUpdater()
                 currentJob = serviceScope.launch {
                     try {
-                        NotificationHelper.show(this@ProcessingService, "Processing $filename...")
+                        NotificationHelper.showProgress(this@ProcessingService, "Processing $filename...", timeRemainingMillis = lastTimeEstimate, progressPercent = 0, cancellable = true)
                         val uri = uriString.toUri()
                         val inputStream = applicationContext.contentResolver.openInputStream(uri)
                             ?: throw Exception("Unable to open input stream")
@@ -120,10 +136,14 @@ class ProcessingService : Service() {
                                 scheduleAutoStop()
                             }
                             override fun onProgress(message: String) {
-                                NotificationHelper.show(this@ProcessingService, message)
+                                currentProgressMessage = message
                                 broadcast(PROGRESS_ACTION, PROGRESS_EXTRA_MESSAGE to message, imageId = imageId)
                             }
                             override fun onTimeEstimate(timeRemaining: Long) {
+                                lastTimeEstimate = timeRemaining
+                                if (totalTimeEstimate == null) {
+                                    totalTimeEstimate = timeRemaining
+                                }
                                 broadcastTimeEstimate(timeRemaining, imageId)
                             }
                         }, 0, 1)
@@ -133,10 +153,32 @@ class ProcessingService : Service() {
                         Log.d("ProcessingService", "exception: ${e.message}")
                         scheduleAutoStop()
                     } finally {
+                        stopNotificationUpdater()
                         currentJob = null
                         currentImageId = null
+                        lastTimeEstimate = null
+                        totalTimeEstimate = null
+                        processingStartTime = 0L
                     }
                 }
+            }
+            ACTION_CANCEL -> {
+                Log.d("ProcessingService", "Cancel action received")
+                val id = currentImageId
+                val wasRunning = currentJob != null
+                stopNotificationUpdater()
+                runCatching { imageProcessor?.cancelProcessing() }
+                runCatching { currentJob?.cancel() }
+                currentJob = null
+                lastTimeEstimate = null
+                totalTimeEstimate = null
+                processingStartTime = 0L
+                currentProgressMessage = "Processing..."
+                if (wasRunning) {
+                    broadcast(ERROR_ACTION, ERROR_EXTRA_MESSAGE to "Cancelled", imageId = id)
+                    NotificationHelper.show(this@ProcessingService, "Cancelled")
+                }
+                scheduleAutoStop()
             }
         }
         return START_NOT_STICKY
@@ -144,6 +186,30 @@ class ProcessingService : Service() {
 
     private fun scheduleAutoStop() {
         stopHandler.postDelayed(autoStopRunnable, 3000)
+    }
+
+    private fun startNotificationUpdater() {
+        notificationUpdateJob?.cancel()
+        notificationUpdateJob = serviceScope.launch {
+            while (isActive) {
+                updateNotificationProgress()
+                delay(500)
+            }
+        }
+    }
+
+    private fun stopNotificationUpdater() {
+        notificationUpdateJob?.cancel()
+        notificationUpdateJob = null
+    }
+
+    private fun updateNotificationProgress() {
+        val total = totalTimeEstimate ?: return
+        if (total <= 0 || processingStartTime <= 0) return
+        val elapsed = System.currentTimeMillis() - processingStartTime
+        val progress = ((elapsed.toFloat() / total.toFloat()) * 100).toInt().coerceIn(0, 99)
+        val remaining = (total - elapsed).coerceAtLeast(0)
+        NotificationHelper.showProgress(this, currentProgressMessage, timeRemainingMillis = remaining, progressPercent = progress, cancellable = true)
     }
 
     private fun broadcast(action: String, vararg extras: Pair<String, String?>, imageId: String?) {
@@ -173,6 +239,7 @@ class ProcessingService : Service() {
         currentJob?.cancel()
         serviceScope.cancel()
         imageProcessor?.cancelProcessing()
+        CacheManager.clearChunksSync(applicationContext)
         modelManager = null
         imageProcessor = null
     }
@@ -185,6 +252,7 @@ class ProcessingService : Service() {
             imageProcessor?.cancelProcessing()
             currentJob?.cancel()
         }
+        CacheManager.clearChunksSync(applicationContext)
         tryStopForeground()
         stopSelf()
     }

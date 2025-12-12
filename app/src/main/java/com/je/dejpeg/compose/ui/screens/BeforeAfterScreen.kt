@@ -1,6 +1,5 @@
 package com.je.dejpeg.compose.ui.screens
 
-import android.content.Context
 import android.graphics.Bitmap
 import androidx.activity.compose.BackHandler
 import androidx.activity.enableEdgeToEdge
@@ -25,8 +24,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.asImageBitmap
@@ -37,10 +36,11 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import coil.compose.AsyncImage
 import com.je.dejpeg.R
 import com.je.dejpeg.compose.ui.components.SaveImageDialog
 import com.je.dejpeg.compose.ui.components.LoadingDialog
@@ -48,7 +48,11 @@ import com.je.dejpeg.compose.utils.HapticFeedbackPerformer
 import com.je.dejpeg.compose.utils.ImageActions
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
+import com.je.dejpeg.data.AppPreferences
+import kotlinx.coroutines.launch
 import me.saket.telephoto.zoomable.ZoomSpec
+import me.saket.telephoto.zoomable.ZoomLimit
+import me.saket.telephoto.zoomable.OverzoomEffect
 import me.saket.telephoto.zoomable.rememberZoomableState
 import me.saket.telephoto.zoomable.zoomable
 
@@ -56,8 +60,11 @@ import me.saket.telephoto.zoomable.zoomable
 @Composable
 fun BeforeAfterScreen(viewModel: ProcessingViewModel, imageId: String, navController: NavController) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
+    val scope = rememberCoroutineScope()
     val haptic = rememberHapticFeedback()
+    val appPreferences = remember { AppPreferences.getInstance(context) }
+    val skipSaveDialog by appPreferences.skipSaveDialog.collectAsState(initial = false)
+    
     val images by viewModel.images.collectAsState()
     val image = images.firstOrNull { it.id == imageId }
     var showSaveDialog by remember { mutableStateOf(false) }
@@ -68,12 +75,26 @@ fun BeforeAfterScreen(viewModel: ProcessingViewModel, imageId: String, navContro
     val savingImagesProgress by viewModel.savingImagesProgress.collectAsState()
     
     DisposableEffect(isDarkTheme) {
-        (context as? ComponentActivity)?.enableEdgeToEdge(
-            statusBarStyle = if (isDarkTheme) SystemBarStyle.dark(android.graphics.Color.TRANSPARENT) 
-                else SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
-            navigationBarStyle = if (isDarkTheme) SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
-                else SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
-        )
+        (context as? ComponentActivity)?.let { activity ->
+            if (isDarkTheme) {
+                val darkTransparentStyle = SystemBarStyle.dark(
+                    scrim = android.graphics.Color.TRANSPARENT
+                )
+                activity.enableEdgeToEdge(
+                    statusBarStyle = darkTransparentStyle,
+                    navigationBarStyle = darkTransparentStyle
+                )
+            } else {
+                val lightTransparentStyle = SystemBarStyle.light(
+                    scrim = android.graphics.Color.TRANSPARENT,
+                    darkScrim = android.graphics.Color.TRANSPARENT
+                )
+                activity.enableEdgeToEdge(
+                    statusBarStyle = lightTransparentStyle,
+                    navigationBarStyle = lightTransparentStyle
+                )
+            }
+        }
         onDispose { }
     }
     
@@ -93,14 +114,21 @@ fun BeforeAfterScreen(viewModel: ProcessingViewModel, imageId: String, navContro
         topBar = {
             TopAppBar(
                 title = { Text(filename, style = MaterialTheme.typography.titleMedium) },
-                navigationIcon = {IconButton(onClick = { haptic.light(); navController.popBackStack() }) {Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")}},
+                navigationIcon = {
+                    IconButton(onClick = { haptic.light(); navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
             )
         },
         bottomBar = {
             Column(Modifier.fillMaxWidth()) {
                 if (afterBitmap != null) {
-                    Surface(color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.fillMaxWidth()) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceContainer,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         Row(
                             Modifier
                                 .fillMaxWidth()
@@ -113,12 +141,16 @@ fun BeforeAfterScreen(viewModel: ProcessingViewModel, imageId: String, navContro
                                 .navigationBarsPadding(),
                             Arrangement.SpaceEvenly
                         ) {
-                            IconButton(onClick = { haptic.light(); ImageActions.shareImage(context, afterBitmap) }) { Icon(Icons.Filled.Share, "Share", modifier = Modifier.size(32.dp))}
+                            IconButton(onClick = { 
+                                haptic.light()
+                                ImageActions.shareImage(context, afterBitmap) 
+                            }) { 
+                                Icon(Icons.Filled.Share, "Share", modifier = Modifier.size(32.dp))
+                            }
                             
                             IconButton(onClick = {
                                 haptic.medium()
-                                val skip = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE).getBoolean("skipSaveDialog", false)
-                                if (skip) {
+                                if (skipSaveDialog) {
                                     if (ImageActions.checkFileExists(context, filename)) {
                                         overwriteDialogFilename = filename
                                     } else {
@@ -143,13 +175,15 @@ fun BeforeAfterScreen(viewModel: ProcessingViewModel, imageId: String, navContro
     ) { paddingValues ->
         Box(Modifier.fillMaxSize().padding(paddingValues).background(MaterialTheme.colorScheme.surface)) {
             if (afterBitmap != null) SliderView(beforeBitmap, afterBitmap, haptic)
-            else AsyncImage(beforeBitmap, "Image", Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+            else Image(beforeBitmap.asImageBitmap(), "Image", Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
         }
     }
     
     if (showSaveDialog) {
         SaveImageDialog(filename, showSaveAllOption, false, false, { showSaveDialog = false }) { name, all, skip ->
-            if (skip) context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE).edit().putBoolean("skipSaveDialog", true).apply()
+            if (skip) {
+                scope.launch { appPreferences.setSkipSaveDialog(true) }
+            }
             if (all) {
                 viewModel.saveAllImages(
                     context = context,
@@ -228,69 +262,89 @@ private fun SliderView(
     afterBitmap: Bitmap,
     haptic: HapticFeedbackPerformer
 ) {
-    val zoomableState = rememberZoomableState(ZoomSpec(maxZoomFactor = 20f))
+    val context = LocalContext.current
+    val appPreferences = remember { AppPreferences.getInstance(context) }
+    val isHapticEnabled by appPreferences.hapticFeedbackEnabled.collectAsState(initial = true)
+    
+    val overzoomEffect = if (isHapticEnabled) OverzoomEffect.RubberBanding else OverzoomEffect.Disabled
+    val zoomSpec = ZoomSpec(
+        maximum = ZoomLimit(factor = 20f, overzoomEffect = overzoomEffect),
+        minimum = ZoomLimit(factor = 1f, overzoomEffect = overzoomEffect)
+    )
+    val zoomableState = rememberZoomableState(zoomSpec)
+    
     var sliderPosition by remember { mutableFloatStateOf(0.5f) }
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
-    var isDragging by remember { mutableStateOf(false) }
-    var hasDraggedToCenter by remember { mutableStateOf(false) }
     val density = LocalDensity.current
 
+    // inverted greyscale median color from before image
+    val (sliderColor, iconColor) = remember(beforeBitmap) {
+        val luminances = mutableListOf<Int>()
+        val cx = beforeBitmap.width / 2
+        val cy = beforeBitmap.height / 2
+        val sample = 10
+        for (dy in -sample..sample) {
+            for (dx in -sample..sample) {
+                val x = (cx + dx).coerceIn(0, beforeBitmap.width - 1)
+                val y = (cy + dy).coerceIn(0, beforeBitmap.height - 1)
+                val pixel = beforeBitmap.getPixel(x, y)
+                val luminance = (android.graphics.Color.red(pixel) + android.graphics.Color.green(pixel) + android.graphics.Color.blue(pixel)) / 3
+                luminances.add(luminance)
+            }
+        }
+        val median = luminances.sorted()[luminances.size / 2]
+        val inverted = 255 - median
+        val sliderCol = if (kotlin.math.abs(inverted - median) < 30) {
+            if (median > 127) Color.Black else Color.White
+        } else {
+            Color(inverted, inverted, inverted)
+        }
+        val sliderLuminance = (sliderCol.red + sliderCol.green + sliderCol.blue) / 3f
+        val iconCol = if (sliderLuminance < 0.7f) Color.White else Color.Black
+        Pair(sliderCol, iconCol)
+    }
+
     Box(Modifier.fillMaxSize().onGloballyPositioned { containerSize = it.size }, Alignment.Center) {
-        listOf(Pair(beforeBitmap, 0f to sliderPosition), Pair(afterBitmap, sliderPosition to 1f)).forEach { (bitmap, range) ->
+        listOf(
+            Triple(beforeBitmap, 0f to sliderPosition, stringResource(R.string.before) to Alignment.TopStart),
+            Triple(afterBitmap, sliderPosition to 1f, stringResource(R.string.after) to Alignment.TopEnd)
+        ).forEach { (bitmap, range, labelInfo) ->
+            val (label, alignment) = labelInfo
             Box(
                 Modifier.fillMaxSize().drawWithContent {
-                    clipRect(size.width * range.first, 0f, size.width * range.second, size.height) {
-                        this@drawWithContent.drawContent()
-                    }
+                    clipRect(size.width * range.first, 0f, size.width * range.second, size.height) { this@drawWithContent.drawContent() }
                 }
             ) {
                 Box(Modifier.fillMaxSize().zoomable(zoomableState, enabled = true), Alignment.Center) {
-                    Image(
-                        bitmap = bitmap.asImageBitmap(),
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit,
-                        filterQuality = FilterQuality.None
-                    )
+                    Image(bitmap.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit, filterQuality = FilterQuality.None)
+                }
+                Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = alignment) {
+                    Surface(color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f), shape = RoundedCornerShape(8.dp), modifier = Modifier.shadow(4.dp, RoundedCornerShape(8.dp))) {
+                        Text(label, Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 0.5.sp), color = MaterialTheme.colorScheme.onSurface)
+                    }
                 }
             }
         }
+        
         if (containerSize.width > 0) {
             val sliderX = containerSize.width * sliderPosition
             Box(Modifier.fillMaxSize()) {
+                Box(Modifier.fillMaxHeight().width(3.dp).offset(x = with(density) { sliderX.toDp() - 1.5.dp }).background(sliderColor))
                 Box(
-                    Modifier.fillMaxHeight().width(4.dp).offset(x = with(density) { sliderX.toDp() - 2.dp })
-                        .shadow(8.dp, RoundedCornerShape(2.dp))
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color.White.copy(0.9f), Color.White.copy(0.95f), Color.White.copy(0.9f))
-                            ),
-                            androidx.compose.foundation.shape.RoundedCornerShape(2.dp)
-                        )
-                )
-                Box(
-                    Modifier.fillMaxHeight().width(48.dp).offset(x = with(density) { sliderX.toDp() - 24.dp })
+                    Modifier.fillMaxHeight().width(64.dp).offset(x = with(density) { sliderX.toDp() - 32.dp })
                         .pointerInput(Unit) {
                             detectDragGestures(
-                                onDragStart = { if (!isDragging) { haptic.gestureStart(); isDragging = true } },
+                                onDragStart = { haptic.gestureStart() },
                                 onDrag = { change, dragAmount ->
                                     change.consume()
                                     sliderPosition = (sliderPosition + dragAmount.x / containerSize.width).coerceIn(0f, 1f)
-                                    if (!hasDraggedToCenter && sliderPosition in 0.48f..0.52f) {
-                                        haptic.light(); hasDraggedToCenter = true
-                                    } else if (hasDraggedToCenter && sliderPosition !in 0.45f..0.55f) {
-                                        hasDraggedToCenter = false
-                                    }
                                 },
-                                onDragEnd = { isDragging = false }
+                                onDragEnd = {}
                             )
                         }
                 ) {
-                    Box(
-                        Modifier.size(56.dp).align(Alignment.Center).clip(CircleShape)
-                            .background(Color.White.copy(0.3f)), Alignment.Center
-                    ) {
-                        Icon(Icons.Filled.SwapHoriz, contentDescription = null, tint = Color.White)
+                    Box(Modifier.size(48.dp).align(Alignment.Center).shadow(8.dp, CircleShape).clip(CircleShape).background(sliderColor), Alignment.Center) {
+                        Icon(Icons.Filled.SwapHoriz, "Drag to compare", tint = iconColor, modifier = Modifier.size(24.dp))
                     }
                 }
             }

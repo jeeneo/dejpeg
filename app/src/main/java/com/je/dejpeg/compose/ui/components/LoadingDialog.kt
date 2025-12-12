@@ -1,7 +1,6 @@
 package com.je.dejpeg.compose.ui.components
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,18 +19,20 @@ fun LoadingDialog(
     progress: Float? = null,
     progressText: String? = null
 ) {
+    val dialogWidth = rememberDialogWidth()
     Dialog(
         onDismissRequest = { },
         properties = DialogProperties(
             dismissOnBackPress = false,
-            dismissOnClickOutside = false
+            dismissOnClickOutside = false,
+            usePlatformDefaultWidth = false
         )
     ) {
         Card(
             modifier = Modifier
-                .fillMaxWidth()
+                .dialogWidth(dialogWidth)
                 .wrapContentHeight(),
-            shape = RoundedCornerShape(28.dp),
+            shape = DialogDefaults.Shape,
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
             )
@@ -79,4 +80,3 @@ fun LoadingDialog(
         }
     }
 }
-

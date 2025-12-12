@@ -30,9 +30,12 @@ fun ModelDialog(
 ) {
     val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
     val context = LocalContext.current
+    val dialogWidth = rememberDialogWidth()
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(28.dp),
+        modifier = Modifier.dialogWidth(dialogWidth),
+        properties = DialogDefaults.Properties,
+        shape = DialogDefaults.Shape,
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         title = { Text(stringResource(R.string.model_management)) },
         text = {
@@ -201,9 +204,12 @@ fun DeleteDialog(
 ) {
     val selected = remember { mutableStateListOf<String>() }
     val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
+    val dialogWidth = rememberDialogWidth()
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(28.dp),
+        modifier = Modifier.dialogWidth(dialogWidth),
+        properties = DialogDefaults.Properties,
+        shape = DialogDefaults.Shape,
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         title = { Text(stringResource(R.string.delete_models)) },
         text = {

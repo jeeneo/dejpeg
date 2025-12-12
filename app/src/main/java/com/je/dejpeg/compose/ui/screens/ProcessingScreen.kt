@@ -38,6 +38,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -52,12 +53,12 @@ import com.je.dejpeg.compose.utils.ImageActions
 import com.je.dejpeg.compose.ui.viewmodel.ImageItem
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingUiState
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
-import androidx.compose.ui.platform.LocalResources
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import com.je.dejpeg.ModelManager
+import com.je.dejpeg.compose.ModelManager
 import com.je.dejpeg.R
+import com.je.dejpeg.TimeEstimator
 import com.je.dejpeg.compose.ui.components.SaveImageDialog
+import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.ui.Screen
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
 
@@ -70,6 +71,10 @@ fun ProcessingScreen(
     onRemoveSharedUri: (Uri) -> Unit = {}
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val appPreferences = remember { AppPreferences.getInstance(context) }
+    val defaultImageSource by appPreferences.defaultImageSource.collectAsState(initial = null)
+    
     val images by viewModel.images.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     val globalStrength by viewModel.globalStrength.collectAsState()
@@ -86,12 +91,24 @@ fun ProcessingScreen(
     var showCancelAllDialog by remember { mutableStateOf(false) }
     var saveErrorMessage by remember { mutableStateOf<String?>(null) }
     var overwriteDialogState by remember { mutableStateOf<Pair<String, String>?>(null) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            imageIdToRemove = null
+            imageIdToCancel = null
+            showImageSourceDialog = false
+            showCancelAllDialog = false
+            saveErrorMessage = null
+            overwriteDialogState = null
+        }
+    }
+
     val handleImageRemoval: (String) -> Unit = { imageId ->
         images.firstOrNull { it.id == imageId }?.let { image ->
             when {
                 image.isProcessing && viewModel.isCurrentlyProcessing(imageId) -> imageIdToCancel = imageId
                 image.isProcessing && !viewModel.isCurrentlyProcessing(imageId) -> {
-                    viewModel.removeImage(imageId)
+                    viewModel.removeImage(imageId, cleanupCache = true)
                 }
                 image.outputBitmap != null && !image.hasBeenSaved -> imageIdToRemove = imageId
                 else -> {
@@ -99,7 +116,7 @@ fun ProcessingScreen(
                         try { context.contentResolver.releasePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) { }
                         try { onRemoveSharedUri(uri) } catch (_: Exception) { }
                     }
-                    viewModel.removeImage(imageId)
+                    viewModel.removeImage(imageId, cleanupCache = true)
                 }
             }
         }
@@ -111,7 +128,7 @@ fun ProcessingScreen(
             try { context.contentResolver.releasePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) { }
             try { onRemoveSharedUri(uri) } catch (_: Exception) { }
         }
-        viewModel.removeImage(imageId, force = true)
+        viewModel.removeImage(imageId, force = true, cleanupCache = true)
         imageIdToRemove = null
         imageIdToCancel = null
     }
@@ -157,7 +174,7 @@ fun ProcessingScreen(
             FloatingActionButton(
                 onClick = {
                     haptic.light()
-                    when (context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE).getString("defaultImageSource", null)) {
+                    when (defaultImageSource) {
                         "gallery" -> viewModel.launchGalleryPicker(context)
                         "internal" -> viewModel.launchInternalPhotoPicker(context)
                         "documents" -> viewModel.launchDocumentsPicker(context)
@@ -255,7 +272,7 @@ fun ProcessingScreen(
                 imageFilename = image.filename,
                 onDismissRequest = { imageIdToCancel = null },
                 onConfirm = { 
-                    viewModel.cancelProcessingService(targetId)
+                    viewModel.cancelProcessingForImage(targetId)
                     imageIdToCancel = null
                 }
             )
@@ -357,7 +374,7 @@ fun SwipeToDismissWrapper(swipeOffset: MutableState<Float>, isProcessing: Boolea
     val scope = rememberCoroutineScope()
     val animatedOffset by animateFloatAsState(swipeOffset.value, label = "swipe")
     var widthPx by remember { mutableIntStateOf(0) }
-    val density = LocalResources.current.displayMetrics.density
+    val density = LocalDensity.current.density
     val haptic = rememberHapticFeedback()
     var hasStartedDrag by remember { mutableStateOf(false) }
     var hasReachedThreshold by remember { mutableStateOf(false) }
@@ -406,25 +423,43 @@ fun BatteryOptimizationDialogForProcessing(onDismiss: () -> Unit, context: Conte
 }
 
 @Composable
-fun CountdownTimer(initialTimeMillis: Long, startTimeMillis: Long, isActive: Boolean) {
+fun CountdownTimer(startTimeMillis: Long, initialTotalTimeMillis: Long, isActive: Boolean) {
     var displayText by remember { mutableStateOf("") }
     val finishingUpText = stringResource(R.string.finishing_up)
-    LaunchedEffect(initialTimeMillis, startTimeMillis, isActive) {
-        if (!isActive || initialTimeMillis <= 0) { displayText = ""; return@LaunchedEffect }
+    
+    LaunchedEffect(initialTotalTimeMillis, startTimeMillis, isActive) {
+        if (!isActive || initialTotalTimeMillis <= 0 || startTimeMillis <= 0) { displayText = ""; return@LaunchedEffect }
         while (isActive) {
-            val elapsedMillis = System.currentTimeMillis() - startTimeMillis
-            val remainingMillis = (initialTimeMillis - elapsedMillis).coerceAtLeast(0)
-            if (remainingMillis <= 0) { displayText = finishingUpText; break }
-            val seconds = remainingMillis / 1000
-            displayText = when {
-                seconds < 60 -> "$seconds s"
-                seconds < 3600 -> { val minutes = seconds / 60; val remainingSeconds = seconds % 60; if (remainingSeconds == 0L) if (minutes == 1L) "1 minute" else "$minutes m" else if (minutes == 1L) "1m, $remainingSeconds s" else "$minutes m, $remainingSeconds s" }
-                else -> { val hours = seconds / 3600; val remainingMinutes = (seconds % 3600) / 60; if (remainingMinutes == 0L) if (hours == 1L) "1 h" else "$hours h" else if (hours == 1L) "1 h, $remainingMinutes m" else "$hours h, $remainingMinutes m" }
-            }
-            delay(1000)
+            val elapsed = System.currentTimeMillis() - startTimeMillis
+            val remaining = (initialTotalTimeMillis - elapsed).coerceAtLeast(0)
+            displayText = TimeEstimator.formatTimeRemaining(remaining, finishingUpText)
+            if (remaining <= 0) break
+            delay(500)
         }
     }
     if (displayText.isNotEmpty()) Text(text = displayText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary, fontSize = 10.sp, maxLines = 1)
+}
+
+@Composable
+fun ProgressIndicatorWithPercentage(initialTimeMillis: Long, startTimeMillis: Long, initialTotalTimeMillis: Long, isActive: Boolean) {
+    var progress by remember { mutableFloatStateOf(0f) }
+    val totalTime = if (initialTotalTimeMillis > 0) initialTotalTimeMillis else initialTimeMillis
+    LaunchedEffect(totalTime, startTimeMillis, isActive) {
+        if (!isActive || totalTime <= 0 || startTimeMillis <= 0) { progress = 0f; return@LaunchedEffect }
+        while (isActive) {
+            val elapsedMillis = System.currentTimeMillis() - startTimeMillis
+            progress = (elapsedMillis.toFloat() / totalTime.toFloat()).coerceIn(0f, 1f)
+            if (progress >= 1f) break
+            delay(100)
+        }
+    }
+    val animatedProgress by animateFloatAsState(targetValue = progress, label = "progress")
+    LinearProgressIndicator(
+        progress = { animatedProgress },
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.primary,
+        trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -471,16 +506,25 @@ fun ImageCard(image: ImageItem, supportsStrength: Boolean, onStrengthChange: (Fl
                     }
                     if (image.isProcessing) {
                         Spacer(modifier = Modifier.height(6.dp))
-                        LinearProgressIndicator(
-                            modifier = Modifier.fillMaxWidth(),
-                            color = MaterialTheme.colorScheme.primary,
-                            trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
-                        )
+                        if (image.timeEstimateMillis > 0 && image.timeEstimateStartMillis > 0) {
+                            ProgressIndicatorWithPercentage(
+                                initialTimeMillis = image.timeEstimateMillis,
+                                startTimeMillis = image.timeEstimateStartMillis,
+                                initialTotalTimeMillis = image.initialTotalTimeEstimateMillis,
+                                isActive = image.isProcessing
+                            )
+                        } else {
+                            LinearProgressIndicator(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = MaterialTheme.colorScheme.primary,
+                                trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                            )
+                        }
                         Spacer(modifier = Modifier.height(2.dp))
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            if (image.progress.isNotEmpty()) Text(text = image.progress, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontSize = 10.sp, maxLines = 1, modifier = Modifier.weight(1f, fill = false))
-                            else Spacer(modifier = Modifier.weight(1f))
-                            if (image.timeEstimateMillis > 0) CountdownTimer(initialTimeMillis = image.timeEstimateMillis, startTimeMillis = image.timeEstimateStartMillis, isActive = image.isProcessing)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (image.progress.isNotEmpty()) Text(text = image.progress, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontSize = 10.sp, maxLines = 1)
+                            if (image.progress.isNotEmpty() && image.timeEstimateMillis > 0) Text(text = " • ", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontSize = 10.sp)
+                            if (image.initialTotalTimeEstimateMillis > 0 && image.timeEstimateStartMillis > 0) CountdownTimer(startTimeMillis = image.timeEstimateStartMillis, initialTotalTimeMillis = image.initialTotalTimeEstimateMillis, isActive = image.isProcessing)
                         }
                     } else if (image.outputBitmap != null) {
                         Spacer(modifier = Modifier.height(4.dp))

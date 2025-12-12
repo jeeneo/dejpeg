@@ -1,41 +1,106 @@
 package com.je.dejpeg
 
 import android.content.Context
+import com.je.dejpeg.data.dataStore
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
-class TimeEstimator(private val context: Context, private val modelName: String) {
-    private val prefs = context.getSharedPreferences("TimeEstimates", Context.MODE_PRIVATE)
+class TimeEstimator(
+    private val context: Context,
+    private val modelName: String,
+    private val chunkSize: Int = DEFAULT_CHUNK_SIZE
+) {
+    companion object {
+        private const val DEFAULT_CHUNK_SIZE = 512
+        private const val REFERENCE_CHUNK_SIZE = 512
+        
+        fun formatTimeRemaining(millis: Long, finishingUpText: String = "Finishing up..."): String {
+            if (millis < 0) return ""
+            val seconds = (millis / 1000).coerceAtLeast(0)
+            return when {
+                seconds <= 0 -> finishingUpText
+                seconds < 60 -> "$seconds s"
+                seconds < 3600 -> {
+                    val minutes = seconds / 60
+                    val remainingSeconds = seconds % 60
+                    if (remainingSeconds == 0L) {
+                        if (minutes == 1L) "1 minute" else "$minutes m"
+                    } else {
+                        if (minutes == 1L) "1m, $remainingSeconds s" else "$minutes m, $remainingSeconds s"
+                    }
+                }
+                else -> {
+                    val hours = seconds / 3600
+                    val remainingMinutes = (seconds % 3600) / 60
+                    if (remainingMinutes == 0L) {
+                        if (hours == 1L) "1 h" else "$hours h"
+                    } else {
+                        if (hours == 1L) "1 h, $remainingMinutes m" else "$hours h, $remainingMinutes m"
+                    }
+                }
+            }
+        }
+    }
+    
+    private val avgTimeKey = longPreferencesKey("time_avg_normalized_${modelName}")
     private var chunkStartTime: Long = 0
-    private var processingStartTime: Long = 0
     private val chunkTimes = mutableListOf<Long>()
     private var inMemoryAverage: Long = 0
-    private var lastInitialEstimate: Long = 0
-    private var lastOverallEstimate: Long = 0
-    private var expectedTotalChunks: Int = 0
+    private var cachedStoredAverage: Long? = null
+    private var hasStoredHistory: Boolean = false
+    private val chunkScaleFactor: Double
+        get() {
+            val currentArea = chunkSize.toLong() * chunkSize
+            val referenceArea = REFERENCE_CHUNK_SIZE.toLong() * REFERENCE_CHUNK_SIZE
+            return currentArea.toDouble() / referenceArea
+        }
 
-    fun getStoredAverageTime(): Long {
-        return prefs.getLong("avg_${modelName}", getDefaultEstimate())
+    fun getStoredAverageTime(): Long? {
+        if (cachedStoredAverage != null) return cachedStoredAverage
+        return runBlocking {
+            context.dataStore.data.map { prefs ->
+                prefs[avgTimeKey]?.also { hasStoredHistory = true }
+            }.first().also { cachedStoredAverage = it }
+        }
+    }
+    
+    private fun getScaledStoredAverage(): Long? {
+        val normalizedAvg = getStoredAverageTime() ?: return null
+        return (normalizedAvg * chunkScaleFactor).toLong()
+    }
+
+    fun hasHistory(): Boolean {
+        if (cachedStoredAverage == null) {
+            getStoredAverageTime()
+        }
+        return hasStoredHistory || chunkTimes.isNotEmpty()
+    }
+
+    private suspend fun saveAverageTimeAsync(avgTime: Long) {
+        cachedStoredAverage = avgTime
+        context.dataStore.edit { prefs ->
+            prefs[avgTimeKey] = avgTime
+        }
     }
 
     private fun saveAverageTime(avgTime: Long) {
-        prefs.edit().putLong("avg_${modelName}", avgTime).apply()
-    }
-
-    private fun getDefaultEstimate(): Long {
-        return when {
-            modelName.startsWith("fbcnn_") -> 10000L
-            modelName.startsWith("scunet_") -> 11000L
-            else -> Long.MAX_VALUE
+        cachedStoredAverage = avgTime
+        GlobalScope.launch(Dispatchers.IO) {
+            saveAverageTimeAsync(avgTime)
         }
     }
 
     fun startProcessing() {
-        processingStartTime = System.currentTimeMillis()
-        if (chunkTimes.isEmpty()) {
-            inMemoryAverage = getStoredAverageTime()
+        chunkTimes.clear()
+        if (inMemoryAverage == 0L) {
+            inMemoryAverage = getScaledStoredAverage() ?: 0L
         }
-        lastInitialEstimate = 0
-        lastOverallEstimate = 0
-        expectedTotalChunks = 0
     }
 
     fun startChunk() {
@@ -53,101 +118,51 @@ class TimeEstimator(private val context: Context, private val modelName: String)
 
     private fun updateAverageTime() {
         if (chunkTimes.isEmpty()) return
-        val currentAverage = if (inMemoryAverage > 0) inMemoryAverage else getStoredAverageTime()
         val newChunkTime = chunkTimes.last()
-        val updatedAverage = (currentAverage * 0.8 + newChunkTime * 0.2).toLong()
-        inMemoryAverage = updatedAverage
-        saveAverageTime(updatedAverage)
+        val normalizedNewTime = (newChunkTime / chunkScaleFactor).toLong()
+        val currentNormalizedAverage = getStoredAverageTime()
+        val updatedNormalizedAverage = if (currentNormalizedAverage != null && currentNormalizedAverage > 0) {
+            (currentNormalizedAverage * 0.8 + normalizedNewTime * 0.2).toLong()
+        } else {
+            normalizedNewTime
+        }
+        inMemoryAverage = (updatedNormalizedAverage * chunkScaleFactor).toLong()
+        saveAverageTime(updatedNormalizedAverage)
     }
 
     fun getEstimatedTimeRemaining(completedChunks: Int, totalChunks: Int): Long {
         if (totalChunks <= 0 || completedChunks >= totalChunks) return 0
-        expectedTotalChunks = totalChunks
-        if (chunkTimes.isEmpty()) return 0
-        val totalEstimate = computeOverallEstimate(totalChunks)
-        if (totalEstimate > lastOverallEstimate) {
-            lastOverallEstimate = totalEstimate
-        } else if (lastOverallEstimate == 0L) {
-            lastOverallEstimate = totalEstimate
+        val remainingChunks = totalChunks - completedChunks
+        
+        val perChunkMs: Double = if (chunkTimes.isNotEmpty()) {
+            val recentTimes = chunkTimes.takeLast(3)
+            recentTimes.average()
+        } else if (inMemoryAverage > 0) {
+            inMemoryAverage.toDouble()
+        } else {
+            val scaled = getScaledStoredAverage()
+            if (scaled != null && scaled > 0) scaled.toDouble() else return -1L
         }
-        val elapsed = (System.currentTimeMillis() - processingStartTime).coerceAtLeast(0)
-        val remaining = (lastOverallEstimate - elapsed).coerceAtLeast(0)
-        return remaining
+        
+        return if (chunkStartTime > 0) {
+            val currentChunkElapsed = System.currentTimeMillis() - chunkStartTime
+            val currentChunkRemaining = (perChunkMs - currentChunkElapsed).coerceAtLeast(0.0)
+            val futureChunksTime = perChunkMs * (remainingChunks - 1).coerceAtLeast(0)
+            (currentChunkRemaining + futureChunksTime).toLong()
+        } else {
+            (perChunkMs * remainingChunks).toLong()
+        }
     }
 
     fun getInitialEstimate(totalChunks: Int): Long {
-        expectedTotalChunks = totalChunks
-        lastInitialEstimate = 0
-        lastOverallEstimate = 0
-        return 0
-    }
-
-    private fun getAdaptiveAverageTime(totalChunks: Int): Long {
-        val measuredAvg = if (chunkTimes.isNotEmpty()) chunkTimes.first() else 0L
-        val storedAvg = if (inMemoryAverage > 0) inMemoryAverage else getStoredAverageTime()
-        val weight = if (totalChunks > 0) {
-            (8.0 / totalChunks).coerceAtMost(1.0)
-        } else {
-            1.0
+        if (totalChunks <= 0) return -1L
+        
+        val perChunkMs: Long = when {
+            chunkTimes.isNotEmpty() -> chunkTimes.average().toLong()
+            inMemoryAverage > 0 -> inMemoryAverage
+            else -> getScaledStoredAverage() ?: return -1L
         }
-        return if (measuredAvg > 0) {
-            (measuredAvg * weight + storedAvg * (1.0 - weight)).toLong()
-        } else {
-            storedAvg
-        }
-    }
-
-    private fun computeOverallEstimate(totalChunks: Int): Long {
-        val perChunk = computeWeightedAverageMs()
-        val overhead = computeWarmupOverheadMs()
-
-        if (perChunk == Double.POSITIVE_INFINITY) return Long.MAX_VALUE
-        val base = safeMultiply(perChunk, totalChunks)
-        val total = safeAdd(base, overhead)
-        return total
-    }
-
-    private fun computeWeightedAverageMs(): Double {
-        val stored = (if (inMemoryAverage > 0) inMemoryAverage else getStoredAverageTime()).toDouble()
-        if (stored == Long.MAX_VALUE.toDouble()) return Double.POSITIVE_INFINITY
-        if (chunkTimes.isEmpty()) return stored
-        val measured = robustAverage(chunkTimes)
-        var weightMeasured = (chunkTimes.size / 4.0).coerceAtMost(1.0)
-        if (measured > stored) weightMeasured = (weightMeasured * 1.25).coerceAtMost(1.0)
-        val measuredDownwardClamped = if (chunkTimes.size < 3) {
-            kotlin.math.max(measured, stored * 0.9)
-        } else measured
-
-        return measuredDownwardClamped * weightMeasured + stored * (1.0 - weightMeasured)
-    }
-
-    private fun computeWarmupOverheadMs(): Long {
-        if (chunkTimes.size <= 1) return 0
-        val first = chunkTimes.first()
-        val othersAvg = if (chunkTimes.size > 1) {
-            chunkTimes.drop(1).average()
-        } else 0.0
-        val overhead = (first - othersAvg).toLong()
-        return overhead.coerceAtLeast(0)
-    }
-
-    private fun robustAverage(times: List<Long>): Double {
-        if (times.isEmpty()) return 0.0
-        if (times.size < 3) return times.average()
-        val sorted = times.sorted()
-        val trimmed = sorted.drop(1).dropLast(1)
-        return if (trimmed.isEmpty()) sorted.average() else trimmed.average()
-    }
-
-    private fun safeMultiply(aMs: Double, b: Int): Long {
-        if (aMs.isInfinite() || aMs.isNaN()) return Long.MAX_VALUE
-        val res = aMs * b
-        return if (res >= Long.MAX_VALUE.toDouble()) Long.MAX_VALUE else res.toLong()
-    }
-
-    private fun safeAdd(a: Long, b: Long): Long {
-        val res = a + b
-        if ((a xor b) >= 0 && (a xor res) < 0) return Long.MAX_VALUE
-        return res
+        
+        return perChunkMs * totalChunks
     }
 }

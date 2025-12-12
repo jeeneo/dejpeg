@@ -19,25 +19,28 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.je.dejpeg.compose.utils.CacheManager
 import com.je.dejpeg.ui.MainScreen
 import com.je.dejpeg.ui.theme.DeJPEGTheme
 
 class MainActivity : ComponentActivity() {
     private val sharedUrisState = androidx.compose.runtime.mutableStateListOf<Uri>()
-    
-    private val notificationPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
+
+    private val notificationPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
             // granted
         } else {
-            // denied - nothing shown cause its annoying
+            // denied - nothing shown cause its annoying 
         }
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
+        if (savedInstanceState == null) {
+            CacheManager.cleanEntireCacheSync(this)
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(
                     this,
@@ -120,5 +123,10 @@ class MainActivity : ComponentActivity() {
             contentResolver.takePersistableUriPermission(uri, takeFlags and Intent.FLAG_GRANT_READ_URI_PERMISSION)
         } catch (_: Exception) { /* o */ }
         sharedUrisState.add(uri)
+    }
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        CacheManager.cleanEntireCacheSync(this)
     }
 }

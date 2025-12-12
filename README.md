@@ -1,5 +1,5 @@
 <div align="center">
-  <!-- <img src="fastlane/metadata/android/en-US/images/icon.png" height="140" alt=""> -->
+  <img src="fastlane/githubassets/dejpeg.png" height="140" alt="">
   <br>
   An open source app for removing noise and compression from photos
   <h2></h2>
@@ -7,12 +7,12 @@
        style="width: 240px; max-width: 100%; height: auto; margin: 10px;" alt="">
   <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/02.png" 
        style="width: 240px; max-width: 100%; height: auto; margin: 10px;" alt="">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/03.png" 
-       style="width: 240px; max-width: 100%; height: auto; margin: 10px;" alt="">
+  <!-- <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/03.png" 
+       style="width: 240px; max-width: 100%; height: auto; margin: 10px;" alt=""> -->
   <p>
 <p align="center">
   <a href="https://apt.izzysoft.de/fdroid/index/apk/com.je.dejpeg"><img src="fastlane/githubassets/IzzyOnDroid.png" width="220" alt="IzzyOnDroid"></a>
-  <a href="http://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/jeeneo/dejpeg"><img src="fastlane/githubassets/obtanium.png" width="220" alt="Obtanium"></a>
+  <a href="http://apps.obtainium.imranr.dev/redirect.html?r=obtainium://app/%7B%22id%22%3A%22com.je.dejpeg%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fjeeneo%2Fdejpeg%22%2C%22author%22%3A%22jeeneo%22%2C%22name%22%3A%22DeJPEG%22%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Afalse%7D%22%7D"><img src="fastlane/githubassets/obtanium.png" width="220" alt="Obtanium"></a>
   <a href="https://github.com/jeeneo/dejpeg/releases/latest/download/dejpeg-arm64-v8a.apk"><img src="fastlane/githubassets/badge_github.png" width="220" alt="Get it on GitHub"></a>
 </p>
   </p>
@@ -116,21 +116,33 @@ cp -r lib/arm64-v8a ../../app/src/main/jniLibs && cd ../../app/src/main/jniLibs/
 strip debug symbols:
 
 ```bash
-cd 
 llvm-strip libopencv_{core,imgproc,ml,imgcodecs,quality}.so
 ```
-upx compress (optional, for under 30mb release)
-```bash
-upx --best --lzma --android-shlib -i libopencv_{core,imgproc,ml,imgcodecs,quality}.so
-```
 
+build:
 ```bash
 rm app/src/main/jniLibs/arm64-v8a/libbrisque_jni.so
 BUILD_BRISQUE_JNI=ON ./gradlew clean assembleDebug
 ```
 
-note: the binaries in the official release are compressed using `upx --best --lzma --android-shlib` after being stripped of debug symbols (excluding `libbrisque_jni.so` and `libc++_shared.so`) for IzzyOnDroid's 30mb limit. you can skip with it being ~34mb
+note: due to IzzyOnDroid's apk filesize limit to 30mb or less, the native binaries in the official release are compressed using `upx --best --lzma --android-shlib` after being stripped of debug symbols (excluding `libc++_shared.so`). you can skip this step if needed.
 
+compress:
+```bash
+upx --best --lzma --android-shlib libopencv_{core,imgproc,ml,imgcodecs,quality}.so
+```
+
+additionally, i also compress `libonnxruntime.so` with UPX as well (using `upx --ultra-brute --android-shlib`), so to get the original version, extract `libonnxruntime.so` from your compiled version after you've comment out the following config, then extract from the apk, copy to jniLibs, pack using UPX, uncomment and build. this is how i make all releases as to not exceed IzzyOnDroid's 30mb apk size limit but only needs to be done once unless i change something with opencv/brisque.
+
+```kotlin
+...
+    packaging {
+        jniLibs {
+            pickFirsts += "lib/*/libonnxruntime.so"
+        }
+    }
+...
+```
 </details>
 
 <details>
@@ -138,9 +150,8 @@ note: the binaries in the official release are compressed using `upx --best --lz
 
   [@adrianerrea](https://github.com/adrianerrea/fromPytorchtoMobile) for the base application, [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and [SCUNet](https://github.com/cszn/SCUNet) creators plus all other model owners.
 
-This is a GUI for a select amount of `1x` ONNX processing models. All are used under their respective licenses. You are free to embed parts of this app in your own project as long as it remains free/non-paywalled and must abide to the GPL v3 license
+this is a GUI for a select amount of `1x` ONNX processing models. All are used under their respective licenses. You are free to embed parts of this app in your own project as long as it remains free/non-paywalled and must abide to the GPL v3 license
 
 ### disclaimer:
-De*JPEG* is not affiliated or related with Topaz `DEJPEG` or any other similarly named software/project.
-
+De*JPEG* is not affiliated or related with Topaz `DEJPEG` or any other similarly named software/project. although ive wondered if the term 'JPEG' is copyrighted/trademarked due to it literally being the acronym for Joint Photographic Experts Group, for this reason i might need to change the app's name if legal issues start to occur.
 </details>

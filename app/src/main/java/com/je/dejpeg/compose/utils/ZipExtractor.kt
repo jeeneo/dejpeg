@@ -2,6 +2,7 @@ package com.je.dejpeg.compose.utils
 
 import android.content.Context
 import android.util.Log
+import com.je.dejpeg.compose.utils.helpers.ModelMigrationHelper
 import java.io.File
 import java.util.zip.ZipInputStream
 
@@ -10,7 +11,7 @@ object ZipExtractor {
     fun extractFromAssets(
         context: Context,
         assetFileName: String,
-        targetDir: File = File(context.filesDir, "models")
+        targetDir: File = getBrisqueModelsDir(context)
     ): Boolean {
         return try {
             if (!targetDir.exists()) {
@@ -44,18 +45,18 @@ object ZipExtractor {
 
     fun modelsExist(
         context: Context,
-        targetDir: File = File(context.filesDir, "models")
+        targetDir: File = getBrisqueModelsDir(context)
     ): Boolean {
         val modelFile = File(targetDir, "brisque_model_live.yml")
         val rangeFile = File(targetDir, "brisque_range_live.yml")
         return modelFile.exists() && rangeFile.exists()
     }
 
-    fun getModelsDir(context: Context): File {
-        return File(context.filesDir, "models")
+    fun getBrisqueModelsDir(context: Context): File {
+        return ModelMigrationHelper.getBrisqueModelsDir(context)
     }
 
     fun getModelPath(context: Context, filename: String): String {
-        return File(getModelsDir(context), filename).absolutePath
+        return File(getBrisqueModelsDir(context), filename).absolutePath
     }
 }
