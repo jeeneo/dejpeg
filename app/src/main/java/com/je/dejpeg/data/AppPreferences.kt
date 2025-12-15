@@ -52,9 +52,9 @@ class AppPreferences(private val context: Context) {
 
     companion object {
         const val DEFAULT_CHUNK_SIZE = 512
-        const val DEFAULT_OVERLAP_SIZE = 16
+        const val DEFAULT_OVERLAP_SIZE = 8
         const val DEFAULT_GLOBAL_STRENGTH = 50f
-        
+
         @Volatile
         private var instance: AppPreferences? = null
         

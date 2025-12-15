@@ -42,11 +42,9 @@ class ProcessingService : Service() {
     private var currentImageId: String? = null
     private var modelManager: ModelManager? = null
     private var imageProcessor: ImageProcessor? = null
-    private var lastTimeEstimate: Long? = null
     private var totalTimeEstimate: Long? = null
-    private var processingStartTime: Long = 0L
+    private var timeEstimateStartMillis: Long = 0L
     private var currentProgressMessage: String = "Processing..."
-    private var notificationUpdateJob: Job? = null
     private val stopHandler = Handler(Looper.getMainLooper())
     private val autoStopRunnable = Runnable {
         Log.d("ProcessingService", "Auto-stopping service after idle period")
@@ -102,13 +100,12 @@ class ProcessingService : Service() {
                     customOverlapSize = overlapSize
                     Log.d("ProcessingService", "Loaded settings from Intent - chunk_size: $customChunkSize, overlap_size: $customOverlapSize")
                 }
-                processingStartTime = System.currentTimeMillis()
                 totalTimeEstimate = null
-                lastTimeEstimate = null
-                startNotificationUpdater()
+                timeEstimateStartMillis = 0L
+                currentProgressMessage = "Processing $filename..."
+                notifyProgressChange()
                 currentJob = serviceScope.launch {
                     try {
-                        NotificationHelper.showProgress(this@ProcessingService, "Processing $filename...", timeRemainingMillis = lastTimeEstimate, progressPercent = 0, cancellable = true)
                         val uri = uriString.toUri()
                         val inputStream = applicationContext.contentResolver.openInputStream(uri)
                             ?: throw Exception("Unable to open input stream")
@@ -138,13 +135,15 @@ class ProcessingService : Service() {
                             override fun onProgress(message: String) {
                                 currentProgressMessage = message
                                 broadcast(PROGRESS_ACTION, PROGRESS_EXTRA_MESSAGE to message, imageId = imageId)
+                                notifyProgressChange()
                             }
                             override fun onTimeEstimate(timeRemaining: Long) {
-                                lastTimeEstimate = timeRemaining
                                 if (totalTimeEstimate == null) {
                                     totalTimeEstimate = timeRemaining
+                                    timeEstimateStartMillis = System.currentTimeMillis()
                                 }
                                 broadcastTimeEstimate(timeRemaining, imageId)
+                                notifyProgressChange()
                             }
                         }, 0, 1)
                     } catch (e: Exception) {
@@ -153,12 +152,10 @@ class ProcessingService : Service() {
                         Log.d("ProcessingService", "exception: ${e.message}")
                         scheduleAutoStop()
                     } finally {
-                        stopNotificationUpdater()
                         currentJob = null
                         currentImageId = null
-                        lastTimeEstimate = null
                         totalTimeEstimate = null
-                        processingStartTime = 0L
+                        timeEstimateStartMillis = 0L
                     }
                 }
             }
@@ -166,13 +163,11 @@ class ProcessingService : Service() {
                 Log.d("ProcessingService", "Cancel action received")
                 val id = currentImageId
                 val wasRunning = currentJob != null
-                stopNotificationUpdater()
                 runCatching { imageProcessor?.cancelProcessing() }
                 runCatching { currentJob?.cancel() }
                 currentJob = null
-                lastTimeEstimate = null
                 totalTimeEstimate = null
-                processingStartTime = 0L
+                timeEstimateStartMillis = 0L
                 currentProgressMessage = "Processing..."
                 if (wasRunning) {
                     broadcast(ERROR_ACTION, ERROR_EXTRA_MESSAGE to "Cancelled", imageId = id)
@@ -188,28 +183,22 @@ class ProcessingService : Service() {
         stopHandler.postDelayed(autoStopRunnable, 3000)
     }
 
-    private fun startNotificationUpdater() {
-        notificationUpdateJob?.cancel()
-        notificationUpdateJob = serviceScope.launch {
-            while (isActive) {
-                updateNotificationProgress()
-                delay(500)
-            }
+    private fun notifyProgressChange() {
+        var remaining: Long? = null
+        var progressPercent: Int? = null
+        val total = totalTimeEstimate
+        if (total != null && total > 0 && timeEstimateStartMillis > 0) {
+            val elapsed = (System.currentTimeMillis() - timeEstimateStartMillis).coerceAtLeast(0)
+            remaining = (total - elapsed).coerceAtLeast(0)
+            progressPercent = ((elapsed.toFloat() / total.toFloat()) * 100f).toInt().coerceIn(0, 100)
         }
-    }
-
-    private fun stopNotificationUpdater() {
-        notificationUpdateJob?.cancel()
-        notificationUpdateJob = null
-    }
-
-    private fun updateNotificationProgress() {
-        val total = totalTimeEstimate ?: return
-        if (total <= 0 || processingStartTime <= 0) return
-        val elapsed = System.currentTimeMillis() - processingStartTime
-        val progress = ((elapsed.toFloat() / total.toFloat()) * 100).toInt().coerceIn(0, 99)
-        val remaining = (total - elapsed).coerceAtLeast(0)
-        NotificationHelper.showProgress(this, currentProgressMessage, timeRemainingMillis = remaining, progressPercent = progress, cancellable = true)
+        NotificationHelper.showProgress(
+            context = this,
+            message = currentProgressMessage,
+            timeRemainingMillis = remaining,
+            progressPercent = progressPercent,
+            cancellable = true
+        )
     }
 
     private fun broadcast(action: String, vararg extras: Pair<String, String?>, imageId: String?) {

@@ -35,6 +35,8 @@ import com.je.dejpeg.compose.ui.components.PreferencesDialog
 import com.je.dejpeg.compose.ui.components.AboutDialog
 import com.je.dejpeg.compose.ui.components.FAQDialog
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,7 +48,7 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
     var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
     val chunkSize by viewModel.chunkSize.collectAsState()
     val overlapSize by viewModel.overlapSize.collectAsState()
-    var activeModelName by remember { mutableStateOf(viewModel.getActiveModelName()) }
+    var activeModelName by remember { mutableStateOf<String?>(null) }
     var pendingModelSelection by remember { mutableStateOf<String?>(null) }
     var warningState by remember { mutableStateOf<ModelWarningState?>(null) }
 
@@ -59,7 +61,7 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
         }
     }
 
-    LaunchedEffect(installedModels, dialogState) { activeModelName = viewModel.getActiveModelName() }
+    LaunchedEffect(installedModels) { activeModelName = withContext(Dispatchers.IO) { viewModel.getActiveModelName() } }
 
     val modelPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()

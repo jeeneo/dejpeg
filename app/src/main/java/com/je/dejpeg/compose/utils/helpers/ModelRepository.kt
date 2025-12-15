@@ -53,7 +53,7 @@ class ModelRepository(context: Context) {
     suspend fun deleteModels(models: List<String>, onDeleted: (String) -> Unit = {}) = withContext(Dispatchers.IO) {
         models.forEach { name ->
             modelManager.deleteModel(name)
-            onDeleted(name)
+            withContext(Dispatchers.Main) { onDeleted(name) }
         }
     }
     fun getModelManager(): ModelManager = modelManager
