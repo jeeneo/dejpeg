@@ -65,22 +65,22 @@ object NotificationHelper {
     fun showProgress(
         context: Context,
         message: String,
-        timeRemainingMillis: Long? = null,
-        progressPercent: Int? = null,
+        completedChunks: Int? = null,
+        totalChunks: Int? = null,
         cancellable: Boolean = true
     ) {
         val builder = baseBuilder(context)
             .setContentTitle("Processing")
             .setContentText(message)
 
-        if (progressPercent != null) {
-            builder.setProgress(100, progressPercent.coerceIn(0, 100), false)
+        val hasChunkInfo = completedChunks != null && totalChunks != null && totalChunks > 1
+        if (hasChunkInfo) {
+            val max = totalChunks!!
+            val progressValue = completedChunks!!.coerceIn(0, max)
+            builder.setProgress(max, progressValue, false)
+            builder.setSubText("$progressValue / $max chunks")
         } else {
             builder.setProgress(0, 0, true)
-        }
-
-        timeRemainingMillis?.let { remaining ->
-            builder.setSubText(TimeEstimator.formatTimeRemaining(remaining))
         }
 
         if (cancellable) {

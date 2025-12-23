@@ -18,7 +18,7 @@ class ServiceCommunicationHelper(
     interface ServiceCallbacks {
         fun onPidReceived(pid: Int)
         fun onProgress(imageId: String, message: String)
-        fun onTimeEstimate(imageId: String, timeMillis: Long)
+        fun onChunkProgress(imageId: String, completedChunks: Int, totalChunks: Int)
         fun onComplete(imageId: String, path: String)
         fun onError(imageId: String?, message: String)
     }
@@ -44,10 +44,11 @@ class ServiceCommunicationHelper(
                     intent.getStringExtra(ProcessingService.PROGRESS_EXTRA_MESSAGE)?.let { message ->
                         imageId?.let { callbacks.onProgress(it, message) }
                     }
-                }
-                ProcessingService.TIME_ESTIMATE_ACTION -> {
-                    val timeEstimate = intent.getLongExtra(ProcessingService.TIME_ESTIMATE_EXTRA_MILLIS, 0L)
-                    imageId?.let { callbacks.onTimeEstimate(it, timeEstimate) }
+                    val completed = intent.getIntExtra(ProcessingService.PROGRESS_EXTRA_COMPLETED_CHUNKS, -1)
+                    val total = intent.getIntExtra(ProcessingService.PROGRESS_EXTRA_TOTAL_CHUNKS, -1)
+                    if (completed >= 0 && total > 0 && imageId != null) {
+                        callbacks.onChunkProgress(imageId, completed, total)
+                    }
                 }
                 ProcessingService.COMPLETE_ACTION -> {
                     val path = intent.getStringExtra(ProcessingService.COMPLETE_EXTRA_PATH)
@@ -70,7 +71,6 @@ class ServiceCommunicationHelper(
         val filter = IntentFilter().apply {
             addAction(ProcessingService.PID_ACTION)
             addAction(ProcessingService.PROGRESS_ACTION)
-            addAction(ProcessingService.TIME_ESTIMATE_ACTION)
             addAction(ProcessingService.COMPLETE_ACTION)
             addAction(ProcessingService.ERROR_ACTION)
         }

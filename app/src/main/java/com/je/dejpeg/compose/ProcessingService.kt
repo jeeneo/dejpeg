@@ -27,8 +27,8 @@ class ProcessingService : Service() {
         const val EXTRA_OVERLAP_SIZE = "extra_overlap_size"
         const val PROGRESS_ACTION = "com.je.dejpeg.action.PROGRESS"
         const val PROGRESS_EXTRA_MESSAGE = "extra_message"
-        const val TIME_ESTIMATE_ACTION = "com.je.dejpeg.action.TIME_ESTIMATE"
-        const val TIME_ESTIMATE_EXTRA_MILLIS = "extra_time_millis"
+        const val PROGRESS_EXTRA_COMPLETED_CHUNKS = "extra_completed_chunks"
+        const val PROGRESS_EXTRA_TOTAL_CHUNKS = "extra_total_chunks"
         const val COMPLETE_ACTION = "com.je.dejpeg.action.COMPLETE"
         const val COMPLETE_EXTRA_PATH = "extra_path"
         const val ERROR_ACTION = "com.je.dejpeg.action.ERROR"
@@ -42,8 +42,8 @@ class ProcessingService : Service() {
     private var currentImageId: String? = null
     private var modelManager: ModelManager? = null
     private var imageProcessor: ImageProcessor? = null
-    private var totalTimeEstimate: Long? = null
-    private var timeEstimateStartMillis: Long = 0L
+    private var chunkProgressTotal: Int = 0
+    private var chunkProgressCompleted: Int = 0
     private var currentProgressMessage: String = "Processing..."
     private val stopHandler = Handler(Looper.getMainLooper())
     private val autoStopRunnable = Runnable {
@@ -100,8 +100,8 @@ class ProcessingService : Service() {
                     customOverlapSize = overlapSize
                     Log.d("ProcessingService", "Loaded settings from Intent - chunk_size: $customChunkSize, overlap_size: $customOverlapSize")
                 }
-                totalTimeEstimate = null
-                timeEstimateStartMillis = 0L
+                chunkProgressCompleted = 0
+                chunkProgressTotal = 0
                 currentProgressMessage = "Processing $filename..."
                 notifyProgressChange()
                 currentJob = serviceScope.launch {
@@ -137,12 +137,15 @@ class ProcessingService : Service() {
                                 broadcast(PROGRESS_ACTION, PROGRESS_EXTRA_MESSAGE to message, imageId = imageId)
                                 notifyProgressChange()
                             }
-                            override fun onTimeEstimate(timeRemaining: Long) {
-                                if (totalTimeEstimate == null) {
-                                    totalTimeEstimate = timeRemaining
-                                    timeEstimateStartMillis = System.currentTimeMillis()
-                                }
-                                broadcastTimeEstimate(timeRemaining, imageId)
+                            override fun onChunkProgress(completedChunks: Int, totalChunks: Int) {
+                                chunkProgressCompleted = completedChunks
+                                chunkProgressTotal = totalChunks
+                                broadcast(
+                                    PROGRESS_ACTION,
+                                    PROGRESS_EXTRA_COMPLETED_CHUNKS to completedChunks,
+                                    PROGRESS_EXTRA_TOTAL_CHUNKS to totalChunks,
+                                    imageId = imageId
+                                )
                                 notifyProgressChange()
                             }
                         }, 0, 1)
@@ -154,8 +157,8 @@ class ProcessingService : Service() {
                     } finally {
                         currentJob = null
                         currentImageId = null
-                        totalTimeEstimate = null
-                        timeEstimateStartMillis = 0L
+                        chunkProgressCompleted = 0
+                        chunkProgressTotal = 0
                     }
                 }
             }
@@ -166,8 +169,8 @@ class ProcessingService : Service() {
                 runCatching { imageProcessor?.cancelProcessing() }
                 runCatching { currentJob?.cancel() }
                 currentJob = null
-                totalTimeEstimate = null
-                timeEstimateStartMillis = 0L
+                chunkProgressCompleted = 0
+                chunkProgressTotal = 0
                 currentProgressMessage = "Processing..."
                 if (wasRunning) {
                     broadcast(ERROR_ACTION, ERROR_EXTRA_MESSAGE to "Cancelled", imageId = id)
@@ -184,35 +187,29 @@ class ProcessingService : Service() {
     }
 
     private fun notifyProgressChange() {
-        var remaining: Long? = null
-        var progressPercent: Int? = null
-        val total = totalTimeEstimate
-        if (total != null && total > 0 && timeEstimateStartMillis > 0) {
-            val elapsed = (System.currentTimeMillis() - timeEstimateStartMillis).coerceAtLeast(0)
-            remaining = (total - elapsed).coerceAtLeast(0)
-            progressPercent = ((elapsed.toFloat() / total.toFloat()) * 100f).toInt().coerceIn(0, 100)
-        }
+        val determinateChunks = chunkProgressTotal > 1
         NotificationHelper.showProgress(
             context = this,
             message = currentProgressMessage,
-            timeRemainingMillis = remaining,
-            progressPercent = progressPercent,
+            completedChunks = if (determinateChunks) chunkProgressCompleted else null,
+            totalChunks = if (determinateChunks) chunkProgressTotal else null,
             cancellable = true
         )
     }
 
-    private fun broadcast(action: String, vararg extras: Pair<String, String?>, imageId: String?) {
+    private fun broadcast(action: String, vararg extras: Pair<String, Any?>, imageId: String?) {
         Intent(action).apply {
             setPackage(packageName)
-            extras.forEach { (key, value) -> value?.let { putExtra(key, it) } }
-            imageId?.let { putExtra(EXTRA_IMAGE_ID, it) }
-        }.also { sendBroadcast(it) }
-    }
-    
-    private fun broadcastTimeEstimate(timeMillis: Long, imageId: String?) {
-        Intent(TIME_ESTIMATE_ACTION).apply {
-            setPackage(packageName)
-            putExtra(TIME_ESTIMATE_EXTRA_MILLIS, timeMillis)
+            extras.forEach { (key, value) ->
+                when (value) {
+                    null -> Unit
+                    is String -> putExtra(key, value)
+                    is Int -> putExtra(key, value)
+                    is Long -> putExtra(key, value)
+                    is Boolean -> putExtra(key, value)
+                    else -> putExtra(key, value.toString())
+                }
+            }
             imageId?.let { putExtra(EXTRA_IMAGE_ID, it) }
         }.also { sendBroadcast(it) }
     }

@@ -36,9 +36,8 @@ data class ImageItem(
     val progress: String = "",
     val strengthFactor: Float = 0.5f,
     val isCancelling: Boolean = false,
-    val timeEstimateMillis: Long = 0L,
-    val timeEstimateStartMillis: Long = 0L,
-    val initialTotalTimeEstimateMillis: Long = 0L,
+    val completedChunks: Int = 0,
+    val totalChunks: Int = 0,
     val hasBeenSaved: Boolean = false
 )
 
@@ -130,17 +129,12 @@ class ProcessingViewModel : ViewModel() {
             updateImageState(imageId) { it.copy(isProcessing = true, progress = message) }
         }
         
-        override fun onTimeEstimate(imageId: String, timeMillis: Long) {
+        override fun onChunkProgress(imageId: String, completedChunks: Int, totalChunks: Int) {
             updateImageState(imageId) { item ->
-                if (item.timeEstimateStartMillis == 0L) {
-                    item.copy(
-                        timeEstimateMillis = timeMillis,
-                        timeEstimateStartMillis = System.currentTimeMillis(),
-                        initialTotalTimeEstimateMillis = timeMillis
-                    )
-                } else {
-                    item.copy(timeEstimateMillis = timeMillis)
-                }
+                item.copy(
+                    completedChunks = completedChunks,
+                    totalChunks = totalChunks
+                )
             }
         }
         override fun onComplete(imageId: String, path: String) {
@@ -224,7 +218,7 @@ class ProcessingViewModel : ViewModel() {
             if (processingQueue.contains(id) && id != currentProcessingId) {
                 processingQueue.remove(id)
                 if (activeProcessingTotal > 0) activeProcessingTotal--
-                updateImageState(id) { resetTimeEstimates(it).copy(isProcessing = false, progress = "", isCancelling = false) }
+                updateImageState(id) { resetChunkProgress(it).copy(isProcessing = false, progress = "", isCancelling = false) }
                 return
             }
             cancelInProgress = true
@@ -258,10 +252,9 @@ class ProcessingViewModel : ViewModel() {
         images.value = images.value.map { if (it.id == id) transform(it) else it }
     }
 
-    private fun resetTimeEstimates(item: ImageItem) = item.copy(
-        timeEstimateMillis = 0L,
-        timeEstimateStartMillis = 0L,
-        initialTotalTimeEstimateMillis = 0L
+    private fun resetChunkProgress(item: ImageItem) = item.copy(
+        completedChunks = 0,
+        totalChunks = 0
     )
 
     fun processImages() {
@@ -277,7 +270,7 @@ class ProcessingViewModel : ViewModel() {
 
             imagesToProcess.forEach { image ->
                 updateImageState(image.id) {
-                    resetTimeEstimates(it).copy(isProcessing = true, progress = STATUS_QUEUED, isCancelling = false)
+                    resetChunkProgress(it).copy(isProcessing = true, progress = STATUS_QUEUED, isCancelling = false)
                 }
             }
 
@@ -311,7 +304,7 @@ class ProcessingViewModel : ViewModel() {
             processingQueue.size + if (currentProcessingId != null) 1 else 0
         )
         updateImageState(id) {
-            resetTimeEstimates(it).copy(isProcessing = true, progress = STATUS_QUEUED, isCancelling = false)
+            resetChunkProgress(it).copy(isProcessing = true, progress = STATUS_QUEUED, isCancelling = false)
         }
         val currentIndex = (activeProcessingTotal - processingQueue.size - 1).coerceAtLeast(0)
         uiState.value = ProcessingUiState.Processing(currentIndex, activeProcessingTotal)
@@ -342,7 +335,7 @@ class ProcessingViewModel : ViewModel() {
         val uriString = image.uri?.toString() ?: return
 
         updateImageState(imageId) {
-            it.copy(isProcessing = true, progress = STATUS_PREPARING, timeEstimateMillis = 0L, timeEstimateStartMillis = 0L)
+            it.copy(isProcessing = true, progress = STATUS_PREPARING, completedChunks = 0, totalChunks = 0)
         }
 
         serviceHelper?.startProcessing(
@@ -367,7 +360,7 @@ class ProcessingViewModel : ViewModel() {
         }
 
         images.value.filter { it.isProcessing && it.id != currentProcessingId }.forEach { image ->
-            updateImageState(image.id) { resetTimeEstimates(it).copy(isProcessing = false, progress = "") }
+            updateImageState(image.id) { resetChunkProgress(it).copy(isProcessing = false, progress = "") }
         }
 
         uiState.value = ProcessingUiState.Idle
@@ -401,15 +394,15 @@ class ProcessingViewModel : ViewModel() {
                             outputBitmap = bitmap,
                             isProcessing = false,
                             progress = STATUS_COMPLETE,
-                            timeEstimateMillis = 0L,
-                            timeEstimateStartMillis = 0L
+                            completedChunks = 0,
+                            totalChunks = 0
                         )
                     }
                 } else {
-                    updateImageState(imageId) { it.copy(isProcessing = false, progress = "Decode failed") }
+                    updateImageState(imageId) { it.copy(isProcessing = false, progress = "Decode failed", completedChunks = 0, totalChunks = 0) }
                 }
             } catch (e: Exception) {
-                updateImageState(imageId) { it.copy(isProcessing = false, progress = "Error: ${e.message}") }
+                updateImageState(imageId) { it.copy(isProcessing = false, progress = "Error: ${e.message}", completedChunks = 0, totalChunks = 0) }
             } finally {
                 advanceQueue(imageId)
             }
@@ -421,7 +414,7 @@ class ProcessingViewModel : ViewModel() {
 
         if (!imageId.isNullOrEmpty()) {
             updateImageState(imageId) {
-                resetTimeEstimates(it).copy(
+                resetChunkProgress(it).copy(
                     isProcessing = false,
                     progress = if (isCancelled) STATUS_CANCELLED else message,
                     isCancelling = false

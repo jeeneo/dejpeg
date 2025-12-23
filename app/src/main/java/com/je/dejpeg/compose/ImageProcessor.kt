@@ -32,7 +32,7 @@ class ImageProcessor(
         fun onComplete(result: Bitmap)
         fun onError(error: String)
         fun onProgress(message: String)
-        fun onTimeEstimate(timeRemaining: Long)
+        fun onChunkProgress(completedChunks: Int, totalChunks: Int)
     }
 
     fun cancelProcessing() {
@@ -53,9 +53,7 @@ class ImageProcessor(
             val session = modelManager.loadModel()
                 ?: throw Exception(context.getString(R.string.error_failed_to_load_model))
             val modelInfo = ModelInfo(modelName, strength, session, customChunkSize, customOverlapSize)
-            val timeEstimator = TimeEstimator(context, modelName ?: "unknown", modelInfo.chunkSize)
-            timeEstimator.startProcessing()
-            val result = processBitmap(session, inputBitmap, callback, modelInfo, timeEstimator, index, total)
+            val result = processBitmap(session, inputBitmap, callback, modelInfo, index, total)
             withContext(Dispatchers.Main) {
                 callback.onComplete(result)
             }
@@ -77,7 +75,6 @@ class ImageProcessor(
         inputBitmap: Bitmap,
         callback: ProcessCallback,
         info: ModelInfo,
-        timeEstimator: TimeEstimator,
         index: Int,
         total: Int
     ): Bitmap {
@@ -87,20 +84,16 @@ class ImageProcessor(
 
         val processingConfig = Bitmap.Config.ARGB_8888
         val mustTile = width > info.chunkSize || height > info.chunkSize
-        return if (mustTile) processTiled(session, inputBitmap, callback, info, processingConfig, hasTransparency, timeEstimator, index, total)
+        return if (mustTile) processTiled(session, inputBitmap, callback, info, processingConfig, hasTransparency, index, total)
         else
         {
             val bitmapToProcess = if (inputBitmap.config != processingConfig) inputBitmap.copy(processingConfig, true)
             else inputBitmap
-            timeEstimator.startChunk()
-            val initialEstimate = timeEstimator.getInitialEstimate(1)
             val progressMessage = { context.getString(R.string.processing) }
             withContext(Dispatchers.Main) {
                 callback.onProgress(progressMessage())
-                if (initialEstimate > 0) callback.onTimeEstimate(initialEstimate)
             }
             val result = processChunkUnified(session, bitmapToProcess, processingConfig, hasTransparency, info)
-            timeEstimator.endChunk()
             result
         }
     }
@@ -112,7 +105,6 @@ class ImageProcessor(
         info: ModelInfo,
         config: Bitmap.Config,
         hasTransparency: Boolean,
-        timeEstimator: TimeEstimator,
         index: Int,
         total: Int
     ): Bitmap {
@@ -185,6 +177,11 @@ class ImageProcessor(
             val result = createBitmap(width, height, config)
             val canvas = android.graphics.Canvas(result)
             
+            if (totalChunks > 1) {
+                withContext(Dispatchers.Main) {
+                    callback.onChunkProgress(0, totalChunks)
+                }
+            }
             for (chunkInfo in chunkInfoList) {
                 if (isCancelled) throw Exception(context.getString(R.string.error_processing_cancelled))
                 
@@ -194,17 +191,13 @@ class ImageProcessor(
                 } else {
                     context.getString(R.string.processing)
                 }
-                val timeRemaining = timeEstimator.getEstimatedTimeRemaining(chunkInfo.index, totalChunks)
                 withContext(Dispatchers.Main) {
                     callback.onProgress(progressMessage)
-                    if (timeRemaining > 0) callback.onTimeEstimate(timeRemaining)
                 }
                 val loadedChunk = withContext(Dispatchers.IO) {
                     BitmapFactory.decodeFile(chunkInfo.file.absolutePath)
                 } ?: throw Exception("Failed to load chunk ${chunkInfo.index}")
-                timeEstimator.startChunk()
                 val processed = processChunkUnified(session, loadedChunk, config, hasTransparency, info)
-                timeEstimator.endChunk()
                 loadedChunk.recycle()
                 withContext(Dispatchers.IO) {
                     chunkInfo.file.delete()
@@ -218,6 +211,12 @@ class ImageProcessor(
                 canvas.drawBitmap(feathered, chunkInfo.x.toFloat(), chunkInfo.y.toFloat(), paint)
                 processed.recycle()
                 feathered.recycle()
+
+                if (totalChunks > 1) {
+                    withContext(Dispatchers.Main) {
+                        callback.onChunkProgress(currentChunkNumber, totalChunks)
+                    }
+                }
             }
             CacheManager.clearChunksSync(context)
             return result

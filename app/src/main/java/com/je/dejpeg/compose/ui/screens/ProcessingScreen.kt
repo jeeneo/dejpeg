@@ -25,7 +25,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.delay
 import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
 import kotlin.math.max
@@ -56,7 +55,6 @@ import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
 import androidx.compose.ui.res.stringResource
 import com.je.dejpeg.compose.ModelManager
 import com.je.dejpeg.R
-import com.je.dejpeg.TimeEstimator
 import com.je.dejpeg.compose.ui.components.SaveImageDialog
 import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.ui.Screen
@@ -304,8 +302,15 @@ fun ProcessingScreen(
         NoModelDialog(
             onDismiss = { viewModel.dismissNoModelDialog() },
             onGoToSettings = {
+                haptic.medium()
                 viewModel.dismissNoModelDialog()
-                navController.navigate("settings")
+                navController.navigate(Screen.Settings.route) {
+                    popUpTo(navController.graph.startDestinationId) {
+                        saveState = true
+                    }
+                    launchSingleTop = true
+                    restoreState = true
+                }
             }
         )
     }
@@ -324,8 +329,15 @@ fun ProcessingScreen(
             warning = warning,
             onContinue = { viewModel.dismissDeprecatedModelWarning() },
             onGoToSettings = {
+                haptic.medium()
                 viewModel.dismissDeprecatedModelWarning()
-                navController.navigate("settings")
+                navController.navigate(Screen.Settings.route) {
+                    popUpTo(navController.graph.startDestinationId) {
+                        saveState = true
+                    }
+                    launchSingleTop = true
+                    restoreState = true
+                }
             }
         )
     }
@@ -423,37 +435,9 @@ fun BatteryOptimizationDialogForProcessing(onDismiss: () -> Unit, context: Conte
 }
 
 @Composable
-fun CountdownTimer(startTimeMillis: Long, initialTotalTimeMillis: Long, isActive: Boolean) {
-    var displayText by remember { mutableStateOf("") }
-    val finishingUpText = stringResource(R.string.finishing_up)
-    
-    LaunchedEffect(initialTotalTimeMillis, startTimeMillis, isActive) {
-        if (!isActive || initialTotalTimeMillis <= 0 || startTimeMillis <= 0) { displayText = ""; return@LaunchedEffect }
-        while (isActive) {
-            val elapsed = System.currentTimeMillis() - startTimeMillis
-            val remaining = (initialTotalTimeMillis - elapsed).coerceAtLeast(0)
-            displayText = TimeEstimator.formatTimeRemaining(remaining, finishingUpText)
-            if (remaining <= 0) break
-            delay(500)
-        }
-    }
-    if (displayText.isNotEmpty()) Text(text = displayText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary, fontSize = 10.sp, maxLines = 1)
-}
-
-@Composable
-fun ProgressIndicatorWithPercentage(initialTimeMillis: Long, startTimeMillis: Long, initialTotalTimeMillis: Long, isActive: Boolean) {
-    var progress by remember { mutableFloatStateOf(0f) }
-    val totalTime = if (initialTotalTimeMillis > 0) initialTotalTimeMillis else initialTimeMillis
-    LaunchedEffect(totalTime, startTimeMillis, isActive) {
-        if (!isActive || totalTime <= 0 || startTimeMillis <= 0) { progress = 0f; return@LaunchedEffect }
-        while (isActive) {
-            val elapsedMillis = System.currentTimeMillis() - startTimeMillis
-            progress = (elapsedMillis.toFloat() / totalTime.toFloat()).coerceIn(0f, 1f)
-            if (progress >= 1f) break
-            delay(100)
-        }
-    }
-    val animatedProgress by animateFloatAsState(targetValue = progress, label = "progress")
+fun ChunkProgressIndicator(completedChunks: Int, totalChunks: Int) {
+    val target = if (totalChunks > 0) (completedChunks.toFloat() / totalChunks.toFloat()).coerceIn(0f, 1f) else 0f
+    val animatedProgress by animateFloatAsState(targetValue = target, label = "chunk_progress")
     LinearProgressIndicator(
         progress = { animatedProgress },
         modifier = Modifier.fillMaxWidth(),
@@ -506,13 +490,8 @@ fun ImageCard(image: ImageItem, supportsStrength: Boolean, onStrengthChange: (Fl
                     }
                     if (image.isProcessing) {
                         Spacer(modifier = Modifier.height(6.dp))
-                        if (image.timeEstimateMillis > 0 && image.timeEstimateStartMillis > 0) {
-                            ProgressIndicatorWithPercentage(
-                                initialTimeMillis = image.timeEstimateMillis,
-                                startTimeMillis = image.timeEstimateStartMillis,
-                                initialTotalTimeMillis = image.initialTotalTimeEstimateMillis,
-                                isActive = image.isProcessing
-                            )
+                        if (image.totalChunks > 1) {
+                            ChunkProgressIndicator(completedChunks = image.completedChunks, totalChunks = image.totalChunks)
                         } else {
                             LinearProgressIndicator(
                                 modifier = Modifier.fillMaxWidth(),
@@ -523,8 +502,6 @@ fun ImageCard(image: ImageItem, supportsStrength: Boolean, onStrengthChange: (Fl
                         Spacer(modifier = Modifier.height(2.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             if (image.progress.isNotEmpty()) Text(text = image.progress, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontSize = 10.sp, maxLines = 1)
-                            if (image.progress.isNotEmpty() && image.timeEstimateMillis > 0) Text(text = " • ", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontSize = 10.sp)
-                            if (image.initialTotalTimeEstimateMillis > 0 && image.timeEstimateStartMillis > 0) CountdownTimer(startTimeMillis = image.timeEstimateStartMillis, initialTotalTimeMillis = image.initialTotalTimeEstimateMillis, isActive = image.isProcessing)
                         }
                     } else if (image.outputBitmap != null) {
                         Spacer(modifier = Modifier.height(4.dp))
