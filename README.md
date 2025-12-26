@@ -20,14 +20,14 @@
 - batch processing
 - supports most image formats
 - before/after view
-- [fully offline](https://github.com/jeeneo/dejpeg/blob/main/app/src/main/AndroidManifest.xml)
+- [fully offline](/app/src/main/AndroidManifest.xml)
 - custom models (beta)
 - image descaling (beta)
 
 this is not a "super resolution AI upscaler", but simple non-destructive method for cleaning up/restoring images
 
 ## models (required):
-download models [here](https://github.com/jeeneo/dejpeg/releases/tag/models)
+download models [here](/models)
 
 ## limitations:
 - processed locally, minimum 4gb ram and 4 threads recommended
