@@ -21,11 +21,3 @@ Higher the number, the more noise is removed.
 The "PSNR" variant tries to pixel-match the original image as closely as possible, so it looks mathematically correct but may appear overly smooth.
 
 "GAN" sacrifices pixel-perfect accuracy to add realistic textures or details, which can look more natural. As with most cases, try both and see which one suits your image better.
-
-### Other models?
-
-We (I) support other ONNX models (by essentially guessing the params) to allow you to run your own `1x` models without needing to compile it yourself.
-
-I (we) have my (our) own library of pre-converted models under the [experimental](https://github.com/jeeneo/dejpeg-experimental) repo on GitHub.
-
-There's not much documentation for those simply because the original creator(s) didn't provide more than a basic description of what it was trained for, they will be added later on after the initial testing is completed.

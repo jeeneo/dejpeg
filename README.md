@@ -7,8 +7,6 @@
        style="width: 240px; max-width: 100%; height: auto; margin: 10px;" alt="">
   <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/02.png" 
        style="width: 240px; max-width: 100%; height: auto; margin: 10px;" alt="">
-  <!-- <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/03.png" 
-       style="width: 240px; max-width: 100%; height: auto; margin: 10px;" alt=""> -->
   <p>
 <p align="center">
   <a href="https://apt.izzysoft.de/fdroid/index/apk/com.je.dejpeg"><img src="fastlane/githubassets/IzzyOnDroid.png" width="220" alt="IzzyOnDroid"></a>
@@ -29,13 +27,7 @@
 this is not a "super resolution AI upscaler", but simple non-destructive method for cleaning up/restoring images
 
 ## models (required):
-[FBCNN](https://github.com/jeeneo/FBCNN-mobile/releases/latest) (JPEG artifacts)
-
-[SCUNet](https://github.com/jeeneo/SCUNet-mobile/releases/latest) (noise/grain)
-
-Info [here](https://github.com/jeeneo/dejpeg/wiki/model-types) (see in-app FAQ also)
-
-you can also run other experimental models, more info [here](https://github.com/jeeneo/dejpeg-experimental)
+download models [here](https://github.com/jeeneo/dejpeg/releases/tag/models)
 
 ## limitations:
 - processed locally, minimum 4gb ram and 4 threads recommended

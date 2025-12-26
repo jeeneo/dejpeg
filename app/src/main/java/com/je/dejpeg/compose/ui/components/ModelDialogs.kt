@@ -94,7 +94,11 @@ fun ModelDialog(
         },
         confirmButton = {
             Row {
-                TextButton(onClick = { haptic.light(); onDownload() }) {
+                TextButton(onClick = {
+                    haptic.light()
+                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://github.com/jeeneo/dejpeg/releases/tag/models"))
+                    context.startActivity(intent)
+                }) {
                     Text(stringResource(R.string.download))
                 }
                 Spacer(modifier = Modifier.width(8.dp))
