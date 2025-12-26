@@ -20,7 +20,7 @@
 - batch processing
 - supports most image formats
 - before/after view
-- [fully offline](https://github.com/jeeneo/dejpeg/blob/main/app/src/main/AndroidManifest.xml)
+- [fully offline](/app/src/main/AndroidManifest.xml)
 - custom models (beta)
 - image descaling (beta)
 
