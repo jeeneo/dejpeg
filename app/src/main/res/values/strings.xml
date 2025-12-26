@@ -56,7 +56,7 @@
     <string name="images">Images (%1$d)</string>
     <string name="strength">Strength: %1$d</string>
     <string name="no_images_yet">No images yet</string>
-    <string name="tap_to_add_images">Tap + to add images</string>
+    <string name="tap_to_add_images">Tap to add images</string>
     <string name="no_model_installed_title">No model installed</string>
     <string name="no_model_installed_desc">You need to import a model before you can process images. Would you like to go to settings to import one?</string>
     <string name="go_to_settings">Go to settings</string>
@@ -116,7 +116,6 @@
     <string name="import_model_text">Import model</string>
     <string name="progress_percent">%1$d%%</string>
     <string name="px_suffix">px</string>
-    <string name="dejpeg_title">DeJPEG</string>
     <string name="non_destructive_restoration">Non-destructive restoration</string>
     <string name="open_source_app_description">An open source app for removing noise and compression from photos</string>
     <string name="license_text">Licensed under GPLv3</string>

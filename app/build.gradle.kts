@@ -15,6 +15,8 @@ android {
         applicationId = "com.je.dejpeg"
         minSdk = 24
         targetSdk = 36
+        // what is semantic versioning? libraries? idek i just pretend and bump these numbers every now and then :(
+        // it's the 3rd major release, with 3 minor updates, and this is the 0th(?) patch - random numbers fr
         versionCode = 330
         versionName = "3.3.0"
     }

@@ -31,7 +31,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         title = {
             Text(
-                "${stringResource(R.string.dejpeg_title)} v$versionName",
+                "${stringResource(R.string.app_name)} v$versionName",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )

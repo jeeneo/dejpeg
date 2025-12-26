@@ -45,9 +45,9 @@ fun ImageSourceDialog(
     var setAsDefault by remember { mutableStateOf(false) }
     val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
     
-    val handleSelection: (String, () -> Unit) -> Unit = { key, action -> 
+    val handleSelection: suspend (String, () -> Unit) -> Unit = { key, action ->
         if (setAsDefault) {
-            scope.launch { appPreferences.setDefaultImageSource(key) }
+            appPreferences.setDefaultImageSource(key)
         }
         onDismiss()
         action()
@@ -59,14 +59,10 @@ fun ImageSourceDialog(
         properties = DialogDefaults.Properties
     ) {
         ElevatedCard(
-            modifier = Modifier
-                .dialogWidth(dialogWidth)
-                .padding(16.dp),
+            modifier = Modifier.dialogWidth(dialogWidth).padding(16.dp),
             shape = DialogDefaults.Shape,
             elevation = CardDefaults.elevatedCardElevation(defaultElevation = 6.dp),
-            colors = CardDefaults.elevatedCardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-            )
+            colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
         ) {
             Column(
                 modifier = Modifier
@@ -89,28 +85,40 @@ fun ImageSourceDialog(
                     icon = Icons.Outlined.PhotoLibrary,
                     title = stringResource(R.string.gallery),
                     description = stringResource(R.string.gallery_picker_title),
-                    onClick = { haptic.medium(); handleSelection("gallery", onGallerySelected) },
+                    onClick = {
+                        haptic.medium()
+                        scope.launch { handleSelection("gallery", onGallerySelected) }
+                    },
                     onHelpClick = { haptic.light(); helpInfo = HELP_TYPE_GALLERY }
                 )
                 ImageSource(
                     icon = Icons.Outlined.Photo,
                     title = stringResource(R.string.internal_picker),
                     description = stringResource(R.string.internal_picker_title),
-                    onClick = { haptic.medium(); handleSelection("internal", onInternalSelected) },
+                    onClick = {
+                        haptic.medium()
+                        scope.launch { handleSelection("internal", onInternalSelected) }
+                    },
                     onHelpClick = { haptic.light(); helpInfo = HELP_TYPE_INTERNAL }
                 )
                 ImageSource(
                     icon = Icons.Outlined.Folder,
                     title = stringResource(R.string.documents),
                     description = stringResource(R.string.documents_picker_title),
-                    onClick = { haptic.medium(); handleSelection("documents", onDocumentsSelected) },
+                    onClick = {
+                        haptic.medium()
+                        scope.launch { handleSelection("documents", onDocumentsSelected) }
+                    },
                     onHelpClick = { haptic.light(); helpInfo = HELP_TYPE_DOCUMENTS }
                 )
                 ImageSource(
                     icon = Icons.Outlined.CameraAlt,
                     title = stringResource(R.string.camera),
                     description = stringResource(R.string.camera_title),
-                    onClick = { haptic.medium(); handleSelection("camera", onCameraSelected) },
+                    onClick = {
+                        haptic.medium()
+                        scope.launch { handleSelection("camera", onCameraSelected) }
+                    },
                     onHelpClick = { haptic.light(); helpInfo = HELP_TYPE_CAMERA }
                 )
                 Spacer(Modifier.height(4.dp))

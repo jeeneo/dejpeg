@@ -20,6 +20,10 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.animation.core.animateFloatAsState
@@ -101,6 +105,10 @@ fun ProcessingScreen(
         }
     }
 
+    // Header Row height for centering empty state
+    var headerHeightPx by remember { mutableIntStateOf(0) }
+    val density = LocalDensity.current
+
     val handleImageRemoval: (String) -> Unit = { imageId ->
         images.firstOrNull { it.id == imageId }?.let { image ->
             when {
@@ -166,20 +174,29 @@ fun ProcessingScreen(
         
     LaunchedEffect(Unit) { viewModel.setImagePickerLauncher(imagePickerLauncher) }
 
+    fun importImage() {
+        haptic.light()
+        when (defaultImageSource) {
+            "gallery" -> viewModel.launchGalleryPicker(context)
+            "internal" -> viewModel.launchInternalPhotoPicker(context)
+            "documents" -> viewModel.launchDocumentsPicker(context)
+            "camera" -> viewModel.launchCamera(context)
+            else -> showImageSourceDialog = true
+        }
+    }
+
     Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Row(Modifier.fillMaxWidth().padding(bottom = 16.dp), Arrangement.SpaceBetween, Alignment.CenterVertically) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp)
+                .onSizeChanged { headerHeightPx = it.height },
+            Arrangement.SpaceBetween,
+            Alignment.CenterVertically
+        ) {
             Text(stringResource(R.string.images, images.size), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             FloatingActionButton(
-                onClick = {
-                    haptic.light()
-                    when (defaultImageSource) {
-                        "gallery" -> viewModel.launchGalleryPicker(context)
-                        "internal" -> viewModel.launchInternalPhotoPicker(context)
-                        "documents" -> viewModel.launchDocumentsPicker(context)
-                        "camera" -> viewModel.launchCamera(context)
-                        else -> showImageSourceDialog = true
-                    }
-                },
+                onClick = { importImage() },
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 shape = RoundedCornerShape(16.dp)
@@ -196,16 +213,60 @@ fun ProcessingScreen(
                 }
             }
         }
-        
+
         if (images.isEmpty()) {
-            Box(Modifier.fillMaxSize().weight(1f), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(stringResource(R.string.no_images_yet), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.height(8.dp))
-                    Text(stringResource(R.string.tap_to_add_images), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            val offsetDp = -(headerHeightPx / 2 / density.density).dp
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .weight(1f)
+                    .offset(y = offsetDp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Spacer(Modifier.height(48.dp))
+                    Box(
+                        Modifier
+                            .width(240.dp)
+                            .height(180.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .clickable { importImage() }
+                            .drawBehind {
+                                val strokeWidth = 2.dp.toPx()
+                                val cornerRadius = 20.dp.toPx()
+                                val pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+                                drawRoundRect(
+                                    color = Color.Gray,
+                                    topLeft = androidx.compose.ui.geometry.Offset(0f, 0f),
+                                    size = size,
+                                    cornerRadius = CornerRadius(cornerRadius, cornerRadius),
+                                    style = Stroke(width = strokeWidth, pathEffect = pathEffect)
+                                )
+                            }
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                stringResource(R.string.no_images_yet),
+                                style = MaterialTheme.typography.titleLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                stringResource(R.string.tap_to_add_images),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
             }
-        } else {
+        }
+        else {
             val isProcessingActive = (uiState is ProcessingUiState.Processing) || images.any { it.isCancelling }
             LazyColumn(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(images, { it.id }) { image ->
@@ -227,7 +288,7 @@ fun ProcessingScreen(
             }
         }
 
-        if (images.isNotEmpty()) {
+        if (images.isNotEmpty()){
             Button(
                 { if (uiState is ProcessingUiState.Processing) { haptic.heavy(); showCancelAllDialog = true } else { if (!viewModel.hasActiveModel()) viewModel.showNoModelDialog() else { haptic.medium(); viewModel.processImages() } } },
                 Modifier.fillMaxWidth().padding(top = 16.dp).height(56.dp),

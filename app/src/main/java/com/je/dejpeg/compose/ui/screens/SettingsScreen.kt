@@ -26,7 +26,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import com.je.dejpeg.compose.ModelManager
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.R
-import com.je.dejpeg.compose.ui.components.DownloadModelDialog
 import com.je.dejpeg.compose.ui.components.ModelDialog
 import com.je.dejpeg.compose.ui.components.DeleteDialog
 import com.je.dejpeg.compose.ui.components.ImportProgressDialog
@@ -179,7 +178,6 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
             },
             onImport = { modelPickerLauncher.launch("*/*") },
             onDelete = { dialogState = DialogState.Delete },
-            onDownload = { dialogState = DialogState.Download },
             onDismiss = { dialogState = DialogState.None }
         )
         DialogState.Delete -> DeleteDialog(
@@ -210,7 +208,6 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
         )
         DialogState.About -> AboutDialog { dialogState = DialogState.None }
         DialogState.FAQ -> FAQDialog { dialogState = DialogState.None }
-        DialogState.Download -> DownloadModelDialog(onDismiss = { dialogState = DialogState.Model })
         DialogState.None -> {}
     }
 
@@ -320,7 +317,6 @@ sealed class DialogState {
     object About : DialogState()
     object FAQ : DialogState()
     object Preferences : DialogState()
-    object Download : DialogState()
 }
 
 sealed class ModelWarningState {

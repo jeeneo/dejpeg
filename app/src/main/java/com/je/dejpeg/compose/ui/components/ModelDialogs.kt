@@ -25,7 +25,6 @@ fun ModelDialog(
     onSelect: (String) -> Unit,
     onImport: () -> Unit,
     onDelete: () -> Unit,
-    onDownload: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
@@ -96,7 +95,10 @@ fun ModelDialog(
             Row {
                 TextButton(onClick = {
                     haptic.light()
-                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://github.com/jeeneo/dejpeg/releases/tag/models"))
+                    val intent = android.content.Intent(
+                        android.content.Intent.ACTION_VIEW,
+                        android.net.Uri.parse("https://github.com/jeeneo/dejpeg/releases/tag/models")
+                    )
                     context.startActivity(intent)
                 }) {
                     Text(stringResource(R.string.download))
