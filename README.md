@@ -3,17 +3,17 @@
   <br>
   An open source app for removing noise and compression from photos
   <h2></h2>
-  <table>
-  <tr>
-  <td><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/01.png" width="240"></td>
-  <td><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/02.png" width="240"></td>
-  </tr>
-  </table>
+<table>
+<tr>
+<td><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/01.png" width="240"></td>
+<td><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/02.png" width="240"></td>
+</tr>
+</table>
   <p>
 <p align="center">
   <a href="https://apt.izzysoft.de/fdroid/index/apk/com.je.dejpeg"><img src="fastlane/githubassets/IzzyOnDroid.png" width="220" alt="IzzyOnDroid"></a>
   <a href="http://apps.obtainium.imranr.dev/redirect.html?r=obtainium://app/%7B%22id%22%3A%22com.je.dejpeg%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fjeeneo%2Fdejpeg%22%2C%22author%22%3A%22jeeneo%22%2C%22name%22%3A%22DeJPEG%22%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Afalse%7D%22%7D"><img src="fastlane/githubassets/obtanium.png" width="220" alt="Obtanium"></a>
-  <a href="https://github.com/jeeneo/dejpeg/releases/latest/download/dejpeg-arm64-v8a.apk"><img src="fastlane/githubassets/badge_github.png" width="220" alt="Get it on GitHub"></a>
+  <!-- <a href="https://github.com/jeeneo/dejpeg/releases/latest/download/dejpeg-arm64-v8a.apk"><img src="fastlane/githubassets/badge_github.png" width="220" alt="Get it on GitHub"></a> -->
 </p>
   </p>
 </div>
