@@ -13,8 +13,6 @@
 <p align="center">
   <a href="https://apt.izzysoft.de/fdroid/index/apk/com.je.dejpeg"><img src="fastlane/githubassets/IzzyOnDroid.png" width="220" alt="IzzyOnDroid"></a>
   <a href="http://apps.obtainium.imranr.dev/redirect.html?r=obtainium://app/%7B%22id%22%3A%22com.je.dejpeg%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fjeeneo%2Fdejpeg%22%2C%22author%22%3A%22jeeneo%22%2C%22name%22%3A%22DeJPEG%22%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Afalse%7D%22%7D"><img src="fastlane/githubassets/obtanium.png" width="220" alt="Obtanium"></a>
-  <!-- <a href="https://github.com/jeeneo/dejpeg/releases/latest/download/dejpeg-arm64-v8a.apk"><img src="fastlane/githubassets/badge_github.png" width="220" alt="Get it on GitHub"></a> -->
-</p>
   </p>
 </div>
 
@@ -37,8 +35,6 @@ download models [here](/models)
 - TIFF and other special image formats are not supported.
 - GIF animations are not supported but planned.
 
-See the [wiki](https://github.com/jeeneo/dejpeg/wiki) for more information
-
 ## other platforms
 please use [chaiNNer](https://github.com/chaiNNer-org/chaiNNer) which should work well with these models (regardless if PyTorch or ONNX)
 
@@ -47,7 +43,7 @@ for FBCNN, which chaiNNer does support but in a limited fashion, install [this c
 <details>
 <summary><h3>building</h3></summary>
 
-this app includes OpenCV with [BRISQUE analysis for descaling an image](https://github.com/jeeneo/dejpeg/issues/24), which is experimental but ive occasionally found it useful.
+this app includes OpenCV with [BRISQUE analysis for descaling an image](), which is experimental but ive occasionally found it useful.
 
 required:
 - android NDK 27.3.x
