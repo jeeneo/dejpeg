@@ -1,0 +1,2 @@
+dynamic theme
+configurable chunk sizes
