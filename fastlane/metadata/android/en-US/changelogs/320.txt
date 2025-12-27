@@ -1,0 +1,11 @@
+- internal changes (smaller size)
+- added monochrome app icon
+- queue processing fix
+- small dialog fixes
+- better before/after view
+- improve time estimation
+- proper cache cleanup
+- cache image chunks for processing
+- added progress bar
+- improved processing notification
+- improved sharpness estimation

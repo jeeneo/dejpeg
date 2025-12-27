@@ -1,0 +1,2 @@
+- fix share incoming intent
+- bump min SDK to 28 (Android 9/Pie)
