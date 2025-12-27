@@ -1,0 +1,8 @@
+added:
+1. add background service for notifications (fixes ghost notifications)
+2. dynamic theme (read from system)
+3. model hashing/verification
+
+fixes:
+1. removed anti-aliasing (for better viewing)
+2. fixed before/after view issues when panning

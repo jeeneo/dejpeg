@@ -1,0 +1,9 @@
+fixes:
+- prevent system from killing the app (foreground service)
+- use bitmap pooling to recycle bitmaps when possible
+- removed actionbar for better UI
+
+added:
+- image progress for multiple images/chunks
+- model download links on select model window
+- notification icons

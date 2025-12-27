@@ -1,0 +1,10 @@
+proper monochrome dark/light theme support
+
+- minor dialog changes
+- strings fixes
+- icon change
+- added image size infotext
+- added remove all except this (image) option
+- fixed crash on very small images when zooming (e.g.: 25px)
+- chunk size change (1200px), shouldn't give too many issues unless device is really low end, todo later
+- vibration feedback changes

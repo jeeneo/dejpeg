@@ -1,0 +1,4 @@
+added time estimation
+fixed gaps in large images (and crashing issues with SCUNet)
+major dialog changes
+prevented images over 8000px which would cause crashes

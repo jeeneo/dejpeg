@@ -1,0 +1,5 @@
+- improved background service and information handling
+- added warning for images over 6000px
+- fixed the app icon SVG/drawable
+- small improvements to the UI and backend code
+- other bugfixes
