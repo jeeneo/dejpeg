@@ -4,9 +4,9 @@
   An open source app for removing noise and compression from photos
   <h2></h2>
   <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/01.png" 
-       style="width: 240px; max-width: 100%; height: auto; margin: 10px;" alt="">
+       style="width: 240px; max-width: 50%; height: auto; margin: 10px;" alt="">
   <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/02.png" 
-       style="width: 240px; max-width: 100%; height: auto; margin: 10px;" alt="">
+       style="width: 240px; max-width: 50%; height: auto; margin: 10px;" alt="">
   <p>
 <p align="center">
   <a href="https://apt.izzysoft.de/fdroid/index/apk/com.je.dejpeg"><img src="fastlane/githubassets/IzzyOnDroid.png" width="220" alt="IzzyOnDroid"></a>
