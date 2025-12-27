@@ -1,0 +1,14 @@
+*.iml
+.gradle
+*.properties
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+.idea
+.kotlin
+apks
+.git-public
+.git-private
+opencv

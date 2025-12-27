@@ -1,0 +1,6 @@
+fixes for v2.5.0
+
+1. notification fixes
+2. rough time estimation (not always accurate)
+3. better multithreading support
+4. small UI improvements and FAQ
