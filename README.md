@@ -1,17 +1,15 @@
 <div align="center">
-  <img src="fastlane/githubassets/dejpeg.png" height="140" alt="">
-  <br>
-  An open source app for removing noise and compression from photos
-  <h2></h2>
+<img src="fastlane/appassets/dejpeg.png" height="140" alt="DeJPEG logotype in white text, with the letters JPEG italisized">
+<br>An open source app for removing noise and compression from photos<h2></h2>
 <table>
 <tr>
 <td><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/01.png" width="240"></td>
 <td><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/02.png" width="240"></td>
 </tr>
 </table>
-  <p>
+<p>
 <p align="center">
-  <a href="https://apt.izzysoft.de/fdroid/index/apk/com.je.dejpeg"><img src="fastlane/githubassets/IzzyOnDroid.png" width="220" alt="IzzyOnDroid"></a>
+<a href="https://apt.izzysoft.de/fdroid/index/apk/com.je.dejpeg"><img src="fastlane/appassets/IzzyOnDroid.png" width="220" alt="IzzyOnDroid"></a>
 </div>
 
 ## features:
