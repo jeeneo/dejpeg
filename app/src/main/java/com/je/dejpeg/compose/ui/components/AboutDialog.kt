@@ -58,7 +58,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
                 haptic.medium()
                 try {
                     context.startActivity(
-                        Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/jeeneo/dejpeg"))
+                        Intent(Intent.ACTION_VIEW, Uri.parse("https://codeberg.org/dryerlint/dejpeg"))
                     )
                 } catch (_: Exception) {
                 }
