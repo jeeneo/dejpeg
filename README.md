@@ -1,5 +1,5 @@
 <div align="center">
-<img src="fastlane/appassets/dejpeg.png" height="140" alt="DeJPEG logotype in white text, with the letters JPEG italisized">
+<img src="fastlane/appassets/dejpeg.png" height="140" alt="DeJPEG logotype in white text, with the letters JPEG italicized">
 <br>An open source app for removing noise and compression from photos<h2></h2>
 <table>
 <tr>
