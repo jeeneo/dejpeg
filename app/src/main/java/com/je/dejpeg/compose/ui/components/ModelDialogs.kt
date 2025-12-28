@@ -97,7 +97,7 @@ fun ModelDialog(
                     haptic.light()
                     val intent = android.content.Intent(
                         android.content.Intent.ACTION_VIEW,
-                        android.net.Uri.parse("https://github.com/jeeneo/dejpeg/releases/tag/models")
+                        android.net.Uri.parse("https://codeberg.org/dryerlint/dejpeg/src/branch/main/models")
                     )
                     context.startActivity(intent)
                 }) {
