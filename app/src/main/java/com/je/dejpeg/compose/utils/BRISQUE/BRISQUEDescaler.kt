@@ -20,7 +20,6 @@ This can be used in tandem with a rough Sharpness estimate to descale an image t
 Example: an image scaled to 800px but originally 500px (currently unknown) can look blurred, if used 'as-is', it can't be upscaled or cleaned up without wasting resources or looking worse with little to no improvement, or manually resized until it looks right, which can get tedious.
 Solution: implement a BRISQUE assessment with a rough Sharpness estimation for descaling an image to provide a better result which can be used by other models to remove artifacts later on.
 
-See https://github.com/jeeneo/dejspeg/issues/24
 It's not perfect but it helps sometimes.
 */
 
