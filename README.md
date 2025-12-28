@@ -12,22 +12,20 @@
   <p>
 <p align="center">
   <a href="https://apt.izzysoft.de/fdroid/index/apk/com.je.dejpeg"><img src="fastlane/githubassets/IzzyOnDroid.png" width="220" alt="IzzyOnDroid"></a>
-  <a href="http://apps.obtainium.imranr.dev/redirect.html?r=obtainium://app/%7B%22id%22%3A%22com.je.dejpeg%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fjeeneo%2Fdejpeg%22%2C%22author%22%3A%22jeeneo%22%2C%22name%22%3A%22DeJPEG%22%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Afalse%7D%22%7D"><img src="fastlane/githubassets/obtanium.png" width="220" alt="Obtanium"></a>
-  </p>
 </div>
 
 ## features:
 - batch processing
 - supports most image formats
 - before/after view
-- [fully offline](/app/src/main/AndroidManifest.xml)
+- fully offline
 - custom models (beta)
 - image descaling (beta)
 
 this is not a "super resolution AI upscaler", but simple non-destructive method for cleaning up/restoring images
 
 ## models (required):
-download models [here](/models)
+download models here
 
 ## limitations:
 - processed locally, minimum 4gb ram and 4 threads recommended
@@ -38,7 +36,7 @@ download models [here](/models)
 ## other platforms
 please use [chaiNNer](https://github.com/chaiNNer-org/chaiNNer) which should work well with these models (regardless if PyTorch or ONNX)
 
-for FBCNN, which chaiNNer does support but in a limited fashion, install [this custom node](chainner/README.md) and use the [original PyTorch models](https://github.com/jiaxi-jiang/FBCNN/releases/latest), not the mobile onnx.
+for FBCNN, which chaiNNer does support but in a limited fashion, install [this custom node](chainner/) and use the [original PyTorch models](https://github.com/jiaxi-jiang/FBCNN/releases/latest), not the mobile onnx.
 
 <details>
 <summary><h3>building</h3></summary>
