@@ -4,8 +4,8 @@ import android.content.Context
 import com.je.dejpeg.data.dataStore
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -14,7 +14,8 @@ import kotlinx.coroutines.runBlocking
 class TimeEstimator(
     private val context: Context,
     private val modelName: String,
-    private val chunkSize: Int = DEFAULT_CHUNK_SIZE
+    private val chunkSize: Int = DEFAULT_CHUNK_SIZE,
+    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
 ) {
     companion object {
         private const val DEFAULT_CHUNK_SIZE = 512
@@ -91,7 +92,7 @@ class TimeEstimator(
 
     private fun saveAverageTime(avgTime: Long) {
         cachedStoredAverage = avgTime
-        GlobalScope.launch(Dispatchers.IO) {
+        coroutineScope.launch {
             saveAverageTimeAsync(avgTime)
         }
     }
