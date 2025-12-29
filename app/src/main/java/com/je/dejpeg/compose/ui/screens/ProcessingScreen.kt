@@ -45,7 +45,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import androidx.compose.ui.text.font.FontStyle
 import com.je.dejpeg.compose.ui.components.BatteryOptimizationDialog
 import com.je.dejpeg.compose.ui.components.RemoveImageDialog
@@ -61,14 +60,15 @@ import com.je.dejpeg.compose.ModelManager
 import com.je.dejpeg.R
 import com.je.dejpeg.compose.ui.components.SaveImageDialog
 import com.je.dejpeg.data.AppPreferences
-import com.je.dejpeg.ui.Screen
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProcessingScreen(
     viewModel: ProcessingViewModel,
-    navController: NavController,
+    onNavigateToBeforeAfter: (String) -> Unit = {},
+    onNavigateToBrisque: (String) -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
     initialSharedUris: List<Uri> = emptyList(),
     onRemoveSharedUri: (Uri) -> Unit = {}
 ) {
@@ -105,7 +105,6 @@ fun ProcessingScreen(
         }
     }
 
-    // Header Row height for centering empty state
     var headerHeightPx by remember { mutableIntStateOf(0) }
     val density = LocalDensity.current
 
@@ -278,9 +277,8 @@ fun ProcessingScreen(
                             onStrengthChange = { viewModel.updateImageStrength(image.id, it) },
                             onRemove = { handleImageRemoval(image.id) },
                             onProcess = { if (!viewModel.hasActiveModel()) viewModel.showNoModelDialog() else viewModel.processImage(image.id) },
-                            onBrisque = { haptic.light(); navController.navigate(Screen.BRISQUE.createRoute(image.id)) },
-                            onClick = { if (image.outputBitmap != null) { haptic.light(); navController.navigate(
-                                Screen.BeforeAfter.createRoute(image.id)) } }
+                            onBrisque = { haptic.light(); onNavigateToBrisque(image.id) },
+                            onClick = { if (image.outputBitmap != null) { haptic.light(); onNavigateToBeforeAfter(image.id) } }
                         )
                     }
                     LaunchedEffect(imageIdToRemove, imageIdToCancel) { if (imageIdToRemove != image.id && imageIdToCancel != image.id) swipeState.value = 0f }
@@ -365,13 +363,7 @@ fun ProcessingScreen(
             onGoToSettings = {
                 haptic.medium()
                 viewModel.dismissNoModelDialog()
-                navController.navigate(Screen.Settings.route) {
-                    popUpTo(navController.graph.startDestinationId) {
-                        saveState = true
-                    }
-                    launchSingleTop = true
-                    restoreState = true
-                }
+                onNavigateToSettings()
             }
         )
     }
@@ -392,13 +384,7 @@ fun ProcessingScreen(
             onGoToSettings = {
                 haptic.medium()
                 viewModel.dismissDeprecatedModelWarning()
-                navController.navigate(Screen.Settings.route) {
-                    popUpTo(navController.graph.startDestinationId) {
-                        saveState = true
-                    }
-                    launchSingleTop = true
-                    restoreState = true
-                }
+                onNavigateToSettings()
             }
         )
     }
