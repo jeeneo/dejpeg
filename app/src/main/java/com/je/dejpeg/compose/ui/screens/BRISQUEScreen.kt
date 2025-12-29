@@ -42,7 +42,6 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.text.font.FontFamily
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
 import com.je.dejpeg.compose.utils.BRISQUE.BRISQUEDescaler
 import kotlin.math.roundToInt
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
@@ -60,11 +59,15 @@ import me.saket.telephoto.zoomable.zoomable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BRISQUEScreen(processingViewModel: ProcessingViewModel, imageId: String, navController: NavController) {
+fun BRISQUEScreen(
+    processingViewModel: ProcessingViewModel,
+    imageId: String,
+    onBack: () -> Unit = {}
+) {
     val context = LocalContext.current
     val haptic = rememberHapticFeedback()
     val images by processingViewModel.images.collectAsState()
-    val image = images.firstOrNull { it.id == imageId } ?: run { LaunchedEffect(Unit) { navController.popBackStack() }; return }
+    val image = images.firstOrNull { it.id == imageId } ?: run { LaunchedEffect(Unit) { onBack() }; return }
     val brisqueViewModel: BrisqueViewModel = viewModel()
     val brisqueState by brisqueViewModel.imageState.collectAsState()
     val brisqueSettings by brisqueViewModel.settings.collectAsState()
@@ -74,28 +77,39 @@ fun BRISQUEScreen(processingViewModel: ProcessingViewModel, imageId: String, nav
     var showBRISQUESettings by remember { mutableStateOf(false) }
     val isDarkTheme = isSystemInDarkTheme()
     
-    DisposableEffect(isDarkTheme) {
-        (context as? ComponentActivity)?.enableEdgeToEdge(
-            statusBarStyle = if (isDarkTheme) SystemBarStyle.dark(android.graphics.Color.TRANSPARENT) else SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
-            navigationBarStyle = if (isDarkTheme) SystemBarStyle.dark(android.graphics.Color.TRANSPARENT) else SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
-        )
-        onDispose { }
-    }
-    BackHandler { navController.popBackStack() }
+    BackHandler { onBack() }
     LaunchedEffect(image.id) { brisqueViewModel.initialize(context, image.inputBitmap, image.filename) }
-    Scaffold(topBar = {
+    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         TopAppBar(
             title = { Text("BRISQUE analysis", style = MaterialTheme.typography.titleMedium) },
-            navigationIcon = { IconButton(onClick = { haptic.light(); navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
+            navigationIcon = {
+                IconButton(onClick = { haptic.light(); onBack() }) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                }
+            },
             actions = {
                 IconButton(onClick = { haptic.light(); showInfoDialog = true }) { Icon(Icons.Filled.Info, "Info") }
                 IconButton(onClick = { haptic.light(); showBRISQUESettings = true }) { Icon(Icons.Filled.Settings, "Settings") }
-                IconButton(onClick = { haptic.medium(); brisqueViewModel.saveCurrentImage(context, { Toast.makeText(context, "Image saved successfully", Toast.LENGTH_SHORT).show() }) { error -> Toast.makeText(context, "Failed to save: $error", Toast.LENGTH_SHORT).show() } }, enabled = brisqueState != null) { Icon(Icons.Filled.Save, "Save image") }
+                IconButton(
+                    onClick = {
+                        haptic.medium()
+                        brisqueViewModel.saveCurrentImage(context,
+                            { Toast.makeText(context, "Image saved successfully", Toast.LENGTH_SHORT).show() })
+                            { error -> Toast.makeText(context, "Failed to save: $error", Toast.LENGTH_SHORT).show() }
+                    },
+                    enabled = brisqueState != null
+                ) {
+                    Icon(Icons.Filled.Save, "Save image")
+                }
             },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
         )
-    }) { paddingValues ->
-        LazyColumn(Modifier.fillMaxSize().padding(paddingValues).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyColumn(
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             item { Spacer(Modifier.height(8.dp)) }
             item {
                 (brisqueState?.descaledBitmap ?: brisqueState?.originalBitmap)?.let {
@@ -216,7 +230,7 @@ private fun ImageViewerModal(bitmap: Bitmap, filename: String, onDismiss: () -> 
     val haptic = rememberHapticFeedback()
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnBackPress = true)) {
         Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-            Box(Modifier.fillMaxSize().zoomable(rememberZoomableState(zoomSpec = ZoomSpec(maxZoomFactor = 20f)), enabled = true), Alignment.Center) {
+            Box(Modifier.fillMaxSize().zoomable(rememberZoomableState(zoomSpec = ZoomSpec(maxZoomFactor = 20f))), Alignment.Center) {
                 Image(bitmap = bitmap.asImageBitmap(), contentDescription = filename, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit, filterQuality = FilterQuality.None)
             }
             IconButton(onClick = { haptic.light(); onDismiss() }, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))) {

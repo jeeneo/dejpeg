@@ -2,15 +2,12 @@ package com.je.dejpeg.compose.ui.screens
 
 import android.graphics.Bitmap
 import androidx.activity.compose.BackHandler
-import androidx.activity.enableEdgeToEdge
-import androidx.activity.ComponentActivity
-import androidx.activity.SystemBarStyle
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.SwapHoriz
@@ -23,9 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.asImageBitmap
@@ -40,7 +34,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import com.je.dejpeg.R
 import com.je.dejpeg.compose.ui.components.SaveImageDialog
 import com.je.dejpeg.compose.ui.components.LoadingDialog
@@ -58,127 +51,101 @@ import me.saket.telephoto.zoomable.zoomable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BeforeAfterScreen(viewModel: ProcessingViewModel, imageId: String, navController: NavController) {
+fun BeforeAfterScreen(
+    viewModel: ProcessingViewModel,
+    imageId: String,
+    onBack: () -> Unit = {}
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val haptic = rememberHapticFeedback()
     val appPreferences = remember { AppPreferences.getInstance(context) }
     val skipSaveDialog by appPreferences.skipSaveDialog.collectAsState(initial = false)
-    
+
     val images by viewModel.images.collectAsState()
     val image = images.firstOrNull { it.id == imageId }
     var showSaveDialog by remember { mutableStateOf(false) }
     var overwriteDialogFilename by remember { mutableStateOf<String?>(null) }
     var saveErrorMessage by remember { mutableStateOf<String?>(null) }
-    val isDarkTheme = isSystemInDarkTheme()
     val isSavingImages by viewModel.isSavingImages.collectAsState()
     val savingImagesProgress by viewModel.savingImagesProgress.collectAsState()
-    
-    DisposableEffect(isDarkTheme) {
-        (context as? ComponentActivity)?.let { activity ->
-            if (isDarkTheme) {
-                val darkTransparentStyle = SystemBarStyle.dark(
-                    scrim = android.graphics.Color.TRANSPARENT
-                )
-                activity.enableEdgeToEdge(
-                    statusBarStyle = darkTransparentStyle,
-                    navigationBarStyle = darkTransparentStyle
-                )
-            } else {
-                val lightTransparentStyle = SystemBarStyle.light(
-                    scrim = android.graphics.Color.TRANSPARENT,
-                    darkScrim = android.graphics.Color.TRANSPARENT
-                )
-                activity.enableEdgeToEdge(
-                    statusBarStyle = lightTransparentStyle,
-                    navigationBarStyle = lightTransparentStyle
-                )
-            }
-        }
-        onDispose { }
-    }
-    
-    BackHandler(onBack = { navController.popBackStack() })
-    
+
+    BackHandler(onBack = onBack)
+
     if (image == null) {
-        LaunchedEffect(Unit) { navController.popBackStack() }
+        LaunchedEffect(Unit) { onBack() }
         return
     }
-    
+
     val beforeBitmap = image.inputBitmap
     val afterBitmap = image.outputBitmap
     val filename = image.filename
     val showSaveAllOption = images.any { it.outputBitmap != null }
-    
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(filename, style = MaterialTheme.typography.titleMedium) },
-                navigationIcon = {
-                    IconButton(onClick = { haptic.light(); navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+
+    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+        TopAppBar(
+            title = { Text(filename, style = MaterialTheme.typography.titleMedium) },
+            navigationIcon = {
+                IconButton(onClick = { haptic.light(); onBack() }) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
+        )
+
+        Box(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surface)
+        ) {
+            if (afterBitmap != null) SliderView(beforeBitmap, afterBitmap, haptic)
+            else Image(beforeBitmap.asImageBitmap(), "Image", Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+        }
+
+        if (afterBitmap != null) {
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp, horizontal = 16.dp)
+                        .navigationBarsPadding(),
+                    Arrangement.SpaceEvenly
+                ) {
+                    IconButton(onClick = {
+                        haptic.light()
+                        ImageActions.shareImage(context, afterBitmap)
+                    }) {
+                        Icon(Icons.Filled.Share, "Share", modifier = Modifier.size(32.dp))
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
-            )
-        },
-        bottomBar = {
-            Column(Modifier.fillMaxWidth()) {
-                if (afterBitmap != null) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceContainer,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(
-                                    top = 8.dp + with(LocalDensity.current) { 22f.toDp() },
-                                    bottom = 16.dp,
-                                    start = 16.dp,
-                                    end = 16.dp
+
+                    IconButton(onClick = {
+                        haptic.medium()
+                        if (skipSaveDialog) {
+                            if (ImageActions.checkFileExists(context, filename)) {
+                                overwriteDialogFilename = filename
+                            } else {
+                                viewModel.saveImage(
+                                    context = context,
+                                    imageId = imageId,
+                                    onSuccess = {},
+                                    onError = { errorMsg -> saveErrorMessage = errorMsg }
                                 )
-                                .navigationBarsPadding(),
-                            Arrangement.SpaceEvenly
-                        ) {
-                            IconButton(onClick = { 
-                                haptic.light()
-                                ImageActions.shareImage(context, afterBitmap) 
-                            }) { 
-                                Icon(Icons.Filled.Share, "Share", modifier = Modifier.size(32.dp))
                             }
-                            
-                            IconButton(onClick = {
-                                haptic.medium()
-                                if (skipSaveDialog) {
-                                    if (ImageActions.checkFileExists(context, filename)) {
-                                        overwriteDialogFilename = filename
-                                    } else {
-                                        viewModel.saveImage(
-                                            context = context,
-                                            imageId = imageId,
-                                            onSuccess = {},
-                                            onError = { errorMsg -> saveErrorMessage = errorMsg }
-                                        )
-                                    }
-                                } else {
-                                    showSaveDialog = true
-                                }
-                            }) {
-                                Icon(Icons.Filled.Save, stringResource(id = R.string.save), modifier = Modifier.size(32.dp))
-                            }
+                        } else {
+                            showSaveDialog = true
                         }
+                    }) {
+                        Icon(Icons.Filled.Save, stringResource(id = R.string.save), modifier = Modifier.size(32.dp))
                     }
                 }
             }
         }
-    ) { paddingValues ->
-        Box(Modifier.fillMaxSize().padding(paddingValues).background(MaterialTheme.colorScheme.surface)) {
-            if (afterBitmap != null) SliderView(beforeBitmap, afterBitmap, haptic)
-            else Image(beforeBitmap.asImageBitmap(), "Image", Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
-        }
     }
-    
+
     if (showSaveDialog) {
         SaveImageDialog(filename, showSaveAllOption, false, false, { showSaveDialog = false }) { name, all, skip ->
             if (skip) {
@@ -213,7 +180,7 @@ fun BeforeAfterScreen(viewModel: ProcessingViewModel, imageId: String, navContro
             }
         }
     }
-    
+
     overwriteDialogFilename?.let { fname ->
         SaveImageDialog(fname, false, false, true, { overwriteDialogFilename = null }) { name, _, _ ->
             afterBitmap?.let { bitmap ->
@@ -245,7 +212,7 @@ fun BeforeAfterScreen(viewModel: ProcessingViewModel, imageId: String, navContro
             }
         )
     }
-    
+
     if (isSavingImages) {
         val progress = savingImagesProgress
         LoadingDialog(
@@ -277,7 +244,6 @@ private fun SliderView(
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
     val density = LocalDensity.current
 
-    // inverted greyscale median color from before image
     val (sliderColor, iconColor) = remember(beforeBitmap) {
         val luminances = mutableListOf<Int>()
         val cx = beforeBitmap.width / 2
@@ -315,7 +281,7 @@ private fun SliderView(
                     clipRect(size.width * range.first, 0f, size.width * range.second, size.height) { this@drawWithContent.drawContent() }
                 }
             ) {
-                Box(Modifier.fillMaxSize().zoomable(zoomableState, enabled = true), Alignment.Center) {
+                Box(Modifier.fillMaxSize().zoomable(zoomableState), Alignment.Center) {
                     Image(bitmap.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit, filterQuality = FilterQuality.None)
                 }
                 Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = alignment) {
