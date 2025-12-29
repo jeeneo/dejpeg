@@ -12,8 +12,8 @@ import com.je.dejpeg.compose.utils.helpers.ModelMigrationHelper
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.je.dejpeg.R
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -23,7 +23,10 @@ import java.io.FileOutputStream
 import java.security.MessageDigest
 import kotlin.collections.iterator
 
-class ModelManager(private val context: Context) {
+class ModelManager(
+    private val context: Context,
+    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
+) {
     private var currentSession: OrtSession? = null
     private var ortEnv: OrtEnvironment? = null
     private var currentModelName: String? = null
@@ -124,7 +127,7 @@ class ModelManager(private val context: Context) {
     fun setActiveModel(modelName: String) {
         Log.d("ModelManager", "setActiveModel called with: $modelName")
         cachedActiveModel = modelName
-        GlobalScope.launch(Dispatchers.IO) {
+        coroutineScope.launch {
             context.dataStore.edit { prefs ->
                 prefs[ACTIVE_MODEL_KEY] = modelName
                 Log.d("ModelManager", "Active model saved to DataStore: $modelName")
@@ -136,7 +139,7 @@ class ModelManager(private val context: Context) {
 
     private fun clearActiveModel() {
         cachedActiveModel = null
-        GlobalScope.launch(Dispatchers.IO) {
+        coroutineScope.launch {
             context.dataStore.edit { prefs ->
                 prefs.remove(ACTIVE_MODEL_KEY)
             }
@@ -144,7 +147,7 @@ class ModelManager(private val context: Context) {
     }
 
     private fun setCurrentProcessingModel(modelName: String) {
-        GlobalScope.launch(Dispatchers.IO) {
+        coroutineScope.launch {
             context.dataStore.edit { prefs ->
                 prefs[CURRENT_PROCESSING_MODEL_KEY] = modelName
             }
