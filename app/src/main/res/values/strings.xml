@@ -13,6 +13,7 @@
     <string name="save_all">Save all</string>
     <string name="dont_show_dialog">Don\'t show this dialog</string>
     <string name="cancel">Cancel</string>
+    <string name="back_exit_confirm">Press back again to exit</string>
 
     <!-- if translated, must be all lowercase, used inside middle of sentence -->
     <string name="all_images">all images</string>
