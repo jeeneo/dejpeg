@@ -25,6 +25,7 @@ class ProcessingService : Service() {
         const val EXTRA_STRENGTH = "extra_strength"
         const val EXTRA_CHUNK_SIZE = "extra_chunk_size"
         const val EXTRA_OVERLAP_SIZE = "extra_overlap_size"
+        const val EXTRA_MODEL_NAME = "extra_model_name"
         const val PROGRESS_ACTION = "com.je.dejpeg.action.PROGRESS"
         const val PROGRESS_EXTRA_MESSAGE = "extra_message"
         const val PROGRESS_EXTRA_COMPLETED_CHUNKS = "extra_completed_chunks"
@@ -82,7 +83,14 @@ class ProcessingService : Service() {
                 val filename = intent.getStringExtra(EXTRA_FILENAME) ?: "processed.png"
                 val imageId = intent.getStringExtra(EXTRA_IMAGE_ID)
                 val strength = intent.getFloatExtra(EXTRA_STRENGTH, 50f)
+                val modelName = intent.getStringExtra(EXTRA_MODEL_NAME)
                 currentImageId = imageId
+                if (modelName != null) {
+                    Log.d("ProcessingService", "Using model from Intent: $modelName")
+                    modelManager?.setActiveModel(modelName)
+                } else {
+                    Log.w("ProcessingService", "No model name in Intent, using DataStore")
+                }
                 if (uriString == null) {
                     broadcast(ERROR_ACTION, ERROR_EXTRA_MESSAGE to "Missing uri", imageId = imageId)
                     stopSelf()
@@ -150,7 +158,7 @@ class ProcessingService : Service() {
                             }
                         }, 0, 1)
                     } catch (e: Exception) {
-                        val msg = if (e is CancellationException) "Cancelled" else "Error: ${e.message}"
+                        val msg = if (e is CancellationException) "Cancelled" else "${e.message}"
                         broadcast(ERROR_ACTION, ERROR_EXTRA_MESSAGE to msg, imageId = imageId)
                         Log.d("ProcessingService", "exception: ${e.message}")
                         scheduleAutoStop()

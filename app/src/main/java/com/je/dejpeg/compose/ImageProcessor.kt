@@ -47,11 +47,9 @@ class ImageProcessor(
         total: Int
     ) = withContext(Dispatchers.Default) {
         isCancelled = false
-
         try {
             val modelName = modelManager.getActiveModelName()
             val session = modelManager.loadModel()
-                ?: throw Exception(context.getString(R.string.error_failed_to_load_model))
             val modelInfo = ModelInfo(modelName, strength, session, customChunkSize, customOverlapSize)
             val result = processBitmap(session, inputBitmap, callback, modelInfo, index, total)
             withContext(Dispatchers.Main) {
@@ -413,7 +411,7 @@ class ImageProcessor(
     }
 
     private fun formatError(e: Exception): String {
-        return "Error: ${e.javaClass.simpleName}${if (e.message != null) ": ${e.message}" else ""}"
+        return "${e.javaClass.simpleName}${if (e.message != null) ": ${e.message}" else ""}"
     }
 
     private fun floatToFloat16(value: Float): Short {

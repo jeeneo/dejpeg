@@ -61,6 +61,7 @@ class ProcessingViewModel : ViewModel() {
     val loadingImagesProgress = MutableStateFlow<Pair<Int, Int>?>(null)
     val isSavingImages = MutableStateFlow(false)
     val savingImagesProgress = MutableStateFlow<Pair<Int, Int>?>(null)
+    val processingErrorDialog = MutableStateFlow<String?>(null)
 
     private var appContext: Context? = null
     private var appPreferences: AppPreferences? = null
@@ -83,11 +84,12 @@ class ProcessingViewModel : ViewModel() {
     fun initialize(context: Context) {
         if (isInitialized) return
         isInitialized = true
-        appContext = context.applicationContext
+        val appCtx = context.applicationContext
+        appContext = appCtx
         appPreferences = AppPreferences.getInstance(context)
         modelRepository = ModelRepository(context)
         imagePickerHelper = ImagePickerHelper(context)
-        serviceHelper = ServiceCommunicationHelper(context, createServiceCallbacks())
+        serviceHelper = ServiceCommunicationHelper(appCtx, createServiceCallbacks())
         serviceHelper?.register()
         collectPreferences()
         loadInitialModels()
@@ -148,6 +150,10 @@ class ProcessingViewModel : ViewModel() {
     override fun onCleared() {
         super.onCleared()
         serviceHelper?.unregister()
+    }
+
+    fun serviceHelperRegister() {
+        serviceHelper?.register()
     }
 
     fun setImagePickerLauncher(launcher: ActivityResultLauncher<Intent>) {
@@ -344,7 +350,8 @@ class ProcessingViewModel : ViewModel() {
             filename = image.filename,
             strength = strength,
             chunkSize = chunkSize.value,
-            overlapSize = overlapSize.value
+            overlapSize = overlapSize.value,
+            modelName = modelRepository?.getActiveModelName()
         )
     }
 
@@ -402,7 +409,7 @@ class ProcessingViewModel : ViewModel() {
                     updateImageState(imageId) { it.copy(isProcessing = false, progress = "Decode failed", completedChunks = 0, totalChunks = 0) }
                 }
             } catch (e: Exception) {
-                updateImageState(imageId) { it.copy(isProcessing = false, progress = "Error: ${e.message}", completedChunks = 0, totalChunks = 0) }
+                updateImageState(imageId) { it.copy(isProcessing = false, progress = "${e.message}", completedChunks = 0, totalChunks = 0) }
             } finally {
                 advanceQueue(imageId)
             }
@@ -426,9 +433,30 @@ class ProcessingViewModel : ViewModel() {
         if (isCancelled) {
             cancelInProgress = false
             if (imageId == currentProcessingId) currentProcessingId = null
+            advanceQueue(imageId)
+            return
         }
 
-        advanceQueue(imageId)
+        appContext?.let { ctx ->
+            val stopIntent = Intent(ctx, com.je.dejpeg.ProcessingService::class.java)
+            stopIntent.action = com.je.dejpeg.ProcessingService.ACTION_CANCEL
+            ctx.startService(stopIntent)
+        }
+        
+        processingQueue.clear()
+        isProcessingQueue = false
+        activeProcessingTotal = 0
+        currentProcessingId = null
+        cancelInProgress = false
+
+        images.value = images.value.map {
+            if (it.isProcessing || it.isCancelling) {
+                it.copy(isProcessing = false, isCancelling = false, progress = "")
+            } else it
+        }
+        
+        processingErrorDialog.value = message
+        uiState.value = ProcessingUiState.Idle
     }
 
     private fun advanceQueue(completedImageId: String? = null) {
@@ -526,6 +554,7 @@ class ProcessingViewModel : ViewModel() {
     fun dismissNoModelDialog() { shouldShowNoModelDialog.value = false }
     fun dismissDeprecatedModelWarning() { deprecatedModelWarning.value = null }
     fun dismissBatteryOptimizationDialog() { shouldShowBatteryOptimizationDialog.value = false }
+    fun dismissProcessingErrorDialog() { processingErrorDialog.value = null }
 
     fun markImageAsSaved(imageId: String) {
         updateImageState(imageId) { it.copy(hasBeenSaved = true) }

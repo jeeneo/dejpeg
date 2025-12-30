@@ -142,10 +142,12 @@
     
     <!-- model warnings -->
     <string name="model_warning_performance_title">Performance warning</string>
-    <string name="model_warning_ditherdeleter_message">DitherDeleterV3 is resource-intensive and not recommended, it will take a long time to process images over 500px on even high-end devices</string>
-    <string name="model_warning_bandage_message">Bandage-Smooth is resource-intensive and not recommended, it will take a long time to process images over 500px on even high-end devices</string>
+    <!-- <string name="model_warning_ditherdeleter_message">DitherDeleterV3 is resource-intensive and not recommended, it will take a long time to process images over 500px on even high-end devices</string>
+    <string name="model_warning_bandage_message">Bandage-Smooth is resource-intensive and not recommended, it will take a long time to process images over 500px on even high-end devices</string> -->
     <string name="model_warning_outdated_title">Outdated model</string>
     <string name="model_warning_outdated_message">This is an older f32 model. A newer/faster f16 version is available, check model management\'s download button</string>
+    <string name="model_warning_unrecognized_title">Unrecognized model</string>
+    <string name="model_warning_unrecognized_message">This model is not officially supported and may not work correctly</string>
 
     <!-- ImageProcessor strings -->
     <string name="error_failed_to_load_model">Failed to load model</string>
@@ -158,4 +160,8 @@
     <string name="loading_image_progress">Loading %1$d of %2$d</string>
     <string name="saving_images">Saving images...</string>
     <string name="saving_image_progress">Saving %1$d of %2$d</string>
+
+    <string name="error_processing_title">Processing error</string>
+    <string name="copy_error">Copy error</string>
+    <string name="error_copied">Copied to clipboard</string>
 </resources>

@@ -67,27 +67,34 @@ class ServiceCommunicationHelper(
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     fun register() {
         if (isRegistered) return
-        
-        val filter = IntentFilter().apply {
-            addAction(ProcessingService.PID_ACTION)
-            addAction(ProcessingService.PROGRESS_ACTION)
-            addAction(ProcessingService.COMPLETE_ACTION)
-            addAction(ProcessingService.ERROR_ACTION)
+        try {
+            val filter = IntentFilter().apply {
+                addAction(ProcessingService.PID_ACTION)
+                addAction(ProcessingService.PROGRESS_ACTION)
+                addAction(ProcessingService.COMPLETE_ACTION)
+                addAction(ProcessingService.ERROR_ACTION)
+            }
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            } else {
+                context.registerReceiver(receiver, filter)
+            }
+            isRegistered = true
+            Log.d("ServiceCommHelper", "Receiver registered successfully")
+        } catch (e: Exception) {
+            Log.e("ServiceCommHelper", "Failed to register receiver: ${e.message}")
         }
-        
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            context.registerReceiver(receiver, filter)
-        }
-        isRegistered = true
     }
 
     fun unregister() {
         if (!isRegistered) return
         try {
             context.unregisterReceiver(receiver)
-        } catch (_: Exception) { }
+            Log.d("ServiceCommHelper", "Receiver unregistered successfully")
+        } catch (e: Exception) {
+            Log.e("ServiceCommHelper", "Failed to unregister receiver: ${e.message}")
+        }
         isRegistered = false
     }
 
@@ -97,7 +104,8 @@ class ServiceCommunicationHelper(
         filename: String,
         strength: Float,
         chunkSize: Int,
-        overlapSize: Int
+        overlapSize: Int,
+        modelName: String?
     ) {
         NotificationHelper.show(context, "Preparing...")
         startService(ProcessingService.ACTION_PROCESS) {
@@ -107,6 +115,7 @@ class ServiceCommunicationHelper(
             putExtra(ProcessingService.EXTRA_STRENGTH, strength)
             putExtra(ProcessingService.EXTRA_CHUNK_SIZE, chunkSize)
             putExtra(ProcessingService.EXTRA_OVERLAP_SIZE, overlapSize)
+            modelName?.let { putExtra(ProcessingService.EXTRA_MODEL_NAME, it) }
         }
     }
 

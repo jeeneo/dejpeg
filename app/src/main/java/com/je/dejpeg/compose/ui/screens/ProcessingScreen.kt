@@ -87,6 +87,7 @@ fun ProcessingScreen(
     val deprecatedModelWarning by viewModel.deprecatedModelWarning.collectAsState()
     val isLoadingImages by viewModel.isLoadingImages.collectAsState()
     val loadingImagesProgress by viewModel.loadingImagesProgress.collectAsState()
+    val processingErrorDialog by viewModel.processingErrorDialog.collectAsState()
     var imageIdToRemove by remember { mutableStateOf<String?>(null) }
     var imageIdToCancel by remember { mutableStateOf<String?>(null) }
     var showImageSourceDialog by remember { mutableStateOf(false) }
@@ -144,7 +145,10 @@ fun ProcessingScreen(
         overwriteDialogState = overwriteDialogState?.takeIf { (id, _) -> images.any { it.id == id } }
     }
 
-    LaunchedEffect(Unit) { viewModel.initialize(context) }
+    LaunchedEffect(Unit) {
+        viewModel.initialize(context)
+        viewModel.serviceHelperRegister()
+    }
 
     val processedShareUris = remember { mutableStateOf(setOf<String>()) }
     LaunchedEffect(initialSharedUris) {
@@ -417,7 +421,39 @@ fun ProcessingScreen(
             }
         )
     }
-    
+
+    processingErrorDialog?.let { errorMsg ->
+        val hapticFeedback = rememberHapticFeedback()
+        val context = LocalContext.current
+        val clipboardManager = remember { context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager }
+        
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissProcessingErrorDialog() },
+            shape = RoundedCornerShape(28.dp),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            title = { Text(stringResource(R.string.error_processing_title)) },
+            text = { Text(errorMsg) },
+            confirmButton = {
+                TextButton(onClick = {
+                    hapticFeedback.light()
+                    viewModel.dismissProcessingErrorDialog()
+                }) {
+                    Text(stringResource(R.string.ok))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    hapticFeedback.light()
+                    val clip = android.content.ClipData.newPlainText("Error message", errorMsg)
+                    clipboardManager.setPrimaryClip(clip)
+                    Toast.makeText(context, context.getString(R.string.error_copied), Toast.LENGTH_SHORT).show()
+                }) {
+                    Text(stringResource(R.string.copy_error))
+                }
+            }
+        )
+    }
+
     if (isLoadingImages) {
         val progress = loadingImagesProgress
         LoadingDialog(
