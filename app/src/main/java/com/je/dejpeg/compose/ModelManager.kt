@@ -71,18 +71,18 @@ class ModelManager(
         )
 
         private val MODEL_WARNINGS = buildMap {
-            put("1x_DitherDeleterV3-Smooth-32._115000_G.onnx", ModelWarning(
-                R.string.model_warning_performance_title,
-                R.string.model_warning_ditherdeleter_message,
-                R.string.import_anyway,
-                R.string.cancel
-            ))
-            put("1x_Bandage-Smooth-64._105000_G.onnx", ModelWarning(
-                R.string.model_warning_performance_title,
-                R.string.model_warning_bandage_message,
-                R.string.import_anyway,
-                R.string.cancel
-            ))
+            // put("1x_DitherDeleterV3-Smooth-32._115000_G.onnx", ModelWarning(
+            //     R.string.model_warning_performance_title,
+            //     R.string.model_warning_ditherdeleter_message,
+            //     R.string.import_anyway,
+            //     R.string.cancel
+            // ))
+            // put("1x_Bandage-Smooth-64._105000_G.onnx", ModelWarning(
+            //     R.string.model_warning_performance_title,
+            //     R.string.model_warning_bandage_message,
+            //     R.string.import_anyway,
+            //     R.string.cancel
+            // ))
             F32_LEGACY_MODELS.forEach { modelName ->
                 put(modelName, ModelWarning(
                     R.string.model_warning_outdated_title,
@@ -126,6 +126,7 @@ class ModelManager(
 
     fun setActiveModel(modelName: String) {
         Log.d("ModelManager", "setActiveModel called with: $modelName")
+        unloadModel()
         cachedActiveModel = modelName
         coroutineScope.launch {
             context.dataStore.edit { prefs ->
@@ -133,8 +134,7 @@ class ModelManager(
                 Log.d("ModelManager", "Active model saved to DataStore: $modelName")
             }
         }
-        unloadModel()
-        Log.d("ModelManager", "Model unloaded, new active model: $modelName")
+        Log.d("ModelManager", "Active model set to: $modelName")
     }
 
     private fun clearActiveModel() {
@@ -163,15 +163,30 @@ class ModelManager(
         return files?.map { it.name } ?: emptyList()
     }
 
-    fun loadModel(): OrtSession? {
-        val activeModel = getActiveModelName() ?: return null
-        currentSession?.let { session ->
-            if (activeModel == currentModelName) return session
+    fun loadModel(): OrtSession {
+        val activeModel = getActiveModelName()
+        Log.d("ModelManager", "loadModel called, activeModel: $activeModel, currentModelName: $currentModelName")
+        
+        if (activeModel == null) {
+            Log.e("ModelManager", "No active model set")
+            throw Exception("No active model set")
         }
+        
+        if (currentSession != null && activeModel == currentModelName) {
+            Log.d("ModelManager", "Returning cached session for: $activeModel")
+            return currentSession!!
+        }
+        
+        Log.d("ModelManager", "Loading new model: $activeModel (previous: $currentModelName)")
         unloadModel()
+        
         val modelFile = File(getModelsDir(), activeModel)
-        if (!modelFile.exists()) return null
-        return try {
+        if (!modelFile.exists()) {
+            Log.e("ModelManager", "Model file does not exist: ${modelFile.absolutePath}")
+            throw Exception("Model file does not exist: ${modelFile.absolutePath}")
+        }
+        
+        try {
             if (ortEnv == null) {
                 ortEnv = OrtEnvironment.getEnvironment()
             }
@@ -180,10 +195,13 @@ class ModelManager(
             currentSession = ortEnv?.createSession(modelFile.absolutePath, opts)
             currentModelName = activeModel
             setCurrentProcessingModel(activeModel)
-            currentSession
+            Log.d("ModelManager", "Successfully loaded model: $activeModel")
+            return currentSession!!
         } catch (e: Exception) {
             Log.e("ModelManager", "Error loading model: ${e.message}", e)
-            null
+            currentSession = null
+            currentModelName = null
+            throw e
         }
     }
 
@@ -201,10 +219,21 @@ class ModelManager(
     }
 
     fun unloadModel() {
-        try { currentSession?.close() } catch (e: Exception) { Log.e("ModelManager", "Error closing session: ${e.message}") }
+        Log.d("ModelManager", "unloadModel called, clearing session for: $currentModelName")
+        try { 
+            currentSession?.close() 
+            Log.d("ModelManager", "Session closed successfully")
+        } catch (e: Exception) { 
+            Log.e("ModelManager", "Error closing session: ${e.message}") 
+        }
         currentSession = null
         currentModelName = null
-        try { ortEnv?.close() } catch (e: Exception) { Log.e("ModelManager", "Error closing environment: ${e.message}") }
+        try { 
+            ortEnv?.close() 
+            Log.d("ModelManager", "OrtEnvironment closed successfully")
+        } catch (e: Exception) { 
+            Log.e("ModelManager", "Error closing environment: ${e.message}") 
+        }
         ortEnv = null
         System.gc()
     }
@@ -225,7 +254,13 @@ class ModelManager(
                 return
             }
             if (result.matchedModel == null && !force) {
-                onError("Model not recognized. Import anyway?")
+                val unrecognizedWarning = ModelWarning(
+                    R.string.model_warning_unrecognized_title,
+                    R.string.model_warning_unrecognized_message,
+                    R.string.import_anyway,
+                    R.string.cancel
+                )
+                onWarning?.invoke(result.filename, unrecognizedWarning)
                 return
             }
             importModelInternal(modelUri, result.filename, onProgress, onSuccess, onError)
