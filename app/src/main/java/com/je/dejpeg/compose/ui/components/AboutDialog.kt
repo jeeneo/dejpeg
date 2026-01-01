@@ -63,7 +63,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
                 } catch (_: Exception) {
                 }
             }) {
-                Text(stringResource(R.string.github))
+                Text(stringResource(R.string.source_code))
             }
         }
     )

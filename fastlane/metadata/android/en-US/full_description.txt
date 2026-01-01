@@ -12,7 +12,7 @@
 
 <p>This is not a "super resolution AI upscaler", but simple non-destructive method for cleaning up/restoring images</p>
 
-<p>external models are required (links in-app or on GitHub)</p>
+<p>external models are required (links in-app)</p>
 
 <h2>limitations:</h2>
 <ul>

@@ -123,7 +123,7 @@ class ProcessingService : Service() {
                             override fun onComplete(result: android.graphics.Bitmap) {
                                 try {
                                     NotificationHelper.show(this@ProcessingService, "Processing complete")
-                                    val safeName = if (!imageId.isNullOrEmpty()) "${imageId}_$filename" else filename
+                                    val safeName = if (!imageId.isNullOrEmpty()) imageId else filename
                                     val outFile = File(cacheDir, "${safeName}_processed.png")
                                     FileOutputStream(outFile).use { result.compress(android.graphics.Bitmap.CompressFormat.PNG, 95, it) }
                                     broadcast(PROGRESS_ACTION, PROGRESS_EXTRA_MESSAGE to "Complete", imageId = imageId)

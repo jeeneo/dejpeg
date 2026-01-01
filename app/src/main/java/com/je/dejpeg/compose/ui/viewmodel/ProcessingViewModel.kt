@@ -237,7 +237,7 @@ class ProcessingViewModel : ViewModel() {
         images.value = images.value.filter { it.id != id }
         if (cleanupCache) {
             appContext?.let { ctx ->
-                viewModelScope.launch { CacheManager.cleanupProcessedImage(ctx, id) }
+                viewModelScope.launch { CacheManager.deleteRecoveryPair(ctx, id) }
             }
         }
     }
@@ -245,11 +245,48 @@ class ProcessingViewModel : ViewModel() {
     fun clearAll() {
         appContext?.let { ctx ->
             viewModelScope.launch {
-                images.value.forEach { CacheManager.cleanupProcessedImage(ctx, it.id) }
+                images.value.forEach { CacheManager.deleteRecoveryPair(ctx, it.id) }
             }
         }
         images.value = emptyList()
         uiState.value = ProcessingUiState.Idle
+    }
+
+    fun loadRecoveryImages(onComplete: (List<Pair<String, Pair<android.graphics.Bitmap, android.graphics.Bitmap?>>>) -> Unit) {
+        appContext?.let { ctx ->
+            viewModelScope.launch {
+                val recoveryImages = mutableListOf<Pair<String, Pair<android.graphics.Bitmap, android.graphics.Bitmap?>>>()
+                val cachedImages = CacheManager.getRecoveryImages(ctx)
+                
+                for ((imageId, file) in cachedImages) {
+                    val processedBitmap = withContext(Dispatchers.IO) {
+                        BitmapFactory.decodeFile(file.absolutePath)
+                    }
+                    if (processedBitmap != null) {
+                        val unprocessedFile = CacheManager.getUnprocessedImage(ctx, imageId)
+                        val unprocessedBitmap = if (unprocessedFile != null) {
+                            withContext(Dispatchers.IO) {
+                                BitmapFactory.decodeFile(unprocessedFile.absolutePath)
+                            }
+                        } else null
+                        recoveryImages.add("Recovered_${imageId.take(8)}" to (processedBitmap to unprocessedBitmap))
+                    }
+                }
+                
+                onComplete(recoveryImages)
+            }
+        } ?: onComplete(emptyList())
+    }
+
+    fun deleteRecoveryImages() {
+        appContext?.let { ctx ->
+            viewModelScope.launch(Dispatchers.IO) {
+                val cachedImages = CacheManager.getRecoveryImages(ctx)
+                cachedImages.forEach { (imageId, _) ->
+                    CacheManager.deleteRecoveryPair(ctx, imageId)
+                }
+            }
+        }
     }
 
     private fun getImageById(id: String) = images.value.find { it.id == id }
@@ -343,7 +380,9 @@ class ProcessingViewModel : ViewModel() {
         updateImageState(imageId) {
             it.copy(isProcessing = true, progress = STATUS_PREPARING, completedChunks = 0, totalChunks = 0)
         }
-
+        viewModelScope.launch {
+            CacheManager.saveUnprocessedImage(ctx, imageId, image.inputBitmap)
+        }
         serviceHelper?.startProcessing(
             imageId = imageId,
             uriString = uriString,
@@ -396,6 +435,9 @@ class ProcessingViewModel : ViewModel() {
             try {
                 val bitmap = withContext(Dispatchers.IO) { BitmapFactory.decodeFile(path) }
                 if (bitmap != null) {
+                    // Save to cache for recovery if app closes before saving
+                    CacheManager.saveProcessedImage(appContext!!, imageId, bitmap)
+                    
                     updateImageState(imageId) {
                         it.copy(
                             outputBitmap = bitmap,
@@ -428,6 +470,13 @@ class ProcessingViewModel : ViewModel() {
                 )
             }
             processingQueue.remove(imageId)
+            if (isCancelled) {
+                appContext?.let { ctx ->
+                    viewModelScope.launch(Dispatchers.IO) {
+                        CacheManager.deleteUnprocessedImage(ctx, imageId)
+                    }
+                }
+            }
         }
 
         if (isCancelled) {
@@ -579,9 +628,9 @@ class ProcessingViewModel : ViewModel() {
             context = context,
             bitmap = bitmap,
             filename = filename ?: image.filename,
+            imageId = imageId,
             onSuccess = {
                 updateImageState(imageId) { it.copy(hasBeenSaved = true) }
-                viewModelScope.launch { CacheManager.cleanupProcessedImage(context, imageId) }
                 onSuccess()
             },
             onError = onError
@@ -617,7 +666,6 @@ class ProcessingViewModel : ViewModel() {
                 viewModelScope.launch {
                     imagesToSave.forEach { image ->
                         updateImageState(image.id) { it.copy(hasBeenSaved = true) }
-                        CacheManager.cleanupProcessedImage(context, image.id)
                     }
                 }
                 isSavingImages.value = false

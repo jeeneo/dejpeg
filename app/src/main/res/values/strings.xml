@@ -120,7 +120,7 @@
     <string name="non_destructive_restoration">Non-destructive restoration</string>
     <string name="open_source_app_description">An open source app for removing noise and compression from photos</string>
     <string name="license_text">Licensed under GPLv3</string>
-    <string name="github">GitHub</string>
+    <string name="source_code">Source code</string>
     <string name="save_dialog">Save dialog</string>
     <string name="currently">Currently: %1$s</string>
     <string name="shown">shown</string>

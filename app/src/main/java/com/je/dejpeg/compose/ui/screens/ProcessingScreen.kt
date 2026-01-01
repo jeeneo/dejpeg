@@ -52,6 +52,7 @@ import com.je.dejpeg.compose.ui.components.CancelProcessingDialog
 import com.je.dejpeg.compose.ui.components.ImageSourceDialog
 import com.je.dejpeg.compose.ui.components.LoadingDialog
 import com.je.dejpeg.compose.utils.ImageActions
+import com.je.dejpeg.compose.utils.helpers.ImageLoadingHelper
 import com.je.dejpeg.compose.ui.viewmodel.ImageItem
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingUiState
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
@@ -70,7 +71,8 @@ fun ProcessingScreen(
     onNavigateToBrisque: (String) -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     initialSharedUris: List<Uri> = emptyList(),
-    onRemoveSharedUri: (Uri) -> Unit = {}
+    onRemoveSharedUri: (Uri) -> Unit = {},
+    hasRecoveryImages: Boolean = false
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -94,6 +96,8 @@ fun ProcessingScreen(
     var showCancelAllDialog by remember { mutableStateOf(false) }
     var saveErrorMessage by remember { mutableStateOf<String?>(null) }
     var overwriteDialogState by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var recoveryImages by remember { mutableStateOf<List<Pair<String, Pair<android.graphics.Bitmap, android.graphics.Bitmap?>>>>(emptyList()) }
+    var showRecoveryDialog by remember { mutableStateOf(false) }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -148,6 +152,17 @@ fun ProcessingScreen(
     LaunchedEffect(Unit) {
         viewModel.initialize(context)
         viewModel.serviceHelperRegister()
+    }
+
+    LaunchedEffect(hasRecoveryImages) {
+        if (hasRecoveryImages) {
+            viewModel.loadRecoveryImages { loadedImages ->
+                recoveryImages = loadedImages
+                showRecoveryDialog = true
+            }
+        } else {
+            viewModel.deleteRecoveryImages()
+        }
     }
 
     val processedShareUris = remember { mutableStateOf(setOf<String>()) }
@@ -282,7 +297,9 @@ fun ProcessingScreen(
                             onRemove = { handleImageRemoval(image.id) },
                             onProcess = { if (!viewModel.hasActiveModel()) viewModel.showNoModelDialog() else viewModel.processImage(image.id) },
                             onBrisque = { haptic.light(); onNavigateToBrisque(image.id) },
-                            onClick = { if (image.outputBitmap != null) { haptic.light(); onNavigateToBeforeAfter(image.id) } }
+                            onClick = { onNavigateToBeforeAfter(image.id) },
+                            onBeforeOnly = { onNavigateToBeforeAfter(image.id) },
+                            isProcessing = image.isProcessing
                         )
                     }
                     LaunchedEffect(imageIdToRemove, imageIdToCancel) { if (imageIdToRemove != image.id && imageIdToCancel != image.id) swipeState.value = 0f }
@@ -462,6 +479,33 @@ fun ProcessingScreen(
             progressText = progress?.let { stringResource(R.string.loading_image_progress, it.first, it.second) }
         )
     }
+
+    if (showRecoveryDialog && recoveryImages.isNotEmpty()) {
+        RecoveryImagesDialog(
+            count = recoveryImages.size,
+            onRecover = {
+                recoveryImages.forEach { (_, bitmapPair) ->
+                    val (processedBitmap, unprocessedBitmap) = bitmapPair
+                    val inputBitmap = unprocessedBitmap ?: processedBitmap
+                    viewModel.addImage(ImageItem(
+                        id = java.util.UUID.randomUUID().toString(),
+                        uri = null,
+                        filename = "Recovered",
+                        inputBitmap = inputBitmap,
+                        outputBitmap = processedBitmap,
+                        thumbnailBitmap = ImageLoadingHelper.generateThumbnail(processedBitmap),
+                        size = "${processedBitmap.width}x${processedBitmap.height}",
+                        hasBeenSaved = false
+                    ))
+                }
+                showRecoveryDialog = false
+            },
+            onDiscard = {
+                viewModel.deleteRecoveryImages()
+                showRecoveryDialog = false
+            }
+        )
+    }
 }
 
 @Composable
@@ -531,97 +575,109 @@ fun ChunkProgressIndicator(completedChunks: Int, totalChunks: Int) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ImageCard(image: ImageItem, supportsStrength: Boolean, onStrengthChange: (Float) -> Unit, onRemove: () -> Unit, onProcess: () -> Unit, onBrisque: () -> Unit, onClick: () -> Unit) {
+fun ImageCard(image: ImageItem, supportsStrength: Boolean, onStrengthChange: (Float) -> Unit, onRemove: () -> Unit, onProcess: () -> Unit, onBrisque: () -> Unit, onClick: () -> Unit, onBeforeOnly: () -> Unit, isProcessing: Boolean = false) {
     val haptic = rememberHapticFeedback()
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(96.dp)
-            .clickable(enabled = image.outputBitmap != null) { haptic.light(); onClick() }, 
-        shape = RoundedCornerShape(16.dp), 
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp,
-            pressedElevation = 4.dp
-        )
-    ) {
-        Box(modifier = Modifier.fillMaxSize().padding(12.dp)) {
-            Row(
-                modifier = Modifier.fillMaxSize(), 
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                val displayBitmap = image.thumbnailBitmap ?: image.outputBitmap ?: image.inputBitmap
-                Surface(
-                    modifier = Modifier
-                        .size(72.dp)
-                        .clip(RoundedCornerShape(12.dp)),
-                    color = MaterialTheme.colorScheme.surfaceVariant
-                ) {
-                    Image(
-                        bitmap = displayBitmap.asImageBitmap(), 
-                        contentDescription = image.filename, 
-                        modifier = Modifier.fillMaxSize(), 
-                        contentScale = ContentScale.Crop
-                    )
-                }
-                Column(modifier = Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.Top) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = image.filename, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, modifier = Modifier.weight(1f, fill = false))
-                        Text(text = image.size, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
-                    }
-                    if (image.isProcessing) {
-                        Spacer(modifier = Modifier.height(6.dp))
-                        if (image.totalChunks > 1) {
-                            ChunkProgressIndicator(completedChunks = image.completedChunks, totalChunks = image.totalChunks)
-                        } else {
-                            LinearProgressIndicator(
-                                modifier = Modifier.fillMaxWidth(),
-                                color = MaterialTheme.colorScheme.primary,
-                                trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (image.progress.isNotEmpty()) Text(text = image.progress, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontSize = 10.sp, maxLines = 1)
-                        }
-                    } else if (image.outputBitmap != null) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer
-                        ) {
-                            Text(
-                                text = stringResource(R.string.status_complete_ui), 
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                fontWeight = FontWeight.Medium,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
-                            )
-                        }
-                    }
-                }
+    val isClickable = !isProcessing && (image.outputBitmap != null || image.inputBitmap != null)
+    Box(modifier = Modifier
+        .fillMaxWidth()
+        .height(96.dp)
+        .clip(RoundedCornerShape(16.dp))
+        .clickable(enabled = isClickable) { 
+            haptic.light()
+            if (image.outputBitmap != null) {
+                onClick()
+            } else {
+                onBeforeOnly()
             }
-            Row(
-                Modifier.align(Alignment.BottomEnd),
-                horizontalArrangement = Arrangement.spacedBy(0.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (image.isProcessing) {
-                    IconButton({ haptic.heavy(); onRemove() }, Modifier.size(36.dp)) {
-                        Icon(Icons.Filled.Close, stringResource(R.string.cancel_processing), tint = Color(0xFFEF5350), modifier = Modifier.size(20.dp))
+        }
+    ) {
+        Card(
+            modifier = Modifier.fillMaxSize(),
+            shape = RoundedCornerShape(16.dp), 
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer
+            ),
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = 2.dp,
+                pressedElevation = 4.dp
+            )
+        ) {
+            Box(modifier = Modifier.fillMaxSize().padding(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxSize(), 
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    val displayBitmap = image.thumbnailBitmap ?: image.outputBitmap ?: image.inputBitmap
+                    Surface(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clip(RoundedCornerShape(12.dp)),
+                        color = MaterialTheme.colorScheme.surfaceVariant
+                    ) {
+                        Image(
+                            bitmap = displayBitmap.asImageBitmap(), 
+                            contentDescription = image.filename, 
+                            modifier = Modifier.fillMaxSize(), 
+                            contentScale = ContentScale.Crop
+                        )
                     }
-                } else {
-                    IconButton({ haptic.medium(); onProcess() }, Modifier.size(36.dp)) {
-                        Icon(Icons.Filled.PlayArrow, stringResource(R.string.process), tint = Color(0xFF4CAF50), modifier = Modifier.size(20.dp))
+                    Column(modifier = Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.Top) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = image.filename, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, modifier = Modifier.weight(1f, fill = false))
+                            Text(text = image.size, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                        }
+                        if (image.isProcessing) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            if (image.totalChunks > 1) {
+                                ChunkProgressIndicator(completedChunks = image.completedChunks, totalChunks = image.totalChunks)
+                            } else {
+                                LinearProgressIndicator(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (image.progress.isNotEmpty()) Text(text = image.progress, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontSize = 10.sp, maxLines = 1)
+                            }
+                        } else if (image.outputBitmap != null) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.status_complete_ui), 
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
                     }
-                    IconButton({ haptic.heavy(); onRemove() }, Modifier.size(36.dp)) {
-                        Icon(Icons.Filled.Delete, stringResource(R.string.remove), tint = Color(0xFFEF5350), modifier = Modifier.size(18.dp))
-                    }
-                    IconButton({ onBrisque() }, Modifier.size(36.dp)) {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("B", fontStyle = FontStyle.Italic, color = MaterialTheme.colorScheme.primary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                }
+                Row(
+                    Modifier.align(Alignment.BottomEnd),
+                    horizontalArrangement = Arrangement.spacedBy(0.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (image.isProcessing) {
+                        IconButton({ haptic.heavy(); onRemove() }, Modifier.size(36.dp)) {
+                            Icon(Icons.Filled.Close, stringResource(R.string.cancel_processing), tint = Color(0xFFEF5350), modifier = Modifier.size(20.dp))
+                        }
+                    } else {
+                        IconButton({ haptic.medium(); onProcess() }, Modifier.size(36.dp)) {
+                            Icon(Icons.Filled.PlayArrow, stringResource(R.string.process), tint = Color(0xFF4CAF50), modifier = Modifier.size(20.dp))
+                        }
+                        IconButton({ haptic.heavy(); onRemove() }, Modifier.size(36.dp)) {
+                            Icon(Icons.Filled.Delete, stringResource(R.string.remove), tint = Color(0xFFEF5350), modifier = Modifier.size(18.dp))
+                        }
+                        IconButton({ onBrisque() }, Modifier.size(36.dp)) {
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text("B", fontStyle = FontStyle.Italic, color = MaterialTheme.colorScheme.primary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }
@@ -659,6 +715,34 @@ fun DeprecatedModelWarningDialog(
         dismissButton = { 
             TextButton(onClick = { haptic.light(); onGoToSettings() }) { 
                 Text(stringResource(R.string.go_to_settings)) 
+            } 
+        }
+    )
+}
+
+@Composable
+fun RecoveryImagesDialog(
+    count: Int,
+    onRecover: () -> Unit = {},
+    onDiscard: () -> Unit = {}
+) {
+    val haptic = rememberHapticFeedback()
+    AlertDialog(
+        onDismissRequest = onDiscard,
+        shape = RoundedCornerShape(28.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        title = { Text("Recover Processed Images?") },
+        text = { 
+            Text("Found $count processed image(s) that were not saved before closing. Would you like to recover them?")
+        },
+        confirmButton = { 
+            TextButton(onClick = { haptic.medium(); onRecover() }) { 
+                Text("Recover") 
+            } 
+        },
+        dismissButton = { 
+            TextButton(onClick = { haptic.light(); onDiscard() }) { 
+                Text("Discard") 
             } 
         }
     )

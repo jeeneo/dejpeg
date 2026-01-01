@@ -3,6 +3,7 @@ package com.je.dejpeg
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -22,9 +23,12 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.je.dejpeg.compose.utils.CacheManager
 import com.je.dejpeg.ui.MainScreen
 import com.je.dejpeg.ui.theme.DeJPEGTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 
 class MainActivity : ComponentActivity() {
     private val sharedUrisState = androidx.compose.runtime.mutableStateListOf<Uri>()
+    private val hasRecoveryImagesState = androidx.compose.runtime.mutableStateOf(false)
 
     private val notificationPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -38,9 +42,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
-        if (savedInstanceState == null) {
-            CacheManager.cleanEntireCacheSync(this)
-        }
+        
+        hasRecoveryImagesState.value = CacheManager.getRecoveryImages(this).isNotEmpty()
+        
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(
                     this,
@@ -80,7 +84,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MainScreen(sharedUris = sharedUrisState)
+                    MainScreen(sharedUris = sharedUrisState, hasRecoveryImages = hasRecoveryImagesState.value)
                 }
             }
         }

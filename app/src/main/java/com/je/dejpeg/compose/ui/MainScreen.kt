@@ -34,7 +34,10 @@ sealed class AppScreen {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(sharedUris: List<Uri> = emptyList()) {
+fun MainScreen(
+    sharedUris: List<Uri> = emptyList(),
+    hasRecoveryImages: Boolean = false
+) {
     val context = LocalContext.current
     val viewModel: ProcessingViewModel = viewModel()
     val haptic = rememberHapticFeedback()
@@ -123,7 +126,8 @@ fun MainScreen(sharedUris: List<Uri> = emptyList()) {
                             initialSharedUris = sharedUris,
                             onRemoveSharedUri = { uri -> 
                                 (sharedUris as? MutableList<Uri>)?.remove(uri)
-                            }
+                            },
+                            hasRecoveryImages = hasRecoveryImages
                         ) 
                     }
                 }

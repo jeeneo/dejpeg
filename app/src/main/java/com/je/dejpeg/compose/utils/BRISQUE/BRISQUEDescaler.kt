@@ -316,9 +316,6 @@ class BRISQUEDescaler(
     private fun resizeBitmap(bitmap: Bitmap, width: Int, height: Int): Bitmap {
         if (bitmap.width == width && bitmap.height == height)
             return bitmap.copy(bitmap.config ?: Bitmap.Config.ARGB_8888, false)
-        val matrix = Matrix().apply {
-            postScale(width.toFloat() / bitmap.width, height.toFloat() / bitmap.height)
-        }
-        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+        return Bitmap.createScaledBitmap(bitmap, width, height, true)
     }
 }
