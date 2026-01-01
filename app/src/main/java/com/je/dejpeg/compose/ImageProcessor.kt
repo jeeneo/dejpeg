@@ -172,9 +172,8 @@ class ImageProcessor(
             }
             
             android.util.Log.d("ImageProcessor", "Saved ${chunkInfoList.size} chunks to ${chunksDir.absolutePath}")
-            val result = createBitmap(width, height, config)
-            val canvas = android.graphics.Canvas(result)
             
+            android.util.Log.d("ImageProcessor", "Phase 2: Processing ${totalChunks} chunks")
             if (totalChunks > 1) {
                 withContext(Dispatchers.Main) {
                     callback.onChunkProgress(0, totalChunks)
@@ -197,23 +196,47 @@ class ImageProcessor(
                 } ?: throw Exception("Failed to load chunk ${chunkInfo.index}")
                 val processed = processChunkUnified(session, loadedChunk, config, hasTransparency, info)
                 loadedChunk.recycle()
+                
+                val processedChunkFile = File(chunksDir, "chunk_${chunkInfo.index}_processed.png")
                 withContext(Dispatchers.IO) {
+                    FileOutputStream(processedChunkFile).use {
+                        processed.compress(Bitmap.CompressFormat.PNG, 100, it)
+                    }
                     chunkInfo.file.delete()
                 }
-                val feathered = createFeatheredChunk(
-                    processed, chunkInfo.x, chunkInfo.y, width, height, 
-                    overlap, cols, rows, chunkInfo.col, chunkInfo.row
-                )
-                val paint = android.graphics.Paint()
-                paint.xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.SRC_OVER)
-                canvas.drawBitmap(feathered, chunkInfo.x.toFloat(), chunkInfo.y.toFloat(), paint)
                 processed.recycle()
-                feathered.recycle()
 
                 if (totalChunks > 1) {
                     withContext(Dispatchers.Main) {
                         callback.onChunkProgress(currentChunkNumber, totalChunks)
                     }
+                }
+            }
+            
+            android.util.Log.d("ImageProcessor", "Phase 3: Merging processed chunks")
+            val result = createBitmap(width, height, config)
+            val canvas = android.graphics.Canvas(result)
+            
+            for (chunkInfo in chunkInfoList) {
+                if (isCancelled) throw Exception(context.getString(R.string.error_processing_cancelled))
+                
+                val processedChunkFile = File(chunksDir, "chunk_${chunkInfo.index}_processed.png")
+                val loadedProcessed = withContext(Dispatchers.IO) {
+                    BitmapFactory.decodeFile(processedChunkFile.absolutePath)
+                } ?: throw Exception("Failed to load processed chunk ${chunkInfo.index}")
+                
+                val feathered = createFeatheredChunk(
+                    loadedProcessed, chunkInfo.x, chunkInfo.y, width, height, 
+                    overlap, cols, rows, chunkInfo.col, chunkInfo.row
+                )
+                val paint = android.graphics.Paint()
+                paint.xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.SRC_OVER)
+                canvas.drawBitmap(feathered, chunkInfo.x.toFloat(), chunkInfo.y.toFloat(), paint)
+                loadedProcessed.recycle()
+                feathered.recycle()
+                
+                withContext(Dispatchers.IO) {
+                    processedChunkFile.delete()
                 }
             }
             CacheManager.clearChunksSync(context)

@@ -54,7 +54,8 @@ import me.saket.telephoto.zoomable.zoomable
 fun BeforeAfterScreen(
     viewModel: ProcessingViewModel,
     imageId: String,
-    onBack: () -> Unit = {}
+    onBack: () -> Unit = {},
+    showAfter: Boolean = true
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -78,9 +79,24 @@ fun BeforeAfterScreen(
     }
 
     val beforeBitmap = image.inputBitmap
-    val afterBitmap = image.outputBitmap
+    val afterBitmap = if (showAfter) image.outputBitmap else null
     val filename = image.filename
     val showSaveAllOption = images.any { it.outputBitmap != null }
+
+    val performSave = { bitmap: Bitmap, name: String ->
+        ImageActions.saveImage(
+            context = context,
+            bitmap = bitmap,
+            filename = name,
+            imageId = imageId,
+            onSuccess = {
+                viewModel.markImageAsSaved(imageId)
+            },
+            onError = { errorMsg ->
+                saveErrorMessage = errorMsg
+            }
+        )
+    }
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         TopAppBar(
@@ -100,47 +116,45 @@ fun BeforeAfterScreen(
                 .background(MaterialTheme.colorScheme.surface)
         ) {
             if (afterBitmap != null) SliderView(beforeBitmap, afterBitmap, haptic)
-            else Image(beforeBitmap.asImageBitmap(), "Image", Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+            else SingleImageView(beforeBitmap)
         }
 
-        if (afterBitmap != null) {
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceContainer,
-                modifier = Modifier.fillMaxWidth()
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp, horizontal = 16.dp)
+                    .navigationBarsPadding(),
+                Arrangement.SpaceEvenly
             ) {
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp, horizontal = 16.dp)
-                        .navigationBarsPadding(),
-                    Arrangement.SpaceEvenly
-                ) {
-                    IconButton(onClick = {
-                        haptic.light()
-                        ImageActions.shareImage(context, afterBitmap)
-                    }) {
-                        Icon(Icons.Filled.Share, "Share", modifier = Modifier.size(32.dp))
-                    }
+                IconButton(onClick = {
+                    haptic.light()
+                    ImageActions.shareImage(context, afterBitmap ?: beforeBitmap)
+                }) {
+                    Icon(Icons.Filled.Share, "Share", modifier = Modifier.size(32.dp))
+                }
 
-                    IconButton(onClick = {
-                        haptic.medium()
-                        if (skipSaveDialog) {
-                            if (ImageActions.checkFileExists(context, filename)) {
-                                overwriteDialogFilename = filename
-                            } else {
-                                viewModel.saveImage(
-                                    context = context,
-                                    imageId = imageId,
-                                    onSuccess = {},
-                                    onError = { errorMsg -> saveErrorMessage = errorMsg }
-                                )
-                            }
+                IconButton(onClick = {
+                    haptic.medium()
+                    if (skipSaveDialog) {
+                        if (ImageActions.checkFileExists(context, filename)) {
+                            overwriteDialogFilename = filename
                         } else {
-                            showSaveDialog = true
+                            viewModel.saveImage(
+                                context = context,
+                                imageId = imageId,
+                                onSuccess = {},
+                                onError = { errorMsg -> saveErrorMessage = errorMsg }
+                            )
                         }
-                    }) {
-                        Icon(Icons.Filled.Save, stringResource(id = R.string.save), modifier = Modifier.size(32.dp))
+                    } else {
+                        showSaveDialog = true
                     }
+                }) {
+                    Icon(Icons.Filled.Save, stringResource(id = R.string.save), modifier = Modifier.size(32.dp))
                 }
             }
         }
@@ -162,19 +176,7 @@ fun BeforeAfterScreen(
                     showSaveDialog = false
                     overwriteDialogFilename = name
                 } else {
-                    afterBitmap?.let { bitmap ->
-                        ImageActions.saveImage(
-                            context = context,
-                            bitmap = bitmap,
-                            filename = name,
-                            onSuccess = {
-                                viewModel.markImageAsSaved(imageId)
-                            },
-                            onError = { errorMsg ->
-                                saveErrorMessage = errorMsg
-                            }
-                        )
-                    }
+                    performSave(afterBitmap ?: beforeBitmap, name)
                     showSaveDialog = false
                 }
             }
@@ -183,19 +185,7 @@ fun BeforeAfterScreen(
 
     overwriteDialogFilename?.let { fname ->
         SaveImageDialog(fname, false, false, true, { overwriteDialogFilename = null }) { name, _, _ ->
-            afterBitmap?.let { bitmap ->
-                ImageActions.saveImage(
-                    context = context,
-                    bitmap = bitmap,
-                    filename = name,
-                    onSuccess = {
-                        viewModel.markImageAsSaved(imageId)
-                    },
-                    onError = { errorMsg ->
-                        saveErrorMessage = errorMsg
-                    }
-                )
-            }
+            performSave(afterBitmap ?: beforeBitmap, name)
             overwriteDialogFilename = null
         }
     }
@@ -224,22 +214,20 @@ fun BeforeAfterScreen(
 }
 
 @Composable
+private fun zoomStateEnabled() = run {
+    val context = LocalContext.current
+    val appPreferences = remember { AppPreferences.getInstance(context) }
+    val isHapticEnabled by appPreferences.hapticFeedbackEnabled.collectAsState(initial = true)
+    zoomState(isHapticEnabled)
+}
+
+@Composable
 private fun SliderView(
     beforeBitmap: Bitmap,
     afterBitmap: Bitmap,
     haptic: HapticFeedbackPerformer
 ) {
-    val context = LocalContext.current
-    val appPreferences = remember { AppPreferences.getInstance(context) }
-    val isHapticEnabled by appPreferences.hapticFeedbackEnabled.collectAsState(initial = true)
-    
-    val overzoomEffect = if (isHapticEnabled) OverzoomEffect.RubberBanding else OverzoomEffect.Disabled
-    val zoomSpec = ZoomSpec(
-        maximum = ZoomLimit(factor = 20f, overzoomEffect = overzoomEffect),
-        minimum = ZoomLimit(factor = 1f, overzoomEffect = overzoomEffect)
-    )
-    val zoomableState = rememberZoomableState(zoomSpec)
-    
+    val zoomableState = zoomStateEnabled()
     var sliderPosition by remember { mutableFloatStateOf(0.5f) }
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
     val density = LocalDensity.current
@@ -317,3 +305,20 @@ private fun SliderView(
         }
     }
 }
+
+@Composable
+private fun SingleImageView(bitmap: Bitmap) {
+    val zoomableState = zoomStateEnabled()
+    Box(Modifier.fillMaxSize().zoomable(zoomableState), Alignment.Center) {
+        Image(bitmap.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit, filterQuality = FilterQuality.None)
+    }
+}
+
+@Composable
+private fun zoomState(isHapticEnabled: Boolean) =
+    rememberZoomableState(
+        ZoomSpec(
+            maximum = ZoomLimit(factor = 20f, overzoomEffect = if (isHapticEnabled) OverzoomEffect.RubberBanding else OverzoomEffect.Disabled),
+            minimum = ZoomLimit(factor = 1f, overzoomEffect = if (isHapticEnabled) OverzoomEffect.RubberBanding else OverzoomEffect.Disabled)
+        )
+    )
