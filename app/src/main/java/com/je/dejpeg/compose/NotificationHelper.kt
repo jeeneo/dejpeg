@@ -76,9 +76,9 @@ object NotificationHelper {
         val hasChunkInfo = completedChunks != null && totalChunks != null && totalChunks > 1
         if (hasChunkInfo) {
             val max = totalChunks!!
-            val progressValue = completedChunks!!.coerceIn(0, max)
-            builder.setProgress(max, progressValue, false)
-            builder.setSubText("$progressValue / $max chunks")
+            val progressValue = completedChunks!!.coerceIn(0, max - 1)
+            builder.setProgress(max - 1, progressValue, false)
+            builder.setSubText("${progressValue + 1} / $max chunks")
         } else {
             builder.setProgress(0, 0, true)
         }

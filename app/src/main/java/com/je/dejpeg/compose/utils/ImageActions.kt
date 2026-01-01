@@ -28,7 +28,7 @@ object ImageActions {
         return outputFile.exists()
     }
 
-    fun saveImage(context: Context, bitmap: Bitmap, filename: String? = null, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {
+    fun saveImage(context: Context, bitmap: Bitmap, filename: String? = null, imageId: String? = null, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {
         @OptIn(DelicateCoroutinesApi::class)
         GlobalScope.launch(Dispatchers.IO) {
             try {
@@ -38,6 +38,11 @@ object ImageActions {
                 val outputFile = File(picturesDir, "$fileName.png")
                 if (outputFile.exists()) outputFile.delete()
                 FileOutputStream(outputFile).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                
+                if (imageId != null) {
+                    CacheManager.deleteRecoveryPair(context, imageId)
+                }
+                
                 withContext(Dispatchers.Main) {
                     MediaScannerConnection.scanFile(context, arrayOf(outputFile.toString()), null, null)
                     Toast.makeText(context, context.getString(R.string.image_saved_to_gallery), Toast.LENGTH_SHORT).show()
