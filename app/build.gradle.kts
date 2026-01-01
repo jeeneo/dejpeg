@@ -15,10 +15,10 @@ android {
         applicationId = "com.je.dejpeg"
         minSdk = 24
         targetSdk = 36
-        // what is semantic versioning? libraries? idek i just pretend and bump these numbers every now and then :(
+        // what is semantic versioning? libraries? you think i know? i just bump these numbers every now and then :(
         // it's the 3rd major release, with 3 minor updates, and this is the 0th(?) patch - random numbers fr
-        versionCode = 330
-        versionName = "3.3.0"
+        versionCode = 331
+        versionName = "3.3.1"
     }
     signingConfigs {
         if (project.hasProperty("signApk") && project.property("signApk") == "true") {
