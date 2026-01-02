@@ -8,8 +8,8 @@ import android.content.IntentFilter
 import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
-import com.je.dejpeg.NotificationHelper
-import com.je.dejpeg.ProcessingService
+import com.je.dejpeg.compose.NotificationHelper
+import com.je.dejpeg.compose.ProcessingService
 
 class ServiceCommunicationHelper(
     private val context: Context,

@@ -156,23 +156,3 @@ fun CancelProcessingDialog(imageFilename: String, onDismissRequest: () -> Unit, 
         dismissButton = {}
     )
 }
-
-@Composable
-fun BatteryOptimizationDialog(onDismissRequest: () -> Unit, onOpenSettings: () -> Unit) {
-    val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
-    val dialogWidth = rememberDialogWidth()
-    AlertDialog(
-        onDismissRequest = onDismissRequest,
-        modifier = Modifier.dialogWidth(dialogWidth),
-        properties = DialogDefaults.Properties,
-        title = { Text(stringResource(R.string.background_service_error)) },
-        text = {
-            Column {
-                Text(stringResource(R.string.battery_optimization_explanation), Modifier.padding(bottom = 8.dp))
-                Text(stringResource(R.string.open_battery_optimization_settings), style = MaterialTheme.typography.bodyMedium)
-            }
-        },
-        dismissButton = { TextButton({ haptic.light(); onDismissRequest() }) { Text(stringResource(R.string.cancel)) } },
-        confirmButton = { Button({ haptic.medium(); onOpenSettings(); onDismissRequest() }) { Text(stringResource(R.string.open_settings)) } }
-    )
-}
