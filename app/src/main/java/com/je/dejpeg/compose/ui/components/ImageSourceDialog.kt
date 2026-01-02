@@ -180,7 +180,7 @@ fun ImageSourceDialog(
         HelpDialog(
             title = stringResource(titleRes),
             text = stringResource(descRes)
-        ) { }
+        ) { helpInfo = -1 }
     }
 }
 
