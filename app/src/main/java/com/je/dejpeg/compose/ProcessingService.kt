@@ -238,7 +238,7 @@ class ProcessingService : Service() {
         currentJob?.cancel()
         serviceScope.cancel()
         imageProcessor?.cancelProcessing()
-        CacheManager.clearChunksSync(applicationContext)
+        CacheManager.clearChunks(applicationContext)
         modelManager = null
         imageProcessor = null
     }
@@ -251,7 +251,7 @@ class ProcessingService : Service() {
             imageProcessor?.cancelProcessing()
             currentJob?.cancel()
         }
-        CacheManager.clearChunksSync(applicationContext)
+        CacheManager.clearChunks(applicationContext)
         tryStopForeground()
         stopSelf()
     }

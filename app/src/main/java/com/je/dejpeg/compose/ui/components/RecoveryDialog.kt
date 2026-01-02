@@ -13,7 +13,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.je.dejpeg.R
 import com.je.dejpeg.compose.ui.viewmodel.ImageItem
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.compose.utils.CacheManager
@@ -22,22 +24,23 @@ import com.je.dejpeg.compose.utils.rememberHapticFeedback
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.UUID
 
 @Composable
-fun RecoveryImagesDialog(
+fun RecoveryDialog(
     viewModel: ProcessingViewModel
 ) {
+    data class RecoveryImage(val imageId: String, val label: String, val processedBitmap: android.graphics.Bitmap, val unprocessedBitmap: android.graphics.Bitmap?)
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val haptic = rememberHapticFeedback()
-    val recoveryImages = remember { mutableStateOf<List<Pair<String, Pair<android.graphics.Bitmap, android.graphics.Bitmap?>>>>(emptyList()) }
+    val recoveryImages = remember { mutableStateOf<List<RecoveryImage>>(emptyList()) }
     val showDialog = remember { mutableStateOf(false) }
     
     LaunchedEffect(Unit) {
+        CacheManager.clearChunks(context)
         val cachedRecoveryImages = CacheManager.getRecoveryImages(context)
         if (cachedRecoveryImages.isNotEmpty()) {
-            val loadedImages = mutableListOf<Pair<String, Pair<android.graphics.Bitmap, android.graphics.Bitmap?>>>()
+            val loadedImages = mutableListOf<RecoveryImage>()
             for ((imageId, file) in cachedRecoveryImages) {
                 val processedBitmap = withContext(Dispatchers.IO) {
                     BitmapFactory.decodeFile(file.absolutePath)
@@ -49,72 +52,64 @@ fun RecoveryImagesDialog(
                             BitmapFactory.decodeFile(unprocessedFile.absolutePath)
                         }
                     } else null
-                    loadedImages.add("Recovered_${imageId.take(8)}" to (processedBitmap to unprocessedBitmap))
+                    loadedImages.add(RecoveryImage(imageId, "Recovered_${imageId.take(8)}", processedBitmap, unprocessedBitmap))
                 }
             }
             recoveryImages.value = loadedImages
             showDialog.value = true
         }
     }
-    
+
     if (showDialog.value && recoveryImages.value.isNotEmpty()) {
-        AlertDialog(
-            onDismissRequest = { 
-                Log.d("RecoveryImagesDialog", "User chose to discard recovery images")
-                showDialog.value = false
-                scope.launch {
-                    withContext(Dispatchers.IO) {
-                        val cachedImages = CacheManager.getRecoveryImages(context)
-                        cachedImages.forEach { (imageId, _) ->
-                            CacheManager.deleteRecoveryPair(context, imageId)
-                        }
-                    }
+        val count = recoveryImages.value.size
+        val plural = count > 1
+        val pluralSuffix = if (plural) "s" else ""
+        val wereWas = stringResource(if (plural) R.string.were else R.string.was)
+        val themIt = stringResource(if (plural) R.string.them else R.string.it)
+        val recoveredImagePrefix = stringResource(R.string.recovered_image_prefix)
+        val recoverButtonText = stringResource(R.string.recover)
+        val discardButtonText = stringResource(R.string.discard)
+        fun clearCache() {
+            Log.d("RecoveryDialog", "User chose to discard recovery images")
+            showDialog.value = false
+            scope.launch(Dispatchers.IO) {
+                CacheManager.getRecoveryImages(context).forEach { (id, _) ->
+                    CacheManager.deleteRecoveryPair(context, id)
                 }
-            },
+            }
+        }
+        AlertDialog(
+            onDismissRequest = ::clearCache,
             shape = RoundedCornerShape(28.dp),
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            title = { Text("Recover Processed Images?") },
+            title = { Text(stringResource(R.string.recover_images_title, pluralSuffix)) },
             text = { 
-                Text("Found ${recoveryImages.value.size} processed image(s) that were not saved before closing. Would you like to recover them?")
+                Text(stringResource(R.string.recover_images_message, count, pluralSuffix, wereWas, themIt))
             },
             confirmButton = { 
                 TextButton(onClick = { 
                     haptic.medium()
-                    recoveryImages.value.forEach { (_, bitmapPair) ->
-                        val (processedBitmap, unprocessedBitmap) = bitmapPair
-                        val inputBitmap = unprocessedBitmap ?: processedBitmap
+                    recoveryImages.value.forEach { img ->
+                        val processed = img.processedBitmap
                         viewModel.addImage(ImageItem(
-                            id = UUID.randomUUID().toString(),
+                            id = img.imageId,
                             uri = null,
-                            filename = "Recovered",
-                            inputBitmap = inputBitmap,
-                            outputBitmap = processedBitmap,
-                            thumbnailBitmap = ImageLoadingHelper.generateThumbnail(processedBitmap),
-                            size = "${processedBitmap.width}x${processedBitmap.height}",
+                            filename = recoveredImagePrefix,
+                            inputBitmap = img.unprocessedBitmap ?: processed,
+                            outputBitmap = processed,
+                            thumbnailBitmap = ImageLoadingHelper.generateThumbnail(processed),
+                            size = "${processed.width}x${processed.height}",
                             hasBeenSaved = false
                         ))
                     }
                     showDialog.value = false
-                }) { 
-                    Text("Recover") 
-                } 
+                }) { Text(recoverButtonText) } 
             },
             dismissButton = { 
                 TextButton(onClick = { 
                     haptic.light()
-                    Log.d("RecoveryImagesDialog", "User chose to discard recovery images")
-                    showDialog.value = false
-                    scope.launch {
-                        withContext(Dispatchers.IO) {
-                            val cachedImages = CacheManager.getRecoveryImages(context)
-                            cachedImages.forEach { (imageId, _) ->
-                                CacheManager.deleteRecoveryPair(context, imageId)
-                            }
-                        }
-                    }
-                }) { 
-                    Text("Discard") 
-                } 
+                    clearCache()
+                }) { Text(discardButtonText) } 
             }
         )
     }
