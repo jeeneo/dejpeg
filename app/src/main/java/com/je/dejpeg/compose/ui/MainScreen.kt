@@ -1,29 +1,42 @@
 package com.je.dejpeg.ui
 
-import android.app.Activity
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Image
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.je.dejpeg.ExitActivity
-import com.je.dejpeg.compose.ui.screens.ProcessingScreen
-import com.je.dejpeg.compose.ui.screens.SettingsScreen
-import com.je.dejpeg.compose.ui.screens.BeforeAfterScreen
-import com.je.dejpeg.compose.ui.screens.BRISQUEScreen
-import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.R
 import com.je.dejpeg.compose.ui.components.RecoveryDialog
+import com.je.dejpeg.compose.ui.screens.BRISQUEScreen
+import com.je.dejpeg.compose.ui.screens.BeforeAfterScreen
+import com.je.dejpeg.compose.ui.screens.ProcessingScreen
+import com.je.dejpeg.compose.ui.screens.SettingsScreen
+import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
 
 sealed class AppScreen {
@@ -46,7 +59,7 @@ fun MainScreen(
     
     var currentScreen by remember { mutableStateOf<AppScreen>(AppScreen.Processing) }
     var screenStack by remember { mutableStateOf(listOf<AppScreen>()) }
-    var lastBackPressTime by remember { mutableStateOf(0L) }
+    var lastBackPressTime by remember { mutableLongStateOf(0L) }
     
     fun navigateToScreen(screen: AppScreen) {
         screenStack = screenStack + currentScreen
@@ -84,10 +97,14 @@ fun MainScreen(
                         NavigationBar {
                             NavigationBarItem(
                                 icon = { 
-                                    Icon(
-                                        Icons.Filled.Image,
-                                        contentDescription = stringResource(R.string.processing)
-                                    )
+                                    Crossfade(
+                                        targetState = true
+                                    ) { _ ->
+                                        Icon(
+                                            Icons.Filled.Image,
+                                            contentDescription = stringResource(R.string.processing)
+                                        )
+                                    }
                                 },
                                 label = { Text(stringResource(R.string.processing)) },
                                 selected = true,
@@ -97,10 +114,15 @@ fun MainScreen(
                             )
                             NavigationBarItem(
                                 icon = { 
-                                    Icon(
-                                        Icons.Filled.Settings,
-                                        contentDescription = stringResource(R.string.settings)
-                                    )
+                                    Crossfade(
+                                        targetState = false,
+                                        animationSpec = tween(1000)
+                                    ) { isSelected ->
+                                        Icon(
+                                            if (isSelected) Icons.Filled.Settings else Icons.Outlined.Settings,
+                                            contentDescription = stringResource(R.string.settings)
+                                        )
+                                    }
                                 },
                                 label = { Text(stringResource(R.string.settings)) },
                                 selected = false,
@@ -140,10 +162,14 @@ fun MainScreen(
                         NavigationBar {
                             NavigationBarItem(
                                 icon = { 
-                                    Icon(
-                                        Icons.Filled.Image,
-                                        contentDescription = stringResource(R.string.processing)
-                                    )
+                                    Crossfade(
+                                        targetState = false
+                                    ) { isSelected ->
+                                        Icon(
+                                            if (isSelected) Icons.Filled.Image else Icons.Outlined.Image,
+                                            contentDescription = stringResource(R.string.processing)
+                                        )
+                                    }
                                 },
                                 label = { Text(stringResource(R.string.processing)) },
                                 selected = false,
@@ -154,10 +180,14 @@ fun MainScreen(
                             )
                             NavigationBarItem(
                                 icon = { 
-                                    Icon(
-                                        Icons.Filled.Settings,
-                                        contentDescription = stringResource(R.string.settings)
-                                    )
+                                    Crossfade(
+                                        targetState = true
+                                    ) { _ ->
+                                        Icon(
+                                            Icons.Filled.Settings,
+                                            contentDescription = stringResource(R.string.settings)
+                                        )
+                                    }
                                 },
                                 label = { Text(stringResource(R.string.settings)) },
                                 selected = true,

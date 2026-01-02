@@ -129,8 +129,8 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
             SettingsSectionCard(stringResource(R.string.processing)) {
                 ModernSettingsItem(
                     icon = painterResource(id = R.drawable.ic_model),
-                    iconBackgroundColor = MaterialTheme.colorScheme.tertiaryContainer,
-                    iconTint = MaterialTheme.colorScheme.onTertiaryContainer,
+                    iconBackgroundColor = MaterialTheme.colorScheme.surfaceVariant,
+                    iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                     title = stringResource(R.string.model_management, ""),
                     subtitle = activeModelName ?: stringResource(R.string.no_model_loaded)
                 ) { dialogState = DialogState.Model }
@@ -150,10 +150,10 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
             SettingsSectionCard(stringResource(R.string.app)) {
                 ModernSettingsItem(
                     icon = Icons.Filled.Settings,
-                    iconBackgroundColor = MaterialTheme.colorScheme.primaryContainer,
-                    iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    iconBackgroundColor = MaterialTheme.colorScheme.surfaceVariant,
+                    iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                     title = stringResource(R.string.preferences),
-                    subtitle = stringResource(R.string.manage_save_dialog_and_source)
+                    subtitle = stringResource(R.string.preferences_desc)
                 ) { dialogState = DialogState.Preferences }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -170,8 +170,8 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
 
                 ModernSettingsItem(
                     icon = Icons.Filled.Info,
-                    iconBackgroundColor = MaterialTheme.colorScheme.surfaceVariant,
-                    iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    iconBackgroundColor = MaterialTheme.colorScheme.primaryContainer,
+                    iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
                     title = stringResource(R.string.about),
                     subtitle = stringResource(R.string.version_info_and_credits)
                 ) { dialogState = DialogState.About }
@@ -342,24 +342,17 @@ sealed class ModelWarningState {
 
 @Composable
 fun SettingsSectionCard(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        tonalElevation = 2.dp
-    ) {
-        Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
-            content()
-        }
+    Column(modifier = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Text(
+            title,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 12.dp)
+        )
+        content()
     }
 }
 
@@ -373,46 +366,36 @@ fun ModernSettingsItem(
     onClick: () -> Unit
 ) {
     val haptic = rememberHapticFeedback()
-    Surface(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
             .clickable { 
                 haptic.light()
                 onClick() 
-            },
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
-        shape = RoundedCornerShape(20.dp)
+            }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                modifier = Modifier.size(48.dp),
-                shape = RoundedCornerShape(14.dp),
-                color = iconBackgroundColor
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(iconBackgroundColor, RoundedCornerShape(14.dp))
             ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    when (icon) {
-                        is ImageVector -> Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = iconTint,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        is Painter -> Icon(
-                            painter = icon,
-                            contentDescription = null,
-                            tint = iconTint,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
+                when (icon) {
+                    is ImageVector -> Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = iconTint,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    is Painter -> Icon(
+                        painter = icon,
+                        contentDescription = null,
+                        tint = iconTint,
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
             }
             
@@ -439,7 +422,6 @@ fun ModernSettingsItem(
             )
         }
     }
-}
 
 @Composable
 fun SettingsItem(title: String, subtitle: String, onClick: () -> Unit) {

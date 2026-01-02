@@ -84,7 +84,7 @@ fun PreferencesDialog(
                 ) {
                     MaterialSwitchPreference(
                         title = stringResource(R.string.show_save_dialog),
-                        summary = stringResource(R.string.save_dialog_shown),
+                        summary = stringResource(R.string.show_save_dialog_desc),
                         checked = !skipSaveDialog,
                         onCheckedChange = { show ->
                             haptic.light()

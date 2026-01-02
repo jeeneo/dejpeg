@@ -101,7 +101,7 @@
     <string name="chunk_size_px">%1$d px</string>
     <string name="overlap_size_px">%1$d px</string>
     <string name="app">App</string>
-    <string name="manage_save_dialog_and_source">Manage save dialog and image source</string>
+    <string name="preferences_desc">Manage app defaults and settings</string>
     <string name="about">About</string>
     <string name="version_info_and_credits">Version info and license</string>
     <string name="show_frequently_asked_questions">Show frequently asked questions</string>
@@ -126,7 +126,7 @@
     <string name="shown">shown</string>
     <string name="hidden">hidden</string>
     <string name="show_save_dialog">Show save dialog</string>
-    <string name="save_dialog_shown">Save dialog is shown</string>
+    <string name="show_save_dialog_desc">Show dialog when saving images</string>
     <string name="default_image_source">Default image source</string>
     <string name="none">none</string>
     <string name="photos">Photos</string>
@@ -142,8 +142,6 @@
     
     <!-- model warnings -->
     <string name="model_warning_performance_title">Performance warning</string>
-    <!-- <string name="model_warning_ditherdeleter_message">DitherDeleterV3 is resource-intensive and not recommended, it will take a long time to process images over 500px on even high-end devices</string>
-    <string name="model_warning_bandage_message">Bandage-Smooth is resource-intensive and not recommended, it will take a long time to process images over 500px on even high-end devices</string> -->
     <string name="model_warning_outdated_title">Outdated model</string>
     <string name="model_warning_outdated_message">This is an older f32 model. A newer/faster f16 version is available, check model management\'s download button</string>
     <string name="model_warning_unrecognized_title">Unrecognized model</string>

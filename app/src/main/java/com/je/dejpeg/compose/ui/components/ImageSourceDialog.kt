@@ -32,6 +32,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -141,18 +142,18 @@ fun ImageSourceDialog(
                     onHelpClick = { haptic.light(); helpInfo = HELP_TYPE_CAMERA }
                 )
                 Spacer(Modifier.height(4.dp))
-                ElevatedCard(
-                    colors = CardDefaults.elevatedCardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                    ),
-                    elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp)
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp)),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    shape = RoundedCornerShape(16.dp)
                 ) {
                     MaterialSwitchPreference(
                         title = stringResource(R.string.set_as_default),
                         summary = stringResource(R.string.set_as_default_desc),
                         checked = setAsDefault,
-                        onCheckedChange = { haptic.light(); setAsDefault = it },
-                        modifier = Modifier.fillMaxWidth().padding(4.dp)
+                        onCheckedChange = { haptic.light(); setAsDefault = it }
                     )
                 }
                 Row(

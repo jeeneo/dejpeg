@@ -10,6 +10,7 @@ class ExitActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         finishAndRemoveTask()
+        System.exit(0)
     }
     
     companion object {
