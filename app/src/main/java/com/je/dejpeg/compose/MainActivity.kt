@@ -35,7 +35,7 @@ class MainActivity : ComponentActivity() {
         if (isGranted) {
             // granted
         } else {
-            // denied - nothing shown cause its annoying 
+            // denied - nothing shown cause its annoying
         }
     }
     

@@ -1,11 +1,11 @@
-package com.je.dejpeg.compose.utils.BRISQUE
+package com.je.dejpeg.compose.utils.brisque
 
 import android.util.Log
 import java.io.File
 
-class BRISQUEAssesser {
+class BRISQUEAssessor {
     companion object { // awww it's cute
-        private const val TAG = "BRISQUEAssesser"
+        private const val TAG = "BRISQUEAssessor"
         private var librariesLoaded = false
 
         fun loadLibraries() {

@@ -154,14 +154,4 @@ class ServiceCommunicationHelper(
             false
         }
     }
-
-    fun isForegroundServiceStartException(e: Exception): Boolean {
-        return (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && 
-                e is android.app.ForegroundServiceStartNotAllowedException) ||
-               (Build.VERSION.SDK_INT < Build.VERSION_CODES.S && (
-                   e.javaClass.simpleName.contains("ForegroundServiceStartNotAllowed", true) ||
-                   e.message?.contains("startForeground", true) == true ||
-                   e.message?.contains("background", true) == true
-               ))
-    }
 }

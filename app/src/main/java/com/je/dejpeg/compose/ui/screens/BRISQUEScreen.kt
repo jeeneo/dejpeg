@@ -78,7 +78,7 @@ import com.je.dejpeg.compose.ui.components.dialogWidth
 import com.je.dejpeg.compose.ui.components.rememberDialogWidth
 import com.je.dejpeg.compose.ui.viewmodel.BrisqueViewModel
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
-import com.je.dejpeg.compose.utils.BRISQUE.BRISQUEDescaler
+import com.je.dejpeg.compose.utils.brisque.BRISQUEDescaler
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
 import com.je.dejpeg.data.BrisqueSettings
 import me.saket.telephoto.zoomable.ZoomSpec

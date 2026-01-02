@@ -1,14 +1,13 @@
-package com.je.dejpeg.compose.utils.BRISQUE
+package com.je.dejpeg.compose.utils.brisque
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.Matrix
 import android.util.Log
-import kotlinx.coroutines.yield
-import kotlin.math.max
-import kotlin.math.sqrt
-import java.io.File
 import com.je.dejpeg.compose.utils.ZipExtractor
+import kotlinx.coroutines.yield
+import java.io.File
+import kotlin.math.sqrt
+import androidx.core.graphics.scale
 
 /**
 BRISQUEDescaler.kt - licensed under GPLv3
@@ -24,7 +23,7 @@ It's not perfect but it helps sometimes.
 */
 
 class BRISQUEDescaler(
-    private val brisqueAssessor: BRISQUEAssesser,
+    private val brisqueAssessor: BRISQUEAssessor,
     private val context: Context
 ) {
     companion object {
@@ -122,11 +121,10 @@ class BRISQUEDescaler(
             try {
                 val brisqueScore = computeBRISQUE(resized)
                 val sharpness = estimateSharpness(resized)
-                val combined = brisqueScore
-                val result = ScanResult(w, h, brisqueScore, sharpness, combined)
+                val result = ScanResult(w, h, brisqueScore, sharpness, brisqueScore)
                 coarseResults.add(result)
-                if (combined < bestCoarseScore) {
-                    bestCoarseScore = combined
+                if (brisqueScore < bestCoarseScore) {
+                    bestCoarseScore = brisqueScore
                     bestCoarseIdx = coarseResults.size - 1
                 }
                 Log.d(TAG, "Coarse: ${w}x${h} - BRISQUE: %.2f, Sharpness: %.2f".format(brisqueScore, sharpness))
@@ -213,10 +211,10 @@ class BRISQUEDescaler(
         val brisqueRange = if (maxBrisque > minBrisque) maxBrisque - minBrisque else 1f
         val sharpnessRange = if (maxSharpness > minSharpness) maxSharpness - minSharpness else 1f
 
-        val combinedScores = fineResults.mapIndexed { idx, result ->
+        val combinedScores = fineResults.mapIndexed { _, result ->
             val brisqueNorm = (result.brisqueScore - minBrisque) / brisqueRange
             val sharpnessNorm = if (sharpnessRange > 0) (result.sharpness - minSharpness) / sharpnessRange else 0f
-            val combined = BRISQUE_WEIGHT * brisqueNorm + SHARPNESS_WEIGHT * (1f - sharpnessNorm)
+            val combined = brisqueWeight * brisqueNorm + sharpnessWeight * (1f - sharpnessNorm)
             result.copy(combinedScore = combined)
         }
 
@@ -316,6 +314,6 @@ class BRISQUEDescaler(
     private fun resizeBitmap(bitmap: Bitmap, width: Int, height: Int): Bitmap {
         if (bitmap.width == width && bitmap.height == height)
             return bitmap.copy(bitmap.config ?: Bitmap.Config.ARGB_8888, false)
-        return Bitmap.createScaledBitmap(bitmap, width, height, true)
+        return bitmap.scale(width, height)
     }
 }
