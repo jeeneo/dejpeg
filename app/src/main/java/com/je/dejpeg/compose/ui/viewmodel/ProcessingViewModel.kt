@@ -75,18 +75,18 @@ class ProcessingViewModel : ViewModel() {
     private var currentProcessingId: String? = null
     private var isInitialized = false
     private fun status(resId: Int, fallback: String) = appContext?.getString(resId) ?: fallback
-    private val STATUS_PREPARING get() = status(com.je.dejpeg.R.string.status_preparing, "Preparing...")
-    private val STATUS_COMPLETE get() = status(com.je.dejpeg.R.string.status_complete, "Complete")
-    private val STATUS_CANCELLED get() = status(com.je.dejpeg.R.string.status_cancelled, "Cancelled")
-    private val STATUS_CANCELING get() = status(com.je.dejpeg.R.string.status_canceling, "Canceling...")
-    private val STATUS_QUEUED get() = status(com.je.dejpeg.R.string.status_queued, "queued")
+    private val statusPreparing get() = status(com.je.dejpeg.R.string.status_preparing, "Preparing...")
+    private val statusComplete get() = status(com.je.dejpeg.R.string.status_complete, "Complete")
+    private val statusCancelled get() = status(com.je.dejpeg.R.string.status_cancelled, "Cancelled")
+    private val statusCanceling get() = status(com.je.dejpeg.R.string.status_canceling, "Canceling...")
+    private val statusQueued get() = status(com.je.dejpeg.R.string.status_queued, "queued")
 
     fun initialize(context: Context) {
         if (isInitialized) return
         isInitialized = true
         val appCtx = context.applicationContext
         appContext = appCtx
-        appPreferences = AppPreferences.getInstance(context)
+        appPreferences = AppPreferences(appCtx)
         modelRepository = ModelRepository(context)
         imagePickerHelper = ImagePickerHelper(context)
         serviceHelper = ServiceCommunicationHelper(appCtx, createServiceCallbacks())
@@ -126,11 +126,9 @@ class ProcessingViewModel : ViewModel() {
         override fun onPidReceived(pid: Int) {
             Log.d("ProcessingViewModel", "Service PID received: $pid")
         }
-        
         override fun onProgress(imageId: String, message: String) {
             updateImageState(imageId) { it.copy(isProcessing = true, progress = message) }
         }
-        
         override fun onChunkProgress(imageId: String, completedChunks: Int, totalChunks: Int) {
             updateImageState(imageId) { item ->
                 item.copy(
@@ -160,10 +158,10 @@ class ProcessingViewModel : ViewModel() {
         imagePickerHelper?.setLauncher(launcher)
     }
 
-    fun launchGalleryPicker(context: Context) = imagePickerHelper?.launchGalleryPicker()
-    fun launchInternalPhotoPicker(context: Context) = imagePickerHelper?.launchInternalPhotoPicker()
-    fun launchDocumentsPicker(context: Context) = imagePickerHelper?.launchDocumentsPicker()
-    fun launchCamera(context: Context) {
+    fun launchGalleryPicker() = imagePickerHelper?.launchGalleryPicker()
+    fun launchInternalPhotoPicker() = imagePickerHelper?.launchInternalPhotoPicker()
+    fun launchDocumentsPicker() = imagePickerHelper?.launchDocumentsPicker()
+    fun launchCamera() {
         imagePickerHelper?.launchCamera()?.onFailure { e ->
             uiState.value = ProcessingUiState.Error("Camera error: ${e.message}")
         }
@@ -171,12 +169,7 @@ class ProcessingViewModel : ViewModel() {
     fun getCameraPhotoUri(): Uri? = imagePickerHelper?.getCameraPhotoUri()
     fun clearCameraPhotoUri() = imagePickerHelper?.clearCameraPhotoUri()
     fun addImage(item: ImageItem) {
-        images.value = images.value + item
-    }
-    fun addImageFromUri(context: Context, uri: Uri) {
-        ImageLoadingHelper.loadBitmapWithRotation(context, uri)?.let { bmp ->
-            addImage(createImageItem(context, uri, bmp))
-        }
+        images.value += item
     }
     fun addImagesFromUris(context: Context, uris: List<Uri>) {
         if (uris.isEmpty()) return
@@ -228,7 +221,7 @@ class ProcessingViewModel : ViewModel() {
                 return
             }
             cancelInProgress = true
-            updateImageState(id) { it.copy(isCancelling = true, progress = STATUS_CANCELING) }
+            updateImageState(id) { it.copy(isCancelling = true, progress = statusCanceling) }
             cancelProcessingService(id)
             return
         }
@@ -242,20 +235,10 @@ class ProcessingViewModel : ViewModel() {
         }
     }
 
-    fun clearAll() {
+    fun loadRecoveryImages(onComplete: (List<Pair<String, Pair<Bitmap, Bitmap?>>>) -> Unit) {
         appContext?.let { ctx ->
             viewModelScope.launch {
-                images.value.forEach { CacheManager.deleteRecoveryPair(ctx, it.id) }
-            }
-        }
-        images.value = emptyList()
-        uiState.value = ProcessingUiState.Idle
-    }
-
-    fun loadRecoveryImages(onComplete: (List<Pair<String, Pair<android.graphics.Bitmap, android.graphics.Bitmap?>>>) -> Unit) {
-        appContext?.let { ctx ->
-            viewModelScope.launch {
-                val recoveryImages = mutableListOf<Pair<String, Pair<android.graphics.Bitmap, android.graphics.Bitmap?>>>()
+                val recoveryImages = mutableListOf<Pair<String, Pair<Bitmap, Bitmap?>>>()
                 val cachedImages = CacheManager.getRecoveryImages(ctx)
                 
                 for ((imageId, file) in cachedImages) {
@@ -313,7 +296,7 @@ class ProcessingViewModel : ViewModel() {
 
             imagesToProcess.forEach { image ->
                 updateImageState(image.id) {
-                    resetChunkProgress(it).copy(isProcessing = true, progress = STATUS_QUEUED, isCancelling = false)
+                    resetChunkProgress(it).copy(isProcessing = true, progress = statusQueued, isCancelling = false)
                 }
             }
 
@@ -347,7 +330,7 @@ class ProcessingViewModel : ViewModel() {
             processingQueue.size + if (currentProcessingId != null) 1 else 0
         )
         updateImageState(id) {
-            resetChunkProgress(it).copy(isProcessing = true, progress = STATUS_QUEUED, isCancelling = false)
+            resetChunkProgress(it).copy(isProcessing = true, progress = statusQueued, isCancelling = false)
         }
         val currentIndex = (activeProcessingTotal - processingQueue.size - 1).coerceAtLeast(0)
         uiState.value = ProcessingUiState.Processing(currentIndex, activeProcessingTotal)
@@ -378,7 +361,7 @@ class ProcessingViewModel : ViewModel() {
         val uriString = image.uri?.toString() ?: return
 
         updateImageState(imageId) {
-            it.copy(isProcessing = true, progress = STATUS_PREPARING, completedChunks = 0, totalChunks = 0)
+            it.copy(isProcessing = true, progress = statusPreparing, completedChunks = 0, totalChunks = 0)
         }
         viewModelScope.launch {
             CacheManager.saveUnprocessedImage(ctx, imageId, image.inputBitmap)
@@ -401,7 +384,7 @@ class ProcessingViewModel : ViewModel() {
         cancelInProgress = true
 
         currentProcessingId?.let {
-            updateImageState(it) { img -> img.copy(isCancelling = true, progress = STATUS_CANCELING) }
+            updateImageState(it) { img -> img.copy(isCancelling = true, progress = statusCanceling) }
             cancelProcessingService(it)
         }
 
@@ -426,7 +409,7 @@ class ProcessingViewModel : ViewModel() {
             currentProcessingId = null
         }
         if (targetImageId != null) {
-            handleProcessingError(targetImageId, STATUS_CANCELLED)
+            handleProcessingError(targetImageId, statusCancelled)
         }
     }
 
@@ -442,7 +425,7 @@ class ProcessingViewModel : ViewModel() {
                         it.copy(
                             outputBitmap = bitmap,
                             isProcessing = false,
-                            progress = STATUS_COMPLETE,
+                            progress = statusComplete,
                             completedChunks = 0,
                             totalChunks = 0
                         )
@@ -459,13 +442,13 @@ class ProcessingViewModel : ViewModel() {
     }
 
     private fun handleProcessingError(imageId: String?, message: String) {
-        val isCancelled = message.contains(STATUS_CANCELLED, true)
+        val isCancelled = message.contains(statusCancelled, true)
 
         if (!imageId.isNullOrEmpty()) {
             updateImageState(imageId) {
                 resetChunkProgress(it).copy(
                     isProcessing = false,
-                    progress = if (isCancelled) STATUS_CANCELLED else message,
+                    progress = if (isCancelled) statusCancelled else message,
                     isCancelling = false
                 )
             }
@@ -530,7 +513,7 @@ class ProcessingViewModel : ViewModel() {
     
     fun cancelProcessingForImage(imageId: String) {
         cancelInProgress = true
-        updateImageState(imageId) { it.copy(isCancelling = true, progress = STATUS_CANCELING) }
+        updateImageState(imageId) { it.copy(isCancelling = true, progress = statusCanceling) }
         cancelProcessingService(imageId)
     }
 
@@ -561,7 +544,6 @@ class ProcessingViewModel : ViewModel() {
     }
 
     fun importModel(
-        context: Context,
         uri: Uri,
         force: Boolean = false,
         onProgress: (Int) -> Unit = {},
@@ -636,13 +618,6 @@ class ProcessingViewModel : ViewModel() {
             onError = onError
         )
     }
-
-    fun shareImage(context: Context, imageId: String) {
-        getImageById(imageId)?.outputBitmap?.let { bitmap ->
-            ImageActions.shareImage(context, bitmap)
-        }
-    }
-
     fun saveAllImages(
         context: Context,
         onComplete: () -> Unit = {},

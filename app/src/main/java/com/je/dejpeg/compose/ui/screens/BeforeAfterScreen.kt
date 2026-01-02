@@ -48,6 +48,7 @@ import me.saket.telephoto.zoomable.ZoomLimit
 import me.saket.telephoto.zoomable.OverzoomEffect
 import me.saket.telephoto.zoomable.rememberZoomableState
 import me.saket.telephoto.zoomable.zoomable
+import androidx.core.graphics.get
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,7 +61,7 @@ fun BeforeAfterScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val haptic = rememberHapticFeedback()
-    val appPreferences = remember { AppPreferences.getInstance(context) }
+    val appPreferences = remember { AppPreferences(context.applicationContext) }
     val skipSaveDialog by appPreferences.skipSaveDialog.collectAsState(initial = false)
 
     val images by viewModel.images.collectAsState()
@@ -161,7 +162,9 @@ fun BeforeAfterScreen(
     }
 
     if (showSaveDialog) {
-        SaveImageDialog(filename, showSaveAllOption, false, false, { showSaveDialog = false }) { name, all, skip ->
+        SaveImageDialog(filename, showSaveAllOption, false,
+            hideOptions = false,
+            onDismissRequest = { showSaveDialog = false }) { name, all, skip ->
             if (skip) {
                 scope.launch { appPreferences.setSkipSaveDialog(true) }
             }
@@ -173,20 +176,21 @@ fun BeforeAfterScreen(
                 )
             } else {
                 if (ImageActions.checkFileExists(context, name)) {
-                    showSaveDialog = false
                     overwriteDialogFilename = name
                 } else {
                     performSave(afterBitmap ?: beforeBitmap, name)
-                    showSaveDialog = false
                 }
             }
         }
     }
 
     overwriteDialogFilename?.let { fname ->
-        SaveImageDialog(fname, false, false, true, { overwriteDialogFilename = null }) { name, _, _ ->
+        SaveImageDialog(fname,
+            showSaveAllOption = false,
+            initialSaveAll = false,
+            hideOptions = true,
+            onDismissRequest = { overwriteDialogFilename = null }) { name, _, _ ->
             performSave(afterBitmap ?: beforeBitmap, name)
-            overwriteDialogFilename = null
         }
     }
 
@@ -216,7 +220,7 @@ fun BeforeAfterScreen(
 @Composable
 private fun zoomStateEnabled() = run {
     val context = LocalContext.current
-    val appPreferences = remember { AppPreferences.getInstance(context) }
+    val appPreferences = remember { AppPreferences(context.applicationContext) }
     val isHapticEnabled by appPreferences.hapticFeedbackEnabled.collectAsState(initial = true)
     zoomState(isHapticEnabled)
 }
@@ -241,7 +245,7 @@ private fun SliderView(
             for (dx in -sample..sample) {
                 val x = (cx + dx).coerceIn(0, beforeBitmap.width - 1)
                 val y = (cy + dy).coerceIn(0, beforeBitmap.height - 1)
-                val pixel = beforeBitmap.getPixel(x, y)
+                val pixel = beforeBitmap[x, y]
                 val luminance = (android.graphics.Color.red(pixel) + android.graphics.Color.green(pixel) + android.graphics.Color.blue(pixel)) / 3
                 luminances.add(luminance)
             }

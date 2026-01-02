@@ -7,11 +7,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import com.je.dejpeg.R
-import com.je.dejpeg.compose.ui.components.ActionPreference
-import com.je.dejpeg.compose.ui.components.PreferenceDivider
-import com.je.dejpeg.compose.ui.components.PreferenceSection
 import com.je.dejpeg.compose.utils.HapticFeedback
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
 import com.je.dejpeg.data.AppPreferences
@@ -58,7 +54,6 @@ fun PreferencesDialog(
                 PreferenceDivider()
                 PreferenceSection(title = stringResource(R.string.save_dialog)) {
                     ActionPreference(
-                        title = stringResource(R.string.save_dialog),
                         currentValue = stringResource(
                             R.string.currently,
                             stringResource(if (skipSaveDialog) R.string.hidden else R.string.shown)
@@ -74,7 +69,6 @@ fun PreferencesDialog(
                 PreferenceDivider()
                 PreferenceSection(title = stringResource(R.string.default_image_source)) {
                     ActionPreference(
-                        title = stringResource(R.string.default_image_source),
                         currentValue = stringResource(
                             R.string.currently,
                             defaultImageSource?.let {

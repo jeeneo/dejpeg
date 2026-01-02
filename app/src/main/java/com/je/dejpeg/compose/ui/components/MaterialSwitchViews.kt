@@ -1,5 +1,6 @@
 package com.je.dejpeg.compose.ui.components
 
+import android.annotation.SuppressLint
 import android.content.res.ColorStateList
 import android.view.LayoutInflater
 import android.widget.LinearLayout
@@ -28,12 +29,11 @@ fun MaterialSwitchRow(
     val surfaceVariantColor = MaterialTheme.colorScheme.surfaceVariant.toArgb()
     val outlineColor = MaterialTheme.colorScheme.outline.toArgb()
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface.toArgb()
-    val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
-    
+
     AndroidView(
         modifier = modifier,
         factory = { context ->
-            LayoutInflater.from(context).inflate(R.layout.dialog_switch_row, null) as LinearLayout
+            LayoutInflater.from(context).inflate(R.layout.dialog_switch_row, android.widget.FrameLayout(context), false) as LinearLayout
         },
         update = { view ->
             val labelView = view.findViewById<TextView>(R.id.switch_label)
@@ -41,7 +41,7 @@ fun MaterialSwitchRow(
             
             labelView.text = label
             labelView.setTextColor(onSurfaceColor)
-            applySwitchColors(switchView, primaryColor, onPrimaryColor, surfaceVariantColor, outlineColor, onSurfaceVariantColor)
+            applySwitchColors(switchView, primaryColor, onPrimaryColor, surfaceVariantColor, outlineColor)
             
             switchView.isChecked = checked
             switchView.setOnCheckedChangeListener { _, isChecked ->
@@ -54,6 +54,7 @@ fun MaterialSwitchRow(
     )
 }
 
+@SuppressLint("InflateParams")
 @Composable
 fun MaterialSwitchPreference(
     title: String,
@@ -73,7 +74,7 @@ fun MaterialSwitchPreference(
     AndroidView(
         modifier = modifier,
         factory = { context ->
-            LayoutInflater.from(context).inflate(R.layout.preference_switch_row, null) as LinearLayout
+            LayoutInflater.from(context).inflate(R.layout.preference_switch_row, android.widget.FrameLayout(context), false) as LinearLayout
         },
         update = { view ->
             val titleView = view.findViewById<TextView>(R.id.preference_title)
@@ -84,7 +85,7 @@ fun MaterialSwitchPreference(
             titleView.setTextColor(onSurfaceColor)
             summaryView.text = summary
             summaryView.setTextColor(onSurfaceVariantColor)
-            applySwitchColors(switchView, primaryColor, onPrimaryColor, surfaceVariantColor, outlineColor, onSurfaceVariantColor)
+            applySwitchColors(switchView, primaryColor, onPrimaryColor, surfaceVariantColor, outlineColor)
             
             switchView.isChecked = checked
             switchView.isEnabled = enabled
@@ -111,8 +112,7 @@ private fun applySwitchColors(
     primaryColor: Int,
     onPrimaryColor: Int,
     surfaceVariantColor: Int,
-    outlineColor: Int,
-    onSurfaceVariantColor: Int
+    outlineColor: Int
 ) {
     switchView.trackTintList = ColorStateList(
         arrayOf(

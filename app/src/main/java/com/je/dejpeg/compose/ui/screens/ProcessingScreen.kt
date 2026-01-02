@@ -4,64 +4,101 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
-import androidx.compose.ui.unit.IntOffset
-import kotlin.math.roundToInt
-import kotlin.math.max
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.font.FontStyle
+import com.je.dejpeg.R
+import com.je.dejpeg.compose.ModelManager
 import com.je.dejpeg.compose.ui.components.BatteryOptimizationDialog
-import com.je.dejpeg.compose.ui.components.RemoveImageDialog
 import com.je.dejpeg.compose.ui.components.CancelProcessingDialog
 import com.je.dejpeg.compose.ui.components.ImageSourceDialog
 import com.je.dejpeg.compose.ui.components.LoadingDialog
-import com.je.dejpeg.compose.utils.ImageActions
-import com.je.dejpeg.compose.utils.helpers.ImageLoadingHelper
+import com.je.dejpeg.compose.ui.components.RemoveImageDialog
+import com.je.dejpeg.compose.ui.components.SaveImageDialog
 import com.je.dejpeg.compose.ui.viewmodel.ImageItem
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingUiState
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
-import androidx.compose.ui.res.stringResource
-import com.je.dejpeg.compose.ModelManager
-import com.je.dejpeg.R
-import com.je.dejpeg.compose.ui.components.SaveImageDialog
-import com.je.dejpeg.data.AppPreferences
+import com.je.dejpeg.compose.utils.ImageActions
+import com.je.dejpeg.compose.utils.helpers.ImageLoadingHelper
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
+import com.je.dejpeg.data.AppPreferences
+import kotlinx.coroutines.launch
+import kotlin.math.max
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,8 +112,7 @@ fun ProcessingScreen(
     hasRecoveryImages: Boolean = false
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val appPreferences = remember { AppPreferences.getInstance(context) }
+    val appPreferences = remember { AppPreferences(context.applicationContext) }
     val defaultImageSource by appPreferences.defaultImageSource.collectAsState(initial = null)
     
     val images by viewModel.images.collectAsState()
@@ -195,10 +231,10 @@ fun ProcessingScreen(
     fun importImage() {
         haptic.light()
         when (defaultImageSource) {
-            "gallery" -> viewModel.launchGalleryPicker(context)
-            "internal" -> viewModel.launchInternalPhotoPicker(context)
-            "documents" -> viewModel.launchDocumentsPicker(context)
-            "camera" -> viewModel.launchCamera(context)
+            "gallery" -> viewModel.launchGalleryPicker()
+            "internal" -> viewModel.launchInternalPhotoPicker()
+            "documents" -> viewModel.launchDocumentsPicker()
+            "camera" -> viewModel.launchCamera()
             else -> showImageSourceDialog = true
         }
     }
@@ -285,15 +321,13 @@ fun ProcessingScreen(
             }
         }
         else {
-            val isProcessingActive = (uiState is ProcessingUiState.Processing) || images.any { it.isCancelling }
+            (uiState is ProcessingUiState.Processing) || images.any { it.isCancelling }
             LazyColumn(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(images, { it.id }) { image ->
-                    val swipeState = remember { mutableStateOf(0f) }
+                    val swipeState = remember { mutableFloatStateOf(0f) }
                     SwipeToDismissWrapper(swipeState, image.isProcessing, { handleImageRemoval(image.id) }) {
                         ImageCard(
                             image = image,
-                            supportsStrength = supportsStrength,
-                            onStrengthChange = { viewModel.updateImageStrength(image.id, it) },
                             onRemove = { handleImageRemoval(image.id) },
                             onProcess = { if (!viewModel.hasActiveModel()) viewModel.showNoModelDialog() else viewModel.processImage(image.id) },
                             onBrisque = { haptic.light(); onNavigateToBrisque(image.id) },
@@ -302,7 +336,7 @@ fun ProcessingScreen(
                             isProcessing = image.isProcessing
                         )
                     }
-                    LaunchedEffect(imageIdToRemove, imageIdToCancel) { if (imageIdToRemove != image.id && imageIdToCancel != image.id) swipeState.value = 0f }
+                    LaunchedEffect(imageIdToRemove, imageIdToCancel) { if (imageIdToRemove != image.id && imageIdToCancel != image.id) swipeState.floatValue = 0f }
                 }
             }
         }
@@ -360,10 +394,10 @@ fun ProcessingScreen(
     if (showImageSourceDialog) {
         ImageSourceDialog(
             onDismiss = { showImageSourceDialog = false },
-            onGallerySelected = { viewModel.launchGalleryPicker(context) },
-            onInternalSelected = { viewModel.launchInternalPhotoPicker(context) },
-            onDocumentsSelected = { viewModel.launchDocumentsPicker(context) },
-            onCameraSelected = { viewModel.launchCamera(context) }
+            onGallerySelected = { viewModel.launchGalleryPicker() },
+            onInternalSelected = { viewModel.launchInternalPhotoPicker() },
+            onDocumentsSelected = { viewModel.launchDocumentsPicker() },
+            onCameraSelected = { viewModel.launchCamera() }
         )
     }
 
@@ -433,7 +467,7 @@ fun ProcessingScreen(
             onSave = { name, _, _ ->
                 viewModel.saveImage(context, id, name, 
                     onSuccess = { performRemoval(id); overwriteDialogState = null },
-                    onError = { overwriteDialogState = null; saveErrorMessage = it }
+                    onError = { overwriteDialogState = null; }
                 )
             }
         )
@@ -498,11 +532,9 @@ fun ProcessingScreen(
                         hasBeenSaved = false
                     ))
                 }
-                showRecoveryDialog = false
             },
             onDiscard = {
                 viewModel.deleteRecoveryImages()
-                showRecoveryDialog = false
             }
         )
     }
@@ -554,8 +586,7 @@ fun BatteryOptimizationDialogForProcessing(onDismiss: () -> Unit, context: Conte
     val errorMessage = context.getString(R.string.cannot_open_link_detail)
     BatteryOptimizationDialog(onDismissRequest = onDismiss, onOpenSettings = {
         try {
-            val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS) else Intent(
-                Settings.ACTION_SETTINGS)
+            val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
             context.startActivity(intent)
         } catch (e: Exception) { Toast.makeText(context, "$errorMessage: ${e.message ?: ""}", Toast.LENGTH_SHORT).show() }
     })
@@ -575,14 +606,15 @@ fun ChunkProgressIndicator(completedChunks: Int, totalChunks: Int) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ImageCard(image: ImageItem, supportsStrength: Boolean, onStrengthChange: (Float) -> Unit, onRemove: () -> Unit, onProcess: () -> Unit, onBrisque: () -> Unit, onClick: () -> Unit, onBeforeOnly: () -> Unit, isProcessing: Boolean = false) {
+fun ImageCard(image: ImageItem,
+              onRemove: () -> Unit, onProcess: () -> Unit, onBrisque: () -> Unit, onClick: () -> Unit, onBeforeOnly: () -> Unit, isProcessing: Boolean = false) {
     val haptic = rememberHapticFeedback()
-    val isClickable = !isProcessing && (image.outputBitmap != null || image.inputBitmap != null)
+    val isClickable = !isProcessing
     Box(modifier = Modifier
         .fillMaxWidth()
         .height(96.dp)
         .clip(RoundedCornerShape(16.dp))
-        .clickable(enabled = isClickable) { 
+        .clickable(enabled = isClickable) {
             haptic.light()
             if (image.outputBitmap != null) {
                 onClick()
@@ -693,7 +725,6 @@ fun DeprecatedModelWarningDialog(
     onContinue: () -> Unit,
     onGoToSettings: () -> Unit
 ) {
-    val context = LocalContext.current
     val haptic = rememberHapticFeedback()
     AlertDialog(
         onDismissRequest = onContinue,

@@ -1,5 +1,6 @@
 package com.je.dejpeg.compose.ui.components
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -18,6 +19,7 @@ object DialogDefaults {
     val Properties = DialogProperties(usePlatformDefaultWidth = false)
 }
 
+@SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
 fun rememberDialogWidth(): Dp {
     val configuration = LocalConfiguration.current

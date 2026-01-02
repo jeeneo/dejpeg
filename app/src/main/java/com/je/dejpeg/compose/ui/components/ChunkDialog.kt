@@ -35,7 +35,7 @@ fun ChunkDialog(
         onChange: (Int) -> Unit
     ) {
         val availablePowers = powers.filter { it < maxAllowed }
-        val effectivePowers = if (availablePowers.isEmpty()) listOf(powers.first()) else availablePowers
+        val effectivePowers = availablePowers.ifEmpty { listOf(powers.first()) }
         val clampedValue = value.coerceAtMost(effectivePowers.last())
         var index by remember(clampedValue, effectivePowers) { 
             mutableIntStateOf(effectivePowers.indexOf(clampedValue).coerceAtLeast(0)) 

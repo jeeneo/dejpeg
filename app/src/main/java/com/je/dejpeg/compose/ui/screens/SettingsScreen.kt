@@ -70,7 +70,6 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
             dialogState = DialogState.ImportProgress
             importProgress = 0
             viewModel.importModel(
-                context,
                 it,
                 onProgress = { importProgress = it },
                 onSuccess = { name ->
@@ -218,11 +217,7 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
                 val context = LocalContext.current
 
                 AlertDialog(
-                    onDismissRequest = {
-                        warningState = null
-                        pendingModelSelection = null
-                        pendingImportUri = null
-                    },
+                    onDismissRequest = { warningState = null },
                     shape = RoundedCornerShape(28.dp),
                     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                     title = { Text(stringResource(state.warning.titleResId)) },
@@ -236,18 +231,16 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
                     confirmButton = {
                         TextButton(onClick = {
                             haptic.medium()
-                            warningState = null
                             if (state.isImport) {
                                 pendingImportUri?.let { uri ->
                                     dialogState = DialogState.ImportProgress
                                     viewModel.importModel(
-                                        context,
                                         uri,
                                         force = true,
-                                        onProgress = { importProgress = it },
+                                        onProgress = { },
                                         onSuccess = { name ->
                                             dialogState = DialogState.None
-                                            pendingImportUri = null
+                                            warningState = null
                                             Toast.makeText(
                                                 context,
                                                 context.getString(R.string.imported_model, name),
@@ -256,19 +249,15 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
                                         },
                                         onError = { err ->
                                             dialogState = DialogState.None
-                                            pendingImportUri = null
                                             warningState = ModelWarningState.Error(err)
                                         }
                                     )
                                 }
-                                pendingModelSelection = null
                             } else {
                                 pendingModelSelection?.let {
                                     viewModel.setActiveModelByName(it)
                                     activeModelName = it
                                 }
-                                pendingModelSelection = null
-                                pendingImportUri = null
                             }
                         }) {
                             Text(stringResource(state.warning.positiveButtonTextResId))
@@ -278,8 +267,6 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
                         TextButton(onClick = {
                             haptic.light()
                             warningState = null
-                            pendingModelSelection = null
-                            pendingImportUri = null
                         }) {
                             Text(stringResource(state.warning.negativeButtonTextResId))
                         }

@@ -60,28 +60,6 @@ object CacheManager {
         }
     }
 
-    fun cleanEntireCacheSync(context: Context) {
-        var deletedCount = 0
-        context.cacheDir.listFiles()?.forEach { file ->
-            if (file.isFile && file.name.endsWith("_processed.png")) {
-                if (file.delete()) deletedCount++
-            }
-        }
-        File(context.cacheDir, SHARED_IMAGE_NAME).let {
-            if (it.exists() && it.delete()) deletedCount++
-        }
-        clearChunksSync(context)
-        clearCameraImportsSync(context)
-        context.cacheDir.listFiles()?.forEach { file ->
-            if (file.isFile && file.name.startsWith("brisque_assess_")) {
-                if (file.delete()) deletedCount++
-            }
-        }
-        if (deletedCount > 0) {
-            Log.d(TAG, "Cleaned entire cache: $deletedCount files")
-        }
-    }
-
     private fun clearCameraImportsSync(context: Context) {
         val cameraDir = File(context.cacheDir, CAMERA_IMPORTS_DIR)
         if (cameraDir.exists()) {

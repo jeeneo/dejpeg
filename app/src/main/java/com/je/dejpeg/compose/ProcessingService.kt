@@ -65,7 +65,7 @@ class ProcessingService : Service() {
         modelManager = ModelManager(applicationContext)
         imageProcessor = ImageProcessor(applicationContext, modelManager!!)
         serviceScope.launch {
-            val appPreferences = AppPreferences.getInstance(applicationContext)
+            val appPreferences = AppPreferences(applicationContext)
             imageProcessor?.apply {
                 customChunkSize = appPreferences.getChunkSizeImmediate()
                 customOverlapSize = appPreferences.getOverlapSizeImmediate()
@@ -145,12 +145,12 @@ class ProcessingService : Service() {
                                 broadcast(PROGRESS_ACTION, PROGRESS_EXTRA_MESSAGE to message, imageId = imageId)
                                 notifyProgressChange()
                             }
-                            override fun onChunkProgress(completedChunks: Int, totalChunks: Int) {
-                                chunkProgressCompleted = completedChunks
+                            override fun onChunkProgress(currentChunkIndex: Int, totalChunks: Int) {
+                                chunkProgressCompleted = currentChunkIndex
                                 chunkProgressTotal = totalChunks
                                 broadcast(
                                     PROGRESS_ACTION,
-                                    PROGRESS_EXTRA_COMPLETED_CHUNKS to completedChunks,
+                                    PROGRESS_EXTRA_COMPLETED_CHUNKS to currentChunkIndex,
                                     PROGRESS_EXTRA_TOTAL_CHUNKS to totalChunks,
                                     imageId = imageId
                                 )
@@ -199,7 +199,7 @@ class ProcessingService : Service() {
         NotificationHelper.showProgress(
             context = this,
             message = currentProgressMessage,
-            completedChunks = if (determinateChunks) chunkProgressCompleted else null,
+            currentChunkIndex = if (determinateChunks) chunkProgressCompleted else null,
             totalChunks = if (determinateChunks) chunkProgressTotal else null,
             cancellable = true
         )
