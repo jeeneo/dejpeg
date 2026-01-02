@@ -65,7 +65,7 @@ object NotificationHelper {
     fun showProgress(
         context: Context,
         message: String,
-        completedChunks: Int? = null,
+        currentChunkIndex: Int? = null,
         totalChunks: Int? = null,
         cancellable: Boolean = true
     ) {
@@ -73,12 +73,13 @@ object NotificationHelper {
             .setContentTitle("Processing")
             .setContentText(message)
 
-        val hasChunkInfo = completedChunks != null && totalChunks != null && totalChunks > 1
+        val hasChunkInfo = currentChunkIndex != null && totalChunks != null && totalChunks > 1
         if (hasChunkInfo) {
             val max = totalChunks!!
-            val progressValue = completedChunks!!.coerceIn(0, max - 1)
+            val current = currentChunkIndex!!.coerceIn(1, max)
+            val progressValue = current - 1
             builder.setProgress(max - 1, progressValue, false)
-            builder.setSubText("${progressValue + 1} / $max chunks")
+            builder.setSubText("Chunk $current / $max")
         } else {
             builder.setProgress(0, 0, true)
         }

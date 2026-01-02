@@ -1,15 +1,20 @@
 package com.je.dejpeg.compose.ui.components
 
 import android.content.Intent
-import android.net.Uri
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import com.je.dejpeg.R
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
 
@@ -19,7 +24,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
     val haptic = rememberHapticFeedback()
     val versionName = try {
         context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "Unknown"
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         "Unknown"
     }
     val dialogWidth = rememberDialogWidth()
@@ -58,7 +63,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
                 haptic.medium()
                 try {
                     context.startActivity(
-                        Intent(Intent.ACTION_VIEW, Uri.parse("https://codeberg.org/dryerlint/dejpeg"))
+                        Intent(Intent.ACTION_VIEW, "https://codeberg.org/dryerlint/dejpeg".toUri())
                     )
                 } catch (_: Exception) {
                 }

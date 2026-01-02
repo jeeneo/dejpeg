@@ -1,59 +1,90 @@
 package com.je.dejpeg.compose.ui.screens
 
-import android.content.Context
+import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.activity.enableEdgeToEdge
-import androidx.activity.ComponentActivity
-import androidx.activity.SystemBarStyle
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.compose.ui.graphics.FilterQuality
-import androidx.compose.ui.text.font.FontFamily
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.je.dejpeg.compose.utils.BRISQUE.BRISQUEDescaler
-import kotlin.math.roundToInt
-import com.je.dejpeg.compose.utils.rememberHapticFeedback
-import com.je.dejpeg.data.BrisqueSettings
+import com.je.dejpeg.compose.ui.components.DialogDefaults
+import com.je.dejpeg.compose.ui.components.dialogWidth
+import com.je.dejpeg.compose.ui.components.rememberDialogWidth
 import com.je.dejpeg.compose.ui.viewmodel.BrisqueViewModel
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
-import com.je.dejpeg.compose.ui.components.DialogDefaults
-import com.je.dejpeg.compose.ui.components.rememberDialogWidth
-import com.je.dejpeg.compose.ui.components.dialogWidth
+import com.je.dejpeg.compose.utils.BRISQUE.BRISQUEDescaler
+import com.je.dejpeg.compose.utils.rememberHapticFeedback
+import com.je.dejpeg.data.BrisqueSettings
 import me.saket.telephoto.zoomable.ZoomSpec
 import me.saket.telephoto.zoomable.rememberZoomableState
 import me.saket.telephoto.zoomable.zoomable
+import kotlin.math.roundToInt
 
 // note: do not add to strings.xml yet
 
@@ -75,8 +106,7 @@ fun BRISQUEScreen(
     var showConfirm by remember { mutableStateOf(false) }
     var showInfoDialog by remember { mutableStateOf(false) }
     var showBRISQUESettings by remember { mutableStateOf(false) }
-    val isDarkTheme = isSystemInDarkTheme()
-    
+
     BackHandler { onBack() }
     LaunchedEffect(image.id) { brisqueViewModel.initialize(context, image.inputBitmap, image.filename) }
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
@@ -175,10 +205,10 @@ fun BRISQUEScreen(
             item { Spacer(Modifier.height(8.dp)) }
         }
     }
-    if (showConfirm) confirmDialog(onConfirm = { haptic.medium(); showConfirm = false; brisqueViewModel.descaleImage(context) }, onDismiss = { showConfirm = false })
+    if (showConfirm) ConfirmDialog(onConfirm = { haptic.medium(); brisqueViewModel.descaleImage(context); showConfirm = false }, onDismiss = { showConfirm = false })
     if (showImageModal) (brisqueState?.descaledBitmap ?: brisqueState?.originalBitmap)?.let { ImageViewerModal(bitmap = it, filename = image.filename, onDismiss = { showImageModal = false }) }
-    if (showInfoDialog) InfoDialog(context = context, onDismiss = { showInfoDialog = false })
-    if (showBRISQUESettings) BRISQUESettings(context = context, settings = brisqueSettings, brisqueViewModel = brisqueViewModel, imageWidth = image.inputBitmap.width, imageHeight = image.inputBitmap.height, onDismiss = { showBRISQUESettings = false })
+    if (showInfoDialog) InfoDialog(onDismiss = { showInfoDialog = false })
+    if (showBRISQUESettings) BRISQUESettings(settings = brisqueSettings, brisqueViewModel = brisqueViewModel, imageWidth = image.inputBitmap.width, imageHeight = image.inputBitmap.height, onDismiss = { showBRISQUESettings = false })
     if (brisqueState?.isDescaling == true) brisqueState?.descaleProgress?.let { DescaleProgressDialog(progress = it, logMessages = brisqueState?.descaleLog!!, onCancel = { haptic.medium(); brisqueViewModel.cancelDescaling(context) }) }
 }
 
@@ -214,7 +244,7 @@ private fun InfoRow(label: String, value: String, isSmall: Boolean = false, colo
 }
 
 @Composable
-private fun confirmDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+private fun ConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
     val haptic = rememberHapticFeedback()
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -259,7 +289,7 @@ private fun getScoreInfo(value: Float, isBRISQUE: Boolean = true): ScoreInfo = w
 }
 
 @Composable
-private fun InfoDialog(context: Context, onDismiss: () -> Unit) {
+private fun InfoDialog(onDismiss: () -> Unit) {
     val haptic = rememberHapticFeedback()
     val dialogWidth = rememberDialogWidth()
     Dialog(
@@ -279,7 +309,7 @@ private fun InfoDialog(context: Context, onDismiss: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    "BRISQUE (Blind/Referenceless Image Spatial Quality Evaluator) is a no-reference image quality score.\n\nIn plain English, it takes an image and assigns it a quality value between 0 and 100, lower being best and higher being worse.\n\nUsing this with a sharpness estimate can provide a semi-reliable method for getting an image that's been scaled to a larger size back down to close to it's original resolution.\n\nImages like this include screenshots of screenshots, overscaled memes, or old photos scaned at large DPIs.\n\nYou shouldn't need to apply this to every image, but only ones that look blurry or don't match the images true size.",
+                    "BRISQUE (Blind/Referenceless Image Spatial Quality Evaluator) is a no-reference image quality score.\n\nIn plain English, it takes an image and assigns it a quality value between 0 and 100, lower being best and higher being worse.\n\nUsing this with a sharpness estimate can provide a semi-reliable method for getting an image that's been scaled to a larger size back down to close to it's original resolution.\n\nImages like this include screenshots of screenshots, overscaled memes, or old photos scanned at large DPIs.\n\nYou shouldn't need to apply this to every image, but only ones that look blurry or don't match the images true size.",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(modifier = Modifier.height(24.dp))
@@ -342,9 +372,9 @@ private fun LogEntry(text: String, isActive: Boolean = false) {
     }
 }
 
+@SuppressLint("AutoboxingStateCreation")
 @Composable
 private fun BRISQUESettings(
-    context: Context,
     settings: BrisqueSettings,
     brisqueViewModel: BrisqueViewModel,
     imageWidth: Int,
@@ -352,17 +382,14 @@ private fun BRISQUESettings(
     onDismiss: () -> Unit
 ) {
     val haptic = rememberHapticFeedback()
-    var coarseStep by remember { mutableStateOf(settings.coarseStep.toFloat()) }
-    var fineStep by remember { mutableStateOf(settings.fineStep.toFloat()) }
-    var fineRange by remember { mutableStateOf(settings.fineRange.toFloat()) }
+    var coarseStep by remember { mutableFloatStateOf(settings.coarseStep.toFloat()) }
+    var fineStep by remember { mutableFloatStateOf(settings.fineStep.toFloat()) }
+    var fineRange by remember { mutableFloatStateOf(settings.fineRange.toFloat()) }
     var minWidthRatio by remember { mutableStateOf(settings.minWidthRatio) }
     var brisqueWeight by remember { mutableStateOf(settings.brisqueWeight) }
     var sharpnessWeight by remember { mutableStateOf(settings.sharpnessWeight) }
     var expandedInfo by remember { mutableStateOf<String?>(null) }
     fun Float.clamp(min: Float, max: Float) = coerceIn(min, max)
-    val minSizePixels = (imageWidth * minWidthRatio).toInt()
-    val maxSizePixels = (imageWidth * 0.9f).toInt()
-    val minSizePixelsMin = (imageWidth * 0.1f).toInt()
 
     @Composable
     fun SettingSlider(label: String, value: Float, onValueChange: (Float) -> Unit, range: ClosedFloatingPointRange<Float>, stepSize: Float = 1f, format: (Float) -> String = { "${it.toInt()}px" }, infoText: String = "") {
@@ -394,12 +421,12 @@ private fun BRISQUESettings(
         title = { Text("BRISQUE settings") },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                item { SettingSlider("Coarse stepping", coarseStep, { coarseStep = it.clamp(10f, 50f) }, 10f..50f, 1f, infoText = "Steps (px) per iteration in the initial scan") }
-                item { SettingSlider("Fine stepping", fineStep, { fineStep = it.clamp(1f, 10f) }, 1f..10f, 1f, infoText = "Steps (px) per iteration in the second scan") }
-                item { SettingSlider("Fine range", fineRange, { fineRange = it.clamp(10f, 100f) }, 10f..100f, 5f, infoText = "Range around the coarse result to explore") }
-                item { SettingSlider("Minimum image size", minWidthRatio, { minWidthRatio = it.clamp(0.1f, 0.9f) }, 0.1f..0.9f, 0.05f, format = { val px = (imageWidth * it).toInt(); val py = (imageHeight * it).toInt(); "${px}×${py}px (${String.format("%.0f", it * 100)}%)" }, infoText = "Minimum size of the final image the algorithm is willing to scale down to") }
-                item { SettingSlider("BRISQUE weight", brisqueWeight, { brisqueWeight = it.clamp(0f, 1f) }, 0f..1f, 0.05f, format = { "%.2f".format(it) }, infoText = "BRISQUE confidence in calculating") }
-                item { SettingSlider("Sharpness weight", sharpnessWeight, { sharpnessWeight = it.clamp(0f, 1f) }, 0f..1f, 0.05f, format = { "%.2f".format(it) }, infoText = "Sharpness confidence in calculating") }
+                item { SettingSlider("Coarse stepping", coarseStep, { it.clamp(10f, 50f) }, 10f..50f, 1f, infoText = "Steps (px) per iteration in the initial scan") }
+                item { SettingSlider("Fine stepping", fineStep, { it.clamp(1f, 10f) }, 1f..10f, 1f, infoText = "Steps (px) per iteration in the second scan") }
+                item { SettingSlider("Fine range", fineRange, { it.clamp(10f, 100f) }, 10f..100f, 5f, infoText = "Range around the coarse result to explore") }
+                item { SettingSlider("Minimum image size", minWidthRatio, { it.clamp(0.1f, 0.9f) }, 0.1f..0.9f, 0.05f, format = { val px = (imageWidth * it).toInt(); val py = (imageHeight * it).toInt(); "${px}×${py}px (${String.format("%.0f", it * 100)}%)" }, infoText = "Minimum size of the final image the algorithm is willing to scale down to") }
+                item { SettingSlider("BRISQUE weight", brisqueWeight, { it.clamp(0f, 1f) }, 0f..1f, 0.05f, format = { "%.2f".format(it) }, infoText = "BRISQUE confidence in calculating") }
+                item { SettingSlider("Sharpness weight", sharpnessWeight, { it.clamp(0f, 1f) }, 0f..1f, 0.05f, format = { "%.2f".format(it) }, infoText = "Sharpness confidence in calculating") }
             }
         },
         confirmButton = {
@@ -415,12 +442,6 @@ private fun BRISQUESettings(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(onClick = {
                     haptic.light()
-                    coarseStep = 20f
-                    fineStep = 5f
-                    fineRange = 30f
-                    minWidthRatio = 0.5f
-                    brisqueWeight = 0.7f
-                    sharpnessWeight = 0.3f
                 }) { Text("Reset") }
                 TextButton(onClick = { haptic.light(); onDismiss() }) { Text("Cancel") }
             }

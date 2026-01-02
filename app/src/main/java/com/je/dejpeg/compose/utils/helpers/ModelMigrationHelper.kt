@@ -12,7 +12,7 @@ object ModelMigrationHelper {
     fun getOnnxModelsDir(context: Context): File = File(context.filesDir, "models/onnx")
     fun getBrisqueModelsDir(context: Context): File = File(context.filesDir, "models/brisque")
     suspend fun migrateModelsIfNeeded(context: Context): Boolean = withContext(Dispatchers.IO) {
-        val appPreferences = AppPreferences.getInstance(context)
+        val appPreferences = AppPreferences(context.applicationContext)
         val onnxResult = migrateFiles(
             label = "ONNX",
             sourceDir = context.filesDir,

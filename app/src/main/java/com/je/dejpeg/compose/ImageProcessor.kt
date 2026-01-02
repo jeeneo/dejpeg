@@ -32,13 +32,11 @@ class ImageProcessor(
         fun onComplete(result: Bitmap)
         fun onError(error: String)
         fun onProgress(message: String)
-        fun onChunkProgress(completedChunks: Int, totalChunks: Int)
+        fun onChunkProgress(currentChunkIndex: Int, totalChunks: Int)
     }
-
     fun cancelProcessing() {
         isCancelled = true
     }
-
     suspend fun processImage(
         inputBitmap: Bitmap,
         strength: Float,
@@ -166,17 +164,14 @@ class ImageProcessor(
                         col = col,
                         row = row
                     ))
-                    
                     chunkIndex++
                 }
             }
-            
             android.util.Log.d("ImageProcessor", "Saved ${chunkInfoList.size} chunks to ${chunksDir.absolutePath}")
-            
             android.util.Log.d("ImageProcessor", "Phase 2: Processing ${totalChunks} chunks")
             if (totalChunks > 1) {
                 withContext(Dispatchers.Main) {
-                    callback.onChunkProgress(0, totalChunks)
+                    callback.onChunkProgress(1, totalChunks)
                 }
             }
             for (chunkInfo in chunkInfoList) {
@@ -196,7 +191,6 @@ class ImageProcessor(
                 } ?: throw Exception("Failed to load chunk ${chunkInfo.index}")
                 val processed = processChunkUnified(session, loadedChunk, config, hasTransparency, info)
                 loadedChunk.recycle()
-                
                 val processedChunkFile = File(chunksDir, "chunk_${chunkInfo.index}_processed.png")
                 withContext(Dispatchers.IO) {
                     FileOutputStream(processedChunkFile).use {
@@ -205,26 +199,21 @@ class ImageProcessor(
                     chunkInfo.file.delete()
                 }
                 processed.recycle()
-
                 if (totalChunks > 1) {
                     withContext(Dispatchers.Main) {
-                        callback.onChunkProgress(currentChunkNumber, totalChunks)
+                        callback.onChunkProgress(currentChunkNumber + 1, totalChunks)
                     }
                 }
             }
-            
             android.util.Log.d("ImageProcessor", "Phase 3: Merging processed chunks")
             val result = createBitmap(width, height, config)
             val canvas = android.graphics.Canvas(result)
-            
             for (chunkInfo in chunkInfoList) {
                 if (isCancelled) throw Exception(context.getString(R.string.error_processing_cancelled))
-                
                 val processedChunkFile = File(chunksDir, "chunk_${chunkInfo.index}_processed.png")
                 val loadedProcessed = withContext(Dispatchers.IO) {
                     BitmapFactory.decodeFile(processedChunkFile.absolutePath)
                 } ?: throw Exception("Failed to load processed chunk ${chunkInfo.index}")
-                
                 val feathered = createFeatheredChunk(
                     loadedProcessed, chunkInfo.x, chunkInfo.y, width, height, 
                     overlap, cols, rows, chunkInfo.col, chunkInfo.row
@@ -234,7 +223,6 @@ class ImageProcessor(
                 canvas.drawBitmap(feathered, chunkInfo.x.toFloat(), chunkInfo.y.toFloat(), paint)
                 loadedProcessed.recycle()
                 feathered.recycle()
-                
                 withContext(Dispatchers.IO) {
                     processedChunkFile.delete()
                 }
@@ -263,7 +251,6 @@ class ImageProcessor(
         val feathered = chunk.copy(Bitmap.Config.ARGB_8888, true)
         val pixels = IntArray(chunkW * chunkH).apply { feathered.getPixels(this, 0, chunkW, 0, 0, chunkW, chunkH) }
         val featherSize = overlap / 2
-
         for (y in 0 until chunkH) for (x in 0 until chunkW) {
             val idx = y * chunkW + x
             var alpha = 1.0f
@@ -274,7 +261,6 @@ class ImageProcessor(
             
             pixels[idx] = (pixels[idx] and 0x00FFFFFF) or ((alpha * 255).toInt() shl 24)
         }
-
         feathered.setPixels(pixels, 0, chunkW, 0, 0, chunkW, chunkH)
         return feathered
     }
@@ -291,10 +277,8 @@ class ImageProcessor(
         val channels = if (info.isGrayscale) 1 else 3
         val pixels = IntArray(w * h)
         chunk.getPixels(pixels, 0, w, 0, 0, w, h)
-
         val inputArray = FloatArray(channels * w * h)
         val alphaChannel = if (hasAlpha) FloatArray(w * h) else null
-
         for (i in 0 until w * h) {
             val color = pixels[i]
             if (channels == 1) {
@@ -309,7 +293,6 @@ class ImageProcessor(
                 alphaChannel!![i] = Color.alpha(color) / 255f
             }
         }
-
         val env = info.env ?: OrtEnvironment.getEnvironment()
         val inputShape = longArrayOf(1, channels.toLong(), h.toLong(), w.toLong())
         val inputs = mutableMapOf<String, OnnxTensor>()
