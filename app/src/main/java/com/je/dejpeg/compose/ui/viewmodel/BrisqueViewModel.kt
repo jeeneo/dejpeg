@@ -7,8 +7,8 @@ import android.provider.MediaStore
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.je.dejpeg.compose.utils.BRISQUE.BRISQUEAssesser
-import com.je.dejpeg.compose.utils.BRISQUE.BRISQUEDescaler
+import com.je.dejpeg.compose.utils.brisque.BRISQUEAssessor
+import com.je.dejpeg.compose.utils.brisque.BRISQUEDescaler
 import com.je.dejpeg.compose.utils.ZipExtractor
 import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.data.BrisqueSettings
@@ -45,7 +45,7 @@ data class DescaleInfo(
 )
 
 class BrisqueViewModel : ViewModel() {
-    private val brisqueAssessor = BRISQUEAssesser()
+    private val brisqueAssessor = BRISQUEAssessor()
     private var brisqueDescaler: BRISQUEDescaler? = null
     private var descaleJob: Job? = null
     private var appContext: Context? = null
