@@ -55,8 +55,4 @@ object ZipExtractor {
     fun getBrisqueModelsDir(context: Context): File {
         return ModelMigrationHelper.getBrisqueModelsDir(context)
     }
-
-    fun getModelPath(context: Context, filename: String): String {
-        return File(getBrisqueModelsDir(context), filename).absolutePath
-    }
 }

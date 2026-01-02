@@ -1,12 +1,14 @@
-package com.je.dejpeg
+package com.je.dejpeg.compose
 
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import com.je.dejpeg.MainActivity
 
 object NotificationHelper {
     const val CHANNEL_ID = "processing_channel"
@@ -37,11 +39,11 @@ object NotificationHelper {
         val launchIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
-        val contentPendingIntent = android.app.PendingIntent.getActivity(
+        val contentPendingIntent = PendingIntent.getActivity(
             context,
             0,
             launchIntent,
-            android.app.PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) android.app.PendingIntent.FLAG_IMMUTABLE else 0)
+            PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
         )
         return NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
@@ -75,22 +77,21 @@ object NotificationHelper {
 
         val hasChunkInfo = currentChunkIndex != null && totalChunks != null && totalChunks > 1
         if (hasChunkInfo) {
-            val max = totalChunks!!
-            val current = currentChunkIndex!!.coerceIn(1, max)
+            val current = currentChunkIndex.coerceIn(1, totalChunks)
             val progressValue = current - 1
-            builder.setProgress(max - 1, progressValue, false)
-            builder.setSubText("Chunk $current / $max")
+            builder.setProgress(totalChunks - 1, progressValue, false)
+            builder.setSubText("Chunk $current / $totalChunks")
         } else {
             builder.setProgress(0, 0, true)
         }
 
         if (cancellable) {
             val cancelIntent = Intent(context, ProcessingService::class.java).setAction(ACTION_CANCEL)
-            val pendingCancel = android.app.PendingIntent.getService(
+            val pendingCancel = PendingIntent.getService(
                 context,
                 0,
                 cancelIntent,
-                android.app.PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) android.app.PendingIntent.FLAG_IMMUTABLE else 0)
+                PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
             )
             builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "Cancel", pendingCancel)
         }

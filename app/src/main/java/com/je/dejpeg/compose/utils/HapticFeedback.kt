@@ -1,6 +1,5 @@
 package com.je.dejpeg.compose.utils
 
-import android.content.Context
 import android.os.Build
 import android.view.HapticFeedbackConstants
 import android.view.View
@@ -43,38 +42,38 @@ object HapticFeedback {
             view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
         }
     }
+//
+//    fun click(view: View, isEnabled: Boolean) {
+//        if (!isEnabled) return
+//
+//        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+//    }
+//
+//    fun longPress(view: View, isEnabled: Boolean) {
+//        if (!isEnabled) return
+//
+//        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+//    }
+//
+//    fun reject(view: View, isEnabled: Boolean) {
+//        if (!isEnabled) return
+//
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+//            view.performHapticFeedback(HapticFeedbackConstants.REJECT)
+//        } else {
+//            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+//        }
+//    }
 
-    fun click(view: View, isEnabled: Boolean) {
-        if (!isEnabled) return
-        
-        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-    }
-
-    fun longPress(view: View, isEnabled: Boolean) {
-        if (!isEnabled) return
-        
-        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-    }
-
-    fun reject(view: View, isEnabled: Boolean) {
-        if (!isEnabled) return
-        
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            view.performHapticFeedback(HapticFeedbackConstants.REJECT)
-        } else {
-            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-        }
-    }
-
-    fun confirm(view: View, isEnabled: Boolean) {
-        if (!isEnabled) return
-        
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-        } else {
-            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-        }
-    }
+//    fun confirm(view: View, isEnabled: Boolean) {
+//        if (!isEnabled) return
+//
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+//            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+//        } else {
+//            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+//        }
+//    }
 
     fun error(view: View, isEnabled: Boolean) {
         if (!isEnabled) return
@@ -86,15 +85,15 @@ object HapticFeedback {
         }
     }
 
-    fun success(view: View, isEnabled: Boolean) {
-        if (!isEnabled) return
-        
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-        } else {
-            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-        }
-    }
+//    fun success(view: View, isEnabled: Boolean) {
+//        if (!isEnabled) return
+//
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+//            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+//        } else {
+//            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+//        }
+//    }
 
     fun gestureStart(view: View, isEnabled: Boolean) {
         if (!isEnabled) return
@@ -106,15 +105,15 @@ object HapticFeedback {
         }
     }
 
-    fun gestureEnd(view: View, isEnabled: Boolean) {
-        if (!isEnabled) return
-        
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            view.performHapticFeedback(HapticFeedbackConstants.GESTURE_END)
-        } else {
-            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-        }
-    }
+//    fun gestureEnd(view: View, isEnabled: Boolean) {
+//        if (!isEnabled) return
+//
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+//            view.performHapticFeedback(HapticFeedbackConstants.GESTURE_END)
+//        } else {
+//            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+//        }
+//    }
 }
 
 @Composable
@@ -131,12 +130,12 @@ class HapticFeedbackPerformer(private val view: View, private val isEnabled: Boo
     fun light() = HapticFeedback.light(view, isEnabled)
     fun medium() = HapticFeedback.medium(view, isEnabled)
     fun heavy() = HapticFeedback.heavy(view, isEnabled)
-    fun click() = HapticFeedback.click(view, isEnabled)
-    fun longPress() = HapticFeedback.longPress(view, isEnabled)
-    fun reject() = HapticFeedback.reject(view, isEnabled)
-    fun confirm() = HapticFeedback.confirm(view, isEnabled)
+//    fun click() = HapticFeedback.click(view, isEnabled)
+//    fun longPress() = HapticFeedback.longPress(view, isEnabled)
+//    fun reject() = HapticFeedback.reject(view, isEnabled)
+//    fun confirm() = HapticFeedback.confirm(view, isEnabled)
     fun error() = HapticFeedback.error(view, isEnabled)
-    fun success() = HapticFeedback.success(view, isEnabled)
+//    fun success() = HapticFeedback.success(view, isEnabled)
     fun gestureStart() = HapticFeedback.gestureStart(view, isEnabled)
-    fun gestureEnd() = HapticFeedback.gestureEnd(view, isEnabled)
+//    fun gestureEnd() = HapticFeedback.gestureEnd(view, isEnabled)
 }

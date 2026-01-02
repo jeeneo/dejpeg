@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -83,7 +84,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.je.dejpeg.R
 import com.je.dejpeg.compose.ModelManager
-import com.je.dejpeg.compose.ui.components.BatteryOptimizationDialog
 import com.je.dejpeg.compose.ui.components.CancelProcessingDialog
 import com.je.dejpeg.compose.ui.components.ImageSourceDialog
 import com.je.dejpeg.compose.ui.components.LoadingDialog
@@ -92,6 +92,7 @@ import com.je.dejpeg.compose.ui.components.SaveImageDialog
 import com.je.dejpeg.compose.ui.viewmodel.ImageItem
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingUiState
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
+import com.je.dejpeg.compose.utils.CacheManager
 import com.je.dejpeg.compose.utils.ImageActions
 import com.je.dejpeg.compose.utils.helpers.ImageLoadingHelper
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
@@ -109,7 +110,6 @@ fun ProcessingScreen(
     onNavigateToSettings: () -> Unit = {},
     initialSharedUris: List<Uri> = emptyList(),
     onRemoveSharedUri: (Uri) -> Unit = {},
-    hasRecoveryImages: Boolean = false
 ) {
     val context = LocalContext.current
     val appPreferences = remember { AppPreferences(context.applicationContext) }
@@ -120,7 +120,6 @@ fun ProcessingScreen(
     val globalStrength by viewModel.globalStrength.collectAsState()
     val supportsStrength = viewModel.supportsStrengthAdjustment()
     val shouldShowNoModelDialog by viewModel.shouldShowNoModelDialog.collectAsState()
-    val shouldShowBatteryOptimizationDialog by viewModel.shouldShowBatteryOptimizationDialog.collectAsState()
     val haptic = rememberHapticFeedback()
     val deprecatedModelWarning by viewModel.deprecatedModelWarning.collectAsState()
     val isLoadingImages by viewModel.isLoadingImages.collectAsState()
@@ -132,8 +131,6 @@ fun ProcessingScreen(
     var showCancelAllDialog by remember { mutableStateOf(false) }
     var saveErrorMessage by remember { mutableStateOf<String?>(null) }
     var overwriteDialogState by remember { mutableStateOf<Pair<String, String>?>(null) }
-    var recoveryImages by remember { mutableStateOf<List<Pair<String, Pair<android.graphics.Bitmap, android.graphics.Bitmap?>>>>(emptyList()) }
-    var showRecoveryDialog by remember { mutableStateOf(false) }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -190,17 +187,6 @@ fun ProcessingScreen(
         viewModel.serviceHelperRegister()
     }
 
-    LaunchedEffect(hasRecoveryImages) {
-        if (hasRecoveryImages) {
-            viewModel.loadRecoveryImages { loadedImages ->
-                recoveryImages = loadedImages
-                showRecoveryDialog = true
-            }
-        } else {
-            viewModel.deleteRecoveryImages()
-        }
-    }
-
     val processedShareUris = remember { mutableStateOf(setOf<String>()) }
     LaunchedEffect(initialSharedUris) {
         if (initialSharedUris.isNotEmpty()) {
@@ -225,7 +211,6 @@ fun ProcessingScreen(
             viewModel.addImagesFromUris(context, uris)
         }
     }
-        
     LaunchedEffect(Unit) { viewModel.setImagePickerLauncher(imagePickerLauncher) }
 
     fun importImage() {
@@ -359,7 +344,7 @@ fun ProcessingScreen(
                 onDismissRequest = { imageIdToRemove = null },
                 onRemove = { performRemoval(targetId) },
                 onSaveAndRemove = {
-                    if (ImageActions.checkFileExists(context, image.filename)) {
+                    if (ImageActions.checkFileExists(image.filename)) {
                         imageIdToRemove = null
                         overwriteDialogState = Pair(targetId, image.filename)
                     } else {
@@ -420,13 +405,6 @@ fun ProcessingScreen(
                 viewModel.dismissNoModelDialog()
                 onNavigateToSettings()
             }
-        )
-    }
-
-    if (shouldShowBatteryOptimizationDialog) {
-        BatteryOptimizationDialogForProcessing(
-            onDismiss = { viewModel.dismissBatteryOptimizationDialog() },
-            context = context
         )
     }
 
@@ -513,31 +491,6 @@ fun ProcessingScreen(
             progressText = progress?.let { stringResource(R.string.loading_image_progress, it.first, it.second) }
         )
     }
-
-    if (showRecoveryDialog && recoveryImages.isNotEmpty()) {
-        RecoveryImagesDialog(
-            count = recoveryImages.size,
-            onRecover = {
-                recoveryImages.forEach { (_, bitmapPair) ->
-                    val (processedBitmap, unprocessedBitmap) = bitmapPair
-                    val inputBitmap = unprocessedBitmap ?: processedBitmap
-                    viewModel.addImage(ImageItem(
-                        id = java.util.UUID.randomUUID().toString(),
-                        uri = null,
-                        filename = "Recovered",
-                        inputBitmap = inputBitmap,
-                        outputBitmap = processedBitmap,
-                        thumbnailBitmap = ImageLoadingHelper.generateThumbnail(processedBitmap),
-                        size = "${processedBitmap.width}x${processedBitmap.height}",
-                        hasBeenSaved = false
-                    ))
-                }
-            },
-            onDiscard = {
-                viewModel.deleteRecoveryImages()
-            }
-        )
-    }
 }
 
 @Composable
@@ -579,17 +532,6 @@ fun NoModelDialog(onDismiss: () -> Unit, onGoToSettings: () -> Unit) {
         confirmButton = { TextButton(onClick = { haptic.medium(); onGoToSettings() }) { Text(stringResource(R.string.go_to_settings)) } }, 
         dismissButton = { TextButton(onClick = { haptic.light(); onDismiss() }) { Text(stringResource(R.string.cancel)) } }
     )
-}
-
-@Composable
-fun BatteryOptimizationDialogForProcessing(onDismiss: () -> Unit, context: Context) {
-    val errorMessage = context.getString(R.string.cannot_open_link_detail)
-    BatteryOptimizationDialog(onDismissRequest = onDismiss, onOpenSettings = {
-        try {
-            val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
-            context.startActivity(intent)
-        } catch (e: Exception) { Toast.makeText(context, "$errorMessage: ${e.message ?: ""}", Toast.LENGTH_SHORT).show() }
-    })
 }
 
 @Composable
@@ -746,34 +688,6 @@ fun DeprecatedModelWarningDialog(
         dismissButton = { 
             TextButton(onClick = { haptic.light(); onGoToSettings() }) { 
                 Text(stringResource(R.string.go_to_settings)) 
-            } 
-        }
-    )
-}
-
-@Composable
-fun RecoveryImagesDialog(
-    count: Int,
-    onRecover: () -> Unit = {},
-    onDiscard: () -> Unit = {}
-) {
-    val haptic = rememberHapticFeedback()
-    AlertDialog(
-        onDismissRequest = onDiscard,
-        shape = RoundedCornerShape(28.dp),
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        title = { Text("Recover Processed Images?") },
-        text = { 
-            Text("Found $count processed image(s) that were not saved before closing. Would you like to recover them?")
-        },
-        confirmButton = { 
-            TextButton(onClick = { haptic.medium(); onRecover() }) { 
-                Text("Recover") 
-            } 
-        },
-        dismissButton = { 
-            TextButton(onClick = { haptic.light(); onDiscard() }) { 
-                Text("Discard") 
             } 
         }
     )

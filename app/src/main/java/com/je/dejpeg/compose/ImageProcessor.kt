@@ -1,21 +1,31 @@
-package com.je.dejpeg
+package com.je.dejpeg.compose
 
+import ai.onnxruntime.NodeInfo
+import ai.onnxruntime.OnnxJavaType
+import ai.onnxruntime.OnnxTensor
+import ai.onnxruntime.OrtEnvironment
+import ai.onnxruntime.OrtSession
+import ai.onnxruntime.TensorInfo
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.graphics.Color
-import ai.onnxruntime.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import java.nio.FloatBuffer
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
-import java.io.File
-import java.io.FileOutputStream
+import android.graphics.Paint
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
+import android.util.Log
 import androidx.core.graphics.createBitmap
-import com.je.dejpeg.compose.ModelManager
+import com.je.dejpeg.R
 import com.je.dejpeg.compose.utils.CacheManager
 import com.je.dejpeg.data.AppPreferences
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import java.nio.FloatBuffer
 import kotlin.math.ceil
 
 class ImageProcessor(
@@ -108,11 +118,11 @@ class ImageProcessor(
         val height = inputBitmap.height
         val maxChunkSize = info.chunkSize
         val overlap = info.overlap
-        val cols = Math.max(1, ceil(width.toDouble() / maxChunkSize).toInt())
-        val rows = Math.max(1, ceil(height.toDouble() / maxChunkSize).toInt())
+        val cols = 1.coerceAtLeast(ceil(width.toDouble() / maxChunkSize).toInt())
+        val rows = 1.coerceAtLeast(ceil(height.toDouble() / maxChunkSize).toInt())
         val actualChunkWidth = (width + (cols - 1) * overlap) / cols
         val actualChunkHeight = (height + (rows - 1) * overlap) / rows
-        android.util.Log.d("ImageProcessor", "Processing tiled: image=${width}x${height}, max=$maxChunkSize, actual=${actualChunkWidth}x${actualChunkHeight}, grid=${cols}x${rows}, overlap=$overlap")
+        Log.d("ImageProcessor", "Processing tiled: image=${width}x${height}, max=$maxChunkSize, actual=${actualChunkWidth}x${actualChunkHeight}, grid=${cols}x${rows}, overlap=$overlap")
         val totalChunks = cols * rows
         val chunksDir = CacheManager.getChunksDir(context)
         data class ChunkInfo(
@@ -129,15 +139,15 @@ class ImageProcessor(
         val chunkInfoList = mutableListOf<ChunkInfo>()
         
         try {
-            android.util.Log.d("ImageProcessor", "Phase 1: Extracting ${totalChunks} chunks to disk")
+            Log.d("ImageProcessor", "Phase 1: Extracting $totalChunks chunks to disk")
             var chunkIndex = 0
             for (row in 0 until rows) {
                 for (col in 0 until cols) {
                     if (isCancelled) throw Exception(context.getString(R.string.error_processing_cancelled))
-                    val chunkX = Math.max(0, col * (actualChunkWidth - overlap))
-                    val chunkY = Math.max(0, row * (actualChunkHeight - overlap))
-                    val chunkW = Math.min(actualChunkWidth, width - chunkX)
-                    val chunkH = Math.min(actualChunkHeight, height - chunkY)
+                    val chunkX = 0.coerceAtLeast(col * (actualChunkWidth - overlap))
+                    val chunkY = 0.coerceAtLeast(row * (actualChunkHeight - overlap))
+                    val chunkW = actualChunkWidth.coerceAtMost(width - chunkX)
+                    val chunkH = actualChunkHeight.coerceAtMost(height - chunkY)
                     if (chunkW <= 0 || chunkH <= 0) continue
                     val chunk = Bitmap.createBitmap(inputBitmap, chunkX, chunkY, chunkW, chunkH)
                     val converted = if (chunk.config != config) {
@@ -167,8 +177,8 @@ class ImageProcessor(
                     chunkIndex++
                 }
             }
-            android.util.Log.d("ImageProcessor", "Saved ${chunkInfoList.size} chunks to ${chunksDir.absolutePath}")
-            android.util.Log.d("ImageProcessor", "Phase 2: Processing ${totalChunks} chunks")
+            Log.d("ImageProcessor", "Saved ${chunkInfoList.size} chunks to ${chunksDir.absolutePath}")
+            Log.d("ImageProcessor", "Phase 2: Processing $totalChunks chunks")
             if (totalChunks > 1) {
                 withContext(Dispatchers.Main) {
                     callback.onChunkProgress(1, totalChunks)
@@ -205,9 +215,9 @@ class ImageProcessor(
                     }
                 }
             }
-            android.util.Log.d("ImageProcessor", "Phase 3: Merging processed chunks")
+            Log.d("ImageProcessor", "Phase 3: Merging processed chunks")
             val result = createBitmap(width, height, config)
-            val canvas = android.graphics.Canvas(result)
+            val canvas = Canvas(result)
             for (chunkInfo in chunkInfoList) {
                 if (isCancelled) throw Exception(context.getString(R.string.error_processing_cancelled))
                 val processedChunkFile = File(chunksDir, "chunk_${chunkInfo.index}_processed.png")
@@ -218,8 +228,8 @@ class ImageProcessor(
                     loadedProcessed, chunkInfo.x, chunkInfo.y, width, height, 
                     overlap, cols, rows, chunkInfo.col, chunkInfo.row
                 )
-                val paint = android.graphics.Paint()
-                paint.xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.SRC_OVER)
+                val paint = Paint()
+                paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_OVER)
                 canvas.drawBitmap(feathered, chunkInfo.x.toFloat(), chunkInfo.y.toFloat(), paint)
                 loadedProcessed.recycle()
                 feathered.recycle()
@@ -235,7 +245,7 @@ class ImageProcessor(
     }
 
     private fun createFeatheredChunk(
-        chunk: Bitmap, 
+        chunk: Bitmap,
         chunkX: Int, 
         chunkY: Int, 
         totalWidth: Int, 
@@ -361,21 +371,21 @@ class ImageProcessor(
     }
 
     private fun extractOutputArray(outputValue: Any, channels: Int, h: Int, w: Int): FloatArray {
-        android.util.Log.d("ImageProcessor", "Output type received: ${outputValue.javaClass.name}")
+        Log.d("ImageProcessor", "Output type received: ${outputValue.javaClass.name}")
         return when (outputValue) {
             is FloatArray -> {
-                android.util.Log.d("ImageProcessor", "Output is FloatArray (FP32 or auto-converted from FP16)")
+                Log.d("ImageProcessor", "Output is FloatArray (FP32 or auto-converted from FP16)")
                 outputValue
             }
             is ShortArray -> {
-                android.util.Log.d("ImageProcessor", "Output is ShortArray (FP16) - converting to Float32")
+                Log.d("ImageProcessor", "Output is ShortArray (FP16) - converting to Float32")
                 FloatArray(outputValue.size) { i -> float16ToFloat(outputValue[i]) }
             }
             is Array<*> -> {
                 try {
                     @Suppress("UNCHECKED_CAST")
                     val arr = outputValue as Array<Array<Array<FloatArray>>>
-                    android.util.Log.d("ImageProcessor", "Output is multi-dimensional FloatArray")
+                    Log.d("ImageProcessor", "Output is multi-dimensional FloatArray")
                     val out = FloatArray(channels * h * w)
                     for (ch in 0 until channels) {
                         for (y in 0 until h) {
@@ -389,7 +399,7 @@ class ImageProcessor(
                     try {
                         @Suppress("UNCHECKED_CAST")
                         val arr = outputValue as Array<Array<Array<ShortArray>>>
-                        android.util.Log.d("ImageProcessor", "Output is multi-dimensional ShortArray (FP16)")
+                        Log.d("ImageProcessor", "Output is multi-dimensional ShortArray (FP16)")
                         val out = FloatArray(channels * h * w)
                         for (ch in 0 until channels) {
                             for (y in 0 until h) {
@@ -423,7 +433,7 @@ class ImageProcessor(
     private fun floatToFloat16(value: Float): Short {
         val bits = java.lang.Float.floatToIntBits(value)
         val sign = (bits ushr 16) and 0x8000
-        var exponent = ((bits ushr 23) and 0xFF) - 127 + 15
+        val exponent = ((bits ushr 23) and 0xFF) - 127 + 15
         var mantissa = bits and 0x7FFFFF
         
         if (exponent <= 0) {
@@ -445,7 +455,6 @@ class ImageProcessor(
         val sign = (bits and 0x8000) shl 16
         val exponent = (bits and 0x7C00) ushr 10
         val mantissa = bits and 0x3FF
-        
         if (exponent == 0) {
             if (mantissa == 0) {
                 return java.lang.Float.intBitsToFloat(sign)
@@ -481,7 +490,7 @@ class ImageProcessor(
         val overlap: Int = customOverlapSize ?: AppPreferences.DEFAULT_OVERLAP_SIZE
 
         init {
-            android.util.Log.d("ModelInfo", "Initialized with customChunkSize: $customChunkSize, customOverlapSize: $customOverlapSize -> chunkSize: $chunkSize, overlap: $overlap")
+            Log.d("ModelInfo", "Initialized with customChunkSize: $customChunkSize, customOverlapSize: $customOverlapSize -> chunkSize: $chunkSize, overlap: $overlap")
             inputInfoMap = session.inputInfo
             env = OrtEnvironment.getEnvironment()
             var foundInputName: String? = null
@@ -500,7 +509,7 @@ class ImageProcessor(
             inputName = foundInputName ?: throw RuntimeException("Could not find valid input tensor")
             isGrayscale = foundIsGrayscale
             isFp16 = foundIsFp16
-            android.util.Log.d("ModelInfo", "Model input type: ${if (isFp16) "FP16" else "FP32"}, grayscale: $isGrayscale")
+            Log.d("ModelInfo", "Model input type: ${if (isFp16) "FP16" else "FP32"}, grayscale: $isGrayscale")
         }
     }
 }

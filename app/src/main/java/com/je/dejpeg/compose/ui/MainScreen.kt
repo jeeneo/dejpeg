@@ -23,6 +23,7 @@ import com.je.dejpeg.compose.ui.screens.BeforeAfterScreen
 import com.je.dejpeg.compose.ui.screens.BRISQUEScreen
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.R
+import com.je.dejpeg.compose.ui.components.RecoveryImagesDialog
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
 
 sealed class AppScreen {
@@ -35,12 +36,13 @@ sealed class AppScreen {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
-    sharedUris: List<Uri> = emptyList(),
-    hasRecoveryImages: Boolean = false
+    sharedUris: List<Uri> = emptyList()
 ) {
     val context = LocalContext.current
     val viewModel: ProcessingViewModel = viewModel()
     val haptic = rememberHapticFeedback()
+    
+    RecoveryImagesDialog(viewModel = viewModel)
     
     var currentScreen by remember { mutableStateOf<AppScreen>(AppScreen.Processing) }
     var screenStack by remember { mutableStateOf(listOf<AppScreen>()) }
@@ -126,8 +128,7 @@ fun MainScreen(
                             initialSharedUris = sharedUris,
                             onRemoveSharedUri = { uri -> 
                                 (sharedUris as? MutableList<Uri>)?.remove(uri)
-                            },
-                            hasRecoveryImages = hasRecoveryImages
+                            }
                         ) 
                     }
                 }

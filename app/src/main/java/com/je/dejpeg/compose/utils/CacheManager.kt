@@ -11,7 +11,6 @@ object CacheManager {
     private const val TAG = "CacheManager"
     private const val CHUNKS_DIR = "processing_chunks"
     private const val CAMERA_IMPORTS_DIR = "cameraimports"
-    private const val SHARED_IMAGE_NAME = "shared_image.png"
     private const val PROCESSED_SUFFIX = "_processed.png"
     private const val UNPROCESSED_SUFFIX = "_unprocessed.png"
 
@@ -50,27 +49,6 @@ object CacheManager {
         }
     }
 
-    suspend fun cleanupProcessedImage(context: Context, imageId: String) = withContext(Dispatchers.IO) {
-        context.cacheDir.listFiles()?.forEach { file ->
-            if (file.isFile && file.name.contains(imageId) && file.name.endsWith("_processed.png")) {
-                if (file.delete()) {
-                    Log.d(TAG, "Deleted processed cache: ${file.name}")
-                }
-            }
-        }
-    }
-
-    private fun clearCameraImportsSync(context: Context) {
-        val cameraDir = File(context.cacheDir, CAMERA_IMPORTS_DIR)
-        if (cameraDir.exists()) {
-            val count = cameraDir.listFiles()?.size ?: 0
-            if (count > 0) {
-                Log.d(TAG, "Cleared $count camera import files")
-            }
-            cameraDir.deleteRecursively()
-        }
-    }
-
     suspend fun saveProcessedImage(context: Context, imageId: String, bitmap: android.graphics.Bitmap) = withContext(Dispatchers.IO) {
         val file = File(context.cacheDir, "${imageId}${PROCESSED_SUFFIX}")
         try {
@@ -78,13 +56,6 @@ object CacheManager {
             Log.d(TAG, "Saved processed image: ${file.name}")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to save processed image: ${e.message}")
-        }
-    }
-
-    fun deleteProcessedImage(context: Context, imageId: String) {
-        val file = File(context.cacheDir, "${imageId}${PROCESSED_SUFFIX}")
-        if (file.exists() && file.delete()) {
-            Log.d(TAG, "Deleted processed image cache: ${file.name}")
         }
     }
 
@@ -98,16 +69,16 @@ object CacheManager {
         }
     }
 
-    fun deleteUnprocessedImage(context: Context, imageId: String) {
+    fun deleteRecoveryPair(context: Context, imageId: String) {
+        Log.d(TAG, "Deleting recovery pair for imageId: $imageId")
         val file = File(context.cacheDir, "${imageId}${UNPROCESSED_SUFFIX}")
         if (file.exists() && file.delete()) {
             Log.d(TAG, "Deleted unprocessed image cache: ${file.name}")
         }
-    }
-
-    fun deleteRecoveryPair(context: Context, imageId: String) {
-        deleteProcessedImage(context, imageId)
-        deleteUnprocessedImage(context, imageId)
+        val processedFile = File(context.cacheDir, "${imageId}${PROCESSED_SUFFIX}")
+        if (processedFile.exists() && processedFile.delete()) {
+            Log.d(TAG, "Deleted processed image cache: ${processedFile.name}")
+        }
     }
 
     fun getRecoveryImages(context: Context): List<Pair<String, File>> {
