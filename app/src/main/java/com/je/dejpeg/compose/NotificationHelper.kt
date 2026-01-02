@@ -43,7 +43,7 @@ object NotificationHelper {
             context,
             0,
             launchIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
+            PendingIntent.FLAG_UPDATE_CURRENT or (PendingIntent.FLAG_IMMUTABLE)
         )
         return NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
@@ -74,28 +74,24 @@ object NotificationHelper {
         val builder = baseBuilder(context)
             .setContentTitle("Processing")
             .setContentText(message)
-
         val hasChunkInfo = currentChunkIndex != null && totalChunks != null && totalChunks > 1
         if (hasChunkInfo) {
-            val current = currentChunkIndex.coerceIn(1, totalChunks)
-            val progressValue = current - 1
-            builder.setProgress(totalChunks - 1, progressValue, false)
-            builder.setSubText("Chunk $current / $totalChunks")
+            val displayChunk = (currentChunkIndex + 1).coerceIn(1, totalChunks)
+            builder.setProgress(totalChunks, currentChunkIndex, false)
+            builder.setSubText("Chunk $displayChunk / $totalChunks")
         } else {
             builder.setProgress(0, 0, true)
         }
-
         if (cancellable) {
             val cancelIntent = Intent(context, ProcessingService::class.java).setAction(ACTION_CANCEL)
             val pendingCancel = PendingIntent.getService(
                 context,
                 0,
                 cancelIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
+                PendingIntent.FLAG_UPDATE_CURRENT or (PendingIntent.FLAG_IMMUTABLE)
             )
             builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "Cancel", pendingCancel)
         }
-
         val mgr = context.getSystemService(NotificationManager::class.java)
         mgr?.notify(NOTIFICATION_ID, builder.build())
     }

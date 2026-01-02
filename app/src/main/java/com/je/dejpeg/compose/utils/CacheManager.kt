@@ -31,7 +31,7 @@ object CacheManager {
         if (chunksDir.exists()) {
             val count = chunksDir.listFiles()?.size ?: 0
             if (count > 0) {
-                Log.d(TAG, "Clearing $count interupted chunk files")
+                Log.d(TAG, "Clearing $count interrupted chunk files")
             }
             chunksDir.deleteRecursively()
         }
