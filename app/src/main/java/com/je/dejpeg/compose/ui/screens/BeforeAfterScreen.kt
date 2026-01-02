@@ -141,7 +141,7 @@ fun BeforeAfterScreen(
                 IconButton(onClick = {
                     haptic.medium()
                     if (skipSaveDialog) {
-                        if (ImageActions.checkFileExists(context, filename)) {
+                        if (ImageActions.checkFileExists(filename)) {
                             overwriteDialogFilename = filename
                         } else {
                             viewModel.saveImage(
@@ -175,7 +175,7 @@ fun BeforeAfterScreen(
                     onError = { errorMsg -> saveErrorMessage = errorMsg }
                 )
             } else {
-                if (ImageActions.checkFileExists(context, name)) {
+                if (ImageActions.checkFileExists(name)) {
                     overwriteDialogFilename = name
                 } else {
                     performSave(afterBitmap ?: beforeBitmap, name)
