@@ -312,7 +312,6 @@ sealed class ModelWarningState {
         val warning: ModelManager.ModelWarning,
         val isImport: Boolean
     ) : ModelWarningState()
-
     data class Error(val message: String) : ModelWarningState()
 }
 
