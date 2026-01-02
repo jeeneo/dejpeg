@@ -181,15 +181,13 @@ class ImageProcessor(
             Log.d("ImageProcessor", "Phase 2: Processing $totalChunks chunks")
             if (totalChunks > 1) {
                 withContext(Dispatchers.Main) {
-                    callback.onChunkProgress(1, totalChunks)
+                    callback.onChunkProgress(0, totalChunks)
                 }
             }
             for (chunkInfo in chunkInfoList) {
                 if (isCancelled) throw Exception(context.getString(R.string.error_processing_cancelled))
-                
-                val currentChunkNumber = chunkInfo.index + 1
                 val progressMessage = if (totalChunks > 1) {
-                    context.getString(R.string.processing_chunk_x_of_y, currentChunkNumber, totalChunks)
+                    context.getString(R.string.processing_chunk_x_of_y, chunkInfo.index + 1, totalChunks)
                 } else {
                     context.getString(R.string.processing)
                 }
@@ -210,12 +208,16 @@ class ImageProcessor(
                 }
                 processed.recycle()
                 if (totalChunks > 1) {
+                    val nextChunkIndex = chunkInfo.index + 1
                     withContext(Dispatchers.Main) {
-                        callback.onChunkProgress(currentChunkNumber + 1, totalChunks)
+                        callback.onChunkProgress(nextChunkIndex, totalChunks)
                     }
                 }
             }
             Log.d("ImageProcessor", "Phase 3: Merging processed chunks")
+            withContext(Dispatchers.Main) {
+                callback.onProgress(context.getString(R.string.finishing_up))
+            }
             val result = createBitmap(width, height, config)
             val canvas = Canvas(result)
             for (chunkInfo in chunkInfoList) {

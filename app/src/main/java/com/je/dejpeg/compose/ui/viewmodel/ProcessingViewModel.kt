@@ -390,7 +390,6 @@ class ProcessingViewModel : ViewModel() {
                 val bitmap = withContext(Dispatchers.IO) { BitmapFactory.decodeFile(path) }
                 if (bitmap != null) {
                     CacheManager.saveProcessedImage(appContext!!, imageId, bitmap)
-                    
                     updateImageState(imageId) {
                         it.copy(
                             outputBitmap = bitmap,
