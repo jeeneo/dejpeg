@@ -47,6 +47,7 @@ android {
             isDebuggable = true
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+            resValue("string","app_name","DeJPEG - Debug")
         }
     }
     splits {

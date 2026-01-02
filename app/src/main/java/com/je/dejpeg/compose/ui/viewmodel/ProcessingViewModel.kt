@@ -10,6 +10,7 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.je.dejpeg.compose.ModelManager
+import com.je.dejpeg.compose.utils.BitmapUtils
 import com.je.dejpeg.compose.utils.CacheManager
 import com.je.dejpeg.compose.utils.ImageActions
 import com.je.dejpeg.compose.utils.helpers.ModelMigrationHelper
@@ -387,11 +388,21 @@ class ProcessingViewModel : ViewModel() {
     private fun handleProcessingComplete(imageId: String, path: String) {
         viewModelScope.launch {
             try {
-                val bitmap = withContext(Dispatchers.IO) { BitmapFactory.decodeFile(path) }
-                if (bitmap != null) {
+                val outputBitmap = withContext(Dispatchers.IO) { BitmapFactory.decodeFile(path) }
+                val inputBitmap = getImageById(imageId)?.inputBitmap ?: error("couldn't find input bitmap")
+
+                val matchedOutputBitmap = withContext(Dispatchers.IO){
+                    outputBitmap?.let{
+                        BitmapUtils.matchBitmapOrientation(
+                            input = inputBitmap,
+                            output = outputBitmap
+                        )
+                    }
+                }
+                if (matchedOutputBitmap != null) {
                     updateImageState(imageId) {
                         it.copy(
-                            outputBitmap = bitmap,
+                            outputBitmap = matchedOutputBitmap,
                             isProcessing = false,
                             progress = STATUS_COMPLETE,
                             completedChunks = 0,
