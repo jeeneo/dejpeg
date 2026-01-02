@@ -467,7 +467,7 @@ fun ProcessingScreen(
             onSave = { name, _, _ ->
                 viewModel.saveImage(context, id, name, 
                     onSuccess = { performRemoval(id); overwriteDialogState = null },
-                    onError = { overwriteDialogState = null; }
+                    onError = { overwriteDialogState = null; saveErrorMessage = it }
                 )
             }
         )
