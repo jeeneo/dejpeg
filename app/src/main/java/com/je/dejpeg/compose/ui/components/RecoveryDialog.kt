@@ -79,7 +79,7 @@ fun RecoveryDialog(
             }
         }
         AlertDialog(
-            onDismissRequest = ::clearCache,
+            onDismissRequest = {},
             shape = RoundedCornerShape(28.dp),
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = { Text(stringResource(R.string.recover_images_title, pluralSuffix)) },

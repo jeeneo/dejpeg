@@ -56,5 +56,4 @@ class ModelRepository(context: Context) {
             withContext(Dispatchers.Main) { onDeleted(name) }
         }
     }
-    fun getModelManager(): ModelManager = modelManager
 }
