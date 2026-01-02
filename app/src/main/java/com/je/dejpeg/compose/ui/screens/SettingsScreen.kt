@@ -9,8 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -23,6 +22,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import com.je.dejpeg.compose.ModelManager
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.R
@@ -60,7 +63,9 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
         }
     }
 
-    LaunchedEffect(installedModels) { activeModelName = withContext(Dispatchers.IO) { viewModel.getActiveModelName() } }
+    LaunchedEffect(installedModels) { 
+        activeModelName = withContext(Dispatchers.IO) { viewModel.getActiveModelName() } 
+    }
 
     val modelPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -98,15 +103,16 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
         floatingActionButton = {
             val haptic = rememberHapticFeedback()
             ExtendedFloatingActionButton(
-            onClick = {
-                haptic.light()
-                modelPickerLauncher.launch("*/*")
-            },
-            icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-            text = { Text(stringResource(R.string.import_model_text)) },
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            expanded = true
+                onClick = {
+                    haptic.light()
+                    modelPickerLauncher.launch("*/*")
+                },
+                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                text = { Text(stringResource(R.string.import_model_text)) },
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                expanded = true,
+                shape = RoundedCornerShape(24.dp)
             )
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
@@ -118,37 +124,57 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
-            SettingsSectionCard(stringResource(R.string.model_management)) {
-                SettingsItem(
-                    stringResource(R.string.active_model, ""),
-                    activeModelName ?: stringResource(R.string.no_model_loaded)
-                ) { dialogState = DialogState.Model }
-            }
+            Spacer(modifier = Modifier.height(20.dp))
+
             SettingsSectionCard(stringResource(R.string.processing)) {
-                SettingsItem(
-                    stringResource(R.string.chunk_settings),
-                    stringResource(R.string.chunk_size_px, chunkSize) + " • " + stringResource(
-                        R.string.overlap_size_px,
-                        overlapSize
-                    )
+                ModernSettingsItem(
+                    icon = painterResource(id = R.drawable.ic_model),
+                    iconBackgroundColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    iconTint = MaterialTheme.colorScheme.onTertiaryContainer,
+                    title = stringResource(R.string.model_management, ""),
+                    subtitle = activeModelName ?: stringResource(R.string.no_model_loaded)
+                ) { dialogState = DialogState.Model }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                ModernSettingsItem(
+                    icon = Icons.Filled.GridOn,
+                    iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
+                    iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    title = stringResource(R.string.chunk_settings),
+                    subtitle = stringResource(R.string.chunk_size_px, chunkSize) + " • " + 
+                              stringResource(R.string.overlap_size_px, overlapSize)
                 ) { dialogState = DialogState.Chunk }
             }
+
             SettingsSectionCard(stringResource(R.string.app)) {
-                SettingsItem(
-                    stringResource(R.string.preferences),
-                    stringResource(R.string.manage_save_dialog_and_source)
+                ModernSettingsItem(
+                    icon = Icons.Filled.Settings,
+                    iconBackgroundColor = MaterialTheme.colorScheme.primaryContainer,
+                    iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    title = stringResource(R.string.preferences),
+                    subtitle = stringResource(R.string.manage_save_dialog_and_source)
                 ) { dialogState = DialogState.Preferences }
 
-                SettingsItem(
-                    stringResource(R.string.about),
-                    stringResource(R.string.version_info_and_credits)
-                ) { dialogState = DialogState.About }
+                Spacer(modifier = Modifier.height(8.dp))
 
-                SettingsItem(
-                    stringResource(R.string.faqs),
-                    stringResource(R.string.show_frequently_asked_questions)
+                ModernSettingsItem(
+                    icon = Icons.Filled.QuestionAnswer,
+                    iconBackgroundColor = MaterialTheme.colorScheme.primaryContainer,
+                    iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    title = stringResource(R.string.faqs),
+                    subtitle = stringResource(R.string.show_frequently_asked_questions)
                 ) { dialogState = DialogState.FAQ }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                ModernSettingsItem(
+                    icon = Icons.Filled.Info,
+                    iconBackgroundColor = MaterialTheme.colorScheme.surfaceVariant,
+                    iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    title = stringResource(R.string.about),
+                    subtitle = stringResource(R.string.version_info_and_credits)
+                ) { dialogState = DialogState.About }
             }
 
             Spacer(modifier = Modifier.height(96.dp))
@@ -167,8 +193,7 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
                 if (warning != null) {
                     Log.d("SettingsScreen", "Setting pendingModelSelection to: $modelName")
                     pendingModelSelection = modelName
-                    warningState =
-                        ModelWarningState.ModelWarning(modelName, warning, isImport = false)
+                    warningState = ModelWarningState.ModelWarning(modelName, warning, isImport = false)
                 } else {
                     Log.d("SettingsScreen", "No warning, setting active model directly")
                     viewModel.setActiveModelByName(modelName)
@@ -321,19 +346,97 @@ fun SettingsSectionCard(title: String, content: @Composable ColumnScope.() -> Un
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        tonalElevation = 1.dp
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        tonalElevation = 2.dp
     ) {
-        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
             Text(
                 title,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(bottom = 12.dp)
             )
             content()
+        }
+    }
+}
+
+@Composable
+fun ModernSettingsItem(
+    icon: Any,
+    iconBackgroundColor: Color,
+    iconTint: Color,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    val haptic = rememberHapticFeedback()
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .clickable { 
+                haptic.light()
+                onClick() 
+            },
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 1.dp,
+        shape = RoundedCornerShape(20.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                modifier = Modifier.size(48.dp),
+                shape = RoundedCornerShape(14.dp),
+                color = iconBackgroundColor
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    when (icon) {
+                        is ImageVector -> Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = iconTint,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        is Painter -> Icon(
+                            painter = icon,
+                            contentDescription = null,
+                            tint = iconTint,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(3.dp))
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(
+                Icons.Filled.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier.size(24.dp)
+            )
         }
     }
 }
