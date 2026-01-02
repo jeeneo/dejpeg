@@ -164,4 +164,15 @@
     <string name="error_processing_title">Processing error</string>
     <string name="copy_error">Copy error</string>
     <string name="error_copied">Copied to clipboard</string>
+
+    <!-- RecoveryDialog strings -->
+    <string name="recover_images_title">Recover image%1$s?</string>
+    <string name="recover_images_message">Found %1$d processed image%2$s that %3$s not saved before closing. Would you like to recover %4$s?</string>
+    <string name="recover">Recover</string>
+    <string name="discard">Discard</string>
+    <string name="recovered_image_prefix">Recovered</string>
+    <string name="them">them</string>
+    <string name="it">it</string>
+    <string name="were">were</string>
+    <string name="was">was</string>
 </resources>

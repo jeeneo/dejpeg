@@ -237,7 +237,7 @@ class ImageProcessor(
                     processedChunkFile.delete()
                 }
             }
-            CacheManager.clearChunksSync(context)
+            CacheManager.clearChunks(context)
             return result
         } catch (e: Exception) {
             throw e

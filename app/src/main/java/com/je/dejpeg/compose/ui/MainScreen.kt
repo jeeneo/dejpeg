@@ -23,7 +23,7 @@ import com.je.dejpeg.compose.ui.screens.BeforeAfterScreen
 import com.je.dejpeg.compose.ui.screens.BRISQUEScreen
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.R
-import com.je.dejpeg.compose.ui.components.RecoveryImagesDialog
+import com.je.dejpeg.compose.ui.components.RecoveryDialog
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
 
 sealed class AppScreen {
@@ -42,7 +42,7 @@ fun MainScreen(
     val viewModel: ProcessingViewModel = viewModel()
     val haptic = rememberHapticFeedback()
     
-    RecoveryImagesDialog(viewModel = viewModel)
+    RecoveryDialog(viewModel = viewModel)
     
     var currentScreen by remember { mutableStateOf<AppScreen>(AppScreen.Processing) }
     var screenStack by remember { mutableStateOf(listOf<AppScreen>()) }
