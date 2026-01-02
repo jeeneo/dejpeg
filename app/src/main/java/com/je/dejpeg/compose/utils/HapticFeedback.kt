@@ -121,7 +121,7 @@ object HapticFeedback {
 fun rememberHapticFeedback(): HapticFeedbackPerformer {
     val view = LocalView.current
     val context = LocalContext.current
-    val appPreferences = remember { AppPreferences.getInstance(context) }
+    val appPreferences = remember { AppPreferences(context.applicationContext) }
     val isEnabled by appPreferences.hapticFeedbackEnabled.collectAsState(initial = true)
     
     return remember(view, isEnabled) { HapticFeedbackPerformer(view, isEnabled) }

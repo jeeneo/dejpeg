@@ -54,15 +54,6 @@ class AppPreferences(private val context: Context) {
         const val DEFAULT_CHUNK_SIZE = 512
         const val DEFAULT_OVERLAP_SIZE = 8
         const val DEFAULT_GLOBAL_STRENGTH = 50f
-
-        @Volatile
-        private var instance: AppPreferences? = null
-        
-        fun getInstance(context: Context): AppPreferences {
-            return instance ?: synchronized(this) {
-                instance ?: AppPreferences(context.applicationContext).also { instance = it }
-            }
-        }
     }
 
     val skipSaveDialog: Flow<Boolean> = context.dataStore.data.map { prefs ->
@@ -182,9 +173,4 @@ class AppPreferences(private val context: Context) {
 
     suspend fun getChunkSizeImmediate(): Int = chunkSize.first()
     suspend fun getOverlapSizeImmediate(): Int = overlapSize.first()
-    suspend fun getGlobalStrengthImmediate(): Float = globalStrength.first()
-    suspend fun getSkipSaveDialogImmediate(): Boolean = skipSaveDialog.first()
-    suspend fun getDefaultImageSourceImmediate(): String? = defaultImageSource.first()
-    suspend fun getHapticFeedbackEnabledImmediate(): Boolean = hapticFeedbackEnabled.first()
-    suspend fun getBrisqueSettingsImmediate(): BrisqueSettings = brisqueSettings.first()
 }

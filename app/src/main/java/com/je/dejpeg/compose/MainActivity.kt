@@ -128,9 +128,4 @@ class MainActivity : ComponentActivity() {
         } catch (_: Exception) { /* o */ }
         sharedUrisState.add(uri)
     }
-    
-    override fun onDestroy() {
-        super.onDestroy()
-        CacheManager.cleanEntireCacheSync(this)
-    }
 }
