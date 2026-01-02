@@ -1,4 +1,6 @@
-use chunkings for progress
+use chunking for progress
 fix navigation issues
 minor changes to notification callbacks
 miscellaneous QoL fixes
+add recovery dialog for unsaved images
+better cleanup of cache

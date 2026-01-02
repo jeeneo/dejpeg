@@ -341,6 +341,8 @@ fun ProcessingScreen(
             RemoveImageDialog(
                 imageFilename = image.filename,
                 hasOutput = image.outputBitmap != null,
+                imageId = targetId,
+                context = context,
                 onDismissRequest = { imageIdToRemove = null },
                 onRemove = { performRemoval(targetId) },
                 onSaveAndRemove = {

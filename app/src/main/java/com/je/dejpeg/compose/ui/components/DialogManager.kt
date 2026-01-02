@@ -10,6 +10,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import com.je.dejpeg.R
+import com.je.dejpeg.compose.utils.CacheManager
 
 @Composable
 fun SaveImageDialog(
@@ -90,6 +91,8 @@ fun SaveImageDialog(
 fun RemoveImageDialog(
     imageFilename: String,
     hasOutput: Boolean,
+    imageId: String,
+    context: android.content.Context,
     onDismissRequest: () -> Unit,
     onRemove: () -> Unit,
     onSaveAndRemove: () -> Unit
@@ -111,7 +114,12 @@ fun RemoveImageDialog(
                     Text(stringResource(R.string.nope))
                 }
                 Spacer(Modifier.weight(0.4f))
-                TextButton({ haptic.heavy(); onRemove(); onDismissRequest() }) {
+                TextButton({ 
+                    haptic.heavy()
+                    CacheManager.deleteRecoveryPair(context, imageId)
+                    onRemove()
+                    onDismissRequest()
+                }) {
                     Text(
                         stringResource(R.string.remove),
                         color = MaterialTheme.colorScheme.error
