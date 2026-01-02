@@ -101,7 +101,7 @@
     <string name="chunk_size_px">%1$d px</string>
     <string name="overlap_size_px">%1$d px</string>
     <string name="app">App</string>
-    <string name="preferences_desc">Manage app defaults and settings</string>
+    <string name="preferences_desc">Manage defaults and settings</string>
     <string name="about">About</string>
     <string name="version_info_and_credits">Version info and license</string>
     <string name="show_frequently_asked_questions">Show frequently asked questions</string>
