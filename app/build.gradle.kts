@@ -16,7 +16,8 @@ android {
         minSdk = 24
         targetSdk = 36
         // what is semantic versioning? libraries? you think i know? i just bump these numbers every now and then :(
-        // it's the 3rd major release, with 3 minor updates, and this is the 0th(?) patch - random numbers fr
+        // it's the 3rd major release, with 3 minor updates, and this is the Nth(?) patch - random numbers fr
+        // "adds features without breaking things" LOL i break things every update wha?
         versionCode = 331
         versionName = "3.3.1"
     }
