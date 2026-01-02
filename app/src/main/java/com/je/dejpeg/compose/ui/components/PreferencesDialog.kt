@@ -93,7 +93,7 @@ fun PreferencesDialog(
                     )
                 }
                 CompactActionPreference(
-                    icon = Icons.Filled.ResetSettings,
+                    icon = Icons.Filled.Image,
                     title = stringResource(R.string.default_image_source),
                     subtitle = defaultImageSource?.let {
                         when (it) {
