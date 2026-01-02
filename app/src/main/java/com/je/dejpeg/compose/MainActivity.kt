@@ -12,6 +12,7 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -21,15 +22,14 @@ import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.je.dejpeg.compose.utils.CacheManager
+import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.MainScreen
 import com.je.dejpeg.ui.theme.DeJPEGTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 
 class MainActivity : ComponentActivity() {
-    private val sharedUrisState = androidx.compose.runtime.mutableStateListOf<Uri>()
-    private val hasRecoveryImagesState = androidx.compose.runtime.mutableStateOf(false)
-
+    private val viewModel: ProcessingViewModel by viewModels()
     private val notificationPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
@@ -42,8 +42,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
-        
-        hasRecoveryImagesState.value = CacheManager.getRecoveryImages(this).isNotEmpty()
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(
@@ -84,7 +82,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MainScreen(sharedUris = sharedUrisState, hasRecoveryImages = hasRecoveryImagesState.value)
+                    MainScreen(sharedUris = viewModel.sharedUris.value)
                 }
             }
         }
@@ -121,11 +119,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun addSharedUri(uri: Uri, flags: Int) {
-        if (sharedUrisState.any { it == uri }) return
         try {
             val takeFlags = flags and (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
-            contentResolver.takePersistableUriPermission(uri, takeFlags and Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION and Intent.FLAG_GRANT_READ_URI_PERMISSION)
         } catch (_: Exception) { /* o */ }
-        sharedUrisState.add(uri)
+        viewModel.addSharedUri(uri)
     }
 }

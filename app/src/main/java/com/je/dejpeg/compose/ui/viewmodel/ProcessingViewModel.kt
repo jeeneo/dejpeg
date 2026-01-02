@@ -10,6 +10,7 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.je.dejpeg.compose.ModelManager
+import com.je.dejpeg.compose.ProcessingService
 import com.je.dejpeg.compose.utils.CacheManager
 import com.je.dejpeg.compose.utils.ImageActions
 import com.je.dejpeg.compose.utils.helpers.ModelMigrationHelper
@@ -48,6 +49,7 @@ sealed class ProcessingUiState {
 }
 class ProcessingViewModel : ViewModel() {
     val images = MutableStateFlow<List<ImageItem>>(emptyList())
+    val sharedUris = MutableStateFlow<List<Uri>>(emptyList())
     val uiState = MutableStateFlow<ProcessingUiState>(ProcessingUiState.Idle)
     val globalStrength = MutableStateFlow(AppPreferences.DEFAULT_GLOBAL_STRENGTH)
     val chunkSize = MutableStateFlow(AppPreferences.DEFAULT_CHUNK_SIZE)
@@ -55,7 +57,6 @@ class ProcessingViewModel : ViewModel() {
     val installedModels = MutableStateFlow<List<String>>(emptyList())
     val hasCheckedModels = MutableStateFlow(false)
     val shouldShowNoModelDialog = MutableStateFlow(false)
-    val shouldShowBatteryOptimizationDialog = MutableStateFlow(false)
     val deprecatedModelWarning = MutableStateFlow<ModelManager.ModelWarning?>(null)
     val isLoadingImages = MutableStateFlow(false)
     val loadingImagesProgress = MutableStateFlow<Pair<Int, Int>?>(null)
@@ -171,6 +172,12 @@ class ProcessingViewModel : ViewModel() {
     fun addImage(item: ImageItem) {
         images.value += item
     }
+
+    fun addSharedUri(uri: Uri) {
+        if (sharedUris.value.any { it == uri }) return
+        sharedUris.value = sharedUris.value + uri
+    }
+
     fun addImagesFromUris(context: Context, uris: List<Uri>) {
         if (uris.isEmpty()) return
         viewModelScope.launch {
@@ -230,44 +237,10 @@ class ProcessingViewModel : ViewModel() {
         images.value = images.value.filter { it.id != id }
         if (cleanupCache) {
             appContext?.let { ctx ->
-                viewModelScope.launch { CacheManager.deleteRecoveryPair(ctx, id) }
-            }
-        }
-    }
-
-    fun loadRecoveryImages(onComplete: (List<Pair<String, Pair<Bitmap, Bitmap?>>>) -> Unit) {
-        appContext?.let { ctx ->
-            viewModelScope.launch {
-                val recoveryImages = mutableListOf<Pair<String, Pair<Bitmap, Bitmap?>>>()
-                val cachedImages = CacheManager.getRecoveryImages(ctx)
-                
-                for ((imageId, file) in cachedImages) {
-                    val processedBitmap = withContext(Dispatchers.IO) {
-                        BitmapFactory.decodeFile(file.absolutePath)
+                viewModelScope.launch {
+                    Log.d("ProcessingViewModel", "removeImage: Cleaning up cache for imageId: $id")
+                    CacheManager.deleteRecoveryPair(ctx, id)
                     }
-                    if (processedBitmap != null) {
-                        val unprocessedFile = CacheManager.getUnprocessedImage(ctx, imageId)
-                        val unprocessedBitmap = if (unprocessedFile != null) {
-                            withContext(Dispatchers.IO) {
-                                BitmapFactory.decodeFile(unprocessedFile.absolutePath)
-                            }
-                        } else null
-                        recoveryImages.add("Recovered_${imageId.take(8)}" to (processedBitmap to unprocessedBitmap))
-                    }
-                }
-                
-                onComplete(recoveryImages)
-            }
-        } ?: onComplete(emptyList())
-    }
-
-    fun deleteRecoveryImages() {
-        appContext?.let { ctx ->
-            viewModelScope.launch(Dispatchers.IO) {
-                val cachedImages = CacheManager.getRecoveryImages(ctx)
-                cachedImages.forEach { (imageId, _) ->
-                    CacheManager.deleteRecoveryPair(ctx, imageId)
-                }
             }
         }
     }
@@ -443,7 +416,6 @@ class ProcessingViewModel : ViewModel() {
 
     private fun handleProcessingError(imageId: String?, message: String) {
         val isCancelled = message.contains(statusCancelled, true)
-
         if (!imageId.isNullOrEmpty()) {
             updateImageState(imageId) {
                 resetChunkProgress(it).copy(
@@ -456,7 +428,8 @@ class ProcessingViewModel : ViewModel() {
             if (isCancelled) {
                 appContext?.let { ctx ->
                     viewModelScope.launch(Dispatchers.IO) {
-                        CacheManager.deleteUnprocessedImage(ctx, imageId)
+                        Log.d("ProcessingViewModel", "handleProcessingError: Cleaning up cache for cancelled imageId: $imageId")
+                        CacheManager.deleteRecoveryPair(ctx, imageId)
                     }
                 }
             }
@@ -470,8 +443,8 @@ class ProcessingViewModel : ViewModel() {
         }
 
         appContext?.let { ctx ->
-            val stopIntent = Intent(ctx, com.je.dejpeg.ProcessingService::class.java)
-            stopIntent.action = com.je.dejpeg.ProcessingService.ACTION_CANCEL
+            val stopIntent = Intent(ctx, ProcessingService::class.java)
+            stopIntent.action = ProcessingService.ACTION_CANCEL
             ctx.startService(stopIntent)
         }
         
@@ -584,7 +557,6 @@ class ProcessingViewModel : ViewModel() {
     fun showNoModelDialog() { shouldShowNoModelDialog.value = true }
     fun dismissNoModelDialog() { shouldShowNoModelDialog.value = false }
     fun dismissDeprecatedModelWarning() { deprecatedModelWarning.value = null }
-    fun dismissBatteryOptimizationDialog() { shouldShowBatteryOptimizationDialog.value = false }
     fun dismissProcessingErrorDialog() { processingErrorDialog.value = null }
 
     fun markImageAsSaved(imageId: String) {

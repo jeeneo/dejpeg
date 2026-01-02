@@ -1,4 +1,4 @@
-package com.je.dejpeg
+package com.je.dejpeg.compose.utils
 
 import android.content.Context
 import com.je.dejpeg.data.dataStore

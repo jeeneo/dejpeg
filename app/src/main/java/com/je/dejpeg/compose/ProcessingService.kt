@@ -1,11 +1,13 @@
-package com.je.dejpeg
+package com.je.dejpeg.compose
 
 import android.app.Service
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.Process
 import android.util.Log
 import com.je.dejpeg.compose.utils.CacheManager
 import com.je.dejpeg.data.AppPreferences
@@ -13,7 +15,6 @@ import kotlinx.coroutines.*
 import java.io.File
 import java.io.FileOutputStream
 import androidx.core.net.toUri
-import com.je.dejpeg.compose.ModelManager
 
 class ProcessingService : Service() {
     companion object {
@@ -55,8 +56,12 @@ class ProcessingService : Service() {
     override fun onCreate() {
         super.onCreate()
         NotificationHelper.checkChannel(this)
-        startForeground(NotificationHelper.NOTIFICATION_ID, NotificationHelper.build(this, "Initializing..."))
-        val pid = android.os.Process.myPid()
+        try {
+            startForeground(NotificationHelper.NOTIFICATION_ID, NotificationHelper.build(this, "Initializing..."))
+        } catch (e: Exception) {
+            Log.e("ProcessingService", "Failed to start foreground service: ${e.message}", e)
+        }
+        val pid = Process.myPid()
         Intent(PID_ACTION).apply {
             setPackage(packageName)
             putExtra(PID_EXTRA_VALUE, pid)
@@ -120,12 +125,12 @@ class ProcessingService : Service() {
                         val bitmap = BitmapFactory.decodeStream(inputStream).also { inputStream.close() }
                             ?: throw Exception("Failed to decode bitmap")
                         imageProcessor?.processImage(bitmap, strength, object : ImageProcessor.ProcessCallback {
-                            override fun onComplete(result: android.graphics.Bitmap) {
+                            override fun onComplete(result: Bitmap) {
                                 try {
                                     NotificationHelper.show(this@ProcessingService, "Processing complete")
                                     val safeName = if (!imageId.isNullOrEmpty()) imageId else filename
                                     val outFile = File(cacheDir, "${safeName}_processed.png")
-                                    FileOutputStream(outFile).use { result.compress(android.graphics.Bitmap.CompressFormat.PNG, 95, it) }
+                                    FileOutputStream(outFile).use { result.compress(Bitmap.CompressFormat.PNG, 95, it) }
                                     broadcast(PROGRESS_ACTION, PROGRESS_EXTRA_MESSAGE to "Complete", imageId = imageId)
                                     broadcast(COMPLETE_ACTION, COMPLETE_EXTRA_PATH to outFile.absolutePath, imageId = imageId)
                                 } catch (e: Exception) {
