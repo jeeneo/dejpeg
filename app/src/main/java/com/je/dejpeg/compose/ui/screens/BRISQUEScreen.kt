@@ -421,12 +421,12 @@ private fun BRISQUESettings(
         title = { Text("BRISQUE settings") },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                item { SettingSlider("Coarse stepping", coarseStep, { it.clamp(10f, 50f) }, 10f..50f, 1f, infoText = "Steps (px) per iteration in the initial scan") }
-                item { SettingSlider("Fine stepping", fineStep, { it.clamp(1f, 10f) }, 1f..10f, 1f, infoText = "Steps (px) per iteration in the second scan") }
-                item { SettingSlider("Fine range", fineRange, { it.clamp(10f, 100f) }, 10f..100f, 5f, infoText = "Range around the coarse result to explore") }
-                item { SettingSlider("Minimum image size", minWidthRatio, { it.clamp(0.1f, 0.9f) }, 0.1f..0.9f, 0.05f, format = { val px = (imageWidth * it).toInt(); val py = (imageHeight * it).toInt(); "${px}×${py}px (${String.format("%.0f", it * 100)}%)" }, infoText = "Minimum size of the final image the algorithm is willing to scale down to") }
-                item { SettingSlider("BRISQUE weight", brisqueWeight, { it.clamp(0f, 1f) }, 0f..1f, 0.05f, format = { "%.2f".format(it) }, infoText = "BRISQUE confidence in calculating") }
-                item { SettingSlider("Sharpness weight", sharpnessWeight, { it.clamp(0f, 1f) }, 0f..1f, 0.05f, format = { "%.2f".format(it) }, infoText = "Sharpness confidence in calculating") }
+                item { SettingSlider("Coarse stepping", coarseStep, { coarseStep = it.clamp(10f, 50f) }, 10f..50f, 1f, infoText = "Steps (px) per iteration in the initial scan") }
+                item { SettingSlider("Fine stepping", fineStep, { fineStep = it.clamp(1f, 10f) }, 1f..10f, 1f, infoText = "Steps (px) per iteration in the second scan") }
+                item { SettingSlider("Fine range", fineRange, { fineRange = it.clamp(10f, 100f) }, 10f..100f, 5f, infoText = "Range around the coarse result to explore") }
+                item { SettingSlider("Minimum image size", minWidthRatio, { minWidthRatio = it.clamp(0.1f, 0.9f) }, 0.1f..0.9f, 0.05f, format = { val px = (imageWidth * it).toInt(); val py = (imageHeight * it).toInt(); "${px}×${py}px (${String.format("%.0f", it * 100)}%)" }, infoText = "Minimum size of the final image the algorithm is willing to scale down to") }
+                item { SettingSlider("BRISQUE weight", brisqueWeight, { brisqueWeight = it.clamp(0f, 1f) }, 0f..1f, 0.05f, format = { "%.2f".format(it) }, infoText = "BRISQUE confidence in calculating") }
+                item { SettingSlider("Sharpness weight", sharpnessWeight, { sharpnessWeight = it.clamp(0f, 1f) }, 0f..1f, 0.05f, format = { "%.2f".format(it) }, infoText = "Sharpness confidence in calculating") }
             }
         },
         confirmButton = {
@@ -442,6 +442,12 @@ private fun BRISQUESettings(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(onClick = {
                     haptic.light()
+                    coarseStep = 20f
+                    fineStep = 5f
+                    fineRange = 30f
+                    minWidthRatio = 0.5f
+                    brisqueWeight = 0.7f
+                    sharpnessWeight = 0.3f
                 }) { Text("Reset") }
                 TextButton(onClick = { haptic.light(); onDismiss() }) { Text("Cancel") }
             }
