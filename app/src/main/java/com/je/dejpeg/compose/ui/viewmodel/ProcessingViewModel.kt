@@ -371,13 +371,11 @@ class ProcessingViewModel : ViewModel() {
     private fun cancelProcessingService(imageId: String?) {
         val targetImageId = imageId ?: currentProcessingId
         val ctx = appContext ?: return
-
         serviceHelper?.cancelProcessing {
             viewModelScope.launch(Dispatchers.IO) {
                 CacheManager.clearChunks(ctx)
             }
         }
-
         if (targetImageId != null && targetImageId == currentProcessingId) {
             currentProcessingId = null
         }
@@ -391,7 +389,6 @@ class ProcessingViewModel : ViewModel() {
             try {
                 val bitmap = withContext(Dispatchers.IO) { BitmapFactory.decodeFile(path) }
                 if (bitmap != null) {
-                    // Save to cache for recovery if app closes before saving
                     CacheManager.saveProcessedImage(appContext!!, imageId, bitmap)
                     
                     updateImageState(imageId) {

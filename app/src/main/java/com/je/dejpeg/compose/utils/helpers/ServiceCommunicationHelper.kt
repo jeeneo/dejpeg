@@ -121,7 +121,6 @@ class ServiceCommunicationHelper(
 
     fun cancelProcessing(onCleanup: () -> Unit): Boolean {
         NotificationHelper.cancel(context)
-        
         val pid = serviceProcessPid
         if (pid != null && pid > 0) {
             try {
@@ -133,7 +132,6 @@ class ServiceCommunicationHelper(
                 Log.e("ServiceCommunicationHelper", "Failed to kill service process: ${e.message}")
             }
         }
-        
         Log.w("ServiceCommunicationHelper", "No valid service PID available, sending cancel intent")
         startService(ProcessingService.ACTION_CANCEL) { }
         return false
@@ -144,7 +142,6 @@ class ServiceCommunicationHelper(
             this.action = action
             configure()
         }
-        
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 ContextCompat.startForegroundService(context, intent)

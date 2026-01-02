@@ -26,26 +26,19 @@ object CacheManager {
         }
     }
     
-    suspend fun clearChunks(context: Context) = withContext(Dispatchers.IO) {
-        val chunksDir = File(context.cacheDir, CHUNKS_DIR)
-        if (chunksDir.exists()) {
-            val files = chunksDir.listFiles()
-            val count = files?.size ?: 0
-            if (count > 0) {
-                Log.d(TAG, "Clearing $count chunk files")
-            }
-            chunksDir.deleteRecursively()
-        }
-    }
-    
-    fun clearChunksSync(context: Context) {
+    fun clearChunks(context: Context) {
         val chunksDir = File(context.cacheDir, CHUNKS_DIR)
         if (chunksDir.exists()) {
             val count = chunksDir.listFiles()?.size ?: 0
             if (count > 0) {
-                Log.d(TAG, "Cleared $count chunks (sync)")
+                Log.d(TAG, "Clearing $count interupted chunk files")
             }
             chunksDir.deleteRecursively()
+        }
+        abandonedImages(context).forEach { file ->
+            if (file.delete()) {
+                Log.d(TAG, "Deleted abandoned image: ${file.name}")
+            }
         }
     }
 
@@ -95,5 +88,19 @@ object CacheManager {
     fun getUnprocessedImage(context: Context, imageId: String): File? {
         val file = File(context.cacheDir, "${imageId}${UNPROCESSED_SUFFIX}")
         return if (file.exists()) file else null
+    }
+
+    fun abandonedImages(context: Context): List<File> {
+        val result = mutableListOf<File>()
+        context.cacheDir.listFiles()?.forEach { file ->
+            if (file.isFile && file.name.endsWith(UNPROCESSED_SUFFIX)) {
+                val imageId = file.name.removeSuffix(UNPROCESSED_SUFFIX)
+                val processedFile = File(context.cacheDir, "${imageId}${PROCESSED_SUFFIX}")
+                if (!processedFile.exists()) {
+                    result.add(file)
+                }
+            }
+        }
+        return result
     }
 }
