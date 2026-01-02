@@ -17,10 +17,11 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import android.content.ClipData
+import android.util.Log
 import com.je.dejpeg.R
 
 object ImageActions {
-    fun checkFileExists(context: Context, filename: String): Boolean {
+    fun checkFileExists(filename: String): Boolean {
         val fileNameRaw = filename.takeIf { it.isNotBlank() } ?: return false
         val fileName = fileNameRaw.substringBeforeLast('.', fileNameRaw)
         val picturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
@@ -40,6 +41,7 @@ object ImageActions {
                 FileOutputStream(outputFile).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
                 
                 if (imageId != null) {
+                    Log.d("ImageActions", "saveImage: Deleting recovery pair for imageId: $imageId")
                     CacheManager.deleteRecoveryPair(context, imageId)
                 }
                 
