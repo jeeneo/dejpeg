@@ -67,7 +67,7 @@ class BrisqueViewModel : ViewModel() {
 
     fun initialize(context: Context, bitmap: Bitmap, filename: String) {
         appContext = context.applicationContext
-        appPreferences = AppPreferences.getInstance(context)
+        appPreferences = AppPreferences(context.applicationContext)
         viewModelScope.launch {
             appPreferences?.brisqueSettings?.collect { loadedSettings ->
                 settings.value = loadedSettings

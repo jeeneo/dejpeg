@@ -2,10 +2,6 @@ package com.je.dejpeg.compose.ui.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,6 +12,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.je.dejpeg.R
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
+import androidx.core.net.toUri
 
 @Composable
 fun ModelDialog(
@@ -97,7 +94,7 @@ fun ModelDialog(
                     haptic.light()
                     val intent = android.content.Intent(
                         android.content.Intent.ACTION_VIEW,
-                        android.net.Uri.parse("https://codeberg.org/dryerlint/dejpeg/src/branch/main/models")
+                        "https://codeberg.org/dryerlint/dejpeg/src/branch/main/models".toUri()
                     )
                     context.startActivity(intent)
                 }) {
@@ -117,89 +114,6 @@ fun ModelDialog(
             }
         }
     )
-}
-
-@Composable
-fun ModelGridCard(
-    name: String,
-    isActive: Boolean,
-    hasWarning: Boolean,
-    onSelect: () -> Unit
-) {
-    val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
-    ElevatedCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { haptic.light(); onSelect() },
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = if (isActive)
-                MaterialTheme.colorScheme.primaryContainer
-            else
-                MaterialTheme.colorScheme.surfaceContainerLow
-        ),
-        elevation = CardDefaults.elevatedCardElevation(
-            defaultElevation = if (isActive) 2.dp else 1.dp
-        ),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                if (isActive) Icons.Filled.CheckCircle else Icons.Filled.Memory,
-                contentDescription = null,
-                modifier = Modifier.size(32.dp),
-                tint = if (isActive)
-                    MaterialTheme.colorScheme.primary
-                else
-                    MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
-                    color = if (isActive)
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    else
-                        MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1
-                )
-                if (isActive || hasWarning) {
-                    Spacer(Modifier.height(2.dp))
-                    Row(horizontalArrangement = Arrangement.Start) {
-                        if (isActive) {
-                            Text(
-                                stringResource(R.string.active),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                        if (hasWarning) {
-                            if (isActive) Spacer(Modifier.width(6.dp))
-                            Text(
-                                "⚠️",
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        }
-                    }
-                }
-            }
-            if (isActive) {
-                RadioButton(
-                    selected = true,
-                    onClick = null,
-                    colors = RadioButtonDefaults.colors(
-                        selectedColor = MaterialTheme.colorScheme.primary
-                    )
-                )
-            }
-        }
-    }
 }
 
 @Composable
