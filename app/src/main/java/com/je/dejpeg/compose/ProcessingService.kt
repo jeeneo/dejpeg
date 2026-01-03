@@ -121,7 +121,14 @@ class ProcessingService : Service() {
                 currentJob = serviceScope.launch {
                     try {
                         val uri = uriString.toUri()
-                        val bitmap = ImageLoadingHelper.loadBitmapWithRotation(applicationContext, uri) ?: throw Exception("Failed to decode bitmap")
+                        val unprocessedFile = if (!imageId.isNullOrEmpty()) { CacheManager.getUnprocessedImage(applicationContext, imageId) } else { null }
+                        val bitmap = if (unprocessedFile != null && unprocessedFile.exists()) { 
+                            Log.d("ProcessingService", "Loading pre-existing unprocessed file: ${unprocessedFile.name}") // trust, should be a camera import
+                            BitmapFactory.decodeFile(unprocessedFile.absolutePath)
+                        } else {
+                            Log.d("ProcessingService", "Loading from original URI: $uri")
+                            ImageLoadingHelper.loadBitmapWithRotation(applicationContext, uri)
+                        } ?: throw Exception("Failed to decode bitmap")
                         imageProcessor?.processImage(bitmap, strength, object : ImageProcessor.ProcessCallback {
                             override fun onComplete(result: Bitmap) {
                                 try {

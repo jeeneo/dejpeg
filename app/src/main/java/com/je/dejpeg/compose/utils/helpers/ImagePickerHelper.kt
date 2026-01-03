@@ -6,7 +6,6 @@ import android.net.Uri
 import android.provider.MediaStore
 import androidx.activity.result.ActivityResultLauncher
 import androidx.core.content.FileProvider
-import com.je.dejpeg.compose.utils.CacheManager
 import java.io.File
 import java.io.IOException
 
@@ -49,10 +48,11 @@ class ImagePickerHelper(
 
     fun launchCamera(): Result<Uri> {
         return try {
-            val cameraDir = CacheManager.getCameraImportsDir(context)
+            // Store camera captures directly in cache directory with temp_ prefix
+            // These will be handled by normal cache cleanup
             val tempFile = File(
-                cameraDir,
-                "JPEG_${System.currentTimeMillis()}.jpg"
+                context.cacheDir,
+                "temp_camera_${System.currentTimeMillis()}.jpg"
             )
             val photoUri = FileProvider.getUriForFile(
                 context,
@@ -75,6 +75,10 @@ class ImagePickerHelper(
     fun getCameraPhotoUri(): Uri? = currentPhotoUri
 
     fun clearCameraPhotoUri() {
+        // Delete the temp camera file when clearing
+        currentPhotoUri?.path?.let { path ->
+            File(path).takeIf { it.exists() }?.delete()
+        }
         currentPhotoUri = null
     }
     private fun launch(intent: Intent) {
