@@ -32,7 +32,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
 }
 
 extern "C" JNIEXPORT jfloat JNICALL
-Java_com_je_dejpeg_compose_utils_BRISQUE_BRISQUEAssesser_computeBRISQUEFromFile(
+Java_com_je_dejpeg_compose_utils_brisque_BRISQUEAssessor_computeBRISQUEFromFile(
         JNIEnv *env,
         jobject obj,
         jstring imagePath,

@@ -1,23 +1,23 @@
-<p>De<i>JPEG</i> - an open source app for removing noise and compression from photos</p>
+<p>De<i>JPEG</i> - an app for removing compression and noise from photos</p>
 
-<h2>features:</h2>
+<h2>Features:</h2>
 <ul>
-  <li>batch processing</li>
-  <li>supports most image formats</li>
+  <li>remove compression artifacts</li>
+  <li>denoise</li>
   <li>before/after view</li>
-  <li>custom models</li>
   <li>fully offline</li>
-  <li>image descaling (beta)</li>
+  <li>image descaling (see BRISQUE under in-app FAQs)</li>
 </ul>
 
-<p>This is not a "super resolution AI upscaler", but simple non-destructive method for cleaning up/restoring images</p>
+<p>This is not another "AI upscaler", but a compression artifact remover and denoiser using open-source weights such as FBCNN and SCUNet.</p>
 
-<p>external models are required (links in-app)</p>
+<p>External models are required (links in-app)</p>
 
-<h2>limitations:</h2>
+<h2>Limitation:</h2>
 <ul>
   <li>processed locally, minimum 4gb ram and 4 threads recommended.</li>
-  <li>large images might cause crashing.</li>
+  <li>large images might cause issues</li>
+  <li>no GIF, TIFF or RAW support</li>
 </ul>
 
-<p>(note: De<i>JPEG</i> is not affiliated or related with Topaz DEJPEG or any other similarly named software/project)</p>
+<p>(note: De<i>JPEG</i> is not affiliated with Topaz DEJPEG or any other similarly named software/project)</p>
