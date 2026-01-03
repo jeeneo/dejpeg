@@ -13,7 +13,7 @@ import androidx.core.graphics.scale
 BRISQUEDescaler.kt - licensed under GPLv3
 Copyleft (🄯) 2025
 BRISQUE is a library (https://github.com/krshrimali/No-Reference-Image-Quality-Assessment-using-BRISQUE-Model, https://github.com/rehanguha/brisque, https://docs.opencv.org/4.x/d8/d99/classcv_1_1quality_1_1QualityBRISQUE.html)
-for guessing an image's perceptual quality, lower value, better quality.
+for guessing an images perceptual quality, lower value, better quality.
 This can be used in tandem with a rough Sharpness estimate to descale an image that was scaled up to a larger resolution without anything other than standard interpolation to extract its approximate original resolution.
 
 Example: an image scaled to 800px but originally 500px (currently unknown) can look blurred, if used 'as-is', it can't be upscaled or cleaned up without wasting resources or looking worse with little to no improvement, or manually resized until it looks right, which can get tedious.
