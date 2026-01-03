@@ -35,6 +35,9 @@ object CacheManager {
             }
             chunksDir.deleteRecursively()
         }
+    }
+
+    fun clearAbandonedImages(context: Context) {
         abandonedImages(context).forEach { file ->
             if (file.delete()) {
                 Log.d(TAG, "Deleted abandoned image: ${file.name}")
