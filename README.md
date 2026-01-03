@@ -23,7 +23,7 @@
 this is not a "super resolution AI upscaler", but simple non-destructive method for cleaning up/restoring images
 
 ## models (required):
-download models here
+download models [here](models/)
 
 ## examples
 
