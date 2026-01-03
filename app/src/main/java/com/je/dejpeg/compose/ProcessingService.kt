@@ -10,6 +10,7 @@ import android.os.Looper
 import android.os.Process
 import android.util.Log
 import com.je.dejpeg.compose.utils.CacheManager
+import com.je.dejpeg.compose.utils.helpers.ImageLoadingHelper
 import com.je.dejpeg.data.AppPreferences
 import kotlinx.coroutines.*
 import java.io.File
@@ -120,10 +121,7 @@ class ProcessingService : Service() {
                 currentJob = serviceScope.launch {
                     try {
                         val uri = uriString.toUri()
-                        val inputStream = applicationContext.contentResolver.openInputStream(uri)
-                            ?: throw Exception("Unable to open input stream")
-                        val bitmap = BitmapFactory.decodeStream(inputStream).also { inputStream.close() }
-                            ?: throw Exception("Failed to decode bitmap")
+                        val bitmap = ImageLoadingHelper.loadBitmapWithRotation(applicationContext, uri) ?: throw Exception("Failed to decode bitmap")
                         imageProcessor?.processImage(bitmap, strength, object : ImageProcessor.ProcessCallback {
                             override fun onComplete(result: Bitmap) {
                                 try {
