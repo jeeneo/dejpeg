@@ -25,6 +25,10 @@ this is not a "super resolution AI upscaler", but simple non-destructive method 
 ## models (required):
 download models here
 
+## examples
+
+check out [examples](examples/) to get an idea of what DeJPEG can be used for
+
 ## limitations:
 - processed locally, minimum 4gb ram and 4 threads recommended
 - very large images can cause crashes
