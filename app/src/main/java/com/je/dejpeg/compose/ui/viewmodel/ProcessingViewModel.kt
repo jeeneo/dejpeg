@@ -23,6 +23,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.util.UUID
 
 data class ImageItem(
@@ -205,15 +206,29 @@ class ProcessingViewModel : ViewModel() {
         }
     }
 
-    private fun createImageItem(context: Context, uri: Uri, bitmap: Bitmap) = ImageItem(
-        id = UUID.randomUUID().toString(),
-        uri = uri,
-        filename = ImageLoadingHelper.getFileNameFromUri(context, uri),
-        inputBitmap = bitmap,
-        thumbnailBitmap = ImageLoadingHelper.generateThumbnail(bitmap),
-        size = "${bitmap.width}x${bitmap.height}",
-        strengthFactor = globalStrength.value / 100f
-    )
+    private fun createImageItem(context: Context, uri: Uri, bitmap: Bitmap): ImageItem {
+        val imageId = UUID.randomUUID().toString()
+        uri.path?.substringAfterLast('/')?.let { filename ->
+            if (filename.startsWith("temp_camera_")) {
+                val tempFile = File(context.cacheDir, filename)
+                if (tempFile.exists()) {
+                    val unprocessedFile = File(context.cacheDir, "${imageId}_unprocessed.jpg")
+                    if (tempFile.renameTo(unprocessedFile)) {
+                        Log.d("ProcessingViewModel", "Renamed camera temp file to ${unprocessedFile.name}")
+                    }
+                }
+            }
+        }
+        return ImageItem(
+            id = imageId,
+            uri = uri,
+            filename = ImageLoadingHelper.getFileNameFromUri(context, uri),
+            inputBitmap = bitmap,
+            thumbnailBitmap = ImageLoadingHelper.generateThumbnail(bitmap),
+            size = "${bitmap.width}x${bitmap.height}",
+            strengthFactor = globalStrength.value / 100f
+        )
+    }
 
     fun removeImage(id: String, force: Boolean = false, cleanupCache: Boolean = false) {
         val target = getImageById(id) ?: run {
@@ -331,14 +346,17 @@ class ProcessingViewModel : ViewModel() {
     private fun startProcessingImage(imageId: String, strength: Float) {
         val ctx = appContext ?: return
         val image = getImageById(imageId) ?: return
-        val uriString = image.uri?.toString() ?: return
+        val uri = image.uri ?: return
+        val uriString = uri.toString()
 
         updateImageState(imageId) {
             it.copy(isProcessing = true, progress = statusPreparing, completedChunks = 0, totalChunks = 0)
         }
+        
         viewModelScope.launch {
-            CacheManager.saveUnprocessedImage(ctx, imageId, image.inputBitmap)
+            CacheManager.saveUnprocessedImage(ctx, imageId, uri)
         }
+        
         serviceHelper?.startProcessing(
             imageId = imageId,
             uriString = uriString,
@@ -348,6 +366,18 @@ class ProcessingViewModel : ViewModel() {
             overlapSize = overlapSize.value,
             modelName = modelRepository?.getActiveModelName()
         )
+    }
+
+    fun cleanupTempCameraFiles() {
+        appContext?.cacheDir?.listFiles()?.forEach { file ->
+            if (file.name.startsWith("temp_camera_") && file.name.endsWith(".jpg")) {
+                // Delete camera files older than 1 hour
+                if (System.currentTimeMillis() - file.lastModified() > 3600000) {
+                    file.delete()
+                    Log.d("ProcessingViewModel", "Cleaned up old temp camera file: ${file.name}")
+                }
+            }
+        }
     }
 
     fun cancelProcessing() {
