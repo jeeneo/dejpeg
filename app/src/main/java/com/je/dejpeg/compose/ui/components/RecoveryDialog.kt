@@ -38,6 +38,7 @@ fun RecoveryDialog(
     
     LaunchedEffect(Unit) {
         CacheManager.clearChunks(context)
+        CacheManager.clearAbandonedImages(context)
         val cachedRecoveryImages = CacheManager.getRecoveryImages(context)
         if (cachedRecoveryImages.isNotEmpty()) {
             val loadedImages = mutableListOf<RecoveryImage>()

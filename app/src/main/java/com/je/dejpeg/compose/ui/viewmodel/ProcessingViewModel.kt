@@ -374,6 +374,7 @@ class ProcessingViewModel : ViewModel() {
         serviceHelper?.cancelProcessing {
             viewModelScope.launch(Dispatchers.IO) {
                 CacheManager.clearChunks(ctx)
+                CacheManager.clearAbandonedImages(ctx)
             }
         }
         if (targetImageId != null && targetImageId == currentProcessingId) {
