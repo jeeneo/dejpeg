@@ -13,27 +13,24 @@
 </div>
 
 ## features:
-- batch processing
-- supports most image formats
+- remove compression artifacts
+- denoise
 - before/after view
 - fully offline
-- custom models (beta)
-- image descaling (beta)
+- image descaling (see BRISQUE under in-app FAQs)
 
-this is not a "super resolution AI upscaler", but simple non-destructive method for cleaning up/restoring images
+this is not another "AI upscaler", but a compression artifact remover and denoiser using open-source weights such as [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and [SCUNet](https://github.com/cszn/SCUNet).
 
 ## models (required):
 download models [here](models/)
 
 ## examples
-
 check out [examples](examples/) to get an idea of what DeJPEG can be used for
 
 ## limitations:
-- processed locally, minimum 4gb ram and 4 threads recommended
-- very large images can cause crashes
-- TIFF and other special image formats are not supported.
-- GIF animations are not supported but planned.
+- processed locally, minimum 4gb ram and 4 threads recommended.
+- large images might cause issues
+- no GIF, TIFF or RAW support
 
 ## other platforms
 please use [chaiNNer](https://github.com/chaiNNer-org/chaiNNer) which should work well with these models (regardless if PyTorch or ONNX)
