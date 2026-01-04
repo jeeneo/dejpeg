@@ -8,6 +8,7 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Log
 import com.je.dejpeg.data.dataStore
+import com.je.dejpeg.data.PreferenceKeys
 import com.je.dejpeg.compose.utils.helpers.ModelMigrationHelper
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -38,6 +39,9 @@ class ModelManager(
         private val ACTIVE_MODEL_KEY = stringPreferencesKey("activeModel")
         private val CURRENT_PROCESSING_MODEL_KEY = stringPreferencesKey("current_processing_model")
         private val MODEL_HASHES = mapOf(
+
+            // starter model
+            "1xDeJPG_OmniSR-fp16.onnx" to "39c51a314de945d30498a201f484687ee168d11cb9f58402d5aae9e6eaf650f0",
 
             // older F32 models
             "fbcnn_color.onnx" to "3bb0ff3060c217d3b3af95615157fca8a65506455cf4e3d88479e09efffec97f",
@@ -99,15 +103,6 @@ class ModelManager(
         val messageResId: Int,
         val positiveButtonTextResId: Int,
         val negativeButtonTextResId: Int
-    )
-
-    data class ResolveResult(
-        val matchedModel: String?,
-        val hashMatches: Boolean,
-        val expectedHash: String?,
-        val actualHash: String,
-        val filename: String,
-        val modelWarning: ModelWarning?
     )
 
     fun hasActiveModel(): Boolean {
@@ -247,54 +242,40 @@ class ModelManager(
         force: Boolean = false
     ) {
         try {
-            val result = resolveHashOnly(modelUri)
-        
-            if (result.modelWarning != null && !force) {
-                onWarning?.invoke(result.matchedModel ?: "", result.modelWarning)
+            val filename = resolveFilename(modelUri)
+            if (!filename.lowercase().endsWith(".onnx")) {
+                onError("Only .onnx model files are supported")
                 return
             }
-            if (result.matchedModel == null && !force) {
+            val actualHash = computeFileHash(modelUri)
+            val (matchedModel, modelWarning) = findModelByHash(actualHash)
+            if (modelWarning != null && !force) {
+                onWarning?.invoke(matchedModel ?: "", modelWarning)
+                return
+            }
+            if (matchedModel == null && !force) {
                 val unrecognizedWarning = ModelWarning(
                     R.string.model_warning_unrecognized_title,
                     R.string.model_warning_unrecognized_message,
                     R.string.import_anyway,
                     R.string.cancel
                 )
-                onWarning?.invoke(result.filename, unrecognizedWarning)
+                onWarning?.invoke(filename, unrecognizedWarning)
                 return
             }
-            importModelInternal(modelUri, result.filename, onProgress, onSuccess, onError)
-            
+            importModelInternal(modelUri, filename, onProgress, onSuccess, onError)
         } catch (e: Exception) {
             onError(e.message ?: "Unknown error during import")
         }
     }
-
-    private fun resolveHashOnly(modelUri: Uri): ResolveResult {
-        val filename = resolveFilename(modelUri)
-        val actualHash = computeFileHash(modelUri)
-        
+    
+    private fun findModelByHash(actualHash: String): Pair<String?, ModelWarning?> {
         for ((modelName, expectedHash) in MODEL_HASHES) {
             if (expectedHash.equals(actualHash, ignoreCase = true)) {
-                return ResolveResult(
-                    matchedModel = modelName,
-                    hashMatches = true,
-                    expectedHash = expectedHash,
-                    actualHash = actualHash,
-                    filename = filename,
-                    modelWarning = MODEL_WARNINGS[modelName]
-                )
+                return modelName to MODEL_WARNINGS[modelName]
             }
         }
-        
-        return ResolveResult(
-            matchedModel = null,
-            hashMatches = false,
-            expectedHash = null,
-            actualHash = actualHash,
-            filename = filename,
-            modelWarning = null
-        )
+        return null to null
     }
 
     private fun resolveFilename(uri: Uri): String {
@@ -335,38 +316,42 @@ class ModelManager(
         onError: (String) -> Unit
     ) {
         try {
-        val modelsDir = getModelsDir()
-        if (!modelsDir.exists()) {
-            modelsDir.mkdirs()
-        }
-        val modelFile = File(modelsDir, filename)
-        context.contentResolver.openInputStream(uri)?.use { inputStream ->
-            val fileDescriptor = context.contentResolver.openFileDescriptor(uri, "r")
-            val size = fileDescriptor?.statSize ?: 0L
-            fileDescriptor?.close()
-            FileOutputStream(modelFile).use { outputStream ->
-                val buffer = ByteArray(8192)
-                var bytesRead: Int
-                var totalRead = 0L
-                var lastProgress = 0
-                while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-                    outputStream.write(buffer, 0, bytesRead)
-                    totalRead += bytesRead
-                    if (size > 0) {
-                        val progress = ((totalRead * 100) / size).toInt()
-                        if (progress != lastProgress) {
-                            onProgress(progress)
-                            lastProgress = progress
-                        }
-                    }
+            ensureModelsDir()
+            val modelFile = File(getModelsDir(), filename)
+            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                val size = context.contentResolver.openFileDescriptor(uri, "r")?.statSize ?: 0L
+                FileOutputStream(modelFile).use { outputStream ->
+                    copyWithProgress(inputStream, outputStream, size, onProgress)
                 }
             }
-        }
         } catch (e: Exception) {
             onError(e.message ?: "Failed to import model")
         } finally {
             onProgress(100)
             onSuccess(filename)
+        }
+    }
+    
+    private fun copyWithProgress(
+        input: java.io.InputStream,
+        output: java.io.OutputStream,
+        totalSize: Long,
+        onProgress: (Int) -> Unit
+    ) {
+        val buffer = ByteArray(8192)
+        var bytesRead: Int
+        var totalRead = 0L
+        var lastProgress = 0
+        while (input.read(buffer).also { bytesRead = it } != -1) {
+            output.write(buffer, 0, bytesRead)
+            totalRead += bytesRead
+            if (totalSize > 0) {
+                val progress = ((totalRead * 100) / totalSize).toInt()
+                if (progress != lastProgress) {
+                    onProgress(progress)
+                    lastProgress = progress
+                }
+            }
         }
     }
 
@@ -376,7 +361,6 @@ class ModelManager(
             modelFile.delete()
             onDeleted(modelName)
         }
-        
         if (modelName == getActiveModelName()) {
             val remaining = getInstalledModels()
             if (remaining.isNotEmpty()) {
@@ -389,5 +373,124 @@ class ModelManager(
 
     fun getModelWarning(modelName: String?): ModelWarning? {
         return if (modelName != null) MODEL_WARNINGS[modelName] else null
+    }
+
+    fun initializeStarterModel(): Boolean {
+        try {
+            if (isStarterModelAlreadyExtracted()) {
+                Log.d("ModelManager", "Starter model already extracted, skipping")
+                return false
+            }
+            if (hasModelsInstalled()) {
+                Log.d("ModelManager", "Models already exist, skipping starter model extraction")
+                markStarterModelExtracted()
+                return false
+            }
+            
+            val success = performStarterModelExtraction(setAsActive = true)
+            return success
+            
+        } catch (e: Exception) {
+            Log.e("ModelManager", "Error initializing starter model: ${e.message}", e)
+            return false
+        }
+    }
+    
+    private fun isStarterModelAlreadyExtracted(): Boolean = runBlocking {
+        context.dataStore.data.map { prefs ->
+            prefs[PreferenceKeys.STARTER_MODEL_EXTRACTED] ?: false
+        }.first()
+    }
+    
+    private fun hasModelsInstalled(): Boolean {
+        val modelsDir = getModelsDir()
+        return modelsDir.exists() && modelsDir.listFiles { _, name -> 
+            name.lowercase().endsWith(".onnx") 
+        }?.isNotEmpty() == true
+    }
+    
+    private fun performStarterModelExtraction(
+        setAsActive: Boolean = false,
+        onSuccess: () -> Unit = {},
+        onError: (String) -> Unit = {}
+    ): Boolean {
+        return try {
+            ensureModelsDir()
+            val extracted = extractStarterModel(getModelsDir(), setAsActive)
+            if (extracted) {
+                markStarterModelExtracted()
+                Log.d("ModelManager", "Starter model extracted successfully")
+                onSuccess()
+            } else {
+                onError("Failed to extract starter model")
+            }
+            extracted
+        } catch (e: Exception) {
+            Log.e("ModelManager", "Error extracting starter model: ${e.message}", e)
+            onError(e.message ?: "Unknown error")
+            false
+        }
+    }
+    
+    private fun ensureModelsDir() {
+        val modelsDir = getModelsDir()
+        if (!modelsDir.exists()) {
+            modelsDir.mkdirs()
+        }
+    }
+    
+    private fun markStarterModelExtracted() {
+        coroutineScope.launch {
+            context.dataStore.edit { prefs ->
+                prefs[PreferenceKeys.STARTER_MODEL_EXTRACTED] = true
+                Log.d("ModelManager", "Marked starter model as extracted in preferences")
+            }
+        }
+    }
+    
+    fun resetStarterModelFlag() {
+        coroutineScope.launch {
+            context.dataStore.edit { prefs ->
+                prefs.remove(PreferenceKeys.STARTER_MODEL_EXTRACTED)
+                Log.d("ModelManager", "Reset starter model extraction flag")
+            }
+        }
+    }
+    
+    fun extractStarterModelManually(onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {
+        coroutineScope.launch {
+            val success = performStarterModelExtraction(
+                setAsActive = false,
+                onSuccess = onSuccess,
+                onError = onError
+            )
+        }
+    }
+
+    private fun extractStarterModel(modelsDir: File, setAsActive: Boolean = false): Boolean {
+        return try {
+            val zipInputStream = context.assets.open("1xDeJPG_OmniSR-fp16.zip")
+            java.util.zip.ZipInputStream(zipInputStream).use { zipFile ->
+                var entry = zipFile.nextEntry
+                while (entry != null) {
+                    if (entry.name.endsWith(".onnx")) {
+                        val modelFile = File(modelsDir, entry.name)
+                        FileOutputStream(modelFile).use { out ->
+                            zipFile.copyTo(out, 8192)
+                        }
+                        Log.d("ModelManager", "Extracted starter model: ${entry.name}")
+                        if (setAsActive) {
+                            setActiveModel(entry.name)
+                        }
+                        return true
+                    }
+                    entry = zipFile.nextEntry
+                }
+            }
+            false
+        } catch (e: Exception) {
+            Log.e("ModelManager", "Error extracting starter model: ${e.message}", e)
+            false
+        }
     }
 }

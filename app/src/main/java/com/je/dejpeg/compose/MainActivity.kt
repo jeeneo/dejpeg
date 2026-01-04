@@ -18,11 +18,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.je.dejpeg.compose.utils.CacheManager
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
+import com.je.dejpeg.compose.ModelManager
+import com.je.dejpeg.compose.ui.components.StarterModelDialog
 import com.je.dejpeg.ui.MainScreen
 import com.je.dejpeg.ui.theme.DeJPEGTheme
 import kotlinx.coroutines.Dispatchers
@@ -42,6 +46,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
+        val modelManager = ModelManager(this)
+        val starterModelExtracted = modelManager.initializeStarterModel()
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(
@@ -57,6 +63,7 @@ class MainActivity : ComponentActivity() {
         // https://stackoverflow.com/a/79267436
         setContent {
             val isDarkTheme = isSystemInDarkTheme()
+            val showStarterModelDialog = remember { mutableStateOf(starterModelExtracted) }
             SideEffect {
                 if (!isDarkTheme) {
                     val lightTransparentStyle = SystemBarStyle.light(
@@ -83,6 +90,14 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     MainScreen(sharedUris = viewModel.sharedUris.value)
+                }
+                if (showStarterModelDialog.value) {
+                    StarterModelDialog(
+                        onDismiss = {
+                            showStarterModelDialog.value = false
+                            viewModel.refreshInstalledModels()
+                        }
+                    )
                 }
             }
         }

@@ -228,7 +228,11 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
         )
         DialogState.Preferences -> PreferencesDialog(
             context,
-            onDismiss = { dialogState = DialogState.None }
+            onDismiss = { dialogState = DialogState.None },
+            onModelExtracted = { 
+                viewModel.refreshInstalledModels()
+                activeModelName = viewModel.getActiveModelName()
+            }
         )
         DialogState.About -> AboutDialog { dialogState = DialogState.None }
         DialogState.FAQ -> FAQDialog { dialogState = DialogState.None }
