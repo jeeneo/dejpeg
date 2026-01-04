@@ -1,6 +1,6 @@
 <div align="center">
 <img src="fastlane/appassets/dejpeg.png" height="140" alt="DeJPEG logotype in white text, with the letters JPEG italicized">
-<br>An open source app for removing noise and compression from photos<h2></h2>
+<br>An app for removing compression and noise from photos<h2></h2>
 <table>
 <tr>
 <td><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/01.png" width="240"></td>
@@ -10,7 +10,11 @@
 <p>
 <p align="center">
 <a href="https://apt.izzysoft.de/fdroid/index/apk/com.je.dejpeg"><img src="fastlane/appassets/IzzyOnDroid.png" width="220" alt="IzzyOnDroid"></a>
+<a href="https://codeberg.org/dryerlint/dejpeg/releases/download/latest/dejpeg-arm64-v8a.apk"><img src="fastlane/appassets/codeberg-badge.png" width="220" alt="Codeberg direct apk"></a>
+<a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.je.dejpeg%22%2C%22url%22%3A%22https%3A%2F%2Fcodeberg.org%2Fdryerlint%2Fdejpeg%22%2C%22author%22%3A%22dryerlint%22%2C%22name%22%3A%22DeJPEG%22%2C%22preferredApkIndex%22%3A0%2C%22overrideSource%22%3A%22Codeberg%22%7D"><img src="fastlane/appassets/obtanium.png" width="220" alt="Obtainium config"></a>
 </div>
+
+this is not another "AI upscaler" but a compression artifact remover and denoiser using open-source weights such as [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and [SCUNet](https://github.com/cszn/SCUNet)
 
 ## features:
 - remove compression artifacts
@@ -19,10 +23,11 @@
 - fully offline
 - image descaling (see BRISQUE under in-app FAQs)
 
-this is not another "AI upscaler", but a compression artifact remover and denoiser using open-source weights such as [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and [SCUNet](https://github.com/cszn/SCUNet).
+## models:
 
-## models (required):
-download models [here](models/)
+in v3.4 onward, the app ships with a small 2.4mb JPEG model ([1xDeJPG_OmniSR](https://huggingface.co/colpona/dejpeg-models/blob/main/1xDeJPG_OmniSR-fp16.onnx)) for getting started without needing additional downloads.
+
+you can download more models [here](models/)
 
 ## examples
 check out [examples](examples/) to get an idea of what DeJPEG can be used for
@@ -40,7 +45,7 @@ for FBCNN, which chaiNNer does support but in a limited fashion, install [this c
 <details>
 <summary><h3>building</h3></summary>
 
-this app includes OpenCV with [BRISQUE analysis for descaling an image](), which is experimental but ive occasionally found it useful.
+this app includes OpenCV for BRISQUE assessment
 
 required:
 - android NDK 27.3.x
