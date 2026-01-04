@@ -120,8 +120,8 @@ class ImageProcessor(
         val overlap = info.overlap
         val cols = 1.coerceAtLeast(ceil(width.toDouble() / maxChunkSize).toInt())
         val rows = 1.coerceAtLeast(ceil(height.toDouble() / maxChunkSize).toInt())
-        val actualChunkWidth = (width + (cols - 1) * overlap) / cols
-        val actualChunkHeight = (height + (rows - 1) * overlap) / rows
+        val actualChunkWidth = divideBy((width + (cols - 1) * overlap) / cols)
+        val actualChunkHeight = divideBy((height + (rows - 1) * overlap) / rows)
         Log.d("ImageProcessor", "Processing tiled: image=${width}x${height}, max=$maxChunkSize, actual=${actualChunkWidth}x${actualChunkHeight}, grid=${cols}x${rows}, overlap=$overlap")
         val totalChunks = cols * rows
         val chunksDir = CacheManager.getChunksDir(context)
@@ -244,6 +244,10 @@ class ImageProcessor(
         } catch (e: Exception) {
             throw e
         }
+    }
+
+    private fun divideBy(size: Int, divisor: Int = 8): Int {
+        return (size / divisor) * divisor
     }
 
     private fun createFeatheredChunk(
