@@ -20,14 +20,21 @@ import com.je.dejpeg.compose.utils.HapticFeedback
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
 import com.je.dejpeg.data.AppPreferences
 import androidx.compose.ui.platform.LocalView
+import android.widget.Toast
+import com.je.dejpeg.compose.ModelManager
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import android.os.Handler
+import android.os.Looper
 
 @Composable
 fun PreferencesDialog(
     context: android.content.Context,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onModelExtracted: (() -> Unit)? = null
 ) {
     val appPreferences = remember { AppPreferences(context) }
+    val modelManager = remember { ModelManager(context) }
     val scope = rememberCoroutineScope()
     val skipSaveDialog by appPreferences.skipSaveDialog.collectAsState(initial = false)
     val defaultImageSource by appPreferences.defaultImageSource.collectAsState(initial = null)
@@ -110,6 +117,39 @@ fun PreferencesDialog(
                         scope.launch { appPreferences.clearDefaultImageSource() }
                     }
                 )
+                CompactActionPreference(
+                    icon = Icons.Filled.Download,
+                    title = stringResource(R.string.starter_model_title),
+                    subtitle = stringResource(R.string.extract_starter_model),
+                    hasValue = true,
+                    actionLabel = stringResource(R.string.extract),
+                    onAction = {
+                        haptic.light()
+                        modelManager.resetStarterModelFlag()
+                        modelManager.extractStarterModelManually(
+                            onSuccess = {
+                                Handler(Looper.getMainLooper()).post {
+                                    Toast.makeText(
+                                        context,
+                                        "Starter model extracted",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    onModelExtracted?.invoke()
+                                    onDismiss()
+                                }
+                            },
+                            onError = { error ->
+                                Handler(Looper.getMainLooper()).post {
+                                    Toast.makeText(
+                                        context,
+                                        "Failed to extract starter model: $error",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            }
+                        )
+                    }
+                )
             }
         },
         confirmButton = {
@@ -129,7 +169,9 @@ private fun CompactActionPreference(
     title: String,
     subtitle: String,
     hasValue: Boolean,
-    onClear: () -> Unit
+    onClear: (() -> Unit)? = null,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -177,7 +219,7 @@ private fun CompactActionPreference(
                         MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            if (hasValue) {
+            if (hasValue && onClear != null) {
                 Spacer(modifier = Modifier.width(12.dp))
                 FilledTonalIconButton(
                     onClick = onClear,
@@ -187,6 +229,18 @@ private fun CompactActionPreference(
                         imageVector = Icons.Filled.Clear,
                         contentDescription = stringResource(R.string.clear_default_source),
                         modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+            if (actionLabel != null && onAction != null) {
+                Spacer(modifier = Modifier.width(12.dp))
+                FilledTonalButton(
+                    onClick = onAction,
+                    modifier = Modifier.height(36.dp)
+                ) {
+                    Text(
+                        actionLabel,
+                        style = MaterialTheme.typography.labelSmall
                     )
                 }
             }

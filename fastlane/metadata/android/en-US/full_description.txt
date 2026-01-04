@@ -1,5 +1,7 @@
 <p>De<i>JPEG</i> - an app for removing compression and noise from photos</p>
 
+<p>This is not another "AI upscaler" but a compression artifact remover and denoiser using open-source weights such as FBCNN and SCUNet</p>
+
 <h2>Features:</h2>
 <ul>
   <li>remove compression artifacts</li>
@@ -9,9 +11,7 @@
   <li>image descaling (see BRISQUE under in-app FAQs)</li>
 </ul>
 
-<p>This is not another "AI upscaler", but a compression artifact remover and denoiser using open-source weights such as FBCNN and SCUNet.</p>
-
-<p>External models are required (links in-app)</p>
+<p>The app ships with a small embedded JPEG removal model without needing additional downloads. Other models are available (links in-app)</p>
 
 <h2>Limitation:</h2>
 <ul>
