@@ -386,10 +386,8 @@ class ModelManager(
                 markStarterModelExtracted()
                 return false
             }
-            
             val success = performStarterModelExtraction(setAsActive = true)
             return success
-            
         } catch (e: Exception) {
             Log.e("ModelManager", "Error initializing starter model: ${e.message}", e)
             return false
@@ -459,8 +457,9 @@ class ModelManager(
     
     fun extractStarterModelManually(onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {
         coroutineScope.launch {
-            val success = performStarterModelExtraction(
-                setAsActive = false,
+            val setAsActive = !hasModelsInstalled()
+            performStarterModelExtraction(
+                setAsActive = setAsActive,
                 onSuccess = onSuccess,
                 onError = onError
             )
