@@ -2,6 +2,9 @@ package com.je.dejpeg.compose.ui.components
 
 import android.graphics.BitmapFactory
 import android.util.Log
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
@@ -12,9 +15,16 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.je.dejpeg.R
 import com.je.dejpeg.compose.ui.viewmodel.ImageItem
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
@@ -70,6 +80,8 @@ fun RecoveryDialog(
         val recoveredImagePrefix = stringResource(R.string.recovered_image_prefix)
         val recoverButtonText = stringResource(R.string.recover)
         val discardButtonText = stringResource(R.string.discard)
+        val dialogWidth = rememberDialogWidth()
+        
         fun clearCache() {
             Log.d("RecoveryDialog", "User chose to discard recovery images")
             showDialog.value = false
@@ -79,13 +91,80 @@ fun RecoveryDialog(
                 }
             }
         }
+        
         AlertDialog(
             onDismissRequest = {},
+            modifier = Modifier.dialogWidth(dialogWidth),
             shape = RoundedCornerShape(28.dp),
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = { Text(stringResource(R.string.recover_images_title, pluralSuffix)) },
             text = { 
-                Text(stringResource(R.string.recover_images_message, count, pluralSuffix, wereWas, themIt))
+                Column {
+                    Text(stringResource(R.string.recover_images_message, count, pluralSuffix, wereWas, themIt))
+                    
+                    if (count <= 3) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            recoveryImages.value.take(3).forEach { img ->
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .aspectRatio(1f)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceContainer)
+                                ) {
+                                    Image(
+                                        bitmap = img.processedBitmap.asImageBitmap(),
+                                        contentDescription = stringResource(R.string.image),
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            recoveryImages.value.take(3).forEach { img ->
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .aspectRatio(1f)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceContainer)
+                                ) {
+                                    Image(
+                                        bitmap = img.processedBitmap.asImageBitmap(),
+                                        contentDescription = stringResource(R.string.image),
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .aspectRatio(1f)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceContainer),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "+${count - 3}",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                }
             },
             confirmButton = { 
                 TextButton(onClick = { 
