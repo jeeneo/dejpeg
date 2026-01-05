@@ -21,8 +21,6 @@ fun StarterModelDialog(onDismiss: () -> Unit) {
         text = {
             Column {
                 Text(stringResource(R.string.starter_model_message))
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(stringResource(R.string.starter_model_hint))
             }
         },
         confirmButton = {

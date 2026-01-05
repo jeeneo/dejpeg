@@ -147,9 +147,8 @@
     <string name="recovered_image_prefix">Recovered</string>
 
     <!-- StarterModelDialog strings -->
-    <string name="starter_model_title">Starter model</string>
-    <string name="starter_model_message">I\'ve now included a small starter model for JPEG removal. You can still download and import additional models from settings anytime.</string>
-    <string name="starter_model_hint">If you don\'t want this model, you can delete it and it won\'t be added again. It can also be extracted from preferences.</string>
+    <string name="starter_model_title">New model</string>
+    <string name="starter_model_message">DeJPEG now comes with a small fast general purpose model (for noise and compression removal). Although don\'t expect it to handle every image perfectly.\n\nYou can still import additional models from settings anytime.\n\nIf you don\'t want this model, you can delete it and it won\'t show up again. It can also be added back from preferences.</string>
     <string name="got_it">Got it</string>
     <string name="extract_starter_model">Extract the starter model</string>
     <string name="extract">Extract</string>

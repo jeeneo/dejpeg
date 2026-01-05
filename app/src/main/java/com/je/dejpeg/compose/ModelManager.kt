@@ -409,6 +409,10 @@ class ModelManager(
             val modelsDir = getModelsDir()
             if (!modelsDir.exists()) modelsDir.mkdirs()
             
+            val shouldSetAsActive = setAsActive || !modelsDir.exists() || modelsDir.listFiles { _, name -> 
+                name.lowercase().endsWith(".onnx") 
+            }?.isEmpty() == true
+            
             context.assets.open("1x-RGB-max-Denoise.zip").use { zipInputStream ->
                 java.util.zip.ZipInputStream(zipInputStream).use { zipFile ->
                     var entry = zipFile.nextEntry
@@ -419,7 +423,7 @@ class ModelManager(
                                 zipFile.copyTo(out, 8192)
                             }
                             Log.d("ModelManager", "Extracted starter model: ${entry.name}")
-                            if (setAsActive) setActiveModel(entry.name)
+                            if (shouldSetAsActive) setActiveModel(entry.name)
                             markStarterModelExtracted()
                             onSuccess()
                             return true
