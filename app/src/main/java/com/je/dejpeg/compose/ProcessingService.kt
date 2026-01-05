@@ -80,6 +80,11 @@ class ProcessingService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        try {
+            startForeground(NotificationHelper.NOTIFICATION_ID, NotificationHelper.build(this, "Processing..."))
+        } catch (e: Exception) {
+            Log.e("ProcessingService", "Failed to start foreground in onStartCommand: ${e.message}", e)
+        }
         if (intent == null) return START_NOT_STICKY
         Log.d("ProcessingService", "onStartCommand action=${intent.action}")
         when (intent.action) {
@@ -229,6 +234,14 @@ class ProcessingService : Service() {
     private fun cleanup(source: String = "unknown") {
         Log.d("ProcessingService", "cleanup() from $source")
         stopHandler.removeCallbacks(autoStopRunnable)
+        runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
+        runCatching { NotificationHelper.cancel(this) }
+        stopSelf()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        Log.d("ProcessingService", "onDestroy() - cleaning up")
         runCatching {
             imageProcessor?.cancelProcessing()
             currentJob?.cancel()
@@ -242,19 +255,20 @@ class ProcessingService : Service() {
         CacheManager.clearAbandonedImages(applicationContext)
         modelManager = null
         imageProcessor = null
-        runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
-        runCatching { NotificationHelper.cancel(this) }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        cleanup("onDestroy")
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        cleanup("onTaskRemoved")
+        Log.d("ProcessingService", "onTaskRemoved() -> cancelling")
+        runCatching {
+            imageProcessor?.cancelProcessing()
+            currentJob?.cancel()
+        }
+        CacheManager.clearChunks(applicationContext)
+        CacheManager.clearAbandonedImages(applicationContext)
+        runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
+        runCatching { NotificationHelper.cancel(this) }
         stopSelf()
     }
 }
