@@ -372,18 +372,6 @@ class ProcessingViewModel : ViewModel() {
         )
     }
 
-    fun cleanupTempCameraFiles() {
-        appContext?.cacheDir?.listFiles()?.forEach { file ->
-            if (file.name.startsWith("temp_camera_") && file.name.endsWith(".jpg")) {
-                // Delete camera files older than 1 hour
-                if (System.currentTimeMillis() - file.lastModified() > 3600000) {
-                    file.delete()
-                    Log.d("ProcessingViewModel", "Cleaned up old temp camera file: ${file.name}")
-                }
-            }
-        }
-    }
-
     fun cancelProcessing() {
         processingQueue.clear()
         isProcessingQueue = false
@@ -394,28 +382,26 @@ class ProcessingViewModel : ViewModel() {
             updateImageState(it) { img -> img.copy(isCancelling = true, progress = statusCanceling) }
             cancelProcessingService(it)
         }
-
         images.value.filter { it.isProcessing && it.id != currentProcessingId }.forEach { image ->
             updateImageState(image.id) { resetChunkProgress(it).copy(isProcessing = false, progress = "") }
         }
-
         uiState.value = ProcessingUiState.Idle
     }
 
     private fun cancelProcessingService(imageId: String?) {
         val targetImageId = imageId ?: currentProcessingId
         val ctx = appContext ?: return
-        serviceHelper?.cancelProcessing {
+        val wasKilled = serviceHelper?.cancelProcessing {
             viewModelScope.launch(Dispatchers.IO) {
                 CacheManager.clearChunks(ctx)
                 CacheManager.clearAbandonedImages(ctx)
             }
-        }
+        } ?: false
         if (targetImageId != null && targetImageId == currentProcessingId) {
             currentProcessingId = null
         }
         if (targetImageId != null) {
-            handleProcessingError(targetImageId, statusCancelled)
+            stopProcessing(targetImageId, statusCancelled, isCancelled = true, serviceAlreadyDead = wasKilled)
         }
     }
 
@@ -455,11 +441,10 @@ class ProcessingViewModel : ViewModel() {
     private fun handleServiceCrash(imageId: String?) {
         val crashMessage = status(com.je.dejpeg.R.string.error_native_crash, 
             "The processing service died unexpectedly. This usually indicates an incompatible model or insufficient memory.")
-        
-        stopProcessing(imageId, crashMessage, isCancelled = false)
+        stopProcessing(imageId, crashMessage, isCancelled = false, serviceAlreadyDead = true)
     }
 
-    private fun stopProcessing(imageId: String?, displayMessage: String, isCancelled: Boolean) {
+    private fun stopProcessing(imageId: String?, displayMessage: String, isCancelled: Boolean, serviceAlreadyDead: Boolean = false) {
         if (!imageId.isNullOrEmpty()) {
             updateImageState(imageId) {
                 resetChunkProgress(it).copy(
@@ -479,32 +464,32 @@ class ProcessingViewModel : ViewModel() {
                 }
             }
         }
-
         if (isCancelled && imageId == currentProcessingId) {
             cancelInProgress = false
             currentProcessingId = null
             advanceQueue(imageId)
             return
         }
-
-        appContext?.let { ctx ->
-            val stopIntent = Intent(ctx, ProcessingService::class.java)
-            stopIntent.action = ProcessingService.ACTION_CANCEL
-            ctx.startService(stopIntent)
+        if (!serviceAlreadyDead) {
+            appContext?.let { ctx ->
+                val stopIntent = Intent(ctx, ProcessingService::class.java)
+                stopIntent.action = ProcessingService.ACTION_CANCEL
+                ctx.startService(stopIntent)
+            }
         }
-        
         processingQueue.clear()
         isProcessingQueue = false
         activeProcessingTotal = 0
         currentProcessingId = null
         cancelInProgress = false
-
         images.value = images.value.map {
             if (it.isProcessing || it.isCancelling) {
                 it.copy(isProcessing = false, isCancelling = false, progress = "")
             } else it
         }
-        processingErrorDialog.value = displayMessage
+        if (!isCancelled) {
+            processingErrorDialog.value = displayMessage
+        }
         uiState.value = ProcessingUiState.Idle
     }
 
