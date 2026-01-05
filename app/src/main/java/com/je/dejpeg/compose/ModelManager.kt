@@ -354,7 +354,6 @@ class ModelManager(
             }
         }
     }
-
     fun deleteModel(modelName: String, onDeleted: (String) -> Unit = {}) {
         val modelFile = File(getModelsDir(), modelName)
         if (modelFile.exists()) {
@@ -370,11 +369,9 @@ class ModelManager(
             }
         }
     }
-
     fun getModelWarning(modelName: String?): ModelWarning? {
         return if (modelName != null) MODEL_WARNINGS[modelName] else null
     }
-
     fun initializeStarterModel(): Boolean {
         try {
             if (isStarterModelAlreadyExtracted()) {
