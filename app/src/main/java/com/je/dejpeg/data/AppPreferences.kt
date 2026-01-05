@@ -21,7 +21,6 @@ object PreferenceKeys {
     val HAPTIC_FEEDBACK_ENABLED = booleanPreferencesKey("hapticFeedbackEnabled")
     val COMPAT_MODEL_CLEANUP = booleanPreferencesKey("compatModelCleanup")
     val COMPAT_BRISQUE_CLEANUP = booleanPreferencesKey("compatBrisqueCleanup")
-    val STARTER_MODEL_EXTRACTED = booleanPreferencesKey("starterModelExtracted")
     val CHUNK_SIZE = intPreferencesKey("chunk_size")
     val OVERLAP_SIZE = intPreferencesKey("overlap_size")
     val GLOBAL_STRENGTH = floatPreferencesKey("global_strength")
