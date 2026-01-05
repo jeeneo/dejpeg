@@ -4,7 +4,6 @@ import android.content.Intent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -24,52 +23,26 @@ fun AboutDialog(onDismiss: () -> Unit) {
     val haptic = rememberHapticFeedback()
     val versionName = try {
         context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "Unknown"
-    } catch (_: Exception) {
-        "Unknown"
-    }
-    val dialogWidth = rememberDialogWidth()
-    AlertDialog(
+    } catch (_: Exception) { "Unknown" }
+    
+    StyledAlertDialog(
         onDismissRequest = onDismiss,
-        modifier = Modifier.dialogWidth(dialogWidth),
-        properties = DialogDefaults.Properties,
-        shape = DialogDefaults.Shape,
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        title = {
-            Text(
-                "${stringResource(R.string.app_name)} v$versionName",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-        },
+        title = { Text("${stringResource(R.string.app_name)} v$versionName", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) },
         text = {
             Column {
                 Text(stringResource(R.string.non_destructive_restoration))
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(Modifier.height(16.dp))
                 Text(stringResource(R.string.open_source_app_description))
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    stringResource(R.string.license_text),
-                    style = MaterialTheme.typography.bodySmall
-                )
+                Spacer(Modifier.height(8.dp))
+                Text(stringResource(R.string.license_text), style = MaterialTheme.typography.bodySmall)
             }
         },
-        confirmButton = {
-            TextButton(onClick = { haptic.light(); onDismiss() }) {
-                Text(stringResource(R.string.ok))
-            }
-        },
+        confirmButton = { TextButton(onClick = { haptic.light(); onDismiss() }) { Text(stringResource(R.string.ok)) } },
         dismissButton = {
             TextButton(onClick = {
                 haptic.medium()
-                try {
-                    context.startActivity(
-                        Intent(Intent.ACTION_VIEW, "https://codeberg.org/dryerlint/dejpeg".toUri())
-                    )
-                } catch (_: Exception) {
-                }
-            }) {
-                Text(stringResource(R.string.source_code))
-            }
+                try { context.startActivity(Intent(Intent.ACTION_VIEW, "https://codeberg.org/dryerlint/dejpeg".toUri())) } catch (_: Exception) { }
+            }) { Text(stringResource(R.string.source_code)) }
         }
     )
 }

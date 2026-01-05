@@ -1,10 +1,12 @@
 package com.je.dejpeg.compose.ui.components
 
+import android.os.Handler
+import android.os.Looper
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -12,20 +14,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.je.dejpeg.R
+import com.je.dejpeg.compose.ModelManager
 import com.je.dejpeg.compose.utils.HapticFeedback
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
 import com.je.dejpeg.data.AppPreferences
-import androidx.compose.ui.platform.LocalView
-import android.widget.Toast
-import com.je.dejpeg.compose.ModelManager
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.Dispatchers
-import android.os.Handler
-import android.os.Looper
 
 @Composable
 fun PreferencesDialog(
@@ -41,21 +39,10 @@ fun PreferencesDialog(
     val hapticFeedbackEnabled by appPreferences.hapticFeedbackEnabled.collectAsState(initial = true)
     val haptic = rememberHapticFeedback()
     val view = LocalView.current
-    val dialogWidth = rememberDialogWidth()
     
-    AlertDialog(
+    StyledAlertDialog(
         onDismissRequest = onDismiss,
-        modifier = Modifier.dialogWidth(dialogWidth),
-        properties = DialogDefaults.Properties,
-        shape = RoundedCornerShape(28.dp),
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        title = { 
-            Text(
-                stringResource(R.string.preferences),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
-        },
+        title = { Text(stringResource(R.string.preferences), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) },
         text = {
             Column(
                 modifier = Modifier

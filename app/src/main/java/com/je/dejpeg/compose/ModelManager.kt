@@ -41,7 +41,7 @@ class ModelManager(
         private val MODEL_HASHES = mapOf(
 
             // starter model
-            "1xDeJPG_OmniSR-fp16.onnx" to "39c51a314de945d30498a201f484687ee168d11cb9f58402d5aae9e6eaf650f0",
+            "1xDeJPG_OmniSR-fp16.onnx" to "7c2fcc4e6e671dfab79cabea6c97384c157870fbfa0d951daf045c28f267d942",
 
             // older F32 models
             "fbcnn_color.onnx" to "3bb0ff3060c217d3b3af95615157fca8a65506455cf4e3d88479e09efffec97f",
