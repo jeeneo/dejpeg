@@ -10,7 +10,6 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import androidx.core.content.ContextCompat
-import com.je.dejpeg.compose.NotificationHelper
 import com.je.dejpeg.compose.ProcessingService
 import java.io.File
 
@@ -40,7 +39,6 @@ class ServiceCommunicationHelper(
             
             if (!isProcessAlive(pid)) {
                 Log.e("ServiceCommHelper", "Service process $pid crashed while processing $imageId")
-                NotificationHelper.cancel(context)
                 onServiceProcessDied(imageId)
                 return
             }
@@ -77,6 +75,7 @@ class ServiceCommunicationHelper(
         }
         pidCheckHandler.removeCallbacks(pidCheckRunnable)
         currentProcessingImageId = null
+        serviceProcessPid = null
     }
 
     private val receiver = object : BroadcastReceiver() {
@@ -165,7 +164,6 @@ class ServiceCommunicationHelper(
         modelName: String?
     ) {
         currentProcessingImageId = imageId
-        NotificationHelper.show(context, "Preparing...")
         startService(ProcessingService.ACTION_PROCESS) {
             putExtra(ProcessingService.EXTRA_URI, uriString)
             putExtra(ProcessingService.EXTRA_FILENAME, filename)
@@ -178,13 +176,11 @@ class ServiceCommunicationHelper(
     }
 
     fun cancelProcessing(onCleanup: () -> Unit): Boolean {
-        stopPidMonitoring()
-        NotificationHelper.cancel(context)
         val pid = serviceProcessPid
+        stopPidMonitoring()
         if (pid != null && pid > 0) {
             try {
                 android.os.Process.killProcess(pid)
-                serviceProcessPid = null
                 onCleanup()
                 return true
             } catch (e: Exception) {

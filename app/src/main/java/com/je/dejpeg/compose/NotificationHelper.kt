@@ -14,7 +14,6 @@ object NotificationHelper {
     const val CHANNEL_ID = "processing_channel"
     const val CHANNEL_NAME = "Image processing"
     const val NOTIFICATION_ID = 1001
-    const val ACTION_CANCEL = "com.je.dejpeg.action.CANCEL"
 
     fun checkChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -83,7 +82,7 @@ object NotificationHelper {
             builder.setProgress(0, 0, true)
         }
         if (cancellable) {
-            val cancelIntent = Intent(context, ProcessingService::class.java).setAction(ACTION_CANCEL)
+            val cancelIntent = Intent(context, ProcessingService::class.java).setAction(ProcessingService.ACTION_CANCEL)
             val pendingCancel = PendingIntent.getService(
                 context,
                 0,

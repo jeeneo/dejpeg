@@ -174,9 +174,6 @@ class ProcessingService : Service() {
                         scheduleAutoStop()
                     } finally {
                         currentJob = null
-                        currentImageId = null
-                        chunkProgressCompleted = 0
-                        chunkProgressTotal = 0
                     }
                 }
             }
@@ -187,12 +184,9 @@ class ProcessingService : Service() {
                 runCatching { imageProcessor?.cancelProcessing() }
                 runCatching { currentJob?.cancel() }
                 currentJob = null
-                chunkProgressCompleted = 0
-                chunkProgressTotal = 0
-                currentProgressMessage = "Processing..."
+                currentImageId = null
                 if (wasRunning) {
                     broadcast(ERROR_ACTION, ERROR_EXTRA_MESSAGE to "Cancelled", imageId = id)
-                    NotificationHelper.show(this@ProcessingService, "Cancelled")
                 }
                 scheduleAutoStop()
             }
@@ -215,58 +209,52 @@ class ProcessingService : Service() {
         )
     }
 
-    private fun broadcast(action: String, vararg extras: Pair<String, Any?>, imageId: String?) {
-        Intent(action).apply {
+    private fun broadcast(action: String, vararg extras: Pair<String, Any?>, imageId: String? = currentImageId) {
+        sendBroadcast(Intent(action).apply {
             setPackage(packageName)
+            imageId?.let { putExtra(EXTRA_IMAGE_ID, it) }
             extras.forEach { (key, value) ->
                 when (value) {
-                    null -> Unit
                     is String -> putExtra(key, value)
                     is Int -> putExtra(key, value)
                     is Long -> putExtra(key, value)
                     is Boolean -> putExtra(key, value)
-                    else -> putExtra(key, value.toString())
+                    is Any -> putExtra(key, value.toString())
+                    else -> { /* null - skip */ }
                 }
             }
-            imageId?.let { putExtra(EXTRA_IMAGE_ID, it) }
-        }.also { sendBroadcast(it) }
+        })
     }
 
-    private fun cleanup() {
-        tryStopForeground()
-        stopSelf()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        Log.d("ProcessingService", "onDestroy() - cleaning up")
-        currentJob?.cancel()
-        serviceScope.cancel()
-        imageProcessor?.cancelProcessing()
-        CacheManager.clearChunks(applicationContext)
-        CacheManager.clearAbandonedImages(applicationContext)
-        modelManager = null
-        imageProcessor = null
-    }
-
-    override fun onBind(intent: Intent?): IBinder? = null
-    
-    override fun onTaskRemoved(rootIntent: Intent?) {
-        Log.d("ProcessingService", "onTaskRemoved() -> cancelling")
+    private fun cleanup(source: String = "unknown") {
+        Log.d("ProcessingService", "cleanup() from $source")
+        stopHandler.removeCallbacks(autoStopRunnable)
         runCatching {
             imageProcessor?.cancelProcessing()
             currentJob?.cancel()
         }
+        currentJob = null
+        currentImageId = null
+        chunkProgressCompleted = 0
+        chunkProgressTotal = 0
+        serviceScope.cancel()
         CacheManager.clearChunks(applicationContext)
         CacheManager.clearAbandonedImages(applicationContext)
-        tryStopForeground()
-        stopSelf()
-    }
-    
-    private fun tryStopForeground() {
-        runCatching {
-            stopForeground(STOP_FOREGROUND_REMOVE)
-        }
+        modelManager = null
+        imageProcessor = null
+        runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
         runCatching { NotificationHelper.cancel(this) }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        cleanup("onDestroy")
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        cleanup("onTaskRemoved")
+        stopSelf()
     }
 }
