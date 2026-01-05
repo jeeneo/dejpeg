@@ -34,37 +34,17 @@ data class FAQSectionData(
 fun FAQDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
     val faqSections = remember { loadFAQSections(context) }
-    val haptic = rememberHapticFeedback()
-    val dialogWidth = rememberDialogWidth()
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        modifier = Modifier.dialogWidth(dialogWidth),
-        properties = DialogDefaults.Properties,
-        shape = DialogDefaults.Shape,
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        title = {
-            Text(
-                stringResource(R.string.faqs),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-        },
+    StyledAlertDialog(
+        onDismiss = onDismiss,
+        title = stringResource(R.string.faqs),
         text = {
             LazyColumn(modifier = Modifier.fillMaxWidth()) {
                 items(faqSections.size) {
-                    FAQSection(
-                        faqSections[it].title,
-                        faqSections[it].content,
-                        faqSections[it].subSections
-                    )
+                    FAQSection(faqSections[it].title, faqSections[it].content, faqSections[it].subSections)
                 }
             }
         },
-        confirmButton = {
-            TextButton(onClick = { haptic.light(); onDismiss() }) {
-                Text(stringResource(R.string.close))
-            }
-        }
+        confirmText = stringResource(R.string.close)
     )
 }
 
