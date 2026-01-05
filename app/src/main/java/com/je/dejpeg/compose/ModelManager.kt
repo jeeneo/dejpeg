@@ -412,30 +412,38 @@ class ModelManager(
             val shouldSetAsActive = setAsActive || !modelsDir.exists() || modelsDir.listFiles { _, name -> 
                 name.lowercase().endsWith(".onnx") 
             }?.isEmpty() == true
-            
-            context.assets.open("1x-RGB-max-Denoise.zip").use { zipInputStream ->
+            context.assets.open("embedonnx.zip").use { zipInputStream ->
                 java.util.zip.ZipInputStream(zipInputStream).use { zipFile ->
-                    var entry = zipFile.nextEntry
-                    while (entry != null) {
-                        if (entry.name.endsWith(".onnx")) {
+                    var extractedCount = 0
+                    var firstModelName: String? = null
+                    generateSequence { zipFile.nextEntry }
+                        .filter { it.name.endsWith(".onnx") }
+                        .forEach { entry ->
                             val modelFile = File(modelsDir, entry.name)
                             FileOutputStream(modelFile).use { out ->
                                 zipFile.copyTo(out, 8192)
                             }
                             Log.d("ModelManager", "Extracted starter model: ${entry.name}")
-                            if (shouldSetAsActive) setActiveModel(entry.name)
-                            markStarterModelExtracted()
-                            onSuccess()
-                            return true
+                            extractedCount++
+                            
+                            if (firstModelName == null) {
+                                firstModelName = entry.name
+                            }
                         }
-                        entry = zipFile.nextEntry
+                    if (extractedCount > 0) {
+                        if (shouldSetAsActive && firstModelName != null) {
+                            setActiveModel(firstModelName)
+                        }
+                        markStarterModelExtracted()
+                        onSuccess()
+                        return true
                     }
                 }
             }
-            onError("Failed to extract starter model")
+            onError("Failed to extract starter models")
             false
         } catch (e: Exception) {
-            Log.e("ModelManager", "Error extracting starter model: ${e.message}", e)
+            Log.e("ModelManager", "Error extracting starter models: ${e.message}", e)
             onError(e.message ?: "Unknown error")
             false
         }
