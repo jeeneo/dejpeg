@@ -11,7 +11,7 @@
   <li>image descaling (see BRISQUE under in-app FAQs)</li>
 </ul>
 
-<p>The app ships with a small embedded JPEG removal model without needing additional downloads. Other models are available (links in-app)</p>
+<p>The app requires external models, links in-app</p>
 
 <h2>Limitation:</h2>
 <ul>
