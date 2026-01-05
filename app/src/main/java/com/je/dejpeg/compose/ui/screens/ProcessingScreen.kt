@@ -13,6 +13,9 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalOverscrollConfiguration
+import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,6 +54,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -87,6 +91,7 @@ import com.je.dejpeg.compose.ModelManager
 import com.je.dejpeg.compose.ui.components.BaseDialog
 import com.je.dejpeg.compose.ui.components.CancelProcessingDialog
 import com.je.dejpeg.compose.ui.components.ConfirmAlertDialog
+import com.je.dejpeg.compose.ui.components.DeprecatedModelWarningDialog
 import com.je.dejpeg.compose.ui.components.ErrorAlertDialog
 import com.je.dejpeg.compose.ui.components.ImageSourceDialog
 import com.je.dejpeg.compose.ui.components.LoadingDialog
@@ -98,13 +103,15 @@ import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.compose.utils.CacheManager
 import com.je.dejpeg.compose.utils.ImageActions
 import com.je.dejpeg.compose.utils.helpers.ImageLoadingHelper
+import com.je.dejpeg.compose.utils.HapticFeedbackPerformer
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
 import com.je.dejpeg.data.AppPreferences
+import androidx.compose.runtime.rememberUpdatedState
 import kotlinx.coroutines.launch
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ProcessingScreen(
     viewModel: ProcessingViewModel,
@@ -121,7 +128,7 @@ fun ProcessingScreen(
     val images by viewModel.images.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     val globalStrength by viewModel.globalStrength.collectAsState()
-    val supportsStrength = viewModel.supportsStrengthAdjustment()
+    val supportsStrength = viewModel.getActiveModelName()?.contains("fbcnn", ignoreCase = true) == true
     val shouldShowNoModelDialog by viewModel.shouldShowNoModelDialog.collectAsState()
     val haptic = rememberHapticFeedback()
     val deprecatedModelWarning by viewModel.deprecatedModelWarning.collectAsState()
@@ -309,22 +316,29 @@ fun ProcessingScreen(
             }
         }
         else {
-            (uiState is ProcessingUiState.Processing) || images.any { it.isCancelling }
-            LazyColumn(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(images, { it.id }) { image ->
-                    val swipeState = remember { mutableFloatStateOf(0f) }
-                    SwipeToDismissWrapper(swipeState, image.isProcessing, { handleImageRemoval(image.id) }) {
-                        ImageCard(
-                            image = image,
-                            onRemove = { handleImageRemoval(image.id) },
-                            onProcess = { if (!viewModel.hasActiveModel()) viewModel.showNoModelDialog() else viewModel.processImage(image.id) },
-                            onBrisque = { haptic.light(); onNavigateToBrisque(image.id) },
-                            onClick = { onNavigateToBeforeAfter(image.id) },
-                            onBeforeOnly = { onNavigateToBeforeAfter(image.id) },
-                            isProcessing = image.isProcessing
-                        )
+            CompositionLocalProvider(LocalOverscrollFactory provides null) {
+                LazyColumn(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(images, { it.id }) { image ->
+                        val swipeState = remember { mutableFloatStateOf(0f) }
+                        val imageId = image.id
+                        val onRemoveCallback = remember(imageId) { { handleImageRemoval(imageId) } }
+                        val onProcessCallback = remember(imageId) { { if (!viewModel.hasActiveModel()) viewModel.showNoModelDialog() else viewModel.processImage(imageId) } }
+                        val onBrisqueCallback = remember(imageId) { { haptic.light(); onNavigateToBrisque(imageId) } }
+                        val onClickCallback = remember(imageId) { { onNavigateToBeforeAfter(imageId) } }
+                        
+                        SwipeToDismissWrapper(swipeState, image.isProcessing, onRemoveCallback) {
+                            ImageCard(
+                                image = image,
+                                onRemove = onRemoveCallback,
+                                onProcess = onProcessCallback,
+                                onBrisque = onBrisqueCallback,
+                                onClick = onClickCallback,
+                            onBeforeOnly = onClickCallback,
+                            isProcessing = image.isProcessing,
+                            haptic = haptic
+                            )
+                        }
                     }
-                    LaunchedEffect(imageIdToRemove, imageIdToCancel) { if (imageIdToRemove != image.id && imageIdToCancel != image.id) swipeState.floatValue = 0f }
                 }
             }
         }
@@ -483,6 +497,8 @@ fun SwipeToDismissWrapper(swipeOffset: MutableState<Float>, isProcessing: Boolea
     var hasStartedDrag by remember { mutableStateOf(false) }
     var hasReachedThreshold by remember { mutableStateOf(false) }
     val cardHeight = 96.dp
+    val currentOnDismissed by rememberUpdatedState(onDismissed)
+    
     Box(Modifier.fillMaxWidth().height(cardHeight).onSizeChanged { widthPx = it.width }) {
         if (animatedOffset > 0f) Box(
             Modifier
@@ -494,8 +510,8 @@ fun SwipeToDismissWrapper(swipeOffset: MutableState<Float>, isProcessing: Boolea
         ) {
             Icon(if (isProcessing) Icons.Filled.Close else Icons.Filled.Delete, if (isProcessing) "Cancel" else "Delete", Modifier.size(28.dp), Color.White)
         }
-        Box(Modifier.fillMaxWidth().height(cardHeight).offset { IntOffset(animatedOffset.roundToInt(), 0) }.pointerInput(Unit) {
-            detectHorizontalDragGestures(onDragStart = { if (!hasStartedDrag) { haptic.gestureStart(); hasStartedDrag = true } }, onHorizontalDrag = { _, dragAmount -> swipeOffset.value = max(0f, swipeOffset.value + dragAmount); if (widthPx > 0 && swipeOffset.value > widthPx * 0.35f && !hasReachedThreshold) { haptic.medium(); hasReachedThreshold = true } else if (swipeOffset.value <= widthPx * 0.35f) hasReachedThreshold = false }, onDragEnd = { if (widthPx > 0 && swipeOffset.value > widthPx * 0.35f) { haptic.heavy(); onDismissed() }; scope.launch { swipeOffset.value = 0f; hasStartedDrag = false; hasReachedThreshold = false } })
+        Box(Modifier.fillMaxWidth().height(cardHeight).offset { IntOffset(animatedOffset.roundToInt(), 0) }.pointerInput(widthPx) {
+            detectHorizontalDragGestures(onDragStart = { if (!hasStartedDrag) { haptic.gestureStart(); hasStartedDrag = true } }, onHorizontalDrag = { _, dragAmount -> swipeOffset.value = max(0f, swipeOffset.value + dragAmount); if (widthPx > 0 && swipeOffset.value > widthPx * 0.35f && !hasReachedThreshold) { haptic.medium(); hasReachedThreshold = true } else if (swipeOffset.value <= widthPx * 0.35f) hasReachedThreshold = false }, onDragEnd = { if (widthPx > 0 && swipeOffset.value > widthPx * 0.35f) { haptic.heavy(); currentOnDismissed() }; scope.launch { swipeOffset.value = 0f; hasStartedDrag = false; hasReachedThreshold = false } })
         }) { content() }
     }
 }
@@ -529,8 +545,7 @@ fun ChunkProgressIndicator(completedChunks: Int, totalChunks: Int) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ImageCard(image: ImageItem,
-              onRemove: () -> Unit, onProcess: () -> Unit, onBrisque: () -> Unit, onClick: () -> Unit, onBeforeOnly: () -> Unit, isProcessing: Boolean = false) {
-    val haptic = rememberHapticFeedback()
+              onRemove: () -> Unit, onProcess: () -> Unit, onBrisque: () -> Unit, onClick: () -> Unit, onBeforeOnly: () -> Unit, isProcessing: Boolean = false, haptic: HapticFeedbackPerformer) {
     val isClickable = !isProcessing
     Box(modifier = Modifier
         .fillMaxWidth()
@@ -562,6 +577,7 @@ fun ImageCard(image: ImageItem,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     val displayBitmap = image.thumbnailBitmap ?: image.outputBitmap ?: image.inputBitmap
+                    val imageBitmap = remember(displayBitmap) { displayBitmap.asImageBitmap() }
                     Surface(
                         modifier = Modifier
                             .size(72.dp)
@@ -569,7 +585,7 @@ fun ImageCard(image: ImageItem,
                         color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Image(
-                            bitmap = displayBitmap.asImageBitmap(), 
+                            bitmap = imageBitmap, 
                             contentDescription = image.filename, 
                             modifier = Modifier.fillMaxSize(), 
                             contentScale = ContentScale.Crop
@@ -638,37 +654,4 @@ fun ImageCard(image: ImageItem,
             }
         }
     }
-}
-
-@Composable
-fun DeprecatedModelWarningDialog(
-    modelName: String,
-    warning: ModelManager.ModelWarning,
-    onContinue: () -> Unit,
-    onGoToSettings: () -> Unit
-) {
-    val haptic = rememberHapticFeedback()
-    AlertDialog(
-        onDismissRequest = onContinue,
-        shape = RoundedCornerShape(28.dp),
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        title = { Text(stringResource(warning.titleResId)) },
-        text = { 
-            Column {
-                Text("Active model: $modelName", fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(stringResource(warning.messageResId))
-            }
-        },
-        confirmButton = { 
-            TextButton(onClick = { haptic.medium(); onContinue() }) { 
-                Text(stringResource(R.string.ok)) 
-            } 
-        },
-        dismissButton = { 
-            TextButton(onClick = { haptic.light(); onGoToSettings() }) { 
-                Text(stringResource(R.string.go_to_settings)) 
-            } 
-        }
-    )
 }

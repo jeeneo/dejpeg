@@ -11,7 +11,7 @@ import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
 
 object ImageLoadingHelper {
-    private const val THUMBNAIL_SIZE = 256
+    private const val THUMBNAIL_SIZE = 144
     
     fun loadBitmapWithRotation(context: Context, uri: Uri): Bitmap? = try {
         context.contentResolver.openInputStream(uri)?.use { inputStream ->
@@ -59,7 +59,7 @@ object ImageLoadingHelper {
         return flipped
     }
 
-    fun generateThumbnail(bitmap: Bitmap, size: Int = THUMBNAIL_SIZE, blurRadius: Int = 15): Bitmap {
+    fun generateThumbnail(bitmap: Bitmap, size: Int = THUMBNAIL_SIZE, blurRadius: Int = 5): Bitmap {
         val cropSize = minOf(bitmap.width, bitmap.height)
         val x = (bitmap.width - cropSize) / 2
         val y = (bitmap.height - cropSize) / 2
@@ -99,9 +99,8 @@ object ImageLoadingHelper {
      * @param radius Blur radius (1-25)
      * @return Blurred bitmap
      */
-    fun stackBlur(sentBitmap: Bitmap, radius: Int): Bitmap {
+    private fun stackBlur(sentBitmap: Bitmap, radius: Int): Bitmap {
         val bitmap = sentBitmap.copy(sentBitmap.config ?: Bitmap.Config.ARGB_8888, true)
-        
         if (radius < 1) return bitmap
         
         val w = bitmap.width
@@ -111,200 +110,89 @@ object ImageLoadingHelper {
         
         val wm = w - 1
         val hm = h - 1
-        val wh = w * h
         val div = radius + radius + 1
-        
-        val r = IntArray(wh)
-        val g = IntArray(wh)
-        val b = IntArray(wh)
-        
+        val r = IntArray(w * h)
+        val g = IntArray(w * h)
+        val b = IntArray(w * h)
         val vmin = IntArray(maxOf(w, h))
         
         var divsum = (div + 1) shr 1
         divsum *= divsum
-        val dv = IntArray(256 * divsum)
-        for (i in 0 until 256 * divsum) {
-            dv[i] = i / divsum
-        }
-        
-        var yw = 0
-        var yi = 0
+        val dv = IntArray(256 * divsum) { it / divsum }
         
         val stack = Array(div) { IntArray(3) }
         val r1 = radius + 1
+        var yw = 0
+        var yi = 0
         
         for (y in 0 until h) {
-            var rsum = 0
-            var gsum = 0
-            var bsum = 0
-            var routsum = 0
-            var goutsum = 0
-            var boutsum = 0
-            var rinsum = 0
-            var ginsum = 0
-            var binsum = 0
+            var rsum = 0; var gsum = 0; var bsum = 0
+            var routsum = 0; var goutsum = 0; var boutsum = 0
+            var rinsum = 0; var ginsum = 0; var binsum = 0
             
             for (i in -radius..radius) {
                 val p = pix[yi + minOf(wm, maxOf(i, 0))]
                 val sir = stack[i + radius]
-                sir[0] = (p and 0xff0000) shr 16
-                sir[1] = (p and 0x00ff00) shr 8
-                sir[2] = p and 0x0000ff
-                
+                sir[0] = (p shr 16) and 0xff; sir[1] = (p shr 8) and 0xff; sir[2] = p and 0xff
                 val rbs = r1 - kotlin.math.abs(i)
-                rsum += sir[0] * rbs
-                gsum += sir[1] * rbs
-                bsum += sir[2] * rbs
-                
-                if (i > 0) {
-                    rinsum += sir[0]
-                    ginsum += sir[1]
-                    binsum += sir[2]
-                } else {
-                    routsum += sir[0]
-                    goutsum += sir[1]
-                    boutsum += sir[2]
-                }
+                rsum += sir[0] * rbs; gsum += sir[1] * rbs; bsum += sir[2] * rbs
+                if (i > 0) { rinsum += sir[0]; ginsum += sir[1]; binsum += sir[2] }
+                else { routsum += sir[0]; goutsum += sir[1]; boutsum += sir[2] }
             }
             
-            var stackpointer = radius
-            
+            var sp = radius
             for (x in 0 until w) {
-                r[yi] = dv[rsum]
-                g[yi] = dv[gsum]
-                b[yi] = dv[bsum]
-                
-                rsum -= routsum
-                gsum -= goutsum
-                bsum -= boutsum
-                
-                val stackstart = stackpointer - radius + div
-                var sir = stack[stackstart % div]
-                
-                routsum -= sir[0]
-                goutsum -= sir[1]
-                boutsum -= sir[2]
-                
-                if (y == 0) {
-                    vmin[x] = minOf(x + radius + 1, wm)
-                }
+                r[yi] = dv[rsum]; g[yi] = dv[gsum]; b[yi] = dv[bsum]
+                rsum -= routsum; gsum -= goutsum; bsum -= boutsum
+                var sir = stack[(sp - radius + div) % div]
+                routsum -= sir[0]; goutsum -= sir[1]; boutsum -= sir[2]
+                if (y == 0) vmin[x] = minOf(x + radius + 1, wm)
                 val p = pix[yw + vmin[x]]
-                
-                sir[0] = (p and 0xff0000) shr 16
-                sir[1] = (p and 0x00ff00) shr 8
-                sir[2] = p and 0x0000ff
-                
-                rinsum += sir[0]
-                ginsum += sir[1]
-                binsum += sir[2]
-                
-                rsum += rinsum
-                gsum += ginsum
-                bsum += binsum
-                
-                stackpointer = (stackpointer + 1) % div
-                sir = stack[stackpointer % div]
-                
-                routsum += sir[0]
-                goutsum += sir[1]
-                boutsum += sir[2]
-                
-                rinsum -= sir[0]
-                ginsum -= sir[1]
-                binsum -= sir[2]
-                
+                sir[0] = (p shr 16) and 0xff; sir[1] = (p shr 8) and 0xff; sir[2] = p and 0xff
+                rinsum += sir[0]; ginsum += sir[1]; binsum += sir[2]
+                rsum += rinsum; gsum += ginsum; bsum += binsum
+                sp = (sp + 1) % div
+                sir = stack[sp]
+                routsum += sir[0]; goutsum += sir[1]; boutsum += sir[2]
+                rinsum -= sir[0]; ginsum -= sir[1]; binsum -= sir[2]
                 yi++
             }
             yw += w
         }
         
         for (x in 0 until w) {
-            var rsum = 0
-            var gsum = 0
-            var bsum = 0
-            var routsum = 0
-            var goutsum = 0
-            var boutsum = 0
-            var rinsum = 0
-            var ginsum = 0
-            var binsum = 0
-            
+            var rsum = 0; var gsum = 0; var bsum = 0
+            var routsum = 0; var goutsum = 0; var boutsum = 0
+            var rinsum = 0; var ginsum = 0; var binsum = 0
             var yp = -radius * w
+            
             for (i in -radius..radius) {
                 yi = maxOf(0, yp) + x
-                
                 val sir = stack[i + radius]
-                
-                sir[0] = r[yi]
-                sir[1] = g[yi]
-                sir[2] = b[yi]
-                
+                sir[0] = r[yi]; sir[1] = g[yi]; sir[2] = b[yi]
                 val rbs = r1 - kotlin.math.abs(i)
-                
-                rsum += r[yi] * rbs
-                gsum += g[yi] * rbs
-                bsum += b[yi] * rbs
-                
-                if (i > 0) {
-                    rinsum += sir[0]
-                    ginsum += sir[1]
-                    binsum += sir[2]
-                } else {
-                    routsum += sir[0]
-                    goutsum += sir[1]
-                    boutsum += sir[2]
-                }
-                
-                if (i < hm) {
-                    yp += w
-                }
+                rsum += r[yi] * rbs; gsum += g[yi] * rbs; bsum += b[yi] * rbs
+                if (i > 0) { rinsum += sir[0]; ginsum += sir[1]; binsum += sir[2] }
+                else { routsum += sir[0]; goutsum += sir[1]; boutsum += sir[2] }
+                if (i < hm) yp += w
             }
             
             yi = x
-            var stackpointer = radius
-            
+            var sp = radius
             for (y in 0 until h) {
-                pix[yi] = (0xff000000.toInt() or (dv[rsum] shl 16) or (dv[gsum] shl 8) or dv[bsum])
-                
-                rsum -= routsum
-                gsum -= goutsum
-                bsum -= boutsum
-                
-                val stackstart = stackpointer - radius + div
-                var sir = stack[stackstart % div]
-                
-                routsum -= sir[0]
-                goutsum -= sir[1]
-                boutsum -= sir[2]
-                
-                if (x == 0) {
-                    vmin[y] = minOf(y + r1, hm) * w
-                }
+                pix[yi] = 0xff000000.toInt() or (dv[rsum] shl 16) or (dv[gsum] shl 8) or dv[bsum]
+                rsum -= routsum; gsum -= goutsum; bsum -= boutsum
+                var sir = stack[(sp - radius + div) % div]
+                routsum -= sir[0]; goutsum -= sir[1]; boutsum -= sir[2]
+                if (x == 0) vmin[y] = minOf(y + r1, hm) * w
                 val p = x + vmin[y]
-                
-                sir[0] = r[p]
-                sir[1] = g[p]
-                sir[2] = b[p]
-                
-                rinsum += sir[0]
-                ginsum += sir[1]
-                binsum += sir[2]
-                
-                rsum += rinsum
-                gsum += ginsum
-                bsum += binsum
-                
-                stackpointer = (stackpointer + 1) % div
-                sir = stack[stackpointer]
-                
-                routsum += sir[0]
-                goutsum += sir[1]
-                boutsum += sir[2]
-                
-                rinsum -= sir[0]
-                ginsum -= sir[1]
-                binsum -= sir[2]
-                
+                sir[0] = r[p]; sir[1] = g[p]; sir[2] = b[p]
+                rinsum += sir[0]; ginsum += sir[1]; binsum += sir[2]
+                rsum += rinsum; gsum += ginsum; bsum += binsum
+                sp = (sp + 1) % div
+                sir = stack[sp]
+                routsum += sir[0]; goutsum += sir[1]; boutsum += sir[2]
+                rinsum -= sir[0]; ginsum -= sir[1]; binsum -= sir[2]
                 yi += w
             }
         }

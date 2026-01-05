@@ -70,13 +70,7 @@ class ProcessingService : Service() {
         Log.d("ProcessingService", "Service started with PID: $pid")
         modelManager = ModelManager(applicationContext)
         imageProcessor = ImageProcessor(applicationContext, modelManager!!)
-        serviceScope.launch {
-            val appPreferences = AppPreferences(applicationContext)
-            imageProcessor?.apply {
-                customChunkSize = appPreferences.getChunkSizeImmediate()
-                customOverlapSize = appPreferences.getOverlapSizeImmediate()
-            }
-        }
+        // Note: chunk/overlap settings are passed via Intent extras in onStartCommand
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -239,9 +233,7 @@ class ProcessingService : Service() {
         stopSelf()
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        Log.d("ProcessingService", "onDestroy() - cleaning up")
+    private fun cancelAndCleanupResources() {
         runCatching {
             imageProcessor?.cancelProcessing()
             currentJob?.cancel()
@@ -250,9 +242,15 @@ class ProcessingService : Service() {
         currentImageId = null
         chunkProgressCompleted = 0
         chunkProgressTotal = 0
-        serviceScope.cancel()
         CacheManager.clearChunks(applicationContext)
         CacheManager.clearAbandonedImages(applicationContext)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        Log.d("ProcessingService", "onDestroy() - cleaning up")
+        cancelAndCleanupResources()
+        serviceScope.cancel()
         modelManager = null
         imageProcessor = null
     }
@@ -261,12 +259,7 @@ class ProcessingService : Service() {
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         Log.d("ProcessingService", "onTaskRemoved() -> cancelling")
-        runCatching {
-            imageProcessor?.cancelProcessing()
-            currentJob?.cancel()
-        }
-        CacheManager.clearChunks(applicationContext)
-        CacheManager.clearAbandonedImages(applicationContext)
+        cancelAndCleanupResources()
         runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
         runCatching { NotificationHelper.cancel(this) }
         stopSelf()

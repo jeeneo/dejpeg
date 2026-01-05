@@ -48,8 +48,6 @@ class ImagePickerHelper(
 
     fun launchCamera(): Result<Uri> {
         return try {
-            // Store camera captures directly in cache directory with temp_ prefix
-            // These will be handled by normal cache cleanup
             val tempFile = File(
                 context.cacheDir,
                 "temp_camera_${System.currentTimeMillis()}.jpg"
@@ -75,7 +73,6 @@ class ImagePickerHelper(
     fun getCameraPhotoUri(): Uri? = currentPhotoUri
 
     fun clearCameraPhotoUri() {
-        // Delete the temp camera file when clearing
         currentPhotoUri?.path?.let { path ->
             File(path).takeIf { it.exists() }?.delete()
         }
