@@ -284,11 +284,40 @@ class ImageProcessor(
         hasAlpha: Boolean,
         info: ModelInfo
     ): Bitmap {
-        val w = chunk.width
-        val h = chunk.height
+        val originalW = chunk.width
+        val originalH = chunk.height
+
+        val padFactor = 8
+        val w = ((originalW + padFactor - 1) / padFactor) * padFactor
+        val h = ((originalH + padFactor - 1) / padFactor) * padFactor
+        val needsPadding = w != originalW || h != originalH
+        
+        val paddedChunk = if (needsPadding) {
+            Log.d("ImageProcessor", "Padding chunk from ${originalW}x${originalH} to ${w}x${h}")
+            val padded = createBitmap(w, h, config)
+            val canvas = Canvas(padded)
+            canvas.drawBitmap(chunk, 0f, 0f, null)
+            if (w > originalW) {
+                val rightStrip = Bitmap.createBitmap(chunk, originalW - 1, 0, 1, originalH)
+                for (x in originalW until w) {
+                    canvas.drawBitmap(rightStrip, x.toFloat(), 0f, null)
+                }
+                rightStrip.recycle()
+            }
+            if (h > originalH) {
+                val bottomStrip = Bitmap.createBitmap(padded, 0, originalH - 1, w, 1)
+                for (y in originalH until h) {
+                    canvas.drawBitmap(bottomStrip, 0f, y.toFloat(), null)
+                }
+                bottomStrip.recycle()
+            }
+            padded
+        } else {
+            chunk
+        }
         val channels = if (info.isGrayscale) 1 else 3
         val pixels = IntArray(w * h)
-        chunk.getPixels(pixels, 0, w, 0, 0, w, h)
+        paddedChunk.getPixels(pixels, 0, w, 0, 0, w, h)
         val inputArray = FloatArray(channels * w * h)
         val alphaChannel = if (hasAlpha) FloatArray(w * h) else null
         for (i in 0 until w * h) {
@@ -319,7 +348,6 @@ class ImageProcessor(
             OnnxTensor.createTensor(env, FloatBuffer.wrap(inputArray), inputShape)
         }
         inputs[info.inputName] = inputTensor
-
         for ((key, nodeInfo) in info.inputInfoMap) {
             if (key == info.inputName) continue
             val tensorInfo = nodeInfo.info as? TensorInfo ?: continue
@@ -346,7 +374,7 @@ class ImageProcessor(
         val result = try {
             session.run(inputs).use { sessionResult ->
                 val outputArray = extractOutputArray(sessionResult[0].value, channels, h, w)
-                val resultBitmap = createBitmap(w, h, config)
+                val fullResultBitmap = createBitmap(w, h, config)
                 val outPixels = IntArray(w * h)
 
                 for (i in 0 until w * h) {
@@ -362,12 +390,20 @@ class ImageProcessor(
                         outPixels[i] = Color.argb(alpha, r, g, b)
                     }
                 }
-
-                resultBitmap.setPixels(outPixels, 0, w, 0, 0, w, h)
-                resultBitmap
+                fullResultBitmap.setPixels(outPixels, 0, w, 0, 0, w, h)
+                if (needsPadding) {
+                    val cropped = Bitmap.createBitmap(fullResultBitmap, 0, 0, originalW, originalH)
+                    fullResultBitmap.recycle()
+                    cropped
+                } else {
+                    fullResultBitmap
+                }
             }
         } finally {
             inputs.values.forEach { it.close() }
+            if (needsPadding) {
+                paddedChunk.recycle()
+            }
         }
         return result
     }
