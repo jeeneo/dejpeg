@@ -41,7 +41,7 @@ class ModelManager(
         private val MODEL_HASHES = mapOf(
 
             // starter model
-            "1xDeJPG_OmniSR-fp16.onnx" to "7c2fcc4e6e671dfab79cabea6c97384c157870fbfa0d951daf045c28f267d942",
+            "1x-RGB-max-Denoise.onnx" to "39c51a314de945d30498a201f484687ee168d11cb9f58402d5aae9e6eaf650f0",
 
             // older F32 models
             "fbcnn_color.onnx" to "3bb0ff3060c217d3b3af95615157fca8a65506455cf4e3d88479e09efffec97f",
@@ -364,10 +364,76 @@ class ModelManager(
         return if (modelName != null) MODEL_WARNINGS[modelName] else null
     }
 
-    private fun hasModelsInstalled(): Boolean {
-        val modelsDir = getModelsDir()
-        return modelsDir.exists() && modelsDir.listFiles { _, name -> 
-            name.lowercase().endsWith(".onnx") 
-        }?.isNotEmpty() == true
+    fun initializeStarterModel(): Boolean {
+        try {
+            val alreadyExtracted = runBlocking {
+                context.dataStore.data.map { it[PreferenceKeys.STARTER_MODEL_EXTRACTED] ?: false }.first()
+            }
+            if (alreadyExtracted) {
+                Log.d("ModelManager", "Starter model already extracted, skipping")
+                return false
+            }
+            
+            val modelsDir = getModelsDir()
+            val hasModels = modelsDir.exists() && modelsDir.listFiles { _, name -> 
+                name.lowercase().endsWith(".onnx") 
+            }?.isNotEmpty() == true
+            
+            if (hasModels) {
+                Log.d("ModelManager", "Models already exist, skipping starter model extraction")
+                markStarterModelExtracted()
+                return false
+            }
+            
+            return extractStarterModel(setAsActive = true)
+        } catch (e: Exception) {
+            Log.e("ModelManager", "Error initializing starter model: ${e.message}", e)
+            return false
+        }
+    }
+    
+    private fun markStarterModelExtracted() {
+        coroutineScope.launch {
+            context.dataStore.edit { prefs ->
+                prefs[PreferenceKeys.STARTER_MODEL_EXTRACTED] = true
+            }
+        }
+    }
+    
+    fun extractStarterModel(
+        setAsActive: Boolean = false,
+        onSuccess: () -> Unit = {},
+        onError: (String) -> Unit = {}
+    ): Boolean {
+        return try {
+            val modelsDir = getModelsDir()
+            if (!modelsDir.exists()) modelsDir.mkdirs()
+            
+            context.assets.open("1x-RGB-max-Denoise.zip").use { zipInputStream ->
+                java.util.zip.ZipInputStream(zipInputStream).use { zipFile ->
+                    var entry = zipFile.nextEntry
+                    while (entry != null) {
+                        if (entry.name.endsWith(".onnx")) {
+                            val modelFile = File(modelsDir, entry.name)
+                            FileOutputStream(modelFile).use { out ->
+                                zipFile.copyTo(out, 8192)
+                            }
+                            Log.d("ModelManager", "Extracted starter model: ${entry.name}")
+                            if (setAsActive) setActiveModel(entry.name)
+                            markStarterModelExtracted()
+                            onSuccess()
+                            return true
+                        }
+                        entry = zipFile.nextEntry
+                    }
+                }
+            }
+            onError("Failed to extract starter model")
+            false
+        } catch (e: Exception) {
+            Log.e("ModelManager", "Error extracting starter model: ${e.message}", e)
+            onError(e.message ?: "Unknown error")
+            false
+        }
     }
 }
