@@ -13,10 +13,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -235,39 +233,10 @@ private fun ImageSource(
 
 @Composable
 fun HelpDialog(title: String, text: String, onDismiss: () -> Unit) {
-    val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
-    val dialogWidth = rememberDialogWidth()
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        modifier = Modifier.dialogWidth(dialogWidth),
-        properties = DialogDefaults.Properties,
-        shape = DialogDefaults.Shape,
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        icon = {
-            Icon(
-                imageVector = Icons.Default.Info,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(32.dp)
-            )
-        },
-        title = {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyLarge
-            )
-        },
-        confirmButton = {
-            FilledTonalButton(onClick = { haptic.light(); onDismiss() }) {
-                Text(stringResource(R.string.ok))
-            }
-        }
+    InfoAlertDialog(
+        title = title,
+        message = text,
+        onDismiss = onDismiss,
+        icon = Icons.Default.Info
     )
 }

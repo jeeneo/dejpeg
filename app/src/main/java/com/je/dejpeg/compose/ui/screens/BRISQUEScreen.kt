@@ -73,6 +73,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.je.dejpeg.compose.ui.components.ConfirmAlertDialog
 import com.je.dejpeg.compose.ui.components.DialogDefaults
 import com.je.dejpeg.compose.ui.components.dialogWidth
 import com.je.dejpeg.compose.ui.components.rememberDialogWidth
@@ -246,12 +247,15 @@ private fun InfoRow(label: String, value: String, isSmall: Boolean = false, colo
 @Composable
 private fun ConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
     val haptic = rememberHapticFeedback()
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Descale again?") },
-        text = { Text("This will descale the image again, which may produce worse results, continue?") },
-        confirmButton = { Button(onClick = { haptic.medium(); onConfirm() }) { Text("Yes") } },
-        dismissButton = { TextButton(onClick = { haptic.light(); onDismiss() }) { Text("Cancel") } }
+    ConfirmAlertDialog(
+        title = "Descale again?",
+        message = "This will descale the image again, which may produce worse results, continue?",
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
+        confirmButtonText = "Yes",
+        dismissButtonText = "Cancel",
+        confirmHaptic = { haptic.medium() },
+        dismissHaptic = { haptic.light() }
     )
 }
 

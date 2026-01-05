@@ -140,27 +140,32 @@ fun RemoveImageDialog(
 @Composable
 fun CancelProcessingDialog(imageFilename: String, onDismissRequest: () -> Unit, onConfirm: () -> Unit) {
     val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
-    val dialogWidth = rememberDialogWidth()
-    AlertDialog(
-        onDismissRequest = onDismissRequest,
-        modifier = Modifier.dialogWidth(dialogWidth),
-        properties = DialogDefaults.Properties,
-        title = { Text(stringResource(R.string.stop_processing_title)) },
-        text = { Text(stringResource(R.string.stop_processing_question, imageFilename)) },
-        confirmButton = {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                TextButton({ haptic.light(); onDismissRequest() }) {
-                    Text(stringResource(R.string.nope))
-                }
-                TextButton({ haptic.heavy(); onConfirm(); onDismissRequest() }) {
-                    Text(stringResource(R.string.yes_stop), color = MaterialTheme.colorScheme.error)
-                }
+    BaseDialog(
+        title = stringResource(R.string.stop_processing_title),
+        message = stringResource(R.string.stop_processing_question, imageFilename),
+        onDismiss = onDismissRequest,
+        confirmButtonText = stringResource(R.string.yes_stop),
+        onConfirm = { onConfirm(); onDismissRequest() },
+        dismissButtonText = stringResource(R.string.nope),
+        onDismissButton = onDismissRequest,
+        onConfirmHaptic = { haptic.heavy() },
+        onDismissHaptic = { haptic.light() }
+    )
+}
+
+@Composable
+fun StarterModelDialog(onDismiss: () -> Unit) {
+    BaseDialog(
+        title = stringResource(R.string.starter_model_title),
+        content = {
+            Column {
+                Text(stringResource(R.string.starter_model_message))
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(stringResource(R.string.starter_model_hint))
             }
         },
-        dismissButton = {}
+        onDismiss = onDismiss,
+        confirmButtonText = stringResource(R.string.got_it),
+        onConfirm = onDismiss
     )
 }
