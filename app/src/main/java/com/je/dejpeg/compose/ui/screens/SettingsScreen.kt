@@ -48,6 +48,8 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
     val installedModels by viewModel.installedModels.collectAsState()
     var dialogState by remember { mutableStateOf<DialogState>(DialogState.None) }
     var importProgress by remember { mutableIntStateOf(0) }
+    val importedModelMessage = stringResource(R.string.imported_model)
+    val deletedModelMessage = stringResource(R.string.deleted_model)
     var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
     val chunkSize by viewModel.chunkSize.collectAsState()
     val overlapSize by viewModel.overlapSize.collectAsState()
@@ -83,7 +85,7 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
                     pendingImportUri = null
                     Toast.makeText(
                         context,
-                        context.getString(R.string.imported_model, name),
+                        importedModelMessage.format(name),
                         Toast.LENGTH_SHORT
                     ).show()
                 },
@@ -212,7 +214,7 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
                 viewModel.deleteModels(selected) {
                     Toast.makeText(
                         context,
-                        context.getString(R.string.deleted_model, it),
+                        deletedModelMessage.format(it),
                         Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -273,7 +275,7 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
                                             warningState = null
                                             Toast.makeText(
                                                 context,
-                                                context.getString(R.string.imported_model, name),
+                                                importedModelMessage.format(name),
                                                 Toast.LENGTH_SHORT
                                             ).show()
                                         },

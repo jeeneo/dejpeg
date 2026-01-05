@@ -46,11 +46,11 @@ fun Modifier.dialogWidth(maxWidth: Dp): Modifier =
 fun StyledAlertDialog(
     onDismissRequest: () -> Unit,
     title: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
     text: @Composable (() -> Unit)? = null,
     confirmButton: @Composable () -> Unit,
     dismissButton: @Composable (() -> Unit)? = null,
-    icon: ImageVector? = null,
-    modifier: Modifier = Modifier
+    icon: ImageVector? = null
 ) {
     val dialogWidth = rememberDialogWidth()
     AlertDialog(

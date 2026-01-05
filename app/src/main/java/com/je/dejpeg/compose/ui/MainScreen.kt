@@ -54,7 +54,8 @@ fun MainScreen(
     val context = LocalContext.current
     val viewModel: ProcessingViewModel = viewModel()
     val haptic = rememberHapticFeedback()
-    
+    val backExitMessage = stringResource(R.string.back_exit_confirm)
+
     RecoveryDialog(viewModel = viewModel)
     
     var currentScreen by remember { mutableStateOf<AppScreen>(AppScreen.Processing) }
@@ -73,6 +74,7 @@ fun MainScreen(
         }
     }
     
+    
     BackHandler {
         when (currentScreen) {
             AppScreen.Processing -> {
@@ -81,7 +83,7 @@ fun MainScreen(
                     viewModel.cancelProcessing()
                     ExitActivity.exitApplication(context)
                 } else {
-                    Toast.makeText(context, context.getString(R.string.back_exit_confirm), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, backExitMessage, Toast.LENGTH_SHORT).show()
                     lastBackPressTime = currentTime
                 }
             }
@@ -99,9 +101,9 @@ fun MainScreen(
                                 icon = { 
                                     Crossfade(
                                         targetState = true
-                                    ) { _ ->
+                                    ) { isSelected ->
                                         Icon(
-                                            Icons.Filled.Image,
+                                            if (isSelected) Icons.Filled.Image else Icons.Outlined.Image,
                                             contentDescription = stringResource(R.string.processing)
                                         )
                                     }
@@ -182,9 +184,9 @@ fun MainScreen(
                                 icon = { 
                                     Crossfade(
                                         targetState = true
-                                    ) { _ ->
+                                    ) { isSelected ->
                                         Icon(
-                                            Icons.Filled.Settings,
+                                            if (isSelected) Icons.Filled.Settings else Icons.Outlined.Settings,
                                             contentDescription = stringResource(R.string.settings)
                                         )
                                     }

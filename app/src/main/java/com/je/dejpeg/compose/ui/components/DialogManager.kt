@@ -220,11 +220,15 @@ fun RemoveImageDialog(
 }
 
 @Composable
-fun CancelProcessingDialog(imageFilename: String, onDismissRequest: () -> Unit, onConfirm: () -> Unit) {
+fun CancelProcessingDialog(imageFilename: String? = null, onDismissRequest: () -> Unit, onConfirm: () -> Unit) {
     val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
     BaseDialog(
         title = stringResource(R.string.stop_processing_title),
-        message = stringResource(R.string.stop_processing_question, imageFilename),
+        message = if (imageFilename != null) {
+            stringResource(R.string.stop_processing_question, imageFilename)
+        } else {
+            stringResource(R.string.stop_processing_all_question)
+        },
         onDismiss = onDismissRequest,
         confirmButtonText = stringResource(R.string.yes_stop),
         onConfirm = { onConfirm(); onDismissRequest() },
@@ -232,23 +236,6 @@ fun CancelProcessingDialog(imageFilename: String, onDismissRequest: () -> Unit, 
         onDismissButton = onDismissRequest,
         onConfirmHaptic = { haptic.heavy() },
         onDismissHaptic = { haptic.light() }
-    )
-}
-
-@Composable
-fun StarterModelDialog(onDismiss: () -> Unit) {
-    BaseDialog(
-        title = stringResource(R.string.starter_model_title),
-        content = {
-            Column {
-                Text(stringResource(R.string.starter_model_message))
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(stringResource(R.string.starter_model_hint))
-            }
-        },
-        onDismiss = onDismiss,
-        confirmButtonText = stringResource(R.string.got_it),
-        onConfirm = onDismiss
     )
 }
 

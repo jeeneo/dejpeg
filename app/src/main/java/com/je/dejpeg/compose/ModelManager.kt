@@ -316,10 +316,13 @@ class ModelManager(
         onError: (String) -> Unit
     ) {
         try {
-            ensureModelsDir()
+            val modelsDir = getModelsDir()
+            if (!modelsDir.exists()) {
+                modelsDir.mkdirs()
+            }
             val modelFile = File(getModelsDir(), filename)
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                val size = context.contentResolver.openFileDescriptor(uri, "r")?.statSize ?: 0L
+                val size = context.contentResolver.openFileDescriptor(uri, "r")?.use { it.statSize } ?: 0L
                 FileOutputStream(modelFile).use { outputStream ->
                     copyWithProgress(inputStream, outputStream, size, onProgress)
                 }
@@ -372,121 +375,11 @@ class ModelManager(
     fun getModelWarning(modelName: String?): ModelWarning? {
         return if (modelName != null) MODEL_WARNINGS[modelName] else null
     }
-    fun initializeStarterModel(): Boolean {
-        try {
-            if (isStarterModelAlreadyExtracted()) {
-                Log.d("ModelManager", "Starter model already extracted, skipping")
-                return false
-            }
-            if (hasModelsInstalled()) {
-                Log.d("ModelManager", "Models already exist, skipping starter model extraction")
-                markStarterModelExtracted()
-                return false
-            }
-            val success = performStarterModelExtraction(setAsActive = true)
-            return success
-        } catch (e: Exception) {
-            Log.e("ModelManager", "Error initializing starter model: ${e.message}", e)
-            return false
-        }
-    }
-    
-    private fun isStarterModelAlreadyExtracted(): Boolean = runBlocking {
-        context.dataStore.data.map { prefs ->
-            prefs[PreferenceKeys.STARTER_MODEL_EXTRACTED] ?: false
-        }.first()
-    }
-    
+
     private fun hasModelsInstalled(): Boolean {
         val modelsDir = getModelsDir()
         return modelsDir.exists() && modelsDir.listFiles { _, name -> 
             name.lowercase().endsWith(".onnx") 
         }?.isNotEmpty() == true
-    }
-    
-    private fun performStarterModelExtraction(
-        setAsActive: Boolean = false,
-        onSuccess: () -> Unit = {},
-        onError: (String) -> Unit = {}
-    ): Boolean {
-        return try {
-            ensureModelsDir()
-            val extracted = extractStarterModel(getModelsDir(), setAsActive)
-            if (extracted) {
-                markStarterModelExtracted()
-                Log.d("ModelManager", "Starter model extracted successfully")
-                onSuccess()
-            } else {
-                onError("Failed to extract starter model")
-            }
-            extracted
-        } catch (e: Exception) {
-            Log.e("ModelManager", "Error extracting starter model: ${e.message}", e)
-            onError(e.message ?: "Unknown error")
-            false
-        }
-    }
-    
-    private fun ensureModelsDir() {
-        val modelsDir = getModelsDir()
-        if (!modelsDir.exists()) {
-            modelsDir.mkdirs()
-        }
-    }
-    
-    private fun markStarterModelExtracted() {
-        coroutineScope.launch {
-            context.dataStore.edit { prefs ->
-                prefs[PreferenceKeys.STARTER_MODEL_EXTRACTED] = true
-                Log.d("ModelManager", "Marked starter model as extracted in preferences")
-            }
-        }
-    }
-    
-    fun resetStarterModelFlag() {
-        coroutineScope.launch {
-            context.dataStore.edit { prefs ->
-                prefs.remove(PreferenceKeys.STARTER_MODEL_EXTRACTED)
-                Log.d("ModelManager", "Reset starter model extraction flag")
-            }
-        }
-    }
-    
-    fun extractStarterModelManually(onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {
-        coroutineScope.launch {
-            val setAsActive = !hasModelsInstalled()
-            performStarterModelExtraction(
-                setAsActive = setAsActive,
-                onSuccess = onSuccess,
-                onError = onError
-            )
-        }
-    }
-
-    private fun extractStarterModel(modelsDir: File, setAsActive: Boolean = false): Boolean {
-        return try {
-            val zipInputStream = context.assets.open("1xDeJPG_OmniSR-fp16.zip")
-            java.util.zip.ZipInputStream(zipInputStream).use { zipFile ->
-                var entry = zipFile.nextEntry
-                while (entry != null) {
-                    if (entry.name.endsWith(".onnx")) {
-                        val modelFile = File(modelsDir, entry.name)
-                        FileOutputStream(modelFile).use { out ->
-                            zipFile.copyTo(out, 8192)
-                        }
-                        Log.d("ModelManager", "Extracted starter model: ${entry.name}")
-                        if (setAsActive) {
-                            setActiveModel(entry.name)
-                        }
-                        return true
-                    }
-                    entry = zipFile.nextEntry
-                }
-            }
-            false
-        } catch (e: Exception) {
-            Log.e("ModelManager", "Error extracting starter model: ${e.message}", e)
-            false
-        }
     }
 }

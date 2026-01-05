@@ -104,39 +104,6 @@ fun PreferencesDialog(
                         scope.launch { appPreferences.clearDefaultImageSource() }
                     }
                 )
-                CompactActionPreference(
-                    icon = Icons.Filled.Download,
-                    title = stringResource(R.string.starter_model_title),
-                    subtitle = stringResource(R.string.extract_starter_model),
-                    hasValue = true,
-                    actionLabel = stringResource(R.string.extract),
-                    onAction = {
-                        haptic.light()
-                        modelManager.resetStarterModelFlag()
-                        modelManager.extractStarterModelManually(
-                            onSuccess = {
-                                Handler(Looper.getMainLooper()).post {
-                                    Toast.makeText(
-                                        context,
-                                        "Starter model extracted",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                    onModelExtracted?.invoke()
-                                    onDismiss()
-                                }
-                            },
-                            onError = { error ->
-                                Handler(Looper.getMainLooper()).post {
-                                    Toast.makeText(
-                                        context,
-                                        "Failed to extract starter model: $error",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                            }
-                        )
-                    }
-                )
             }
         },
         confirmButton = {

@@ -96,7 +96,7 @@ object ImageActions {
                     }
                 }
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, context.getString(R.string.all_images_saved_to_gallery, images.size), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.resources.getQuantityString(R.plurals.all_images_saved_to_gallery, images.size, images.size), Toast.LENGTH_SHORT).show()
                     onComplete()
                 }
             } catch (e: Exception) {

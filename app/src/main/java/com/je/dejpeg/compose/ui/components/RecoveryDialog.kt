@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -73,8 +74,6 @@ fun RecoveryDialog(
         val count = recoveryImages.value.size
         val plural = count > 1
         val pluralSuffix = if (plural) "s" else ""
-        val wereWas = stringResource(if (plural) R.string.were else R.string.was)
-        val themIt = stringResource(if (plural) R.string.them else R.string.it)
         val recoveredImagePrefix = stringResource(R.string.recovered_image_prefix)
         val recoverButtonText = stringResource(R.string.recover)
         val discardButtonText = stringResource(R.string.discard)
@@ -94,7 +93,7 @@ fun RecoveryDialog(
             title = { Text(stringResource(R.string.recover_images_title, pluralSuffix)) },
             text = { 
                 Column {
-                    Text(stringResource(R.string.recover_images_message, count, pluralSuffix, wereWas, themIt))
+                    Text(pluralStringResource(R.plurals.recover_images_message, count, count))
                     
                     if (count <= 3) {
                         Spacer(modifier = Modifier.height(16.dp))
