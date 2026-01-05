@@ -16,11 +16,12 @@ import com.je.dejpeg.compose.utils.rememberHapticFeedback
 @Composable
 fun BaseDialog(
     title: String,
-    message: String? = null,
-    content: (@Composable () -> Unit)? = null,
     onDismiss: () -> Unit,
     confirmButtonText: String,
     onConfirm: () -> Unit,
+    modifier: Modifier = Modifier,
+    message: String? = null,
+    content: (@Composable () -> Unit)? = null,
     dismissButtonText: String? = null,
     onDismissButton: (() -> Unit)? = null,
     isError: Boolean = false,
@@ -29,7 +30,6 @@ fun BaseDialog(
     onConfirmHaptic: (() -> Unit)? = null,
     onDismissHaptic: (() -> Unit)? = null,
     icon: ImageVector? = null,
-    modifier: Modifier = Modifier,
     customButtons: (@Composable () -> Unit)? = null
 ) {
     val haptic = rememberHapticFeedback()

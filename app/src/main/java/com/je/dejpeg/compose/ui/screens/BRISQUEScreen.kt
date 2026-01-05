@@ -3,6 +3,7 @@ package com.je.dejpeg.compose.ui.screens
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.widget.Toast
+import java.util.Locale
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -158,8 +159,8 @@ fun BRISQUEScreen(
                                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     InfoRow(label = "Original", value = "${info.originalWidth}×${info.originalHeight}", isSmall = true)
                                     InfoRow(label = "Descaled", value = "${info.detectedWidth}×${info.detectedHeight}", isSmall = true)
-                                    InfoRow(label = "BRISQUE", value = "${String.format("%.1f", info.brisqueScore)} (${getScoreInfo(info.brisqueScore, isBRISQUE = true).label})", isSmall = true, color = getScoreInfo(info.brisqueScore, isBRISQUE = true).color)
-                                    InfoRow(label = "Sharpness", value = "${String.format("%.1f", info.sharpness)} (${getScoreInfo(info.sharpness, isBRISQUE = false).label})", isSmall = true, color = getScoreInfo(info.sharpness, isBRISQUE = false).color)
+                                    InfoRow(label = "BRISQUE", value = "${String.format(Locale.US, "%.1f", info.brisqueScore)} (${getScoreInfo(info.brisqueScore, isBRISQUE = true).label})", isSmall = true, color = getScoreInfo(info.brisqueScore, isBRISQUE = true).color)
+                                    InfoRow(label = "Sharpness", value = "${String.format(Locale.US, "%.1f", info.sharpness)} (${getScoreInfo(info.sharpness, isBRISQUE = false).label})", isSmall = true, color = getScoreInfo(info.sharpness, isBRISQUE = false).color)
                                 }
                             }
                         }
@@ -428,7 +429,7 @@ private fun BRISQUESettings(
                 item { SettingSlider("Coarse stepping", coarseStep, { coarseStep = it.clamp(10f, 50f) }, 10f..50f, 1f, infoText = "Steps (px) per iteration in the initial scan") }
                 item { SettingSlider("Fine stepping", fineStep, { fineStep = it.clamp(1f, 10f) }, 1f..10f, 1f, infoText = "Steps (px) per iteration in the second scan") }
                 item { SettingSlider("Fine range", fineRange, { fineRange = it.clamp(10f, 100f) }, 10f..100f, 5f, infoText = "Range around the coarse result to explore") }
-                item { SettingSlider("Minimum image size", minWidthRatio, { minWidthRatio = it.clamp(0.1f, 0.9f) }, 0.1f..0.9f, 0.05f, format = { val px = (imageWidth * it).toInt(); val py = (imageHeight * it).toInt(); "${px}×${py}px (${String.format("%.0f", it * 100)}%)" }, infoText = "Minimum size of the final image the algorithm is willing to scale down to") }
+                item { SettingSlider("Minimum image size", minWidthRatio, { minWidthRatio = it.clamp(0.1f, 0.9f) }, 0.1f..0.9f, 0.05f, format = { val px = (imageWidth * it).toInt(); val py = (imageHeight * it).toInt(); "${px}×${py}px (${String.format(Locale.US, "%.0f", it * 100)}%)" }, infoText = "Minimum size of the final image the algorithm is willing to scale down to") }
                 item { SettingSlider("BRISQUE weight", brisqueWeight, { brisqueWeight = it.clamp(0f, 1f) }, 0f..1f, 0.05f, format = { "%.2f".format(it) }, infoText = "BRISQUE confidence in calculating") }
                 item { SettingSlider("Sharpness weight", sharpnessWeight, { sharpnessWeight = it.clamp(0f, 1f) }, 0f..1f, 0.05f, format = { "%.2f".format(it) }, infoText = "Sharpness confidence in calculating") }
             }

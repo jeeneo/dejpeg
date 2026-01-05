@@ -307,7 +307,7 @@ class ImageProcessor(
         val needsPadding = w != originalW || h != originalH
         val paddedChunk = if (needsPadding) {
             Log.d("ImageProcessor", "Padding chunk from ${originalW}x${originalH} to ${w}x${h}")
-            val padded = Bitmap.createBitmap(w, h, config)
+            val padded = createBitmap(w, h, config)
             val canvas = Canvas(padded)
             canvas.drawBitmap(chunk, 0f, 0f, null)
             if (w > originalW) {
@@ -387,7 +387,7 @@ class ImageProcessor(
         val result = try {
             session.run(inputs).use { sessionResult ->
                 val outputArray = extractOutputArray(sessionResult[0].value, channels, h, w)
-                val fullResultBitmap = Bitmap.createBitmap(w, h, config)
+                val fullResultBitmap = createBitmap(w, h, config)
                 val outPixels = IntArray(w * h)
 
                 for (i in 0 until w * h) {
