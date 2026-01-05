@@ -145,6 +145,10 @@ class ProcessingViewModel : ViewModel() {
         override fun onError(imageId: String?, message: String) {
             handleProcessingError(imageId, message)
         }
+        override fun onServiceCrash(imageId: String?) {
+            Log.e("ProcessingViewModel", "Service process crashed while processing image: $imageId")
+            handleServiceCrash(imageId)
+        }
     }
 
     override fun onCleared() {
@@ -443,28 +447,42 @@ class ProcessingViewModel : ViewModel() {
 
     private fun handleProcessingError(imageId: String?, message: String) {
         val isCancelled = message.contains(statusCancelled, true)
+        val displayMessage = if (isCancelled) statusCancelled else message
+        
+        stopProcessing(imageId, displayMessage, isCancelled)
+    }
+
+    private fun handleServiceCrash(imageId: String?) {
+        val crashMessage = status(com.je.dejpeg.R.string.error_native_crash, 
+            "The processing service died unexpectedly. This usually indicates an incompatible model or insufficient memory.")
+        
+        stopProcessing(imageId, crashMessage, isCancelled = false)
+    }
+
+    private fun stopProcessing(imageId: String?, displayMessage: String, isCancelled: Boolean) {
         if (!imageId.isNullOrEmpty()) {
             updateImageState(imageId) {
                 resetChunkProgress(it).copy(
                     isProcessing = false,
-                    progress = if (isCancelled) statusCancelled else message,
+                    progress = displayMessage,
                     isCancelling = false
                 )
             }
             processingQueue.remove(imageId)
+            
             if (isCancelled) {
                 appContext?.let { ctx ->
                     viewModelScope.launch(Dispatchers.IO) {
-                        Log.d("ProcessingViewModel", "handleProcessingError: Cleaning up cache for cancelled imageId: $imageId")
+                        Log.d("ProcessingViewModel", "Cleaning up cache for imageId: $imageId")
                         CacheManager.deleteRecoveryPair(ctx, imageId)
                     }
                 }
             }
         }
 
-        if (isCancelled) {
+        if (isCancelled && imageId == currentProcessingId) {
             cancelInProgress = false
-            if (imageId == currentProcessingId) currentProcessingId = null
+            currentProcessingId = null
             advanceQueue(imageId)
             return
         }
@@ -486,8 +504,7 @@ class ProcessingViewModel : ViewModel() {
                 it.copy(isProcessing = false, isCancelling = false, progress = "")
             } else it
         }
-        
-        processingErrorDialog.value = message
+        processingErrorDialog.value = displayMessage
         uiState.value = ProcessingUiState.Idle
     }
 

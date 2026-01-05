@@ -84,7 +84,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.je.dejpeg.R
 import com.je.dejpeg.compose.ModelManager
+import com.je.dejpeg.compose.ui.components.BaseDialog
 import com.je.dejpeg.compose.ui.components.CancelProcessingDialog
+import com.je.dejpeg.compose.ui.components.ConfirmAlertDialog
+import com.je.dejpeg.compose.ui.components.ErrorAlertDialog
 import com.je.dejpeg.compose.ui.components.ImageSourceDialog
 import com.je.dejpeg.compose.ui.components.LoadingDialog
 import com.je.dejpeg.compose.ui.components.RemoveImageDialog
@@ -425,15 +428,12 @@ fun ProcessingScreen(
     }
 
     saveErrorMessage?.let { errorMsg ->
-        AlertDialog(
-            onDismissRequest = { saveErrorMessage = null },
-            title = { Text(stringResource(R.string.error_saving_image_title)) },
-            text = { Text(errorMsg) },
-            confirmButton = {
-                TextButton(onClick = { haptic.light(); saveErrorMessage = null }) {
-                    Text(stringResource(R.string.ok))
-                }
-            }
+        BaseDialog(
+            title = stringResource(R.string.error_saving_image_title),
+            message = errorMsg,
+            onDismiss = { saveErrorMessage = null },
+            confirmButtonText = stringResource(R.string.ok),
+            onConfirm = { haptic.light(); saveErrorMessage = null }
         )
     }
 
@@ -454,34 +454,12 @@ fun ProcessingScreen(
     }
 
     processingErrorDialog?.let { errorMsg ->
-        val hapticFeedback = rememberHapticFeedback()
         val context = LocalContext.current
-        val clipboardManager = remember { context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager }
-        
-        AlertDialog(
-            onDismissRequest = { viewModel.dismissProcessingErrorDialog() },
-            shape = RoundedCornerShape(28.dp),
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            title = { Text(stringResource(R.string.error_processing_title)) },
-            text = { Text(errorMsg) },
-            confirmButton = {
-                TextButton(onClick = {
-                    hapticFeedback.light()
-                    viewModel.dismissProcessingErrorDialog()
-                }) {
-                    Text(stringResource(R.string.ok))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    hapticFeedback.light()
-                    val clip = android.content.ClipData.newPlainText("Error message", errorMsg)
-                    clipboardManager.setPrimaryClip(clip)
-                    Toast.makeText(context, context.getString(R.string.error_copied), Toast.LENGTH_SHORT).show()
-                }) {
-                    Text(stringResource(R.string.copy_error))
-                }
-            }
+        ErrorAlertDialog(
+            title = stringResource(R.string.error_processing_title),
+            errorMessage = errorMsg,
+            onDismiss = { viewModel.dismissProcessingErrorDialog() },
+            context = context
         )
     }
 
@@ -525,14 +503,14 @@ fun SwipeToDismissWrapper(swipeOffset: MutableState<Float>, isProcessing: Boolea
 @Composable
 fun NoModelDialog(onDismiss: () -> Unit, onGoToSettings: () -> Unit) {
     val haptic = rememberHapticFeedback()
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(28.dp),
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        title = { Text(stringResource(R.string.no_model_installed_title)) }, 
-        text = { Text(stringResource(R.string.no_model_installed_desc)) }, 
-        confirmButton = { TextButton(onClick = { haptic.medium(); onGoToSettings() }) { Text(stringResource(R.string.go_to_settings)) } }, 
-        dismissButton = { TextButton(onClick = { haptic.light(); onDismiss() }) { Text(stringResource(R.string.cancel)) } }
+    BaseDialog(
+        title = stringResource(R.string.no_model_installed_title),
+        message = stringResource(R.string.no_model_installed_desc),
+        onDismiss = onDismiss,
+        confirmButtonText = stringResource(R.string.go_to_settings),
+        onConfirm = { haptic.medium(); onGoToSettings() },
+        dismissButtonText = stringResource(R.string.cancel),
+        onDismissButton = { haptic.light(); onDismiss() }
     )
 }
 

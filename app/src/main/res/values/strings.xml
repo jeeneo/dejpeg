@@ -160,6 +160,8 @@
     <string name="saving_image_progress">Saving %1$d of %2$d</string>
 
     <string name="error_processing_title">Processing error</string>
+    <string name="error_native_crash">The processing service died unexpectedly. This usually indicates an incompatible model or insufficient memory.</string>
+    <string name="status_crashed">Died</string>
     <string name="copy_error">Copy error</string>
     <string name="error_copied">Copied to clipboard</string>
 

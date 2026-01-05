@@ -36,6 +36,7 @@ import com.je.dejpeg.compose.ui.components.ChunkDialog
 import com.je.dejpeg.compose.ui.components.PreferencesDialog
 import com.je.dejpeg.compose.ui.components.AboutDialog
 import com.je.dejpeg.compose.ui.components.FAQDialog
+import com.je.dejpeg.compose.ui.components.BaseDialog
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -304,20 +305,12 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
             }
 
             is ModelWarningState.Error -> {
-                AlertDialog(
-                    onDismissRequest = { warningState = null },
-                    shape = RoundedCornerShape(28.dp),
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    title = { Text(stringResource(R.string.import_error)) },
-                    text = { Text(state.message) },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            haptic.light()
-                            warningState = null
-                        }) {
-                            Text(stringResource(R.string.ok))
-                        }
-                    }
+                BaseDialog(
+                    title = stringResource(R.string.import_error),
+                    message = state.message,
+                    onDismiss = { warningState = null },
+                    confirmButtonText = stringResource(R.string.ok),
+                    onConfirm = { warningState = null }
                 )
             }
         }
