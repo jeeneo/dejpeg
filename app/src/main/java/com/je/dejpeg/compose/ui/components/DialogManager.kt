@@ -26,11 +26,8 @@ fun SaveImageDialog(
     var saveAll by remember { mutableStateOf(initialSaveAll) }
     var skipNext by remember { mutableStateOf(false) }
     val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
-    val dialogWidth = rememberDialogWidth()
-    AlertDialog(
+    StyledAlertDialog(
         onDismissRequest = onDismissRequest,
-        modifier = Modifier.dialogWidth(dialogWidth),
-        properties = DialogDefaults.Properties,
         title = { Text(stringResource(if (hideOptions) R.string.overwrite_image else R.string.save_image)) },
         text = {
             Column {
@@ -98,11 +95,8 @@ fun RemoveImageDialog(
     onSaveAndRemove: () -> Unit
 ) {
     val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
-    val dialogWidth = rememberDialogWidth()
-    AlertDialog(
+    StyledAlertDialog(
         onDismissRequest = onDismissRequest,
-        modifier = Modifier.dialogWidth(dialogWidth),
-        properties = DialogDefaults.Properties,
         title = { Text(stringResource(R.string.remove_image_title)) },
         text = { Text(stringResource(R.string.remove_image_question, imageFilename)) },
         confirmButton = {

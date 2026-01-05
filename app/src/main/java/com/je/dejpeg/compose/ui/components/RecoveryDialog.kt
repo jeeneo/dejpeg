@@ -6,7 +6,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -24,7 +23,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.je.dejpeg.R
 import com.je.dejpeg.compose.ui.viewmodel.ImageItem
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
@@ -80,7 +78,6 @@ fun RecoveryDialog(
         val recoveredImagePrefix = stringResource(R.string.recovered_image_prefix)
         val recoverButtonText = stringResource(R.string.recover)
         val discardButtonText = stringResource(R.string.discard)
-        val dialogWidth = rememberDialogWidth()
         
         fun clearCache() {
             Log.d("RecoveryDialog", "User chose to discard recovery images")
@@ -92,11 +89,8 @@ fun RecoveryDialog(
             }
         }
         
-        AlertDialog(
+        StyledAlertDialog(
             onDismissRequest = {},
-            modifier = Modifier.dialogWidth(dialogWidth),
-            shape = RoundedCornerShape(28.dp),
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = { Text(stringResource(R.string.recover_images_title, pluralSuffix)) },
             text = { 
                 Column {

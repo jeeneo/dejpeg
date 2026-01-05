@@ -73,13 +73,8 @@ fun ChunkDialog(
         }
     }
 
-    val dialogWidth = rememberDialogWidth()
-    AlertDialog(
+    StyledAlertDialog(
         onDismissRequest = onDismiss,
-        modifier = Modifier.dialogWidth(dialogWidth),
-        properties = DialogDefaults.Properties,
-        shape = DialogDefaults.Shape,
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         title = { Text(stringResource(R.string.chunk_settings)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {

@@ -4,19 +4,12 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.dp
 import com.je.dejpeg.R
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
 
@@ -40,81 +33,38 @@ fun BaseDialog(
     customButtons: (@Composable () -> Unit)? = null
 ) {
     val haptic = rememberHapticFeedback()
-    val dialogWidth = rememberDialogWidth()
     val clipboardManager = remember(context) {
         context?.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
     }
-    
     val textToCopy = message ?: ""
 
-    AlertDialog(
+    StyledAlertDialog(
         onDismissRequest = onDismiss,
-        modifier = modifier.dialogWidth(dialogWidth),
-        properties = DialogDefaults.Properties,
-        shape = RoundedCornerShape(28.dp),
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        icon = icon?.let {
-            {
-                Icon(
-                    imageVector = it,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(32.dp)
-                )
-            }
-        },
+        modifier = modifier,
+        icon = icon,
         title = { Text(title) },
-        text = {
-            if (content != null) {
-                content()
-            } else if (message != null) {
-                Text(message)
-            }
-        },
+        text = content ?: message?.let { { Text(it) } },
         confirmButton = {
-            if (customButtons != null) {
-                customButtons()
-            } else {
-                TextButton(
-                    onClick = {
-                        onConfirmHaptic?.invoke() ?: haptic.light()
-                        onConfirm()
-                    }
-                ) {
-                    Text(confirmButtonText)
-                }
+            if (customButtons != null) customButtons()
+            else TextButton(onClick = { onConfirmHaptic?.invoke() ?: haptic.light(); onConfirm() }) {
+                Text(confirmButtonText)
             }
         },
-        dismissButton = if (customButtons != null) {
-            null
-        } else if (dismissButtonText != null && onDismissButton != null) {
-            {
-                TextButton(
-                    onClick = {
-                        onDismissHaptic?.invoke() ?: haptic.light()
-                        onDismissButton()
-                    }
-                ) {
-                    Text(dismissButtonText)
-                }
+        dismissButton = when {
+            customButtons != null -> null
+            dismissButtonText != null && onDismissButton != null -> {
+                { TextButton(onClick = { onDismissHaptic?.invoke() ?: haptic.light(); onDismissButton() }) { Text(dismissButtonText) } }
             }
-        } else if (showCopyButton && isError && clipboardManager != null) {
-            {
-                TextButton(
-                    onClick = {
+            showCopyButton && isError && clipboardManager != null -> {
+                {
+                    TextButton(onClick = {
                         haptic.light()
-                        val clip = ClipData.newPlainText("error", textToCopy)
-                        clipboardManager.setPrimaryClip(clip)
-                        context?.let {
-                            Toast.makeText(it, it.getString(R.string.error_copied), Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                ) {
-                    Text("Copy")
+                        clipboardManager.setPrimaryClip(ClipData.newPlainText("error", textToCopy))
+                        context?.let { Toast.makeText(it, it.getString(R.string.error_copied), Toast.LENGTH_SHORT).show() }
+                    }) { Text("Copy") }
                 }
             }
-        } else {
-            null
+            else -> null
         }
     )
 }
@@ -146,16 +96,7 @@ fun InfoAlertDialog(
     onDismiss: () -> Unit,
     icon: ImageVector,
     confirmButtonText: String = "OK"
-) {
-    BaseDialog(
-        title = title,
-        message = message,
-        onDismiss = onDismiss,
-        confirmButtonText = confirmButtonText,
-        onConfirm = onDismiss,
-        icon = icon
-    )
-}
+) = StyledAlertDialog(onDismiss, title, { Text(message) }, confirmButtonText, icon)
 
 @Composable
 fun ConfirmAlertDialog(
@@ -167,16 +108,4 @@ fun ConfirmAlertDialog(
     dismissButtonText: String = "Cancel",
     confirmHaptic: (() -> Unit)? = null,
     dismissHaptic: (() -> Unit)? = null
-) {
-    BaseDialog(
-        title = title,
-        message = message,
-        onDismiss = onDismiss,
-        confirmButtonText = confirmButtonText,
-        onConfirm = onConfirm,
-        dismissButtonText = dismissButtonText,
-        onDismissButton = onDismiss,
-        onConfirmHaptic = confirmHaptic,
-        onDismissHaptic = dismissHaptic
-    )
-}
+) = StyledConfirmDialog(onDismiss, onConfirm, title, { Text(message) }, confirmButtonText, dismissButtonText, confirmHaptic, dismissHaptic)

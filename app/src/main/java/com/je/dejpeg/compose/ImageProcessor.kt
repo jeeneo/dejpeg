@@ -89,8 +89,14 @@ class ImageProcessor(
         val hasTransparency = detectTransparency(inputBitmap)
 
         val processingConfig = Bitmap.Config.ARGB_8888
-        val mustTile = width > info.chunkSize || height > info.chunkSize
-        return if (mustTile) processTiled(session, inputBitmap, callback, info, processingConfig, hasTransparency, index, total)
+        // Use the smaller of chunkSize or model's fixed dimensions
+        val effectiveMaxChunkSize = if (info.expectedWidth != null && info.expectedHeight != null) {
+            minOf(info.chunkSize, info.expectedWidth, info.expectedHeight)
+        } else {
+            info.chunkSize
+        }
+        val mustTile = width > effectiveMaxChunkSize || height > effectiveMaxChunkSize
+        return if (mustTile) processTiled(session, inputBitmap, callback, info, processingConfig, hasTransparency, index, total, effectiveMaxChunkSize)
         else
         {
             val bitmapToProcess = if (inputBitmap.config != processingConfig) inputBitmap.copy(processingConfig, true)
@@ -112,11 +118,11 @@ class ImageProcessor(
         config: Bitmap.Config,
         hasTransparency: Boolean,
         index: Int,
-        total: Int
+        total: Int,
+        maxChunkSize: Int
     ): Bitmap {
         val width = inputBitmap.width
         val height = inputBitmap.height
-        val maxChunkSize = info.chunkSize
         val overlap = info.overlap
         val cols = 1.coerceAtLeast(ceil(width.toDouble() / maxChunkSize).toInt())
         val rows = 1.coerceAtLeast(ceil(height.toDouble() / maxChunkSize).toInt())
@@ -286,15 +292,22 @@ class ImageProcessor(
     ): Bitmap {
         val originalW = chunk.width
         val originalH = chunk.height
-
-        val padFactor = 8
-        val w = ((originalW + padFactor - 1) / padFactor) * padFactor
-        val h = ((originalH + padFactor - 1) / padFactor) * padFactor
+        val w = if (info.expectedWidth != null && info.expectedWidth > 0) {
+            info.expectedWidth
+        } else {
+            val padFactor = 8
+            ((originalW + padFactor - 1) / padFactor) * padFactor
+        }
+        val h = if (info.expectedHeight != null && info.expectedHeight > 0) {
+            info.expectedHeight
+        } else {
+            val padFactor = 8
+            ((originalH + padFactor - 1) / padFactor) * padFactor
+        }
         val needsPadding = w != originalW || h != originalH
-        
         val paddedChunk = if (needsPadding) {
             Log.d("ImageProcessor", "Padding chunk from ${originalW}x${originalH} to ${w}x${h}")
-            val padded = createBitmap(w, h, config)
+            val padded = Bitmap.createBitmap(w, h, config)
             val canvas = Canvas(padded)
             canvas.drawBitmap(chunk, 0f, 0f, null)
             if (w > originalW) {
@@ -374,7 +387,7 @@ class ImageProcessor(
         val result = try {
             session.run(inputs).use { sessionResult ->
                 val outputArray = extractOutputArray(sessionResult[0].value, channels, h, w)
-                val fullResultBitmap = createBitmap(w, h, config)
+                val fullResultBitmap = Bitmap.createBitmap(w, h, config)
                 val outPixels = IntArray(w * h)
 
                 for (i in 0 until w * h) {
@@ -526,6 +539,8 @@ class ImageProcessor(
         val isFp16: Boolean
         val chunkSize: Int = customChunkSize ?: AppPreferences.DEFAULT_CHUNK_SIZE
         val overlap: Int = customOverlapSize ?: AppPreferences.DEFAULT_OVERLAP_SIZE
+        val expectedWidth: Int?
+        val expectedHeight: Int?
 
         init {
             Log.d("ModelInfo", "Initialized with customChunkSize: $customChunkSize, customOverlapSize: $customOverlapSize -> chunkSize: $chunkSize, overlap: $overlap")
@@ -534,6 +549,8 @@ class ImageProcessor(
             var foundInputName: String? = null
             var foundIsGrayscale = false
             var foundIsFp16 = false
+            var foundExpectedWidth: Int? = null
+            var foundExpectedHeight: Int? = null
             for ((key, nodeInfo) in inputInfoMap) {
                 val tensorInfo = nodeInfo.info as? TensorInfo ?: continue
                 val shape = tensorInfo.shape
@@ -541,13 +558,18 @@ class ImageProcessor(
                     foundInputName = key
                     foundIsGrayscale = (shape[1] == 1L || shape[1] == -1L)
                     foundIsFp16 = (tensorInfo.type == OnnxJavaType.FLOAT16)
+                    // Check for fixed input dimensions (shape[2] = height, shape[3] = width)
+                    if (shape[2] > 0) foundExpectedHeight = shape[2].toInt()
+                    if (shape[3] > 0) foundExpectedWidth = shape[3].toInt()
                     break
                 }
             }
             inputName = foundInputName ?: throw RuntimeException("Could not find valid input tensor")
             isGrayscale = foundIsGrayscale
             isFp16 = foundIsFp16
-            Log.d("ModelInfo", "Model input type: ${if (isFp16) "FP16" else "FP32"}, grayscale: $isGrayscale")
+            expectedWidth = foundExpectedWidth
+            expectedHeight = foundExpectedHeight
+            Log.d("ModelInfo", "Model input type: ${if (isFp16) "FP16" else "FP32"}, grayscale: $isGrayscale, expected dimensions: ${expectedWidth ?: "dynamic"}x${expectedHeight ?: "dynamic"}")
         }
     }
 }
