@@ -18,11 +18,14 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.datastore.preferences.core.edit
 import com.je.dejpeg.R
 import com.je.dejpeg.compose.ModelManager
 import com.je.dejpeg.compose.utils.HapticFeedback
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
 import com.je.dejpeg.data.AppPreferences
+import com.je.dejpeg.data.PreferenceKeys
+import com.je.dejpeg.data.dataStore
 import kotlinx.coroutines.launch
 
 @Composable
@@ -102,6 +105,44 @@ fun PreferencesDialog(
                     onClear = {
                         haptic.light()
                         scope.launch { appPreferences.clearDefaultImageSource() }
+                    }
+                )
+                CompactActionPreference(
+                    icon = Icons.Filled.Download,
+                    title = stringResource(R.string.starter_model_title),
+                    subtitle = stringResource(R.string.extract_starter_model),
+                    hasValue = true,
+                    actionLabel = stringResource(R.string.extract),
+                    onAction = {
+                        haptic.light()
+                        scope.launch {
+                            context.dataStore.edit { it.remove(PreferenceKeys.STARTER_MODEL_EXTRACTED) }
+                        }
+                        scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                            modelManager.extractStarterModel(
+                                setAsActive = false,
+                                onSuccess = {
+                                    Handler(Looper.getMainLooper()).post {
+                                        Toast.makeText(
+                                            context,
+                                            "Starter model extracted",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                        onModelExtracted?.invoke()
+                                        onDismiss()
+                                    }
+                                },
+                                onError = { error ->
+                                    Handler(Looper.getMainLooper()).post {
+                                        Toast.makeText(
+                                            context,
+                                            "Failed to extract starter model: $error",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                }
+                            )
+                        }
                     }
                 )
             }
