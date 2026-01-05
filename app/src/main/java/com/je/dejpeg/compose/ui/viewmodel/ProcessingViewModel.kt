@@ -43,7 +43,6 @@ data class ImageItem(
     val totalChunks: Int = 0,
     val hasBeenSaved: Boolean = false
 )
-
 sealed class ProcessingUiState {
     object Idle : ProcessingUiState()
     data class Processing(val currentIndex: Int, val total: Int) : ProcessingUiState()
@@ -119,13 +118,9 @@ class ProcessingViewModel : ViewModel() {
             }
         })
         serviceHelper?.register()
-        
-        // Collect preferences
         viewModelScope.launch { appPreferences?.chunkSize?.collect { chunkSize.value = it } }
         viewModelScope.launch { appPreferences?.overlapSize?.collect { overlapSize.value = it } }
         viewModelScope.launch { appPreferences?.globalStrength?.collect { globalStrength.value = it } }
-        
-        // Load initial models
         viewModelScope.launch {
             appContext?.let { ctx -> 
                 ModelMigrationHelper.migrateModelsIfNeeded(ctx) // attempt to migrate and set previous model
@@ -430,7 +425,6 @@ class ProcessingViewModel : ViewModel() {
     private fun handleProcessingError(imageId: String?, message: String) {
         val isCancelled = message.contains(statusCancelled, true)
         val displayMessage = if (isCancelled) statusCancelled else message
-        
         stopProcessing(imageId, displayMessage, isCancelled)
     }
 
@@ -507,10 +501,6 @@ class ProcessingViewModel : ViewModel() {
         cancelInProgress = true
         updateImageState(imageId) { it.copy(isCancelling = true, progress = statusCanceling) }
         cancelProcessingService(imageId)
-    }
-
-    fun updateImageStrength(id: String, strength: Float) {
-        updateImageState(id) { it.copy(strengthFactor = strength) }
     }
 
     fun setGlobalStrength(strength: Float) {

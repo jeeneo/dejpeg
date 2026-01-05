@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -44,12 +45,6 @@ fun BaseDialog(
         icon = icon,
         title = { Text(title) },
         text = content ?: message?.let { { Text(it) } },
-        confirmButton = {
-            if (customButtons != null) customButtons()
-            else TextButton(onClick = { onConfirmHaptic?.invoke() ?: haptic.light(); onConfirm() }) {
-                Text(confirmButtonText)
-            }
-        },
         dismissButton = when {
             customButtons != null -> null
             dismissButtonText != null && onDismissButton != null -> {
@@ -65,6 +60,12 @@ fun BaseDialog(
                 }
             }
             else -> null
+        },
+        confirmButton = {
+            if (customButtons != null) customButtons()
+            else Button(onClick = { onConfirmHaptic?.invoke() ?: haptic.light(); onConfirm() }) {
+                Text(confirmButtonText)
+            }
         }
     )
 }
