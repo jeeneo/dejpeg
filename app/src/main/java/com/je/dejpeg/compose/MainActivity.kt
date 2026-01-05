@@ -28,6 +28,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.je.dejpeg.compose.utils.CacheManager
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.compose.ModelManager
+import com.je.dejpeg.compose.ui.components.StarterModelDialog
 import com.je.dejpeg.ui.MainScreen
 import com.je.dejpeg.ui.theme.DeJPEGTheme
 import kotlinx.coroutines.Dispatchers
@@ -48,6 +49,7 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         val modelManager = ModelManager(this)
+        val starterModelExtracted = modelManager.initializeStarterModel()
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(
@@ -63,6 +65,7 @@ class MainActivity : ComponentActivity() {
         // https://stackoverflow.com/a/79267436
         setContent {
             val isDarkTheme = isSystemInDarkTheme()
+            val showStarterModelDialog = remember { mutableStateOf(starterModelExtracted) }
             SideEffect {
                 if (!isDarkTheme) {
                     val lightTransparentStyle = SystemBarStyle.light(
@@ -90,6 +93,14 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val sharedUris by viewModel.sharedUris.collectAsState()
                     MainScreen(sharedUris = sharedUris)
+                }
+                if (showStarterModelDialog.value) {
+                    StarterModelDialog(
+                        onDismiss = {
+                            showStarterModelDialog.value = false
+                            viewModel.refreshInstalledModels()
+                        }
+                    )
                 }
             }
         }
