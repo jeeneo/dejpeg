@@ -111,19 +111,19 @@ fun ChunkDialog(
                 }
             }
         },
+        dismissButton = {
+            TextButton(onClick = { haptic.light(); onDismiss() }) {
+                Text(stringResource(R.string.cancel))
+            }
+        },
         confirmButton = {
-            TextButton(onClick = {
+            Button(onClick = {
                 haptic.medium()
                 onChunkChange(chunkSize)
                 onOverlapChange(overlapSize)
                 onDismiss()
             }) {
                 Text(stringResource(R.string.save))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = { haptic.light(); onDismiss() }) {
-                Text(stringResource(R.string.cancel))
             }
         }
     )

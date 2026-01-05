@@ -108,7 +108,7 @@
     <string name="source_code">Source code</string>
     <string name="show_save_dialog">Show save dialog</string>
     <string name="show_save_dialog_desc">Show dialog when saving images</string>
-    <string name="default_image_source">Default image source</string>
+    <string name="default_image_source">Default source</string>
     <string name="none">none</string>
     <string name="photos">Photos</string>
     <string name="clear_default_source">Clear</string>

@@ -75,18 +75,6 @@ class ModelManager(
         )
 
         private val MODEL_WARNINGS = buildMap {
-            // put("1x_DitherDeleterV3-Smooth-32._115000_G.onnx", ModelWarning(
-            //     R.string.model_warning_performance_title,
-            //     R.string.model_warning_ditherdeleter_message,
-            //     R.string.import_anyway,
-            //     R.string.cancel
-            // ))
-            // put("1x_Bandage-Smooth-64._105000_G.onnx", ModelWarning(
-            //     R.string.model_warning_performance_title,
-            //     R.string.model_warning_bandage_message,
-            //     R.string.import_anyway,
-            //     R.string.cancel
-            // ))
             F32_LEGACY_MODELS.forEach { modelName ->
                 put(modelName, ModelWarning(
                     R.string.model_warning_outdated_title,

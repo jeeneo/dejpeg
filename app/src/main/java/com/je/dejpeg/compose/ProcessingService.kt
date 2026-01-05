@@ -70,7 +70,6 @@ class ProcessingService : Service() {
         Log.d("ProcessingService", "Service started with PID: $pid")
         modelManager = ModelManager(applicationContext)
         imageProcessor = ImageProcessor(applicationContext, modelManager!!)
-        // Note: chunk/overlap settings are passed via Intent extras in onStartCommand
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -135,7 +134,6 @@ class ProcessingService : Service() {
                                     val safeName = if (!imageId.isNullOrEmpty()) imageId else filename
                                     val outFile = File(cacheDir, "${safeName}_processed.png")
                                     FileOutputStream(outFile).use { result.compress(Bitmap.CompressFormat.PNG, 95, it) }
-                                    // broadcast(PROGRESS_ACTION, PROGRESS_EXTRA_MESSAGE to "Complete", imageId = imageId)
                                     broadcast(COMPLETE_ACTION, COMPLETE_EXTRA_PATH to outFile.absolutePath, imageId = imageId)
                                 } catch (e: Exception) {
                                     broadcast(ERROR_ACTION, ERROR_EXTRA_MESSAGE to "Save error: ${e.message}", imageId = imageId)
