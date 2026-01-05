@@ -328,14 +328,15 @@ class ImageProcessor(
         } else {
             chunk
         }
-        val channels = if (info.isGrayscale) 1 else 3
+        val inputChannels = info.inputChannels
+        val outputChannels = info.outputChannels
         val pixels = IntArray(w * h)
         paddedChunk.getPixels(pixels, 0, w, 0, 0, w, h)
-        val inputArray = FloatArray(channels * w * h)
+        val inputArray = FloatArray(inputChannels * w * h)
         val alphaChannel = if (hasAlpha) FloatArray(w * h) else null
         for (i in 0 until w * h) {
             val color = pixels[i]
-            if (channels == 1) {
+            if (inputChannels == 1) {
                 val gray = (Color.red(color) + Color.green(color) + Color.blue(color)) / 3
                 inputArray[i] = gray / 255f
             } else {
@@ -348,7 +349,7 @@ class ImageProcessor(
             }
         }
         val env = info.env ?: OrtEnvironment.getEnvironment()
-        val inputShape = longArrayOf(1, channels.toLong(), h.toLong(), w.toLong())
+        val inputShape = longArrayOf(1, inputChannels.toLong(), h.toLong(), w.toLong())
         val inputs = mutableMapOf<String, OnnxTensor>()
         val inputTensor = if (info.isFp16) {
             val fp16Array = ShortArray(inputArray.size) { i -> floatToFloat16(inputArray[i]) }
@@ -386,14 +387,14 @@ class ImageProcessor(
 
         val result = try {
             session.run(inputs).use { sessionResult ->
-                val outputArray = extractOutputArray(sessionResult[0].value, channels, h, w)
+                val outputArray = extractOutputArray(sessionResult[0].value, outputChannels, h, w)
                 val fullResultBitmap = createBitmap(w, h, config)
                 val outPixels = IntArray(w * h)
 
                 for (i in 0 until w * h) {
                     val alpha = if (hasAlpha) clamp255(alphaChannel!![i] * 255f) else 255
                     
-                    if (channels == 1) {
+                    if (outputChannels == 1) {
                         val gray = clamp255(outputArray[i] * 255f)
                         outPixels[i] = Color.argb(alpha, gray, gray, gray)
                     } else {
@@ -535,7 +536,8 @@ class ImageProcessor(
         val env: OrtEnvironment?
         val inputName: String
         val inputInfoMap: Map<String, NodeInfo>
-        val isGrayscale: Boolean
+        val inputChannels: Int
+        val outputChannels: Int
         val isFp16: Boolean
         val chunkSize: Int = customChunkSize ?: AppPreferences.DEFAULT_CHUNK_SIZE
         val overlap: Int = customOverlapSize ?: AppPreferences.DEFAULT_OVERLAP_SIZE
@@ -547,16 +549,19 @@ class ImageProcessor(
             inputInfoMap = session.inputInfo
             env = OrtEnvironment.getEnvironment()
             var foundInputName: String? = null
-            var foundIsGrayscale = false
+            var foundInputChannels = 3
+            var foundOutputChannels = 3
             var foundIsFp16 = false
             var foundExpectedWidth: Int? = null
             var foundExpectedHeight: Int? = null
+            
+            // Detect input tensor properties
             for ((key, nodeInfo) in inputInfoMap) {
                 val tensorInfo = nodeInfo.info as? TensorInfo ?: continue
                 val shape = tensorInfo.shape
                 if ((tensorInfo.type == OnnxJavaType.FLOAT || tensorInfo.type == OnnxJavaType.FLOAT16) && shape.size == 4) {
                     foundInputName = key
-                    foundIsGrayscale = (shape[1] == 1L || shape[1] == -1L)
+                    foundInputChannels = if (shape[1] == 1L) 1 else 3
                     foundIsFp16 = (tensorInfo.type == OnnxJavaType.FLOAT16)
                     // Check for fixed input dimensions (shape[2] = height, shape[3] = width)
                     if (shape[2] > 0) foundExpectedHeight = shape[2].toInt()
@@ -564,12 +569,25 @@ class ImageProcessor(
                     break
                 }
             }
+            
+            // Detect output tensor properties
+            val outputInfoMap = session.outputInfo
+            for ((_, nodeInfo) in outputInfoMap) {
+                val tensorInfo = nodeInfo.info as? TensorInfo ?: continue
+                val shape = tensorInfo.shape
+                if ((tensorInfo.type == OnnxJavaType.FLOAT || tensorInfo.type == OnnxJavaType.FLOAT16) && shape.size == 4) {
+                    foundOutputChannels = if (shape[1] == 1L) 1 else 3
+                    break
+                }
+            }
+            
             inputName = foundInputName ?: throw RuntimeException("Could not find valid input tensor")
-            isGrayscale = foundIsGrayscale
+            inputChannels = foundInputChannels
+            outputChannels = foundOutputChannels
             isFp16 = foundIsFp16
             expectedWidth = foundExpectedWidth
             expectedHeight = foundExpectedHeight
-            Log.d("ModelInfo", "Model input type: ${if (isFp16) "FP16" else "FP32"}, grayscale: $isGrayscale, expected dimensions: ${expectedWidth ?: "dynamic"}x${expectedHeight ?: "dynamic"}")
+            Log.d("ModelInfo", "Model input type: ${if (isFp16) "FP16" else "FP32"}, input channels: $inputChannels, output channels: $outputChannels, expected dimensions: ${expectedWidth ?: "dynamic"}x${expectedHeight ?: "dynamic"}")
         }
     }
 }
