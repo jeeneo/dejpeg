@@ -147,9 +147,9 @@
     <string name="recovered_image_prefix">Recovered</string>
 
     <!-- StarterModelDialog strings -->
-    <string name="starter_model_title">New model</string>
-    <string name="starter_model_message">DeJPEG now comes with a small fast general purpose model (for noise and compression removal). Although don\'t expect it to handle every image perfectly.\n\nYou can still import additional models from settings anytime.\n\nIf you don\'t want this model, you can delete it and it won\'t show up again. It can also be added back from preferences.</string>
+    <string name="starter_model_title">Starter models</string>
+    <string name="starter_model_message">DeJPEG now comes with small fast general purpose models. Don\'t expect them to handle every image perfectly.\n\nYou can still import additional models from settings anytime.\n\nIf you don\'t want these models, you can delete them and they won\'t show up again. They can also be added back from preferences.</string>
     <string name="got_it">Got it</string>
-    <string name="extract_starter_model">Extract the starter model</string>
+    <string name="extract_starter_model">Extract the embedded models</string>
     <string name="extract">Extract</string>
 </resources>
