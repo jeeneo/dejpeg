@@ -20,28 +20,6 @@ import androidx.compose.ui.unit.dp
 import com.je.dejpeg.R
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
 
-/**
- * Unified reusable alert dialog component for consistent styling across the app.
- * Supports simple message dialogs, custom content, error dialogs with copy functionality,
- * and flexible button configurations.
- *
- * @param title Dialog title
- * @param message Simple text message (mutually exclusive with content)
- * @param content Custom composable content (mutually exclusive with message)
- * @param onDismiss Called when dialog is dismissed
- * @param confirmButtonText Text for primary action button
- * @param onConfirm Called when confirm button is clicked
- * @param dismissButtonText Optional text for secondary button
- * @param onDismissButton Optional callback for dismiss button
- * @param isError If true, applies error styling and enables copy-to-clipboard
- * @param context Required only if isError=true (for clipboard access)
- * @param showCopyButton If true and isError=true, shows copy button
- * @param onConfirmHaptic Optional custom haptic feedback for confirm button
- * @param onDismissHaptic Optional custom haptic feedback for dismiss button
- * @param icon Optional icon to display in the dialog header
- * @param modifier Optional modifier for the dialog
- * @param customButtons Optional custom buttons composable (replaces confirm/dismiss buttons)
- */
 @Composable
 fun BaseDialog(
     title: String,
@@ -141,9 +119,6 @@ fun BaseDialog(
     )
 }
 
-/**
- * Convenience overload for error dialogs with automatic copy functionality.
- */
 @Composable
 fun ErrorAlertDialog(
     title: String,
@@ -164,9 +139,6 @@ fun ErrorAlertDialog(
     )
 }
 
-/**
- * Convenience overload for info/help dialogs with an icon.
- */
 @Composable
 fun InfoAlertDialog(
     title: String,
@@ -185,9 +157,6 @@ fun InfoAlertDialog(
     )
 }
 
-/**
- * Convenience overload for confirm dialogs.
- */
 @Composable
 fun ConfirmAlertDialog(
     title: String,
