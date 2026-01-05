@@ -71,13 +71,13 @@ fun ImageSourceDialog(
         action()
     }
 
-    val dialogWidth = rememberDialogWidth()
     Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogDefaults.Properties
+        onDismissRequest = onDismiss
     ) {
         ElevatedCard(
-            modifier = Modifier.dialogWidth(dialogWidth).padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             shape = DialogDefaults.Shape,
             elevation = CardDefaults.elevatedCardElevation(defaultElevation = 6.dp),
             colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)

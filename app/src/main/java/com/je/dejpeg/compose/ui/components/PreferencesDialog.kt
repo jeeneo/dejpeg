@@ -107,7 +107,7 @@ fun PreferencesDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { 
+            Button(onClick = { 
                 haptic.light()
                 onDismiss() 
             }) {

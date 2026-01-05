@@ -76,8 +76,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.je.dejpeg.compose.ui.components.ConfirmAlertDialog
 import com.je.dejpeg.compose.ui.components.DialogDefaults
-import com.je.dejpeg.compose.ui.components.dialogWidth
-import com.je.dejpeg.compose.ui.components.rememberDialogWidth
+import com.je.dejpeg.compose.ui.components.StyledAlertDialog
 import com.je.dejpeg.compose.ui.viewmodel.BrisqueViewModel
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.compose.utils.brisque.BRISQUEDescaler
@@ -296,46 +295,37 @@ private fun getScoreInfo(value: Float, isBRISQUE: Boolean = true): ScoreInfo = w
 @Composable
 private fun InfoDialog(onDismiss: () -> Unit) {
     val haptic = rememberHapticFeedback()
-    val dialogWidth = rememberDialogWidth()
-    Dialog(
+    StyledAlertDialog(
         onDismissRequest = onDismiss,
-        properties = DialogDefaults.Properties
-    ) {
-        Card(
-            modifier = Modifier.dialogWidth(dialogWidth),
-            shape = DialogDefaults.Shape,
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
-        ) {
-            Column(modifier = Modifier.padding(24.dp)) {
-                Text(
-                    "About BRISQUE",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    "BRISQUE (Blind/Referenceless Image Spatial Quality Evaluator) is a no-reference image quality score.\n\nIn plain English, it takes an image and assigns it a quality value between 0 and 100, lower being best and higher being worse.\n\nUsing this with a sharpness estimate can provide a semi-reliable method for getting an image that's been scaled to a larger size back down to close to it's original resolution.\n\nImages like this include screenshots of screenshots, overscaled memes, or old photos scanned at large DPIs.\n\nYou shouldn't need to apply this to every image, but only ones that look blurry or don't match the images true size.",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    Button(onClick = { haptic.light(); onDismiss() }) {
-                        Text("OK")
-                    }
-                }
+        title = { Text("About BRISQUE") },
+        text = {
+            Text(
+                "BRISQUE (Blind/Referenceless Image Spatial Quality Evaluator) is a no-reference image quality score.\n\nIn plain English, it takes an image and assigns it a quality value between 0 and 100, lower being best and higher being worse.\n\nUsing this with a sharpness estimate can provide a semi-reliable method for getting an image that's been scaled to a larger size back down to close to it's original resolution.\n\nImages like this include screenshots of screenshots, overscaled memes, or old photos scanned at large DPIs.\n\nYou shouldn't need to apply this to every image, but only ones that look blurry or don't match the images true size.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+        },
+        confirmButton = {
+            Button(onClick = { haptic.light(); onDismiss() }) {
+                Text("OK")
             }
         }
-    }
+    )
 }
 
 @Composable
 private fun DescaleProgressDialog(progress: BRISQUEDescaler.ProgressUpdate, logMessages: List<String>, onCancel: () -> Unit) {
     val haptic = rememberHapticFeedback()
     val logListState = rememberLazyListState()
-    val dialogWidth = rememberDialogWidth()
     LaunchedEffect(logMessages.size) { if (logMessages.isNotEmpty()) logListState.animateScrollToItem(maxOf(0, logMessages.size - 1)) }
-    Dialog(onDismissRequest = { }, properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false, usePlatformDefaultWidth = false)) {
-        Card(Modifier.dialogWidth(dialogWidth).heightIn(min = 300.dp, max = 500.dp), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+    Dialog(onDismissRequest = { }, properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 300.dp, max = 500.dp)
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
             Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("Descaling image", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -418,11 +408,8 @@ private fun BRISQUESettings(
         }
     }
 
-    val dialogWidth = rememberDialogWidth()
     AlertDialog(
         onDismissRequest = onDismiss,
-        modifier = Modifier.dialogWidth(dialogWidth),
-        properties = DialogDefaults.Properties,
         title = { Text("BRISQUE settings") },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
@@ -435,16 +422,8 @@ private fun BRISQUESettings(
             }
         },
         confirmButton = {
-            Button(onClick = {
-                haptic.medium()
-                brisqueViewModel.updateSettings(
-                    BrisqueSettings(coarseStep.toInt(), fineStep.toInt(), fineRange.toInt(), minWidthRatio, brisqueWeight, sharpnessWeight)
-                )
-                onDismiss()
-            }) { Text("Save") }
-        },
-        dismissButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = { haptic.light(); onDismiss() }) { Text("Cancel") }
                 TextButton(onClick = {
                     haptic.light()
                     coarseStep = 20f
@@ -454,8 +433,15 @@ private fun BRISQUESettings(
                     brisqueWeight = 0.7f
                     sharpnessWeight = 0.3f
                 }) { Text("Reset") }
-                TextButton(onClick = { haptic.light(); onDismiss() }) { Text("Cancel") }
+                Button(onClick = {
+                    haptic.medium()
+                    brisqueViewModel.updateSettings(
+                        BrisqueSettings(coarseStep.toInt(), fineStep.toInt(), fineRange.toInt(), minWidthRatio, brisqueWeight, sharpnessWeight)
+                    )
+                    onDismiss()
+                }) { Text("Save") }
             }
-        }
+        },
+        dismissButton = null
     )
 }
