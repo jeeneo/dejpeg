@@ -104,6 +104,7 @@ android {
     packaging {
         jniLibs {
             pickFirsts += "lib/*/libonnxruntime.so"
+            keepDebugSymbols += "**/*.so" // they're already stripped, just stop warning
         }
     }
 }
