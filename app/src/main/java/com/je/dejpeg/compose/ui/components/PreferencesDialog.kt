@@ -125,7 +125,7 @@ fun PreferencesDialog(
                                     Handler(Looper.getMainLooper()).post {
                                         Toast.makeText(
                                             context,
-                                            "Starter model extracted",
+                                            "Starter models extracted",
                                             Toast.LENGTH_SHORT
                                         ).show()
                                         onModelExtracted?.invoke()
@@ -136,7 +136,7 @@ fun PreferencesDialog(
                                     Handler(Looper.getMainLooper()).post {
                                         Toast.makeText(
                                             context,
-                                            "Failed to extract starter model: $error",
+                                            "Failed to extract starter models: $error",
                                             Toast.LENGTH_SHORT
                                         ).show()
                                     }
@@ -169,6 +169,8 @@ private fun CompactActionPreference(
     onAction: (() -> Unit)? = null
 ) {
     Surface(
+        onClick = onAction ?: {},
+        enabled = onAction != null,
         modifier = Modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(16.dp)
@@ -224,18 +226,6 @@ private fun CompactActionPreference(
                         imageVector = Icons.Filled.Clear,
                         contentDescription = stringResource(R.string.clear_default_source),
                         modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-            if (actionLabel != null && onAction != null) {
-                Spacer(modifier = Modifier.width(12.dp))
-                FilledTonalButton(
-                    onClick = onAction,
-                    modifier = Modifier.height(36.dp)
-                ) {
-                    Text(
-                        actionLabel,
-                        style = MaterialTheme.typography.labelSmall
                     )
                 }
             }

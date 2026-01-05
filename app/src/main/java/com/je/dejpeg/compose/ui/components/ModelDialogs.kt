@@ -2,6 +2,8 @@ package com.je.dejpeg.compose.ui.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,7 +32,7 @@ fun ModelDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.model_management)) },
         text = {
-            Column {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 if (models.isEmpty()) {
                     Text(stringResource(R.string.no_models_installed))
                 } else {
@@ -120,7 +122,7 @@ fun DeleteDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.delete_models)) },
         text = {
-            Column {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 models.forEach { name ->
                     Row(
                         modifier = Modifier

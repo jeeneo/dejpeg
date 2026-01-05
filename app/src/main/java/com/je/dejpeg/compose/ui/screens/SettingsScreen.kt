@@ -114,8 +114,7 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
                 text = { Text(stringResource(R.string.import_model_text)) },
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                expanded = true,
-                shape = RoundedCornerShape(24.dp)
+                expanded = true
             )
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
