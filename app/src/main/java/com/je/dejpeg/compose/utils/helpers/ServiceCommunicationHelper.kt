@@ -6,10 +6,13 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.je.dejpeg.compose.NotificationHelper
 import com.je.dejpeg.compose.ProcessingService
+import java.io.File
 
 class ServiceCommunicationHelper(
     private val context: Context,
@@ -21,10 +24,60 @@ class ServiceCommunicationHelper(
         fun onChunkProgress(imageId: String, completedChunks: Int, totalChunks: Int)
         fun onComplete(imageId: String, path: String)
         fun onError(imageId: String?, message: String)
+        fun onServiceCrash(imageId: String?)
     }
 
     private var serviceProcessPid: Int? = null
     private var isRegistered = false
+    private var currentProcessingImageId: String? = null
+    private val pidCheckHandler = Handler(Looper.getMainLooper())
+    private val pidCheckInterval = 500L // Check every 500ms
+    
+    private val pidCheckRunnable = object : Runnable {
+        override fun run() {
+            val pid = serviceProcessPid ?: return
+            val imageId = currentProcessingImageId ?: return
+            
+            if (!isProcessAlive(pid)) {
+                Log.e("ServiceCommHelper", "Service process $pid crashed while processing $imageId")
+                NotificationHelper.cancel(context)
+                onServiceProcessDied(imageId)
+                return
+            }
+            
+            pidCheckHandler.postDelayed(this, pidCheckInterval)
+        }
+    }
+    
+    private fun isProcessAlive(pid: Int): Boolean {
+        return try {
+            File("/proc/$pid").exists()
+        } catch (e: Exception) {
+            Log.w("ServiceCommHelper", "Failed to check process status: ${e.message}")
+            true
+        }
+    }
+    
+    private fun onServiceProcessDied(imageId: String) {
+        stopPidMonitoring()
+        callbacks.onServiceCrash(imageId)
+    }
+    
+    private fun startPidMonitoring() {
+        currentProcessingImageId?.let { imageId ->
+            Log.d("ServiceCommHelper", "Started PID monitoring for: $imageId (pid=$serviceProcessPid)")
+            pidCheckHandler.removeCallbacks(pidCheckRunnable)
+            pidCheckHandler.postDelayed(pidCheckRunnable, pidCheckInterval)
+        }
+    }
+    
+    private fun stopPidMonitoring() {
+        if (currentProcessingImageId != null) {
+            Log.d("ServiceCommHelper", "Stopped PID monitoring for: $currentProcessingImageId")
+        }
+        pidCheckHandler.removeCallbacks(pidCheckRunnable)
+        currentProcessingImageId = null
+    }
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(ctx: Context?, intent: Intent?) {
@@ -35,9 +88,10 @@ class ServiceCommunicationHelper(
                 ProcessingService.PID_ACTION -> {
                     intent.getIntExtra(ProcessingService.PID_EXTRA_VALUE, -1)
                         .takeIf { it != -1 }
-                        ?.let { 
-                            serviceProcessPid = it
-                            callbacks.onPidReceived(it)
+                        ?.let { pid ->
+                            serviceProcessPid = pid
+                            callbacks.onPidReceived(pid)
+                            startPidMonitoring()
                         }
                 }
                 ProcessingService.PROGRESS_ACTION -> {
@@ -51,12 +105,14 @@ class ServiceCommunicationHelper(
                     }
                 }
                 ProcessingService.COMPLETE_ACTION -> {
+                    stopPidMonitoring()
                     val path = intent.getStringExtra(ProcessingService.COMPLETE_EXTRA_PATH)
                     if (path != null && !imageId.isNullOrEmpty()) {
                         callbacks.onComplete(imageId, path)
                     }
                 }
                 ProcessingService.ERROR_ACTION -> {
+                    stopPidMonitoring()
                     val message = intent.getStringExtra(ProcessingService.ERROR_EXTRA_MESSAGE) ?: "Error"
                     callbacks.onError(imageId, message)
                 }
@@ -89,6 +145,7 @@ class ServiceCommunicationHelper(
 
     fun unregister() {
         if (!isRegistered) return
+        stopPidMonitoring()
         try {
             context.unregisterReceiver(receiver)
             Log.d("ServiceCommHelper", "Receiver unregistered successfully")
@@ -107,6 +164,7 @@ class ServiceCommunicationHelper(
         overlapSize: Int,
         modelName: String?
     ) {
+        currentProcessingImageId = imageId
         NotificationHelper.show(context, "Preparing...")
         startService(ProcessingService.ACTION_PROCESS) {
             putExtra(ProcessingService.EXTRA_URI, uriString)
@@ -120,6 +178,7 @@ class ServiceCommunicationHelper(
     }
 
     fun cancelProcessing(onCleanup: () -> Unit): Boolean {
+        stopPidMonitoring()
         NotificationHelper.cancel(context)
         val pid = serviceProcessPid
         if (pid != null && pid > 0) {
