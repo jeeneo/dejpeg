@@ -7,9 +7,9 @@
     android:gravity="center_vertical"
     android:paddingHorizontal="12dp"
     android:paddingVertical="10dp"
-    android:background="?attr/selectableItemBackground"
     android:clickable="true"
-    android:focusable="true">
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground">
 
     <LinearLayout
         android:layout_width="0dp"
