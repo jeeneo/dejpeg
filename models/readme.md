@@ -42,8 +42,6 @@ Other models are available below, they have been tested but not guaranteed for s
 
 # [Other models](https://huggingface.co/colpona/dejpeg-models/tree/main/other-models):
 
-## Compression:
-
 ### General compression:
 - ✚ ➠ [1x_JPEGDestroyerV2_96000G-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_JPEGDestroyerV2_96000G-fp16.onnx) ([source](https://openmodeldb.info/models/1x-JPEGDestroyer)) - usage: general compression
 - ✚ ➠ [1x-NMKD-Jaywreck3-Lite-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x-NMKD-Jaywreck3-Lite-fp16.onnx) ([source](https://openmodeldb.info/models/1x-NMKD-Jaywreck3-Lite)) - usage: general compression
