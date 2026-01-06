@@ -178,6 +178,7 @@ class ProcessingService : Service() {
                 Log.d("ProcessingService", "Cancel action received")
                 val id = currentImageId
                 val wasRunning = currentJob != null
+                NotificationHelper.show(R.string.status_canceling)
                 runCatching { imageProcessor?.cancelProcessing() }
                 runCatching { currentJob?.cancel() }
                 currentJob = null
