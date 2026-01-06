@@ -6,7 +6,7 @@ support status
 - ✧ = tested, but can be unstable
 - ✚ = didn't crash, was only checked for runability
 
-type:
+speed:
 - ➤ = fast, good on low-end devices
 - ➠ = medium, depends on device
 - ➽ = slow, resource intensive
