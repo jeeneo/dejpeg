@@ -25,6 +25,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import com.je.dejpeg.R
 import com.je.dejpeg.compose.ui.viewmodel.ImageItem
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
@@ -171,9 +172,13 @@ fun RecoveryDialog(
                     haptic.medium()
                     recoveryImages.value.forEach { img ->
                         val processed = img.processedBitmap
+                        val unprocessedFile = CacheManager.getUnprocessedImage(context, img.imageId)
+                        val uri = unprocessedFile?.let { 
+                            FileProvider.getUriForFile(context, "${context.packageName}.provider", it) 
+                        }
                         viewModel.addImage(ImageItem(
                             id = img.imageId,
-                            uri = null,
+                            uri = uri,
                             filename = recoveredImagePrefix,
                             inputBitmap = img.unprocessedBitmap ?: processed,
                             outputBitmap = processed,
