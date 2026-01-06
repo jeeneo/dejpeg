@@ -134,7 +134,8 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
                     iconBackgroundColor = MaterialTheme.colorScheme.surfaceVariant,
                     iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                     title = stringResource(R.string.model_management, ""),
-                    subtitle = activeModelName ?: stringResource(R.string.no_model_loaded)
+                    subtitle = activeModelName ?: stringResource(R.string.no_model_loaded),
+                    ellipsizeSubtitle = true
                 ) { dialogState = DialogState.Model }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -254,7 +255,12 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
                     title = { Text(stringResource(state.warning.titleResId)) },
                     text = {
                         Column {
-                            Text("Model: ${state.modelName}", fontWeight = FontWeight.Bold)
+                            Text(
+                                "Model: ${state.modelName}",
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 2,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(stringResource(state.warning.messageResId))
                         }
@@ -361,6 +367,7 @@ fun ModernSettingsItem(
     iconTint: Color,
     title: String,
     subtitle: String,
+    ellipsizeSubtitle: Boolean = false,
     onClick: () -> Unit
 ) {
     val haptic = rememberHapticFeedback()
@@ -409,7 +416,9 @@ fun ModernSettingsItem(
                 Text(
                     subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = if (ellipsizeSubtitle) 1 else Int.MAX_VALUE,
+                    overflow = if (ellipsizeSubtitle) androidx.compose.ui.text.style.TextOverflow.Ellipsis else androidx.compose.ui.text.style.TextOverflow.Clip
                 )
             }
             Icon(

@@ -229,7 +229,12 @@ fun DeprecatedModelWarningDialog(
         title = stringResource(warning.titleResId),
         content = {
             Column {
-                Text("Active model: $modelName", fontWeight = FontWeight.Bold)
+                Text(
+                    "Active model: $modelName",
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(stringResource(warning.messageResId))
             }

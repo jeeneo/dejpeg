@@ -50,7 +50,10 @@ fun ModelDialog(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
                                         name,
-                                        fontWeight = if (name == active) FontWeight.Bold else FontWeight.Normal
+                                        fontWeight = if (name == active) FontWeight.Bold else FontWeight.Normal,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f, fill = false)
                                     )
                                     if (warning != null) {
                                         Spacer(modifier = Modifier.width(8.dp))
@@ -147,7 +150,12 @@ fun DeleteDialog(
                             }
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(name)
+                        Text(
+                            name,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f)
+                        )
                     }
                 }
             }
