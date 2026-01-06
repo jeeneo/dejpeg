@@ -58,7 +58,7 @@
     <string name="go_to_settings">Go to settings</string>
     <string name="import_error">Import error</string>
     <string name="model_management">Model management</string>
-    <string name="no_models_installed">No models installed. Import a model to get started.</string>
+    <string name="no_models_installed">No models found. Import a model to get started.</string>
     <string name="active">Active</string>
     <string name="download">Download</string>
     <string name="delete">Delete</string>

@@ -87,6 +87,14 @@ fun ModelDialog(
         },
         confirmButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (models.isNotEmpty()) {
+                TextButton(
+                        onClick = { haptic.light(); onDelete() },
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text(stringResource(R.string.delete))
+                    }
+                }
                 TextButton(onClick = {
                     haptic.light()
                     val intent = android.content.Intent(
@@ -97,13 +105,8 @@ fun ModelDialog(
                 }) {
                     Text(stringResource(R.string.download))
                 }
-                TextButton(onClick = { haptic.medium(); onImport() }) {
+                Button(onClick = { haptic.medium(); onImport() }) {
                     Text(stringResource(R.string.import_text))
-                }
-                if (models.isNotEmpty()) {
-                    TextButton(onClick = { haptic.light(); onDelete() }) {
-                        Text(stringResource(R.string.delete))
-                    }
                 }
             }
         }
