@@ -152,8 +152,8 @@ class ImageProcessor(
                     if (isCancelled) throw Exception(context.getString(R.string.error_processing_cancelled))
                     val chunkX = 0.coerceAtLeast(col * (actualChunkWidth - overlap))
                     val chunkY = 0.coerceAtLeast(row * (actualChunkHeight - overlap))
-                    val chunkW = actualChunkWidth.coerceAtMost(width - chunkX)
-                    val chunkH = actualChunkHeight.coerceAtMost(height - chunkY)
+                    val chunkW = if (col == cols - 1) width - chunkX else actualChunkWidth.coerceAtMost(width - chunkX)
+                    val chunkH = if (row == rows - 1) height - chunkY else actualChunkHeight.coerceAtMost(height - chunkY)
                     if (chunkW <= 0 || chunkH <= 0) continue
                     val chunk = Bitmap.createBitmap(inputBitmap, chunkX, chunkY, chunkW, chunkH)
                     val converted = if (chunk.config != config) {
@@ -555,7 +555,6 @@ class ImageProcessor(
             var foundExpectedWidth: Int? = null
             var foundExpectedHeight: Int? = null
             
-            // Detect input tensor properties
             for ((key, nodeInfo) in inputInfoMap) {
                 val tensorInfo = nodeInfo.info as? TensorInfo ?: continue
                 val shape = tensorInfo.shape
@@ -563,14 +562,12 @@ class ImageProcessor(
                     foundInputName = key
                     foundInputChannels = if (shape[1] == 1L) 1 else 3
                     foundIsFp16 = (tensorInfo.type == OnnxJavaType.FLOAT16)
-                    // Check for fixed input dimensions (shape[2] = height, shape[3] = width)
                     if (shape[2] > 0) foundExpectedHeight = shape[2].toInt()
                     if (shape[3] > 0) foundExpectedWidth = shape[3].toInt()
                     break
                 }
             }
             
-            // Detect output tensor properties
             val outputInfoMap = session.outputInfo
             for ((_, nodeInfo) in outputInfoMap) {
                 val tensorInfo = nodeInfo.info as? TensorInfo ?: continue
