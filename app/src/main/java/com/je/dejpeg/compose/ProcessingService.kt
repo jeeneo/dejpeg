@@ -16,6 +16,7 @@ import kotlinx.coroutines.*
 import java.io.File
 import java.io.FileOutputStream
 import androidx.core.net.toUri
+import com.je.dejpeg.R
 
 class ProcessingService : Service() {
     companion object {
@@ -178,7 +179,7 @@ class ProcessingService : Service() {
                 Log.d("ProcessingService", "Cancel action received")
                 val id = currentImageId
                 val wasRunning = currentJob != null
-                NotificationHelper.show(R.string.status_canceling)
+                NotificationHelper.show(this, getString(R.string.status_canceling))
                 runCatching { imageProcessor?.cancelProcessing() }
                 runCatching { currentJob?.cancel() }
                 currentJob = null
