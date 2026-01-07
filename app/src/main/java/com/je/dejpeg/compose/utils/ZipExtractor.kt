@@ -17,7 +17,6 @@ object ZipExtractor {
             if (!targetDir.exists()) {
                 targetDir.mkdirs()
             }
-
             context.assets.open(assetFileName).use { inputStream ->
                 ZipInputStream(inputStream).use { zipInputStream ->
                     var entry = zipInputStream.nextEntry

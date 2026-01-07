@@ -7,11 +7,9 @@ import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Log
-import com.je.dejpeg.data.dataStore
-import com.je.dejpeg.data.PreferenceKeys
+import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.compose.utils.helpers.ModelMigrationHelper
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
+import com.je.dejpeg.compose.utils.ZipExtractor
 import com.je.dejpeg.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -32,18 +30,14 @@ class ModelManager(
     private var ortEnv: OrtEnvironment? = null
     private var currentModelName: String? = null
     private var cachedActiveModel: String? = null
+    private val appPreferences = AppPreferences(context)
     
     private fun getModelsDir(): File = ModelMigrationHelper.getOnnxModelsDir(context)
 
     companion object {
-        private val ACTIVE_MODEL_KEY = stringPreferencesKey("activeModel")
-        private val CURRENT_PROCESSING_MODEL_KEY = stringPreferencesKey("current_processing_model")
         private val MODEL_HASHES = mapOf(
 
-            // starter model
-            "1x-RGB-max-Denoise.onnx" to "39c51a314de945d30498a201f484687ee168d11cb9f58402d5aae9e6eaf650f0",
-
-            // older F32 models
+            // older fp32 models (legacy, download links removed)
             "fbcnn_color.onnx" to "3bb0ff3060c217d3b3af95615157fca8a65506455cf4e3d88479e09efffec97f",
             "fbcnn_gray.onnx" to "041b360fc681ae4b134e7ec98da1ae4c7ea57435e5abe701530d5a995a7a27b3",
             "fbcnn_gray_double.onnx" to "83aca9febba0da828dbb5cc6e23e328f60f5ad07fa3de617ab1030f0a24d4f67",
@@ -53,19 +47,15 @@ class ModelManager(
             "scunet_gray_25.onnx" to "01b5838a85822ae21880062106a80078f06e7a82aa2ffc8847e32f4462b4c928",
             "scunet_gray_50.onnx" to "a8d9cbbbb2696ac116a87a5055496291939ed873fe28d7f560373675bb970833",
 
-            // F16 models
-            "fbcnn_color_f16.onnx" to "1a678ff4f721b557fd8a7e560b99cb94ba92f201545c7181c703e7808b93e922",
-            "fbcnn_gray_f16.onnx" to "e220b9637a9f2c34a36c98b275b2c9d2b9c2c029e365be82111072376afbec54",
-            "fbcnn_gray_double_f16.onnx" to "17feadd8970772f5ff85596cb9fb152ae3c2b82bca4deb52a7c8b3ecb2f7ac14",
-            "scunet_color_real_gan_f16.onnx" to "50411164ee869605161be9cafd674c241cf0c104f5ee6b73e7c3ea69d69f94bd",
-            "scunet_color_real_psnr_f16.onnx" to "8923b09e240e0078b3247964e9b105cbfbb4da01e260b29a961d038f8fa7791a",
-            "scunet_gray_15_f16.onnx" to "8e8740cea4306c9a61215194f315e5c0dc9e06c726a9ddea77d978d804da7663",
-            "scunet_gray_25_f16.onnx" to "dec631fbdca7705bbff1fc779cf85a657dcb67f55359c368464dd6e734e1f2b7",
-            "scunet_gray_50_f16.onnx" to "48b7d07229a03d98b892d2b33aa4c572ea955301772e7fcb5fd10723552a1874",
-
-            // special models - slow, needs optimization
-            "1x_DitherDeleterV3-Smooth-32._115000_G.onnx" to "4d36e4e33ac49d46472fe77b232923c1731094591a7b5646326698be851c80d7",
-            "1x_Bandage-Smooth-64._105000_G.onnx" to "ff04b61a9c19508bfa70431dbffc89e218ab0063de31396e5ce9ac9a2f117d20"
+            // fp16 models (current)
+            "fbcnn_color_fp16.onnx" to "1a678ff4f721b557fd8a7e560b99cb94ba92f201545c7181c703e7808b93e922",
+            "fbcnn_gray_fp16.onnx" to "e220b9637a9f2c34a36c98b275b2c9d2b9c2c029e365be82111072376afbec54",
+            "fbcnn_gray_double_fp16.onnx" to "17feadd8970772f5ff85596cb9fb152ae3c2b82bca4deb52a7c8b3ecb2f7ac14",
+            "scunet_color_real_gan_fp16.onnx" to "50411164ee869605161be9cafd674c241cf0c104f5ee6b73e7c3ea69d69f94bd",
+            "scunet_color_real_psnr_fp16.onnx" to "8923b09e240e0078b3247964e9b105cbfbb4da01e260b29a961d038f8fa7791a",
+            "scunet_gray_15_fp16.onnx" to "8e8740cea4306c9a61215194f315e5c0dc9e06c726a9ddea77d978d804da7663",
+            "scunet_gray_25_fp16.onnx" to "dec631fbdca7705bbff1fc779cf85a657dcb67f55359c368464dd6e734e1f2b7",
+            "scunet_gray_50_fp16.onnx" to "48b7d07229a03d98b892d2b33aa4c572ea955301772e7fcb5fd10723552a1874",
         )
 
         private val F32_LEGACY_MODELS = listOf(
@@ -84,6 +74,64 @@ class ModelManager(
                 ))
             }
         }
+
+        private val MODEL_INFO = mapOf(
+            // starter models
+            "1x-RGB-max-Denoise.onnx" to "Fast, minor compression, strong general noise, animation",
+            "1x-span-anime-pretrain-fp16.onnx" to "Fast, general compression, general noise, animation/comics/anime",
+            
+            // fp32 legacy models
+            "fbcnn_color.onnx" to "Best at general compression, color images, older model",
+            "fbcnn_gray.onnx" to "Best at general compression, grayscale images, older model",
+            "fbcnn_gray_double.onnx" to "General compression, grayscale images, stronger, older model",
+            "scunet_color_real_gan.onnx" to "General noise, color images, older model",
+            "scunet_color_real_psnr.onnx" to "General noise, color images, better details, older model",
+            "scunet_gray_15.onnx" to "General noise, grayscale images, older model",
+            "scunet_gray_25.onnx" to "General noise, grayscale images, stronger, older model",
+            "scunet_gray_50.onnx" to "General noise, grayscale images, strongest, older model",
+
+            // fp16 models
+            "fbcnn_color_fp16.onnx" to "Best at general compression, color images",
+            "fbcnn_gray_fp16.onnx" to "Best at general compression, grayscale images",
+            "fbcnn_gray_double_fp16.onnx" to "General compression, grayscale images, stronger",
+            "scunet_color_real_gan_fp16.onnx" to "General noise, color images",
+            "scunet_color_real_psnr_fp16.onnx" to "General noise, color images, better details",
+            "scunet_gray_15_fp16.onnx" to "General noise, grayscale images",
+            "scunet_gray_25_fp16.onnx" to "General noise, grayscale images, stronger",
+            "scunet_gray_50_fp16.onnx" to "General noise, grayscale images, strongest",
+            
+            // fp16 models - low-end devices
+            "1x-AnimeUndeint-Compact-fp16.onnx" to "Compression, jagged lines",
+            "1x-BroadcastToStudio_Compact-fp16.onnx" to "Cartoons, broadcast compression",
+            "1x-RGB-max-Denoise-fp16.onnx" to "General compression, general noise",
+            "1x-WB-Denoise-fp16.onnx" to "Colorless cartoon noise",
+            "1xBook-Compact-fp16.onnx" to "Book scanning",
+            "1xOverExposureCorrection_compact-fp16.onnx" to "Exposure correction",
+            
+            // fp16 models - general compression
+            "1x_JPEGDestroyerV2_96000G-fp16.onnx" to "General compression",
+            "1x-NMKD-Jaywreck3-Lite-fp16.onnx" to "General compression",
+            "1x_NMKD-h264Texturize-fp16.onnx" to "Texturization, h264 compression",
+            "VHS-Sharpen-1x_46000_G-fp16.onnx" to "VHS compression",
+            "1x_BCGone_Smooth_110000_G-fp16.onnx" to "Non-standard compression (BC1)",
+            "1x-cinepak-fp16.onnx" to "Non-standard compression (cinepak, msvideo1, roq)",
+            "1x_BCGone-DetailedV2_40-60_115000_G-fp16.onnx" to "Non-standard compression (BC1)",
+            "1x-DeBink-v4.onnx" to "Blink compression, better on geometry",
+            "1x-DeBink-v5.onnx" to "Blink compression, stronger",
+            "1x-DeBink-v6.onnx" to "Blink compression, soft, retains detail",
+            
+            // fp16 models - miscellaneous
+            "1x-Anti-Aliasing-fp16.onnx" to "Anti-aliasing",
+            "1x-KDM003-scans-fp16.onnx" to "Scanned art/drawings, mild compression, moire",
+            "1x-SpongeColor-Lite-fp16.onnx" to "Colorization, cartoons",
+            "1x_Bandage-Smooth-fp16.onnx" to "Color banding",
+            "1x_Bendel_Halftone-fp32.onnx" to "Slow, removing halftones",
+            "1x_ColorizerV2_22000G-fp16.onnx" to "General colorizer",
+            "1x_DeEdge-fp16.onnx" to "Edge removal",
+            "1x_DeSharpen-fp16.onnx" to "Removes oversharpening",
+            "1x_DitherDeleterV3-Smooth-fp16.onnx" to "Slow, dithering",
+            "1x_GainresV4-fp16.onnx" to "Anti-aliasing, general artifacts, CGI",
+        )
     }
 
     data class ModelWarning(
@@ -101,9 +149,7 @@ class ModelManager(
     fun getActiveModelName(): String? {
         cachedActiveModel?.let { return it }
         return runBlocking {
-            context.dataStore.data.map { prefs ->
-                prefs[ACTIVE_MODEL_KEY]
-            }.first().also { cachedActiveModel = it }
+            appPreferences.getActiveModel().also { cachedActiveModel = it }
         }
     }
 
@@ -112,10 +158,8 @@ class ModelManager(
         unloadModel()
         cachedActiveModel = modelName
         coroutineScope.launch {
-            context.dataStore.edit { prefs ->
-                prefs[ACTIVE_MODEL_KEY] = modelName
-                Log.d("ModelManager", "Active model saved to DataStore: $modelName")
-            }
+            appPreferences.setActiveModel(modelName)
+            Log.d("ModelManager", "Active model saved to DataStore: $modelName")
         }
         Log.d("ModelManager", "Active model set to: $modelName")
     }
@@ -123,17 +167,13 @@ class ModelManager(
     private fun clearActiveModel() {
         cachedActiveModel = null
         coroutineScope.launch {
-            context.dataStore.edit { prefs ->
-                prefs.remove(ACTIVE_MODEL_KEY)
-            }
+            appPreferences.clearActiveModel()
         }
     }
 
     private fun setCurrentProcessingModel(modelName: String) {
         coroutineScope.launch {
-            context.dataStore.edit { prefs ->
-                prefs[CURRENT_PROCESSING_MODEL_KEY] = modelName
-            }
+            appPreferences.setCurrentProcessingModel(modelName)
         }
     }
 
@@ -193,10 +233,9 @@ class ModelManager(
         try { opts.setIntraOpNumThreads(if (processors <= 2) 1 else (processors * 3) / 4) } catch (e: OrtException) { Log.e("ModelManager", "Error setting IntraOpNumThreads: ${e.message}") }
         try { opts.setInterOpNumThreads(4) } catch (e: OrtException) { Log.e("ModelManager", "Error setting InterOpNumThreads: ${e.message}") }
         try {
-            val modelBaseName = modelName.replace("_f16", "", ignoreCase = true)
             when {
-                modelBaseName.startsWith("fbcnn_") -> opts.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.EXTENDED_OPT)
-                modelBaseName.startsWith("scunet_") -> opts.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.NO_OPT)
+                modelName.startsWith("fbcnn_") -> opts.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.EXTENDED_OPT)
+                modelName.startsWith("scunet_") -> opts.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.NO_OPT)
             }
         } catch (e: OrtException) { Log.e("ModelManager", "Error setting OptimizationLevel: ${e.message}") }
     }
@@ -256,7 +295,7 @@ class ModelManager(
             onError(e.message ?: "Unknown error during import")
         }
     }
-    
+
     private fun findModelByHash(actualHash: String): Pair<String?, ModelWarning?> {
         for ((modelName, expectedHash) in MODEL_HASHES) {
             if (expectedHash.equals(actualHash, ignoreCase = true)) {
@@ -322,7 +361,7 @@ class ModelManager(
             onSuccess(filename)
         }
     }
-    
+
     private fun copyWithProgress(
         input: java.io.InputStream,
         output: java.io.OutputStream,
@@ -345,6 +384,7 @@ class ModelManager(
             }
         }
     }
+
     fun deleteModel(modelName: String, onDeleted: (String) -> Unit = {}) {
         val modelFile = File(getModelsDir(), modelName)
         if (modelFile.exists()) {
@@ -360,85 +400,65 @@ class ModelManager(
             }
         }
     }
+
     fun getModelWarning(modelName: String?): ModelWarning? {
         return if (modelName != null) MODEL_WARNINGS[modelName] else null
+    }
+
+    fun getModelInfo(modelName: String?): String? {
+        return if (modelName != null) MODEL_INFO[modelName] else null
     }
 
     fun initializeStarterModel(): Boolean {
         try {
             val alreadyExtracted = runBlocking {
-                context.dataStore.data.map { it[PreferenceKeys.STARTER_MODEL_EXTRACTED] ?: false }.first()
+                appPreferences.getStarterModelExtractedImmediate()
             }
             if (alreadyExtracted) {
                 Log.d("ModelManager", "Starter model already extracted, skipping")
                 return false
             }
-            
             val modelsDir = getModelsDir()
             val hasModels = modelsDir.exists() && modelsDir.listFiles { _, name -> 
                 name.lowercase().endsWith(".onnx") 
             }?.isNotEmpty() == true
-            
             if (hasModels) {
                 Log.d("ModelManager", "Models already exist, skipping starter model extraction")
                 markStarterModelExtracted()
                 return false
             }
-            
             return extractStarterModel(setAsActive = true)
         } catch (e: Exception) {
             Log.e("ModelManager", "Error initializing starter model: ${e.message}", e)
             return false
         }
     }
-    
+
     private fun markStarterModelExtracted() {
         coroutineScope.launch {
-            context.dataStore.edit { prefs ->
-                prefs[PreferenceKeys.STARTER_MODEL_EXTRACTED] = true
-            }
+            appPreferences.setStarterModelExtracted(true)
         }
     }
-    
+
     fun extractStarterModel(
         setAsActive: Boolean = false,
+        defaultModel: String = "1x-span-anime-pretrain-fp16.onnx",
         onSuccess: () -> Unit = {},
         onError: (String) -> Unit = {}
     ): Boolean {
         return try {
             val modelsDir = getModelsDir()
-            if (!modelsDir.exists()) modelsDir.mkdirs()
-            
             val shouldSetAsActive = setAsActive || !modelsDir.exists() || modelsDir.listFiles { _, name -> 
                 name.lowercase().endsWith(".onnx") 
             }?.isEmpty() == true
-            context.assets.open("embedonnx.zip").use { zipInputStream ->
-                java.util.zip.ZipInputStream(zipInputStream).use { zipFile ->
-                    var extractedCount = 0
-                    var firstModelName: String? = null
-                    generateSequence { zipFile.nextEntry }
-                        .filter { it.name.endsWith(".onnx") }
-                        .forEach { entry ->
-                            val modelFile = File(modelsDir, entry.name)
-                            FileOutputStream(modelFile).use { out ->
-                                zipFile.copyTo(out, 8192)
-                            }
-                            Log.d("ModelManager", "Extracted starter model: ${entry.name}")
-                            extractedCount++
-                            
-                            if (firstModelName == null) {
-                                firstModelName = entry.name
-                            }
-                        }
-                    if (extractedCount > 0) {
-                        if (shouldSetAsActive && firstModelName != null) {
-                            setActiveModel(firstModelName)
-                        }
-                        markStarterModelExtracted()
-                        onSuccess()
-                        return true
-                    }
+            val extracted = ZipExtractor.extractFromAssets(context, "embedonnx.zip", modelsDir)
+            if (extracted) {
+                if (shouldSetAsActive) {
+                    setActiveModel(defaultModel)
                 }
+                markStarterModelExtracted()
+                onSuccess()
+                return true
             }
             onError("Failed to extract starter models")
             false
