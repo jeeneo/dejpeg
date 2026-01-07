@@ -37,6 +37,7 @@ import com.je.dejpeg.compose.ui.components.PreferencesDialog
 import com.je.dejpeg.compose.ui.components.AboutDialog
 import com.je.dejpeg.compose.ui.components.FAQDialog
 import com.je.dejpeg.compose.ui.components.BaseDialog
+import com.je.dejpeg.compose.ui.components.ModelInfoDialog
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -45,6 +46,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun SettingsScreen(viewModel: ProcessingViewModel) {
     val context = LocalContext.current
+    val modelManager = remember { ModelManager(context) }
     val installedModels by viewModel.installedModels.collectAsState()
     var dialogState by remember { mutableStateOf<DialogState>(DialogState.None) }
     var importProgress by remember { mutableIntStateOf(0) }
@@ -56,6 +58,7 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
     var activeModelName by remember { mutableStateOf<String?>(null) }
     var pendingModelSelection by remember { mutableStateOf<String?>(null) }
     var warningState by remember { mutableStateOf<ModelWarningState?>(null) }
+    var modelInfoDialog by remember { mutableStateOf<Pair<String, String>?>(null) }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -188,10 +191,10 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
         DialogState.Model -> ModelDialog(
             installedModels,
             activeModelName,
-            viewModel,
+            modelManager,
             onSelect = { modelName ->
                 Log.d("SettingsScreen", "onSelect called for model: $modelName")
-                val warning = viewModel.getModelWarning(modelName)
+                val warning = modelManager.getModelWarning(modelName)
                 Log.d("SettingsScreen", "Model warning: $warning")
                 if (warning != null) {
                     Log.d("SettingsScreen", "Setting pendingModelSelection to: $modelName")
@@ -205,7 +208,12 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
             },
             onImport = { modelPickerLauncher.launch("*/*") },
             onDelete = { dialogState = DialogState.Delete },
-            onDismiss = { dialogState = DialogState.None }
+            onDismiss = { dialogState = DialogState.None },
+            onShowInfo = { modelName ->
+                modelManager.getModelInfo(modelName)?.let { info ->
+                    modelInfoDialog = modelName to info
+                }
+            }
         )
         DialogState.Delete -> DeleteDialog(
             installedModels,
@@ -219,7 +227,7 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
                     ).show()
                 }
             },
-            onDismiss = { dialogState = DialogState.None }
+            onDismiss = { dialogState = DialogState.Model }
         )
         DialogState.ImportProgress -> ImportProgressDialog(importProgress)
         DialogState.Chunk -> ChunkDialog(
@@ -239,7 +247,23 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
         )
         DialogState.About -> AboutDialog { dialogState = DialogState.None }
         DialogState.FAQ -> FAQDialog { dialogState = DialogState.None }
+        is DialogState.ModelInfo -> {
+            val state = dialogState as DialogState.ModelInfo
+            ModelInfoDialog(
+                modelName = state.modelName,
+                infoText = state.infoText,
+                onDismiss = { dialogState = DialogState.None }
+            )
+        }
         DialogState.None -> {}
+    }
+
+    modelInfoDialog?.let { (modelName, infoText) ->
+        ModelInfoDialog(
+            modelName = modelName,
+            infoText = infoText,
+            onDismiss = { modelInfoDialog = null }
+        )
     }
 
     warningState?.let { state ->
@@ -333,6 +357,7 @@ sealed class DialogState {
     object About : DialogState()
     object FAQ : DialogState()
     object Preferences : DialogState()
+    data class ModelInfo(val modelName: String, val infoText: String) : DialogState()
 }
 
 sealed class ModelWarningState {

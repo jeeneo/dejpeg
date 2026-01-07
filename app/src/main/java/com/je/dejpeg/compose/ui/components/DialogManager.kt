@@ -272,3 +272,27 @@ fun StarterModelDialog(onDismiss: () -> Unit) {
         }
     )
 }
+
+@Composable
+fun ModelInfoDialog(modelName: String, infoText: String, onDismiss: () -> Unit) {
+    val haptic = rememberHapticFeedback()
+    StyledAlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(modelName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
+        text = {
+            Column {
+                Text(infoText, style = MaterialTheme.typography.bodyMedium)
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    haptic.light()
+                    onDismiss()
+                }
+            ) {
+                Text(stringResource(R.string.ok))
+            }
+        }
+    )
+}

@@ -1,48 +1,101 @@
 package com.je.dejpeg.compose.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.je.dejpeg.R
-import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
+import com.je.dejpeg.compose.ModelManager
 import androidx.core.net.toUri
 
 @Composable
 fun ModelDialog(
     models: List<String>,
     active: String?,
-    viewModel: ProcessingViewModel,
+    modelManager: ModelManager,
     onSelect: (String) -> Unit,
     onImport: () -> Unit,
     onDelete: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onShowInfo: (String) -> Unit = {}
 ) {
     val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
     val context = LocalContext.current
+    var showHelpDialog by remember { mutableStateOf(false) }
+    
+    if (showHelpDialog) {
+        StyledAlertDialog(
+            onDismissRequest = { showHelpDialog = false },
+            title = { Text("Tip") },
+            text = { Text("Tap and hold on a model to view its information.") },
+            confirmButton = {
+                Button(onClick = { showHelpDialog = false }) {
+                    Text(stringResource(R.string.ok))
+                }
+            }
+        )
+    }
+    
     StyledAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.model_management)) },
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(stringResource(R.string.model_management))
+                IconButton(
+                    onClick = { haptic.light(); showHelpDialog = true },
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = "Help",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        },
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 if (models.isEmpty()) {
                     Text(stringResource(R.string.no_models_installed))
                 } else {
                     models.forEach { name ->
-                        val warning = viewModel.getModelWarning(name)
+                        val warning = modelManager.getModelWarning(name)
+                        val hasInfo = modelManager.getModelInfo(name) != null
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { haptic.medium(); onSelect(name) }
-                                .padding(vertical = 8.dp),
+                                .padding(vertical = 2.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(
+                                    if (name == active) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                )
+                                .combinedClickable(
+                                    onClick = { haptic.medium(); onSelect(name) },
+                                    onLongClick = if (hasInfo) {
+                                        { haptic.light(); onShowInfo(name) }
+                                    } else null
+                                )
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -133,12 +186,18 @@ fun DeleteDialog(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .padding(vertical = 2.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                if (selected.contains(name)) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            )
                             .clickable {
                                 haptic.light()
                                 if (selected.contains(name)) selected.remove(name)
                                 else selected.add(name)
                             }
-                            .padding(vertical = 6.dp),
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Checkbox(
@@ -149,7 +208,6 @@ fun DeleteDialog(
                                 else selected.remove(name)
                             }
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             name,
                             maxLines = 1,

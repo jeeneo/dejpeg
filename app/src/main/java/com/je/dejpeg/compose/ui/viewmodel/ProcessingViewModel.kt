@@ -568,7 +568,6 @@ class ProcessingViewModel : ViewModel() {
     }
     fun hasActiveModel() = modelManager?.hasActiveModel() ?: false
     fun getActiveModelName() = modelManager?.getActiveModelName()
-    fun getModelWarning(modelName: String?) = modelManager?.getModelWarning(modelName)
 
     fun showNoModelDialog() { shouldShowNoModelDialog.value = true }
     fun dismissNoModelDialog() { shouldShowNoModelDialog.value = false }

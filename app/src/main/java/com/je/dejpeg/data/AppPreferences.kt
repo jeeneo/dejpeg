@@ -22,6 +22,8 @@ object PreferenceKeys {
     val COMPAT_MODEL_CLEANUP = booleanPreferencesKey("compatModelCleanup")
     val COMPAT_BRISQUE_CLEANUP = booleanPreferencesKey("compatBrisqueCleanup")
     val STARTER_MODEL_EXTRACTED = booleanPreferencesKey("starterModelExtracted")
+    val ACTIVE_MODEL = stringPreferencesKey("activeModel")
+    val CURRENT_PROCESSING_MODEL = stringPreferencesKey("current_processing_model")
     val CHUNK_SIZE = intPreferencesKey("chunk_size")
     val OVERLAP_SIZE = intPreferencesKey("overlap_size")
     val GLOBAL_STRENGTH = floatPreferencesKey("global_strength")
@@ -88,6 +90,19 @@ class AppPreferences(private val context: Context) {
     val globalStrength: Flow<Float> = context.dataStore.data.map { prefs ->
         prefs[PreferenceKeys.GLOBAL_STRENGTH] ?: DEFAULT_GLOBAL_STRENGTH
     }
+
+    val activeModel: Flow<String?> = context.dataStore.data.map { prefs ->
+        prefs[PreferenceKeys.ACTIVE_MODEL]
+    }
+
+    val currentProcessingModel: Flow<String?> = context.dataStore.data.map { prefs ->
+        prefs[PreferenceKeys.CURRENT_PROCESSING_MODEL]
+    }
+
+    val starterModelExtracted: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[PreferenceKeys.STARTER_MODEL_EXTRACTED] ?: false
+    }
+
     val brisqueSettings: Flow<BrisqueSettings> = context.dataStore.data.map { prefs ->
         BrisqueSettings(
             coarseStep = prefs[PreferenceKeys.BRISQUE_COARSE_STEP] ?: DEFAULT_BRISQUE_COARSE_STEP,
@@ -174,4 +189,32 @@ class AppPreferences(private val context: Context) {
 
     suspend fun getChunkSizeImmediate(): Int = chunkSize.first()
     suspend fun getOverlapSizeImmediate(): Int = overlapSize.first()
+
+    suspend fun setActiveModel(modelName: String) {
+        context.dataStore.edit { prefs ->
+            prefs[PreferenceKeys.ACTIVE_MODEL] = modelName
+        }
+    }
+
+    suspend fun clearActiveModel() {
+        context.dataStore.edit { prefs ->
+            prefs.remove(PreferenceKeys.ACTIVE_MODEL)
+        }
+    }
+
+    suspend fun setCurrentProcessingModel(modelName: String) {
+        context.dataStore.edit { prefs ->
+            prefs[PreferenceKeys.CURRENT_PROCESSING_MODEL] = modelName
+        }
+    }
+
+    suspend fun getActiveModel(): String? = activeModel.first()
+
+    suspend fun setStarterModelExtracted(extracted: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[PreferenceKeys.STARTER_MODEL_EXTRACTED] = extracted
+        }
+    }
+
+    suspend fun getStarterModelExtractedImmediate(): Boolean = starterModelExtracted.first()
 }
