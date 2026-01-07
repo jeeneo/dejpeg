@@ -248,3 +248,27 @@ fun DeprecatedModelWarningDialog(
         onDismissHaptic = { haptic.light() }
     )
 }
+
+@Composable
+fun StarterModelDialog(onDismiss: () -> Unit) {
+    val haptic = rememberHapticFeedback()
+    StyledAlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.starter_model_title)) },
+        text = {
+            Column {
+                Text(stringResource(R.string.starter_model_message))
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    haptic.light()
+                    onDismiss()
+                }
+            ) {
+                Text(stringResource(R.string.got_it))
+            }
+        }
+    )
+}
