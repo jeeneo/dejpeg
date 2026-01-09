@@ -77,33 +77,29 @@ class ModelManager(
 
         private val MODEL_INFO = mapOf(
             // starter models
-            "1x-RGB-max-Denoise.onnx" to "Fast, minor compression, strong general noise, animation",
-            "1x-span-anime-pretrain-fp16.onnx" to "Fast, general compression, general noise, animation/comics/anime",
-            
-            // fp32 legacy models
-            "fbcnn_color.onnx" to "Best at general compression, color images, older model",
-            "fbcnn_gray.onnx" to "Best at general compression, grayscale images, older model",
-            "fbcnn_gray_double.onnx" to "General compression, grayscale images, stronger, older model",
-            "scunet_color_real_gan.onnx" to "General noise, color images, older model",
-            "scunet_color_real_psnr.onnx" to "General noise, color images, better details, older model",
-            "scunet_gray_15.onnx" to "General noise, grayscale images, older model",
-            "scunet_gray_25.onnx" to "General noise, grayscale images, stronger, older model",
-            "scunet_gray_50.onnx" to "General noise, grayscale images, strongest, older model",
+            "1x-RGB-max-Denoise-fp16.onnx" to "Fast, minor compression, strong noise, mostly animation",
+            "1x-span-anime-pretrain-fp16.onnx" to "Fast, general compression, general noise.\nGood for photos, animation, comics and anime",
 
-            // fp16 models
-            "fbcnn_color_fp16.onnx" to "Best at general compression, color images",
-            "fbcnn_gray_fp16.onnx" to "Best at general compression, grayscale images",
-            "fbcnn_gray_double_fp16.onnx" to "General compression, grayscale images, stronger",
-            "scunet_color_real_gan_fp16.onnx" to "General noise, color images",
-            "scunet_color_real_psnr_fp16.onnx" to "General noise, color images, better details",
+            // fbcnn (jpeg model)
+            "fbcnn_color_fp16.onnx" to "Best at general JPEG compression, minor noise, any kind of color images",
+            "fbcnn_gray_fp16.onnx" to "General compression and noise, only grayscale images",
+            "fbcnn_gray_double_fp16.onnx" to "Strongest at general compression and noise, only grayscale images",
+
+            // scunet (noise model)
+            "scunet_color_real_gan_fp16.onnx" to "Moderate noise, GAN architecture, color images, better details",
+            "scunet_color_real_psnr_fp16.onnx" to "General noise, PSNR architecture, color images, less details",
+
+            "scunet_color_15_fp16.onnx" to "Minor noise, color images",
+            "scunet_color_25_fp16.onnx" to "Minor noise, color images, stronger",
+            "scunet_color_50_fp16.onnx" to "Minor noise, color images, strongest",
+
             "scunet_gray_15_fp16.onnx" to "General noise, grayscale images",
             "scunet_gray_25_fp16.onnx" to "General noise, grayscale images, stronger",
-            "scunet_gray_50_fp16.onnx" to "General noise, grayscale images, strongest",
+            "scunet_gray_50_fp16.onnx" to "Heavy general noise, grayscale images, strongest",
             
             // fp16 models - low-end devices
             "1x-AnimeUndeint-Compact-fp16.onnx" to "Compression, jagged lines",
             "1x-BroadcastToStudio_Compact-fp16.onnx" to "Cartoons, broadcast compression",
-            "1x-RGB-max-Denoise-fp16.onnx" to "General compression, general noise",
             "1x-WB-Denoise-fp16.onnx" to "Colorless cartoon noise",
             "1xBook-Compact-fp16.onnx" to "Book scanning",
             "1xOverExposureCorrection_compact-fp16.onnx" to "Exposure correction",

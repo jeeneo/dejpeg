@@ -152,4 +152,5 @@
     <string name="got_it">Got it</string>
     <string name="extract_starter_model">Extract the embedded models</string>
     <string name="extract">Extract</string>
+    <string name="preview">Preview</string>
 </resources>

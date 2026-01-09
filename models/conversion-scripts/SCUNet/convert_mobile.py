@@ -2,8 +2,7 @@ import os
 import sys
 import torch
 import torch.onnx
-from network_scunet import SCUNetWrapper
-
+from models.network_scunet import SCUNetWrapper
 
 def convert_model(model_path, output_path, config=[4, 4, 4, 4, 4, 4, 4], dim=64, input_resolution=256, in_nc=3):
     try:
@@ -25,12 +24,13 @@ def convert_model(model_path, output_path, config=[4, 4, 4, 4, 4, 4, 4], dim=64,
         print("Model loaded successfully")
         example_input = torch.randn(1, in_nc, 256, 256)
         print(f"Exporting model to ONNX: {output_path}")
+        
         torch.onnx.export(
             model,
             example_input,
             output_path,
             export_params=True,
-            opset_version=12,
+            opset_version=14,
             do_constant_folding=True,
             input_names=['input'],
             output_names=['output'],
@@ -38,16 +38,24 @@ def convert_model(model_path, output_path, config=[4, 4, 4, 4, 4, 4, 4], dim=64,
                 'input': {2: 'height', 3: 'width'},
                 'output': {2: 'height', 3: 'width'}
             },
-            verbose=False,
-            keep_initializers_as_inputs=None
+            verbose=False
         )
 
         print("Model exported successfully!")
 
         import onnx
-        onnx_model = onnx.load(output_path)
+        print("Loading ONNX model with external data...")
+        onnx_model = onnx.load(output_path, load_external_data=True)
         onnx.checker.check_model(onnx_model)
         print("ONNX model check passed!")
+
+        print("Saving as single file...")
+        onnx.save(onnx_model, output_path, save_as_external_data=False)
+
+        data_file = output_path + ".data"
+        if os.path.exists(data_file):
+            os.remove(data_file)
+            print(f"Removed external data file: {data_file}")
 
         return True
 
@@ -59,8 +67,8 @@ def convert_model(model_path, output_path, config=[4, 4, 4, 4, 4, 4, 4], dim=64,
 
 if __name__ == '__main__':
     # default: color model
-    # model_path = os.path.join('model_zoo', 'scunet_color_real_gan.pth')
-    # output_path = os.path.join('model_zoo', 'scunet_color_real_gan_mobile.onnx')
+    # model_path = os.path.join('model_zoo', 'scunet_color_50.pth')
+    # output_path = os.path.join('model_zoo', 'scunet_color_50.onnx')
     # in_nc = 3
 
     # model_path = os.path.join('model_zoo', 'scunet_color_real_psnr.pth')
@@ -76,9 +84,9 @@ if __name__ == '__main__':
     # output_path = os.path.join('model_zoo', 'scunet_gray_25_mobile.onnx')
     # in_nc = 1
 
-    model_path = os.path.join('model_zoo', 'scunet_gray_50.pth')
-    output_path = os.path.join('model_zoo', 'scunet_gray_50_mobile.onnx')
-    in_nc = 1
+    # model_path = os.path.join('model_zoo', 'scunet_gray_50.pth')
+    # output_path = os.path.join('model_zoo', 'scunet_gray_50_mobile.onnx')
+    # in_nc = 1
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     convert_model(model_path, output_path, in_nc=in_nc)
