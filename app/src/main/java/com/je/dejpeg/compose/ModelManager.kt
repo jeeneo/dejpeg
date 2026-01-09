@@ -80,7 +80,7 @@ class ModelManager(
 
         private val MODEL_INFO = mapOf(
             // starter models
-            "1x-RGB-max-Denoise-fp16.onnx" to "Fast, minor compression, strong noise, mostly animation",
+            "1x-RGB-max-Denoise-fp16.onnx" to "Fast, minor noise and compression, mostly for animation",
             "1x-span-anime-pretrain-fp16.onnx" to "Fast, general compression, general noise.\n\nGood for animation, comics, anime, and some photos.",
 
             // fbcnn (jpeg model)
