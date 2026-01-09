@@ -39,12 +39,9 @@ object ImageActions {
                 val outputFile = File(picturesDir, "$fileName.png")
                 if (outputFile.exists()) outputFile.delete()
                 FileOutputStream(outputFile).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
-                
                 if (imageId != null) {
-                    Log.d("ImageActions", "saveImage: Deleting recovery pair for imageId: $imageId")
-                    CacheManager.deleteRecoveryPair(context, imageId)
+                    CacheManager.deleteRecoveryPair(context, imageId, deleteProcessed = true, deleteUnprocessed = false)
                 }
-                
                 withContext(Dispatchers.Main) {
                     MediaScannerConnection.scanFile(context, arrayOf(outputFile.toString()), null, null)
                     Toast.makeText(context, context.getString(R.string.image_saved_to_gallery), Toast.LENGTH_SHORT).show()
@@ -78,7 +75,7 @@ object ImageActions {
             onError(errorMsg)
         }
     }
-    
+
     fun saveAllImages(context: Context, images: List<Pair<String, Bitmap>>, baseFilename: String? = null, onProgress: (Int, Int) -> Unit = { _, _ -> }, onComplete: () -> Unit = {}, onError: (String) -> Unit = {}) {
         @OptIn(DelicateCoroutinesApi::class)
         GlobalScope.launch(Dispatchers.IO) {
@@ -108,13 +105,13 @@ object ImageActions {
             }
         }
     }
-    
+
     private fun saveBitmapToPictures(baseName: String, bitmap: Bitmap): File {
         val outputFile = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "$baseName.png")
         FileOutputStream(outputFile).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
         return outputFile
     }
-    
+
     private fun generateUniqueFilename(base: String, existing: Set<String>): String {
         if (!existing.contains(base)) return base
         var counter = 1

@@ -85,7 +85,7 @@ fun RecoveryDialog(
             showDialog.value = false
             scope.launch(Dispatchers.IO) {
                 CacheManager.getRecoveryImages(context).forEach { (id, _) ->
-                    CacheManager.deleteRecoveryPair(context, id)
+                    CacheManager.deleteRecoveryPair(context, id, deleteProcessed = true, deleteUnprocessed = true)
                 }
             }
         }
