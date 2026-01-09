@@ -84,19 +84,28 @@ object CacheManager {
         }
     }
 
-    fun deleteRecoveryPair(context: Context, imageId: String) {
-        Log.d(TAG, "Deleting recovery pair for imageId: $imageId")
-        context.cacheDir.listFiles()?.forEach { file ->
-            if (file.name.startsWith("${imageId}${UNPROCESSED_SUFFIX}.")) {
-                if (file.delete()) {
-                    Log.d(TAG, "Deleted unprocessed image cache: ${file.name}")
+    fun deleteRecoveryPair(
+        context: Context,
+        imageId: String,
+        deleteProcessed: Boolean = true,
+        deleteUnprocessed: Boolean = true
+    ) {
+        if (deleteUnprocessed) {
+            context.cacheDir.listFiles()?.forEach { file ->
+                if (file.name.startsWith("${imageId}${UNPROCESSED_SUFFIX}.")) {
+                    if (file.delete()) {
+                        Log.d(TAG, "Deleted unprocessed image cache: ${file.name}")
+                    }
                 }
             }
         }
-        val processedFile = File(context.cacheDir, "${imageId}_processed.png")
-        if (processedFile.exists() && processedFile.delete()) {
-            Log.d(TAG, "Deleted processed image cache: ${processedFile.name}")
+        if (deleteProcessed) {
+            val processedFile = File(context.cacheDir, "${imageId}_processed.png")
+            if (processedFile.exists() && processedFile.delete()) {
+                Log.d(TAG, "Deleted processed image cache: ${processedFile.name}")
+            }
         }
+        Log.d(TAG, "Deleted recovery pair for imageId: $imageId (processed=$deleteProcessed, unprocessed=$deleteUnprocessed)")
     }
 
     fun getRecoveryImages(context: Context): List<Pair<String, File>> {
