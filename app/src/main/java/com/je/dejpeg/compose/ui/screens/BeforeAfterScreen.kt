@@ -4,40 +4,25 @@ import android.graphics.Bitmap
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.drawscope.clipRect
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.je.dejpeg.R
+import com.je.dejpeg.compose.ui.components.BeforeAfterSlider
 import com.je.dejpeg.compose.ui.components.SaveImageDialog
 import com.je.dejpeg.compose.ui.components.LoadingDialog
-import com.je.dejpeg.compose.utils.HapticFeedbackPerformer
 import com.je.dejpeg.compose.utils.ImageActions
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
@@ -48,7 +33,6 @@ import me.saket.telephoto.zoomable.ZoomLimit
 import me.saket.telephoto.zoomable.OverzoomEffect
 import me.saket.telephoto.zoomable.rememberZoomableState
 import me.saket.telephoto.zoomable.zoomable
-import androidx.core.graphics.get
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -116,8 +100,15 @@ fun BeforeAfterScreen(
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surface)
         ) {
-            if (afterBitmap != null) SliderView(beforeBitmap, afterBitmap, haptic)
-            else SingleImageView(beforeBitmap)
+            if (afterBitmap != null) {
+                BeforeAfterSlider(
+                    beforeBitmap = beforeBitmap,
+                    afterBitmap = afterBitmap,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                SingleImageView(beforeBitmap)
+            }
         }
 
         Surface(
@@ -218,111 +209,19 @@ fun BeforeAfterScreen(
 }
 
 @Composable
-private fun zoomStateEnabled() = run {
+private fun SingleImageView(bitmap: Bitmap) {
     val context = LocalContext.current
     val appPreferences = remember { AppPreferences(context.applicationContext) }
     val isHapticEnabled by appPreferences.hapticFeedbackEnabled.collectAsState(initial = true)
-    zoomState(isHapticEnabled)
-}
-
-@Composable
-private fun SliderView(
-    beforeBitmap: Bitmap,
-    afterBitmap: Bitmap,
-    haptic: HapticFeedbackPerformer
-) {
-    val zoomableState = zoomStateEnabled()
-    var sliderPosition by remember { mutableFloatStateOf(0.5f) }
-    var containerSize by remember { mutableStateOf(IntSize.Zero) }
-    val density = LocalDensity.current
-
-    val (sliderColor, iconColor) = remember(beforeBitmap) {
-        val luminances = mutableListOf<Int>()
-        val cx = beforeBitmap.width / 2
-        val cy = beforeBitmap.height / 2
-        val sample = 10
-        for (dy in -sample..sample) {
-            for (dx in -sample..sample) {
-                val x = (cx + dx).coerceIn(0, beforeBitmap.width - 1)
-                val y = (cy + dy).coerceIn(0, beforeBitmap.height - 1)
-                val pixel = beforeBitmap[x, y]
-                val luminance = (android.graphics.Color.red(pixel) + android.graphics.Color.green(pixel) + android.graphics.Color.blue(pixel)) / 3
-                luminances.add(luminance)
-            }
-        }
-        val median = luminances.sorted()[luminances.size / 2]
-        val inverted = 255 - median
-        val sliderCol = if (kotlin.math.abs(inverted - median) < 30) {
-            if (median > 127) Color.Black else Color.White
-        } else {
-            Color(inverted, inverted, inverted)
-        }
-        val sliderLuminance = (sliderCol.red + sliderCol.green + sliderCol.blue) / 3f
-        val iconCol = if (sliderLuminance < 0.7f) Color.White else Color.Black
-        Pair(sliderCol, iconCol)
-    }
-
-    Box(Modifier.fillMaxSize().onGloballyPositioned { containerSize = it.size }, Alignment.Center) {
-        listOf(
-            Triple(beforeBitmap, 0f to sliderPosition, stringResource(R.string.before) to Alignment.TopStart),
-            Triple(afterBitmap, sliderPosition to 1f, stringResource(R.string.after) to Alignment.TopEnd)
-        ).forEach { (bitmap, range, labelInfo) ->
-            val (label, alignment) = labelInfo
-            Box(
-                Modifier.fillMaxSize().drawWithContent {
-                    clipRect(size.width * range.first, 0f, size.width * range.second, size.height) { this@drawWithContent.drawContent() }
-                }
-            ) {
-                Box(Modifier.fillMaxSize().zoomable(zoomableState), Alignment.Center) {
-                    Image(bitmap.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit, filterQuality = FilterQuality.None)
-                }
-                Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = alignment) {
-                    Surface(color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f), shape = RoundedCornerShape(8.dp), modifier = Modifier.shadow(4.dp, RoundedCornerShape(8.dp))) {
-                        Text(label, Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 0.5.sp), color = MaterialTheme.colorScheme.onSurface)
-                    }
-                }
-            }
-        }
-        
-        if (containerSize.width > 0) {
-            val sliderX = containerSize.width * sliderPosition
-            Box(Modifier.fillMaxSize()) {
-                Box(Modifier.fillMaxHeight().width(3.dp).offset(x = with(density) { sliderX.toDp() - 1.5.dp }).background(sliderColor))
-                Box(
-                    Modifier.fillMaxHeight().width(64.dp).offset(x = with(density) { sliderX.toDp() - 32.dp })
-                        .pointerInput(Unit) {
-                            detectDragGestures(
-                                onDragStart = { haptic.gestureStart() },
-                                onDrag = { change, dragAmount ->
-                                    change.consume()
-                                    sliderPosition = (sliderPosition + dragAmount.x / containerSize.width).coerceIn(0f, 1f)
-                                },
-                                onDragEnd = {}
-                            )
-                        }
-                ) {
-                    Box(Modifier.size(48.dp).align(Alignment.Center).shadow(8.dp, CircleShape).clip(CircleShape).background(sliderColor), Alignment.Center) {
-                        Icon(Icons.Filled.SwapHoriz, "Drag to compare", tint = iconColor, modifier = Modifier.size(24.dp))
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SingleImageView(bitmap: Bitmap) {
-    val zoomableState = zoomStateEnabled()
-    Box(Modifier.fillMaxSize().zoomable(zoomableState), Alignment.Center) {
-        Image(bitmap.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit, filterQuality = FilterQuality.None)
-    }
-}
-
-@Composable
-private fun zoomState(isHapticEnabled: Boolean) =
-    rememberZoomableState(
+    
+    val zoomableState = rememberZoomableState(
         ZoomSpec(
             maximum = ZoomLimit(factor = 20f, overzoomEffect = if (isHapticEnabled) OverzoomEffect.RubberBanding else OverzoomEffect.Disabled),
             minimum = ZoomLimit(factor = 1f, overzoomEffect = if (isHapticEnabled) OverzoomEffect.RubberBanding else OverzoomEffect.Disabled)
         )
     )
+    
+    Box(Modifier.fillMaxSize().zoomable(zoomableState), Alignment.Center) {
+        Image(bitmap.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit, filterQuality = FilterQuality.None)
+    }
+}

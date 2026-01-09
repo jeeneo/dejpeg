@@ -1,11 +1,16 @@
 package com.je.dejpeg.compose.ui.components
 
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
@@ -142,7 +147,8 @@ fun SaveImageDialog(
         confirmButton = {
             Button(onClick = {
                 haptic.medium()
-                onSave(textState.text.trim(), saveAll, skipNext)
+                val sanitizedFilename = textState.text.trim().replace(Regex("[/\\\\:*?\"<>|]"), "_").takeIf { it.isNotBlank() } ?: "image"
+                onSave(sanitizedFilename, saveAll, skipNext)
                 onDismissRequest()
             }) {
                 Text(stringResource(R.string.save))
@@ -161,7 +167,7 @@ fun RemoveImageDialog(
     onRemove: () -> Unit,
     onSaveAndRemove: () -> Unit
 ) {
-    val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
+    val haptic = rememberHapticFeedback()
     StyledAlertDialog(
         onDismissRequest = onDismissRequest,
         title = { Text(stringResource(R.string.remove_image_title)) },
@@ -199,7 +205,7 @@ fun RemoveImageDialog(
 
 @Composable
 fun CancelProcessingDialog(imageFilename: String? = null, onDismissRequest: () -> Unit, onConfirm: () -> Unit) {
-    val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
+    val haptic = rememberHapticFeedback()
     BaseDialog(
         title = stringResource(R.string.stop_processing_title),
         message = if (imageFilename != null) {
@@ -276,23 +282,19 @@ fun StarterModelDialog(onDismiss: () -> Unit) {
 @Composable
 fun ModelInfoDialog(modelName: String, infoText: String, onDismiss: () -> Unit) {
     val haptic = rememberHapticFeedback()
+    
     StyledAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(modelName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
         text = {
-            Column {
-                Text(infoText, style = MaterialTheme.typography.bodyMedium)
-            }
+            Text(infoText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         },
         confirmButton = {
-            Button(
-                onClick = {
-                    haptic.light()
-                    onDismiss()
-                }
-            ) {
+            Button(onClick = { haptic.light(); onDismiss() }) {
                 Text(stringResource(R.string.ok))
             }
         }
     )
 }
+
+
