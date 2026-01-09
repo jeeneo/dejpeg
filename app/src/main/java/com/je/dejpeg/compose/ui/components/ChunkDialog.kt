@@ -23,8 +23,8 @@ fun ChunkDialog(
     var chunkSize by remember { mutableIntStateOf(chunk) }
     var overlapSize by remember { mutableIntStateOf(overlap) }
     val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
-    val chunkPowers = generateSequence(16) { it * 2 }.takeWhile { it <= 2048 }.toList()
-    val overlapPowers = generateSequence(8) { it * 2 }.takeWhile { it <= 256 }.toList()
+    val chunkPowers = generateSequence(512) { it * 2 }.takeWhile { it <= 2048 }.toList()
+    val overlapPowers = generateSequence(8) { it * 2 }.takeWhile { it <= 32 }.toList()
 
     @Composable
     fun powerSlider(
