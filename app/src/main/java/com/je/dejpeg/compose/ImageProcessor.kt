@@ -151,23 +151,12 @@ class ImageProcessor(
         val width = inputBitmap.width
         val height = inputBitmap.height
         val overlap = info.overlap
-        val cols = 1.coerceAtLeast(ceil(width.toDouble() / maxChunkSize).toInt())
-        val rows = 1.coerceAtLeast(ceil(height.toDouble() / maxChunkSize).toInt())
-        val actualChunkWidth = (width + (cols - 1) * overlap) / cols
-        val actualChunkHeight = (height + (rows - 1) * overlap) / rows
-        Log.d("ImageProcessor", "Processing tiled: image=${width}x${height}, max=$maxChunkSize, actual=${actualChunkWidth}x${actualChunkHeight}, grid=${cols}x${rows}, overlap=$overlap")
+        val stride = maxChunkSize - overlap
+        val cols = if (width <= maxChunkSize) 1 else ceil((width - overlap).toFloat() / stride).toInt()
+        val rows = if (height <= maxChunkSize) 1 else ceil((height - overlap).toFloat() / stride).toInt()
+        Log.d("ImageProcessor", "Processing tiled: image=${width}x${height}, chunkSize=$maxChunkSize, stride=$stride, grid=${cols}x${rows}, overlap=$overlap")
         val totalChunks = cols * rows
         val chunksDir = CacheManager.getChunksDir(context)
-        data class ChunkInfo(
-            val index: Int,
-            val file: File,
-            val x: Int,
-            val y: Int,
-            val width: Int,
-            val height: Int,
-            val col: Int,
-            val row: Int
-        )
         val chunkInfoList = mutableListOf<ChunkInfo>()
         try {
             Log.d("ImageProcessor", "Phase 1: Extracting $totalChunks chunks to disk")
@@ -175,10 +164,10 @@ class ImageProcessor(
             for (row in 0 until rows) {
                 for (col in 0 until cols) {
                     if (isCancelled) throw Exception(context.getString(R.string.error_processing_cancelled))
-                    val chunkX = 0.coerceAtLeast(col * (actualChunkWidth - overlap))
-                    val chunkY = 0.coerceAtLeast(row * (actualChunkHeight - overlap))
-                    val chunkW = if (col == cols - 1) width - chunkX else actualChunkWidth.coerceAtMost(width - chunkX)
-                    val chunkH = if (row == rows - 1) height - chunkY else actualChunkHeight.coerceAtMost(height - chunkY)
+                    val chunkX = col * stride
+                    val chunkY = row * stride
+                    val chunkW = minOf(chunkX + maxChunkSize, width) - chunkX
+                    val chunkH = minOf(chunkY + maxChunkSize, height) - chunkY
                     if (chunkW <= 0 || chunkH <= 0) continue
                     val chunk = Bitmap.createBitmap(inputBitmap, chunkX, chunkY, chunkW, chunkH)
                     val converted = if (chunk.config != config) {
@@ -250,15 +239,13 @@ class ImageProcessor(
                 callback.onProgress(context.getString(R.string.finishing_up))
             }
             val result = createBitmap(width, height, config)
-            val canvas = Canvas(result)
             for (chunkInfo in chunkInfoList) {
                 if (isCancelled) throw Exception(context.getString(R.string.error_processing_cancelled))
                 val processedChunkFile = File(chunksDir, "chunk_${chunkInfo.index}_processed.png")
                 val loadedProcessed = withContext(Dispatchers.IO) {
                     BitmapFactory.decodeFile(processedChunkFile.absolutePath)
                 } ?: throw Exception("Failed to load processed chunk ${chunkInfo.index}")
-                val paint = Paint()
-                canvas.drawBitmap(loadedProcessed, chunkInfo.x.toFloat(), chunkInfo.y.toFloat(), paint)
+                mergeChunkWithBlending(result, loadedProcessed, chunkInfo, cols, rows, overlap)
                 loadedProcessed.recycle()
                 withContext(Dispatchers.IO) {
                     processedChunkFile.delete()
@@ -459,6 +446,83 @@ class ImageProcessor(
             else -> throw RuntimeException("Unexpected ONNX output type: ${outputValue.javaClass}")
         }
     }
+
+    private fun mergeChunkWithBlending(
+        result: Bitmap,
+        processedChunk: Bitmap,
+        chunkInfo: ChunkInfo,
+        cols: Int,
+        rows: Int,
+        overlap: Int
+    ) {
+        val width = processedChunk.width
+        val height = processedChunk.height
+        val x = chunkInfo.x
+        val y = chunkInfo.y
+
+        val needsLeftBlend = chunkInfo.col > 0
+        val needsTopBlend = chunkInfo.row > 0
+        
+        if (!needsLeftBlend && !needsTopBlend) {
+            val canvas = Canvas(result)
+            canvas.drawBitmap(processedChunk, x.toFloat(), y.toFloat(), null)
+            return
+        }
+        
+        val existingPixels = IntArray(width * height)
+        try {
+            result.getPixels(existingPixels, 0, width, x, y, width, height)
+        } catch (e: Exception) {
+            val canvas = Canvas(result)
+            canvas.drawBitmap(processedChunk, x.toFloat(), y.toFloat(), null)
+            return
+        }
+        
+        val newPixels = IntArray(width * height)
+        processedChunk.getPixels(newPixels, 0, width, 0, 0, width, height)
+        
+        for (localY in 0 until height) {
+            for (localX in 0 until width) {
+                val inLeftOverlap = needsLeftBlend && localX < overlap
+                val inTopOverlap = needsTopBlend && localY < overlap
+                
+                if (!inLeftOverlap && !inTopOverlap) continue
+                
+                val idx = localY * width + localX
+                
+                var blendFactor = 1.0f
+                if (inLeftOverlap) {
+                    blendFactor = minOf(blendFactor, (localX + 1).toFloat() / overlap)
+                }
+                if (inTopOverlap) {
+                    blendFactor = minOf(blendFactor, (localY + 1).toFloat() / overlap)
+                }
+                
+                val existingColor = existingPixels[idx]
+                val newColor = newPixels[idx]
+                
+                val r = ((1 - blendFactor) * Color.red(existingColor) + blendFactor * Color.red(newColor)).toInt()
+                val g = ((1 - blendFactor) * Color.green(existingColor) + blendFactor * Color.green(newColor)).toInt()
+                val b = ((1 - blendFactor) * Color.blue(existingColor) + blendFactor * Color.blue(newColor)).toInt()
+                val a = ((1 - blendFactor) * Color.alpha(existingColor) + blendFactor * Color.alpha(newColor)).toInt()
+                
+                newPixels[idx] = Color.argb(a, r, g, b)
+            }
+        }
+        
+        result.setPixels(newPixels, 0, width, x, y, width, height)
+    }
+    
+    private data class ChunkInfo(
+        val index: Int,
+        val file: File,
+        val x: Int,
+        val y: Int,
+        val width: Int,
+        val height: Int,
+        val col: Int,
+        val row: Int
+    )
 
     private fun clamp255(v: Float): Int {
         return 0.coerceAtLeast(255.coerceAtMost(v.toInt()))
