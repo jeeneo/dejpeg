@@ -53,6 +53,9 @@ class ModelManager(
             "fbcnn_gray_double_fp16.onnx" to "17feadd8970772f5ff85596cb9fb152ae3c2b82bca4deb52a7c8b3ecb2f7ac14",
             "scunet_color_real_gan_fp16.onnx" to "50411164ee869605161be9cafd674c241cf0c104f5ee6b73e7c3ea69d69f94bd",
             "scunet_color_real_psnr_fp16.onnx" to "8923b09e240e0078b3247964e9b105cbfbb4da01e260b29a961d038f8fa7791a",
+            "scunet_color_15_fp16.onnx" to "25a3a07de278867df9d29e9d08fe555523bb0f9f78f8956c4af943a4eeb8c934",
+            "scunet_color_25_fp16.onnx" to "34d25ec2187d24f9f25b9dc9d918e94e87217c129471adda8c9fdf2e5a1cb62a",
+            "scunet_color_50_fp16.onnx" to "1c6bdc6d9e0c1dea314cf22d41c261d4c744bf0ae1ae6c59b9505c4b4d50febb",
             "scunet_gray_15_fp16.onnx" to "8e8740cea4306c9a61215194f315e5c0dc9e06c726a9ddea77d978d804da7663",
             "scunet_gray_25_fp16.onnx" to "dec631fbdca7705bbff1fc779cf85a657dcb67f55359c368464dd6e734e1f2b7",
             "scunet_gray_50_fp16.onnx" to "48b7d07229a03d98b892d2b33aa4c572ea955301772e7fcb5fd10723552a1874",
@@ -78,7 +81,7 @@ class ModelManager(
         private val MODEL_INFO = mapOf(
             // starter models
             "1x-RGB-max-Denoise-fp16.onnx" to "Fast, minor compression, strong noise, mostly animation",
-            "1x-span-anime-pretrain-fp16.onnx" to "Fast, general compression, general noise.\nGood for photos, animation, comics and anime",
+            "1x-span-anime-pretrain-fp16.onnx" to "Fast, general compression, general noise.\n\nGood for animation, comics, anime, and some photos.",
 
             // fbcnn (jpeg model)
             "fbcnn_color_fp16.onnx" to "Best at general JPEG compression, minor noise, any kind of color images",
