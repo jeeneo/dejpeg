@@ -243,7 +243,7 @@ class ProcessingViewModel : ViewModel() {
             appContext?.let { ctx ->
                 viewModelScope.launch {
                     Log.d("ProcessingViewModel", "removeImage: Cleaning up cache for imageId: $id")
-                    CacheManager.deleteRecoveryPair(ctx, id)
+                    CacheManager.deleteRecoveryPair(ctx, id, deleteProcessed = true, deleteUnprocessed = true)
                     }
             }
         }
@@ -443,7 +443,7 @@ class ProcessingViewModel : ViewModel() {
                 appContext?.let { ctx ->
                     viewModelScope.launch(Dispatchers.IO) {
                         Log.d("ProcessingViewModel", "Cleaning up cache for imageId: $imageId")
-                        CacheManager.deleteRecoveryPair(ctx, imageId)
+                        CacheManager.deleteRecoveryPair(ctx, imageId, deleteProcessed = true, deleteUnprocessed = true)
                     }
                 }
             }
@@ -587,12 +587,10 @@ class ProcessingViewModel : ViewModel() {
     ) {
         val image = getImageById(imageId)
         val bitmap = image?.outputBitmap
-
         if (bitmap == null) {
             onError("Image not found or has no output")
             return
         }
-
         ImageActions.saveImage(
             context = context,
             bitmap = bitmap,
@@ -605,6 +603,7 @@ class ProcessingViewModel : ViewModel() {
             onError = onError
         )
     }
+
     fun saveAllImages(
         context: Context,
         onComplete: () -> Unit = {},
