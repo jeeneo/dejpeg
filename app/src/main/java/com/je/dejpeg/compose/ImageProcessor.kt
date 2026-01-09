@@ -44,9 +44,11 @@ class ImageProcessor(
         fun onProgress(message: String)
         fun onChunkProgress(currentChunkIndex: Int, totalChunks: Int)
     }
+
     fun cancelProcessing() {
         isCancelled = true
     }
+
     suspend fun processImage(
         inputBitmap: Bitmap,
         strength: Float,
@@ -70,10 +72,29 @@ class ImageProcessor(
                 }
             } else {
                 withContext(Dispatchers.Main) {
-                    callback.onError(formatError(e))
+                    callback.onError("${e.javaClass.simpleName}${if (e.message != null) ": ${e.message}" else ""}")
                 }
             }
         }
+    }
+
+    private fun addBlackBorder(bitmap: Bitmap, borderSize: Int): Bitmap {
+        val newWidth = bitmap.width + 2 * borderSize
+        val newHeight = bitmap.height + 2 * borderSize
+        val borderedBitmap = createBitmap(newWidth, newHeight, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(borderedBitmap)
+        canvas.drawColor(Color.BLACK)
+        canvas.drawBitmap(bitmap, borderSize.toFloat(), borderSize.toFloat(), null)
+        return borderedBitmap
+    }
+
+    private fun removeBlackBorder(bitmap: Bitmap, borderSize: Int): Bitmap {
+        val croppedWidth = bitmap.width - 2 * borderSize
+        val croppedHeight = bitmap.height - 2 * borderSize
+        if (croppedWidth <= 0 || croppedHeight <= 0) {
+            return bitmap
+        }
+        return Bitmap.createBitmap(bitmap, borderSize, borderSize, croppedWidth, croppedHeight)
     }
 
     private suspend fun processBitmap(
@@ -84,30 +105,36 @@ class ImageProcessor(
         index: Int,
         total: Int
     ): Bitmap {
-        val width = inputBitmap.getWidth()
-        val height = inputBitmap.getHeight()
-        val hasTransparency = detectTransparency(inputBitmap)
-
+        val borderSize = 8 // to handle edge artifacts, dunno if it's needed for *all* models, but it helped with SCUNet
+        val borderedBitmap = addBlackBorder(inputBitmap, borderSize)
+        val width = borderedBitmap.getWidth()
+        val height = borderedBitmap.getHeight()
+        val hasTransparency = borderedBitmap.hasAlpha()
         val processingConfig = Bitmap.Config.ARGB_8888
-        // Use the smaller of chunkSize or model's fixed dimensions
         val effectiveMaxChunkSize = if (info.expectedWidth != null && info.expectedHeight != null) {
             minOf(info.chunkSize, info.expectedWidth, info.expectedHeight)
         } else {
             info.chunkSize
         }
         val mustTile = width > effectiveMaxChunkSize || height > effectiveMaxChunkSize
-        return if (mustTile) processTiled(session, inputBitmap, callback, info, processingConfig, hasTransparency, index, total, effectiveMaxChunkSize)
+        val processedBitmap = if (mustTile) processTiled(session, borderedBitmap, callback, info, processingConfig, hasTransparency, index, total, effectiveMaxChunkSize)
         else
         {
-            val bitmapToProcess = if (inputBitmap.config != processingConfig) inputBitmap.copy(processingConfig, true)
-            else inputBitmap
+            val bitmapToProcess = if (borderedBitmap.config != processingConfig) borderedBitmap.copy(processingConfig, true)
+            else borderedBitmap
             val progressMessage = { context.getString(R.string.processing) }
             withContext(Dispatchers.Main) {
                 callback.onProgress(progressMessage())
             }
-            val result = processChunkUnified(session, bitmapToProcess, processingConfig, hasTransparency, info)
+            val result = processChunk(session, bitmapToProcess, processingConfig, hasTransparency, info)
             result
         }
+        borderedBitmap.recycle()
+        val finalResult = removeBlackBorder(processedBitmap, borderSize)
+        if (processedBitmap != finalResult) {
+            processedBitmap.recycle()
+        }
+        return finalResult
     }
 
     private suspend fun processTiled(
@@ -141,9 +168,7 @@ class ImageProcessor(
             val col: Int,
             val row: Int
         )
-        
         val chunkInfoList = mutableListOf<ChunkInfo>()
-        
         try {
             Log.d("ImageProcessor", "Phase 1: Extracting $totalChunks chunks to disk")
             var chunkIndex = 0
@@ -203,7 +228,7 @@ class ImageProcessor(
                 val loadedChunk = withContext(Dispatchers.IO) {
                     BitmapFactory.decodeFile(chunkInfo.file.absolutePath)
                 } ?: throw Exception("Failed to load chunk ${chunkInfo.index}")
-                val processed = processChunkUnified(session, loadedChunk, config, hasTransparency, info)
+                val processed = processChunk(session, loadedChunk, config, hasTransparency, info)
                 loadedChunk.recycle()
                 val processedChunkFile = File(chunksDir, "chunk_${chunkInfo.index}_processed.png")
                 withContext(Dispatchers.IO) {
@@ -232,15 +257,9 @@ class ImageProcessor(
                 val loadedProcessed = withContext(Dispatchers.IO) {
                     BitmapFactory.decodeFile(processedChunkFile.absolutePath)
                 } ?: throw Exception("Failed to load processed chunk ${chunkInfo.index}")
-                val feathered = createFeatheredChunk(
-                    loadedProcessed, chunkInfo.x, chunkInfo.y, width, height, 
-                    overlap, cols, rows, chunkInfo.col, chunkInfo.row
-                )
                 val paint = Paint()
-                paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_OVER)
-                canvas.drawBitmap(feathered, chunkInfo.x.toFloat(), chunkInfo.y.toFloat(), paint)
+                canvas.drawBitmap(loadedProcessed, chunkInfo.x.toFloat(), chunkInfo.y.toFloat(), paint)
                 loadedProcessed.recycle()
-                feathered.recycle()
                 withContext(Dispatchers.IO) {
                     processedChunkFile.delete()
                 }
@@ -252,38 +271,7 @@ class ImageProcessor(
         }
     }
 
-    private fun createFeatheredChunk(
-        chunk: Bitmap,
-        chunkX: Int, 
-        chunkY: Int, 
-        totalWidth: Int, 
-        totalHeight: Int, 
-        overlap: Int,
-        totalCols: Int,
-        totalRows: Int,
-        col: Int,
-        row: Int
-    ): Bitmap {
-        val chunkW = chunk.width
-        val chunkH = chunk.height
-        val feathered = chunk.copy(Bitmap.Config.ARGB_8888, true)
-        val pixels = IntArray(chunkW * chunkH).apply { feathered.getPixels(this, 0, chunkW, 0, 0, chunkW, chunkH) }
-        val featherSize = overlap / 2
-        for (y in 0 until chunkH) for (x in 0 until chunkW) {
-            val idx = y * chunkW + x
-            var alpha = 1.0f
-            if (col > 0 && x < featherSize) alpha = alpha.coerceAtMost(x.toFloat() / featherSize)
-            if (row > 0 && y < featherSize) alpha = alpha.coerceAtMost(y.toFloat() / featherSize)
-            if (col < totalCols - 1 && x >= chunkW - featherSize) alpha = alpha.coerceAtMost((chunkW - x).toFloat() / featherSize)
-            if (row < totalRows - 1 && y >= chunkH - featherSize) alpha = alpha.coerceAtMost((chunkH - y).toFloat() / featherSize)
-            
-            pixels[idx] = (pixels[idx] and 0x00FFFFFF) or ((alpha * 255).toInt() shl 24)
-        }
-        feathered.setPixels(pixels, 0, chunkW, 0, 0, chunkW, chunkH)
-        return feathered
-    }
-
-    private fun processChunkUnified(
+    private fun processChunk(
         session: OrtSession,
         chunk: Bitmap,
         config: Bitmap.Config,
@@ -384,13 +372,11 @@ class ImageProcessor(
                 }
             }
         }
-
         val result = try {
             session.run(inputs).use { sessionResult ->
                 val (outputArray, actualOutputChannels) = extractOutputArray(sessionResult[0].value, outputChannels, h, w)
                 val fullResultBitmap = createBitmap(w, h, config)
                 val outPixels = IntArray(w * h)
-
                 for (i in 0 until w * h) {
                     val alpha = if (hasAlpha) clamp255(alphaChannel!![i] * 255f) else 255
                     
@@ -474,16 +460,8 @@ class ImageProcessor(
         }
     }
 
-    private fun detectTransparency(bitmap: Bitmap): Boolean {
-        return bitmap.hasAlpha()
-    }
-
     private fun clamp255(v: Float): Int {
         return 0.coerceAtLeast(255.coerceAtMost(v.toInt()))
-    }
-
-    private fun formatError(e: Exception): String {
-        return "${e.javaClass.simpleName}${if (e.message != null) ": ${e.message}" else ""}"
     }
 
     private fun floatToFloat16(value: Float): Short {
@@ -491,7 +469,6 @@ class ImageProcessor(
         val sign = (bits ushr 16) and 0x8000
         val exponent = ((bits ushr 23) and 0xFF) - 127 + 15
         var mantissa = bits and 0x7FFFFF
-        
         if (exponent <= 0) {
             if (exponent < -10) {
                 return sign.toShort()
@@ -502,7 +479,6 @@ class ImageProcessor(
         } else if (exponent >= 0x1F) {
             return (sign or 0x7C00).toShort()
         }
-        
         return (sign or (exponent shl 10) or (mantissa shr 13)).toShort()
     }
 
@@ -526,7 +502,6 @@ class ImageProcessor(
         } else if (exponent == 0x1F) {
             return java.lang.Float.intBitsToFloat(sign or 0x7F800000 or (mantissa shl 13))
         }
-        
         return java.lang.Float.intBitsToFloat(sign or ((exponent - 15 + 127) shl 23) or (mantissa shl 13))
     }
 
@@ -547,7 +522,6 @@ class ImageProcessor(
         val overlap: Int = customOverlapSize ?: AppPreferences.DEFAULT_OVERLAP_SIZE
         val expectedWidth: Int?
         val expectedHeight: Int?
-
         init {
             Log.d("ModelInfo", "Initialized with customChunkSize: $customChunkSize, customOverlapSize: $customOverlapSize -> chunkSize: $chunkSize, overlap: $overlap")
             inputInfoMap = session.inputInfo
@@ -558,7 +532,6 @@ class ImageProcessor(
             var foundIsFp16 = false
             var foundExpectedWidth: Int? = null
             var foundExpectedHeight: Int? = null
-            
             for ((key, nodeInfo) in inputInfoMap) {
                 val tensorInfo = nodeInfo.info as? TensorInfo ?: continue
                 val shape = tensorInfo.shape
@@ -571,7 +544,6 @@ class ImageProcessor(
                     break
                 }
             }
-            
             val outputInfoMap = session.outputInfo
             for ((_, nodeInfo) in outputInfoMap) {
                 val tensorInfo = nodeInfo.info as? TensorInfo ?: continue
@@ -581,7 +553,6 @@ class ImageProcessor(
                     break
                 }
             }
-            
             inputName = foundInputName ?: throw RuntimeException("Could not find valid input tensor")
             inputChannels = foundInputChannels
             outputChannels = foundOutputChannels
