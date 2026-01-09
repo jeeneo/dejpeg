@@ -2,3 +2,6 @@ added embedded models
 add thumbnail preview for unsaved images
 internal changes and bugfixes
 fixed issues with SCUNet processing
+fix processing chunk logic
+remove faulty options
+fixed null bitmap error

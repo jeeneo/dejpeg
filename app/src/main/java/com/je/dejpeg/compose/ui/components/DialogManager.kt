@@ -184,7 +184,7 @@ fun RemoveImageDialog(
             ) {
                 TextButton({ 
                     haptic.heavy()
-                    CacheManager.deleteRecoveryPair(context, imageId)
+                    CacheManager.deleteRecoveryPair(context, imageId, deleteProcessed = true, deleteUnprocessed = true)
                     onRemove()
                     onDismissRequest()
                 }) {
