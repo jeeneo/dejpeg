@@ -76,7 +76,7 @@ object ModelMigrationHelper {
     private fun moveFile(source: File, target: File): Boolean {
         return try {
             if (target.exists()) {
-                Log.d(TAG, "File already exists in target, deleting old: ${source.name}")
+                Log.d(TAG, "File already exists in target, deleted old: ${source.name}")
                 source.delete()
             } else if (!source.renameTo(target)) {
                 source.copyTo(target, overwrite = true)
