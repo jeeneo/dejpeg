@@ -387,14 +387,14 @@ class ImageProcessor(
 
         val result = try {
             session.run(inputs).use { sessionResult ->
-                val outputArray = extractOutputArray(sessionResult[0].value, outputChannels, h, w)
+                val (outputArray, actualOutputChannels) = extractOutputArray(sessionResult[0].value, outputChannels, h, w)
                 val fullResultBitmap = createBitmap(w, h, config)
                 val outPixels = IntArray(w * h)
 
                 for (i in 0 until w * h) {
                     val alpha = if (hasAlpha) clamp255(alphaChannel!![i] * 255f) else 255
                     
-                    if (outputChannels == 1) {
+                    if (actualOutputChannels == 1) {
                         val gray = clamp255(outputArray[i] * 255f)
                         outPixels[i] = Color.argb(alpha, gray, gray, gray)
                     } else {
@@ -422,45 +422,49 @@ class ImageProcessor(
         return result
     }
 
-    private fun extractOutputArray(outputValue: Any, channels: Int, h: Int, w: Int): FloatArray {
+    private fun extractOutputArray(outputValue: Any, channels: Int, h: Int, w: Int): Pair<FloatArray, Int> {
         Log.d("ImageProcessor", "Output type received: ${outputValue.javaClass.name}")
         return when (outputValue) {
             is FloatArray -> {
                 Log.d("ImageProcessor", "Output is FloatArray (FP32 or auto-converted from FP16)")
-                outputValue
+                outputValue to channels
             }
             is ShortArray -> {
                 Log.d("ImageProcessor", "Output is ShortArray (FP16) - converting to Float32")
-                FloatArray(outputValue.size) { i -> float16ToFloat(outputValue[i]) }
+                FloatArray(outputValue.size) { i -> float16ToFloat(outputValue[i]) } to channels
             }
             is Array<*> -> {
                 try {
                     @Suppress("UNCHECKED_CAST")
                     val arr = outputValue as Array<Array<Array<FloatArray>>>
-                    Log.d("ImageProcessor", "Output is multi-dimensional FloatArray")
+                    val actualChannels = arr[0].size
+                    Log.d("ImageProcessor", "Expected channels: $channels, Actual channels: $actualChannels")
                     val out = FloatArray(channels * h * w)
-                    for (ch in 0 until channels) {
+                    val channelsToProcess = minOf(channels, actualChannels)
+                    for (ch in 0 until channelsToProcess) {
                         for (y in 0 until h) {
                             for (x in 0 until w) {
                                 out[ch * h * w + y * w + x] = arr[0][ch][y][x]
                             }
                         }
                     }
-                    out
+                    out to actualChannels
                 } catch (e: Exception) {
                     try {
                         @Suppress("UNCHECKED_CAST")
                         val arr = outputValue as Array<Array<Array<ShortArray>>>
-                        Log.d("ImageProcessor", "Output is multi-dimensional ShortArray (FP16)")
+                        val actualChannels = arr[0].size
+                        Log.d("ImageProcessor", "Expected channels: $channels, Actual channels: $actualChannels")
                         val out = FloatArray(channels * h * w)
-                        for (ch in 0 until channels) {
+                        val channelsToProcess = minOf(channels, actualChannels)
+                        for (ch in 0 until channelsToProcess) {
                             for (y in 0 until h) {
                                 for (x in 0 until w) {
                                     out[ch * h * w + y * w + x] = float16ToFloat(arr[0][ch][y][x])
                                 }
                             }
                         }
-                        out
+                        out to actualChannels
                     } catch (e2: Exception) {
                         throw RuntimeException("Failed to extract output array: ${e.message}, ${e2.message}")
                     }
