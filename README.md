@@ -25,8 +25,6 @@ this is not another "AI upscaler" but a compression artifact remover and denoise
 
 ## models:
 
-<!-- in [v3.4-beta onward](https://codeberg.org/dryerlint/dejpeg/releases/tag/beta-3.4.0), the app ships with a small 2.4mb JPEG model ([1xDeJPG_OmniSR](https://huggingface.co/colpona/dejpeg-models/blob/main/1xDeJPG_OmniSR-fp16.onnx)) for getting started without needing additional downloads. -->
-
 you can download models [here](models/)
 
 ## examples
