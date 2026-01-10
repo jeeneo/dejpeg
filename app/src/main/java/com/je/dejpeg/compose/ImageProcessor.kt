@@ -267,17 +267,20 @@ class ImageProcessor(
     ): Bitmap {
         val originalW = chunk.width
         val originalH = chunk.height
+        val minModelSize = 256
         val w = if (info.expectedWidth != null && info.expectedWidth > 0) {
             info.expectedWidth
         } else {
             val padFactor = 8
-            ((originalW + padFactor - 1) / padFactor) * padFactor
+            val paddedW = ((originalW + padFactor - 1) / padFactor) * padFactor
+            maxOf(paddedW, minModelSize)
         }
         val h = if (info.expectedHeight != null && info.expectedHeight > 0) {
             info.expectedHeight
         } else {
             val padFactor = 8
-            ((originalH + padFactor - 1) / padFactor) * padFactor
+            val paddedH = ((originalH + padFactor - 1) / padFactor) * padFactor
+            maxOf(paddedH, minModelSize)
         }
         val needsPadding = w != originalW || h != originalH
         val paddedChunk = if (needsPadding) {
