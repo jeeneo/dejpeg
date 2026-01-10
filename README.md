@@ -120,7 +120,7 @@ BUILD_BRISQUE_JNI=ON ./gradlew clean assembleDebug
 
 note: due to IzzyOnDroid's apk filesize limit to 30mb or less, the native binaries in the official release (including `libbrisque_jni.so`) are compressed using `upx --best --lzma --android-shlib` after being stripped of debug symbols (excluding `libc++_shared.so`). you can skip this step if needed.
 
-compres
+compress
 ```bash
 upx --best --lzma --android-shlib libopencv_{core,imgproc,ml,imgcodecs,quality}.so
 ```
