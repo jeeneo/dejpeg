@@ -398,6 +398,10 @@ class ImageProcessor(
         return result
     }
 
+    private fun clamp255(v: Float): Int {
+        return 0.coerceAtLeast(255.coerceAtMost(v.toInt()))
+    }
+
     private fun extractOutputArray(outputValue: Any, channels: Int, h: Int, w: Int): Pair<FloatArray, Int> {
         Log.d("ImageProcessor", "Output type received: ${outputValue.javaClass.name}")
         return when (outputValue) {
@@ -462,16 +466,13 @@ class ImageProcessor(
         val height = processedChunk.height
         val x = chunkInfo.x
         val y = chunkInfo.y
-
         val needsLeftBlend = chunkInfo.col > 0
         val needsTopBlend = chunkInfo.row > 0
-        
         if (!needsLeftBlend && !needsTopBlend) {
             val canvas = Canvas(result)
             canvas.drawBitmap(processedChunk, x.toFloat(), y.toFloat(), null)
             return
         }
-        
         val existingPixels = IntArray(width * height)
         try {
             result.getPixels(existingPixels, 0, width, x, y, width, height)
@@ -480,42 +481,35 @@ class ImageProcessor(
             canvas.drawBitmap(processedChunk, x.toFloat(), y.toFloat(), null)
             return
         }
-        
         val newPixels = IntArray(width * height)
         processedChunk.getPixels(newPixels, 0, width, 0, 0, width, height)
-        
         for (localY in 0 until height) {
             for (localX in 0 until width) {
                 val inLeftOverlap = needsLeftBlend && localX < overlap
                 val inTopOverlap = needsTopBlend && localY < overlap
-                
                 if (!inLeftOverlap && !inTopOverlap) continue
-                
                 val idx = localY * width + localX
-                
                 var blendFactor = 1.0f
                 if (inLeftOverlap) {
-                    blendFactor = minOf(blendFactor, (localX + 1).toFloat() / overlap)
+                    val t = (localX.toFloat() / (overlap - 1).coerceAtLeast(1)).coerceIn(0f, 1f)
+                    blendFactor = minOf(blendFactor, t * t * (3f - 2f * t))
                 }
                 if (inTopOverlap) {
-                    blendFactor = minOf(blendFactor, (localY + 1).toFloat() / overlap)
+                    val t = (localY.toFloat() / (overlap - 1).coerceAtLeast(1)).coerceIn(0f, 1f)
+                    blendFactor = minOf(blendFactor, t * t * (3f - 2f * t))
                 }
-                
                 val existingColor = existingPixels[idx]
                 val newColor = newPixels[idx]
-                
                 val r = ((1 - blendFactor) * Color.red(existingColor) + blendFactor * Color.red(newColor)).toInt()
                 val g = ((1 - blendFactor) * Color.green(existingColor) + blendFactor * Color.green(newColor)).toInt()
                 val b = ((1 - blendFactor) * Color.blue(existingColor) + blendFactor * Color.blue(newColor)).toInt()
                 val a = ((1 - blendFactor) * Color.alpha(existingColor) + blendFactor * Color.alpha(newColor)).toInt()
-                
                 newPixels[idx] = Color.argb(a, r, g, b)
             }
         }
-        
         result.setPixels(newPixels, 0, width, x, y, width, height)
     }
-    
+
     private data class ChunkInfo(
         val index: Int,
         val file: File,
@@ -526,10 +520,6 @@ class ImageProcessor(
         val col: Int,
         val row: Int
     )
-
-    private fun clamp255(v: Float): Int {
-        return 0.coerceAtLeast(255.coerceAtMost(v.toInt()))
-    }
 
     private fun floatToFloat16(value: Float): Short {
         val bits = java.lang.Float.floatToIntBits(value)
