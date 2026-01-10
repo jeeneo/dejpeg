@@ -236,6 +236,7 @@ class ModelManager(
                 modelName.startsWith("fbcnn_") -> opts.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.EXTENDED_OPT)
                 modelName.startsWith("scunet_") -> opts.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.NO_OPT)
             }
+            else -> opts.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.NO_OPT)
         } catch (e: OrtException) { Log.e("ModelManager", "Error setting OptimizationLevel: ${e.message}") }
     }
 
