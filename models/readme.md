@@ -61,6 +61,18 @@ Other models are available below, they have been tested but not guaranteed for s
 - ✚ ➠ [1x-DeBink-v5.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x-DeBink-v5.onnx) ([source](https://openmodeldb.info/models/1x-DeBink-v5)) - usage: blink compression, stronger
 - ✚ ➠ [1x-DeBink-v6.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x-DeBink-v6.onnx) ([source](https://openmodeldb.info/models/1x-DeBink-v6)) - usage: blink compression, soft, retains detail
 
+#### Other JPEG models: ([sources](https://huggingface.co/utnah/esrgan))
+- ✚ ➽ [1x_JPEG_00-20-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_JPEG_00-20-fp16.onnx)
+- ✚ ➽ [1x_JPEG_20-40-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_JPEG_20-40-fp16.onnx)
+- ✚ ➽ [1x_JPEG_40-60-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_JPEG_40-60-fp16.onnx)
+- ✚ ➽ [1x_JPEG_60-80-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_JPEG_60-80-fp16.onnx)
+- ✚ ➽ [1x_JPEG_80-100-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_JPEG_80-100-fp16.onnx)
+- ✚ ➽ [1x_artifacts_jpg_00_20_alsa-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_artifacts_jpg_00_20_alsa-fp16.onnx)
+- ✚ ➽ [1x_artifacts_jpg_20_40_alsa-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_artifacts_jpg_20_40_alsa-fp16.onnx)
+- ✚ ➽ [1x_artifacts_jpg_40_60_alsa-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_artifacts_jpg_40_60_alsa-fp16.onnx)
+- ✚ ➽ [1x_artifacts_jpg_60_800_alsa-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_artifacts_jpg_60_800_alsa-fp16.onnx)
+- ✚ ➽ [1x_artifacts_jpg_80_100_alsa-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_artifacts_jpg_80_100_alsa-fp16.onnx)
+
 ### Miscellaneous
 - ✚ ➠ [1x-Anti-Aliasing-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x-Anti-Aliasing-fp16.onnx) ([source](https://openmodeldb.info/models/1x-Anti-Aliasing)) - usage: anti-aliasing
 - ✚ ➠ [1x-KDM003-scans-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x-KDM003-scans-fp16.onnx) ([source](https://openmodeldb.info/models/1x-KDM003-scans)) - usage: scanned art/drawings, mild general compression, moire
@@ -72,5 +84,19 @@ Other models are available below, they have been tested but not guaranteed for s
 - ✚ ➠ [1x_DeSharpen-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_DeSharpen-fp16.onnx) ([source](https://openmodeldb.info/models/1x-DeSharpen)) - usage: removes oversharpening
 - ✧ ➽ [1x_DitherDeleterV3-Smooth-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_DitherDeleterV3-Smooth-fp16.onnx) ([source](https://openmodeldb.info/models/1x-DitherDeleterV3-Smooth)) - usage: dithering
 - ✧ ➠ [1x_GainresV4-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_GainresV4-fp16.onnx) ([source](https://openmodeldb.info/models/1x-GainRESV4)) - usage: anti-aliasing, general artifacts, CGI
+
+([sources](https://huggingface.co/utnah/esrgan))
+
+- ✚ ➠ [1x-Debandurh-FS-Ultra-lite-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x-Debandurh-FS-Ultra-lite-fp16.onnx)
+- ✚ ➽ [1x_NMKD-BrightenRedux_200k-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_NMKD-BrightenRedux_200k-fp16.onnx)
+- ✚ ➽ [1x_NMKDDetoon_97500_G-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_NMKDDetoon_97500_G-fp16.onnx)
+- ✚ ➽ [1x_NoiseToner-Poisson-Detailed_108000_G-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_NoiseToner-Poisson-Detailed_108000_G-fp16.onnx)
+- ✚ ➽ [1x_NoiseToner-Poisson-Soft_101000_G-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_NoiseToner-Poisson-Soft_101000_G-fp16.onnx)
+- ✚ ➽ [1x_NoiseToner-Uniform-Detailed_100000_G-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_NoiseToner-Uniform-Detailed_100000_G-fp16.onnx)
+- ✚ ➽ [1x_NoiseToner-Uniform-Soft_100000_G-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_NoiseToner-Uniform-Soft_100000_G-fp16.onnx)
+- ✚ ➽ [1x_ReDetail_v2_126000_G-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_ReDetail_v2_126000_G-fp16.onnx)
+- ✚ ➽ [1x_Repainter_20000_G-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_Repainter_20000_G-fp16.onnx)
+- ✚ ➽ [1x_artifacts_dithering_alsa-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_artifacts_dithering_alsa-fp16.onnx)
+- ✚ ➽ [1x_nmkdbrighten_10000_G-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_nmkdbrighten_10000_G-fp16.onnx)
 
 <!-- this readme was typed out by a real human -->
