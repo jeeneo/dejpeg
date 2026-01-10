@@ -180,7 +180,8 @@ class ModelManager(
         val modelsDir = getModelsDir()
         if (!modelsDir.exists()) return emptyList()
         val files = modelsDir.listFiles { _, name -> 
-            name.lowercase().endsWith(".onnx") 
+            val lower = name.lowercase()
+            lower.endsWith(".onnx") || lower.endsWith(".ort")
         }
         return files?.map { it.name } ?: emptyList()
     }
@@ -188,26 +189,21 @@ class ModelManager(
     fun loadModel(): OrtSession {
         val activeModel = getActiveModelName()
         Log.d("ModelManager", "loadModel called, activeModel: $activeModel, currentModelName: $currentModelName")
-        
         if (activeModel == null) {
             Log.e("ModelManager", "No active model set")
             throw Exception("No active model set")
         }
-        
         if (currentSession != null && activeModel == currentModelName) {
             Log.d("ModelManager", "Returning cached session for: $activeModel")
             return currentSession!!
         }
-        
         Log.d("ModelManager", "Loading new model: $activeModel (previous: $currentModelName)")
         unloadModel()
-        
         val modelFile = File(getModelsDir(), activeModel)
         if (!modelFile.exists()) {
             Log.e("ModelManager", "Model file does not exist: ${modelFile.absolutePath}")
             throw Exception("Model file does not exist: ${modelFile.absolutePath}")
         }
-        
         try {
             if (ortEnv == null) {
                 ortEnv = OrtEnvironment.getEnvironment()
@@ -233,6 +229,9 @@ class ModelManager(
         try { opts.setInterOpNumThreads(4) } catch (e: OrtException) { Log.e("ModelManager", "Error setting InterOpNumThreads: ${e.message}") }
         try {
             when {
+                modelName.endsWith(".ort") -> { // prevent double optimizations (.ort models are already optimized)
+                    opts.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.NO_OPT)
+                }
                 modelName.startsWith("fbcnn_") -> opts.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.EXTENDED_OPT)
                 modelName.startsWith("scunet_") -> opts.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.NO_OPT)
             }
@@ -269,8 +268,8 @@ class ModelManager(
     ) {
         try {
             val filename = resolveFilename(modelUri)
-            if (!filename.lowercase().endsWith(".onnx")) {
-                onError("Only .onnx model files are supported")
+            if (!filename.lowercase().let { it.endsWith(".onnx") || it.endsWith(".ort") }) {
+                onError("Only .onnx and .ort model files are supported")
                 return
             }
             val actualHash = computeFileHash(modelUri)
@@ -419,7 +418,8 @@ class ModelManager(
             }
             val modelsDir = getModelsDir()
             val hasModels = modelsDir.exists() && modelsDir.listFiles { _, name -> 
-                name.lowercase().endsWith(".onnx") 
+            val lower = name.lowercase()
+            lower.endsWith(".onnx") || lower.endsWith(".ort")
             }?.isNotEmpty() == true
             if (hasModels) {
                 Log.d("ModelManager", "Models already exist, skipping starter model extraction")
@@ -448,7 +448,8 @@ class ModelManager(
         return try {
             val modelsDir = getModelsDir()
             val shouldSetAsActive = setAsActive || !modelsDir.exists() || modelsDir.listFiles { _, name -> 
-                name.lowercase().endsWith(".onnx") 
+            val lower = name.lowercase()
+            lower.endsWith(".onnx") || lower.endsWith(".ort")
             }?.isEmpty() == true
             val extracted = ZipExtractor.extractFromAssets(context, "embedonnx.zip", modelsDir)
             if (extracted) {
