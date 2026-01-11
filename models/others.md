@@ -1,7 +1,6 @@
 A list of all other models currently converted to `onnx` from their `pytorch` variants.
 
 support status
-- ✦ = officially supported, stable
 - ✧ = tested, but can be unstable
 - ✚ = didn't crash, was only checked for runability
 
