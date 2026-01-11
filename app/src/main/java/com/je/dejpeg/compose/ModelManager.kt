@@ -115,9 +115,9 @@ class ModelManager(
             "1x_BCGone_Smooth_110000_G-fp16.onnx" to "Non-standard compression (BC1)",
             "1x-cinepak-fp16.onnx" to "Non-standard compression (cinepak, msvideo1, roq)",
             "1x_BCGone-DetailedV2_40-60_115000_G-fp16.onnx" to "Non-standard compression (BC1)",
-            "1x-DeBink-v4.onnx" to "Blink compression, better on geometry",
-            "1x-DeBink-v5.onnx" to "Blink compression, stronger",
-            "1x-DeBink-v6.onnx" to "Blink compression, soft, retains detail",
+            "1x-DeBink-v4.onnx" to "bink compression, better on geometry",
+            "1x-DeBink-v5.onnx" to "bink compression, stronger",
+            "1x-DeBink-v6.onnx" to "bink compression, soft, retains detail",
             
             // fp16 models - miscellaneous
             "1x-Anti-Aliasing-fp16.onnx" to "Anti-aliasing",
