@@ -34,9 +34,9 @@ speed:
 - ✚ ➠ [1x_BCGone_Smooth_110000_G-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_BCGone_Smooth_110000_G-fp16.onnx) ([source](https://openmodeldb.info/models/1x-BCGone-Smooth)) - usage: non-standard compression (BC1 compression)
 - ✚ ➠ [1x-cinepak-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x-cinepak-fp16.onnx) ([source](https://openmodeldb.info/models/1x-cinepak)) - usage: non-standard compression (cinepak, msvideo1 and roq)
 - ✚ ➠ [1x_BCGone-DetailedV2_40-60_115000_G-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_BCGone-DetailedV2_40-60_115000_G-fp16.onnx) ([source](https://openmodeldb.info/models/1x-BCGone-DetailedV2-40-60)) - usage: non-standard compression (BC1 compression)
-- ✚ ➠ [1x-DeBink-v4.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x-DeBink-v4.onnx) ([source](https://openmodeldb.info/models/1x-DeBink-v4)) - usage: blink compression, better on geometry
-- ✚ ➠ [1x-DeBink-v5.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x-DeBink-v5.onnx) ([source](https://openmodeldb.info/models/1x-DeBink-v5)) - usage: blink compression, stronger
-- ✚ ➠ [1x-DeBink-v6.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x-DeBink-v6.onnx) ([source](https://openmodeldb.info/models/1x-DeBink-v6)) - usage: blink compression, soft, retains detail
+- ✚ ➠ [1x-DeBink-v4.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x-DeBink-v4.onnx) ([source](https://openmodeldb.info/models/1x-DeBink-v4)) - usage: bink compression, better on geometry
+- ✚ ➠ [1x-DeBink-v5.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x-DeBink-v5.onnx) ([source](https://openmodeldb.info/models/1x-DeBink-v5)) - usage: bink compression, stronger
+- ✚ ➠ [1x-DeBink-v6.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x-DeBink-v6.onnx) ([source](https://openmodeldb.info/models/1x-DeBink-v6)) - usage: bink compression, soft, retains detail
 
 #### Other JPEG models: ([sources](https://huggingface.co/utnah/esrgan))
 - ✚ ➽➽ [1x_JPEG_00-20-fp16.ort](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_JPEG_00-20-fp16.ort)
