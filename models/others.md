@@ -1,5 +1,8 @@
 A list of all other models currently converted to `onnx` from their `pytorch` variants.
 
+> [!CAUTION]
+> Some of these models stress your device/CPU and can make it run hot. User discretion is advised to monitor device temperature.
+
 support status
 - ✧ = tested, but can be unstable
 - ✚ = didn't crash, was only checked for runability
