@@ -19,6 +19,8 @@ Officially supported models:
   - [Double greyscale](https://huggingface.co/colpona/dejpeg-models/resolve/main/fbcnn/fbcnn_gray_double_fp16.onnx)
 
 - ✦ ➠ SCUNet ([source](https://github.com/cszn/SCUNet)) - usage: general noise removal.
+
+  SCUNet models behave differently with many types of noise, there is no universal model
   
   GAN and PSNR variants are for general noise, numbered variants are for strength, higher = stronger
   - [Color, GAN](https://huggingface.co/colpona/dejpeg-models/resolve/main/scunet/scunet_color_real_gan_fp16.onnx) 
@@ -30,9 +32,8 @@ Officially supported models:
   - [Greyscale 25](https://huggingface.co/colpona/dejpeg-models/resolve/main/scunet/scunet_gray_25_fp16.onnx)
   - [Greyscale 50](https://huggingface.co/colpona/dejpeg-models/resolve/main/scunet/scunet_gray_50_fp16.onnx)
 
-  Note: SCUNet models behave differently with many types of noise, there is no universal model
-
 Check the in-app FAQs for more details on use-cases.
 
-[A larger list of all models are available here, they have been tested but not guaranteed for stability. Some have very specific use cases.](others.md)
+[A larger list of more models are available here, they have been tested but not guaranteed for stability. Some have very specific use cases.](others.md)
+
 <!-- this readme was typed out by a real human -->
