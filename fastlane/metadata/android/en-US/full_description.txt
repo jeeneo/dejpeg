@@ -8,15 +8,12 @@
   <li>denoise</li>
   <li>before/after view</li>
   <li>fully offline</li>
-  <li>image descaling (see BRISQUE under in-app FAQs)</li>
+  <li>image descaling</li>
 </ul>
-
-<p>The app requires external models, links in-app</p>
 
 <h2>Limitation:</h2>
 <ul>
-  <li>processed locally, minimum 4gb ram and 4 threads recommended.</li>
-  <li>large images might cause issues</li>
+  <li>processed locally, a fast device is recommended</li>
   <li>no GIF, TIFF or RAW support</li>
 </ul>
 
