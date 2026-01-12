@@ -116,7 +116,7 @@ class ImageProcessor(
         } else {
             info.chunkSize
         }
-        val mustTile = width > effectiveMaxChunkSize || height > effectiveMaxChunkSize
+        val mustTile = width > effectiveMaxChunkSize + (2 * borderSize) || height > effectiveMaxChunkSize + (2 * borderSize)
         val processedBitmap = if (mustTile) processTiled(session, borderedBitmap, callback, info, processingConfig, hasTransparency, index, total, effectiveMaxChunkSize)
         else
         {
