@@ -37,8 +37,6 @@ fun AboutDialog(onDismiss: () -> Unit) {
         title = { Text("${stringResource(R.string.app_name)} v$versionName", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) },
         text = {
             Column {
-                Text(stringResource(R.string.non_destructive_restoration))
-                Spacer(Modifier.height(16.dp))
                 Text(stringResource(R.string.open_source_app_description))
                 Spacer(Modifier.height(8.dp))
                 Text(stringResource(R.string.license_text), style = MaterialTheme.typography.bodySmall)
