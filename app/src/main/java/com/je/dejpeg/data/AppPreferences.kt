@@ -19,6 +19,7 @@ object PreferenceKeys {
     val SKIP_SAVE_DIALOG = booleanPreferencesKey("skipSaveDialog")
     val DEFAULT_IMAGE_SOURCE = stringPreferencesKey("defaultImageSource")
     val HAPTIC_FEEDBACK_ENABLED = booleanPreferencesKey("hapticFeedbackEnabled")
+    val SWAP_SWIPE_ACTIONS = booleanPreferencesKey("swapSwipeActions")
     val COMPAT_MODEL_CLEANUP = booleanPreferencesKey("compatModelCleanup")
     val COMPAT_BRISQUE_CLEANUP = booleanPreferencesKey("compatBrisqueCleanup")
     val STARTER_MODEL_EXTRACTED = booleanPreferencesKey("starterModelExtracted")
@@ -69,6 +70,10 @@ class AppPreferences(private val context: Context) {
 
     val hapticFeedbackEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[PreferenceKeys.HAPTIC_FEEDBACK_ENABLED] ?: true
+    }
+
+    val swapSwipeActions: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[PreferenceKeys.SWAP_SWIPE_ACTIONS] ?: false
     }
 
     val compatModelCleanup: Flow<Boolean> = context.dataStore.data.map { prefs ->
@@ -133,6 +138,12 @@ class AppPreferences(private val context: Context) {
     suspend fun setHapticFeedbackEnabled(enabled: Boolean) {
         context.dataStore.edit { prefs ->
             prefs[PreferenceKeys.HAPTIC_FEEDBACK_ENABLED] = enabled
+        }
+    }
+
+    suspend fun setSwapSwipeActions(swap: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[PreferenceKeys.SWAP_SWIPE_ACTIONS] = swap
         }
     }
 

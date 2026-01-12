@@ -31,15 +31,19 @@ import kotlinx.coroutines.launch
 @Composable
 fun PreferencesDialog(
     context: android.content.Context,
+    skipSaveDialog: Boolean,
+    defaultImageSource: String?,
+    hapticFeedbackEnabled: Boolean,
+    swapSwipeActions: Boolean,
+    onSkipSaveDialogChange: (Boolean) -> Unit,
+    onDefaultImageSourceChange: (String?) -> Unit,
+    onHapticFeedbackChange: (Boolean) -> Unit,
+    onSwapSwipeActionsChange: (Boolean) -> Unit,
     onDismiss: () -> Unit,
     onModelExtracted: (() -> Unit)? = null
 ) {
-    val appPreferences = remember { AppPreferences(context) }
     val modelManager = remember { ModelManager(context) }
     val scope = rememberCoroutineScope()
-    val skipSaveDialog by appPreferences.skipSaveDialog.collectAsState(initial = false)
-    val defaultImageSource by appPreferences.defaultImageSource.collectAsState(initial = null)
-    val hapticFeedbackEnabled by appPreferences.hapticFeedbackEnabled.collectAsState(initial = true)
     val haptic = rememberHapticFeedback()
     val view = LocalView.current
     
@@ -68,7 +72,7 @@ fun PreferencesDialog(
                             if (enabled) {
                                 HapticFeedback.light(view, isEnabled = true)
                             }
-                            scope.launch { appPreferences.setHapticFeedbackEnabled(enabled) }
+                            onHapticFeedbackChange(enabled)
                         }
                     )
                 }
@@ -85,7 +89,27 @@ fun PreferencesDialog(
                         checked = !skipSaveDialog,
                         onCheckedChange = { show ->
                             haptic.light()
-                            scope.launch { appPreferences.setSkipSaveDialog(!show) }
+                            onSkipSaveDialogChange(!show)
+                        }
+                    )
+                }
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp)),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    MaterialSwitchPreference(
+                        title = stringResource(R.string.swap_swipe_actions),
+                        summary = stringResource(
+                            if (swapSwipeActions) R.string.swap_swipe_actions_desc_swapped
+                            else R.string.swap_swipe_actions_desc_default
+                        ),
+                        checked = swapSwipeActions,
+                        onCheckedChange = { swap ->
+                            haptic.light()
+                            onSwapSwipeActionsChange(swap)
                         }
                     )
                 }
@@ -104,7 +128,7 @@ fun PreferencesDialog(
                     hasValue = defaultImageSource != null,
                     onClear = {
                         haptic.light()
-                        scope.launch { appPreferences.clearDefaultImageSource() }
+                        onDefaultImageSourceChange(null)
                     }
                 )
                 CompactActionPreference(

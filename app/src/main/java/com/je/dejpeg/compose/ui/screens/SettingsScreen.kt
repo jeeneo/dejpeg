@@ -40,6 +40,7 @@ import com.je.dejpeg.compose.ui.components.BaseDialog
 import com.je.dejpeg.compose.ui.components.ModelInfoDialog
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,6 +48,8 @@ import kotlinx.coroutines.withContext
 fun SettingsScreen(viewModel: ProcessingViewModel) {
     val context = LocalContext.current
     val modelManager = remember { ModelManager(context) }
+    val appPreferences = remember { com.je.dejpeg.data.AppPreferences(context) }
+    val scope = rememberCoroutineScope()
     val installedModels by viewModel.installedModels.collectAsState()
     var dialogState by remember { mutableStateOf<DialogState>(DialogState.None) }
     var importProgress by remember { mutableIntStateOf(0) }
@@ -58,6 +61,10 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
     var activeModelName by remember { mutableStateOf<String?>(null) }
     var pendingModelSelection by remember { mutableStateOf<String?>(null) }
     var warningState by remember { mutableStateOf<ModelWarningState?>(null) }
+    val skipSaveDialog by appPreferences.skipSaveDialog.collectAsState(initial = false)
+    val defaultImageSource by appPreferences.defaultImageSource.collectAsState(initial = null)
+    val hapticFeedbackEnabled by appPreferences.hapticFeedbackEnabled.collectAsState(initial = true)
+    val swapSwipeActions by appPreferences.swapSwipeActions.collectAsState(initial = false)
     var modelInfoDialog by remember { mutableStateOf<Pair<String, String>?>(null) }
 
     DisposableEffect(Unit) {
@@ -238,7 +245,23 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
             onDismiss = { dialogState = DialogState.None }
         )
         DialogState.Preferences -> PreferencesDialog(
-            context,
+            context = context,
+            skipSaveDialog = skipSaveDialog,
+            defaultImageSource = defaultImageSource,
+            hapticFeedbackEnabled = hapticFeedbackEnabled,
+            swapSwipeActions = swapSwipeActions,
+            onSkipSaveDialogChange = { skip ->
+                scope.launch { appPreferences.setSkipSaveDialog(skip) }
+            },
+            onDefaultImageSourceChange = { source ->
+                scope.launch { appPreferences.setDefaultImageSource(source) }
+            },
+            onHapticFeedbackChange = { enabled ->
+                scope.launch { appPreferences.setHapticFeedbackEnabled(enabled) }
+            },
+            onSwapSwipeActionsChange = { swap ->
+                scope.launch { appPreferences.setSwapSwipeActions(swap) }
+            },
             onDismiss = { dialogState = DialogState.None },
             onModelExtracted = { 
                 viewModel.refreshInstalledModels()
