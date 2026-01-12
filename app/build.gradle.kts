@@ -18,8 +18,8 @@ android {
         // what is semantic versioning? libraries? you think i know? i just bump these numbers every now and then :(
         // it's the 3rd major release, with 3 minor updates, and this is the Nth(?) patch - random numbers fr
         // "adds features without breaking things" LOL i break things every update wha?
-        versionCode = 341
-        versionName = "3.4.1"
+        versionCode = 342
+        versionName = "3.4.2"
     }
     signingConfigs {
         if (project.hasProperty("signApk") && project.property("signApk") == "true") {
