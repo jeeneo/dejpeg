@@ -102,12 +102,14 @@
     <string name="import_text">Import</string>
     <string name="import_model_text">Import model</string>
     <string name="progress_percent">%1$d%%</string>
-    <string name="non_destructive_restoration">Non-destructive restoration</string>
     <string name="open_source_app_description">An open source app for removing noise and compression from photos</string>
     <string name="license_text">Licensed under GPLv3</string>
     <string name="source_code">Source code</string>
     <string name="show_save_dialog">Show save dialog</string>
     <string name="show_save_dialog_desc">Show dialog when saving images</string>
+    <string name="swap_swipe_actions">Swipe actions</string>
+    <string name="swap_swipe_actions_desc_default">Swipe right to delete/cancel, left to save/process</string>
+    <string name="swap_swipe_actions_desc_swapped">Swipe right to save/process, left to delete/cancel</string>
     <string name="default_image_source">Default source</string>
     <string name="none">none</string>
     <string name="photos">Photos</string>
