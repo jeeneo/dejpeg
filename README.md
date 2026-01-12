@@ -21,7 +21,7 @@ this is not another "AI upscaler" but a compression artifact remover and denoise
 - denoise
 - before/after view
 - fully offline
-- image descaling (see BRISQUE under in-app FAQs)
+- image descaling
 
 ## models:
 
@@ -31,8 +31,7 @@ you can download models [here](models/)
 check out [examples](examples/) to get an idea of what DeJPEG can be used for
 
 ## limitations:
-- processed locally, minimum 4gb ram and 4 threads recommended.
-- large images might cause issues
+- processed locally, a fast device is recommended
 - no GIF, TIFF or RAW support
 
 ## other platforms
@@ -76,7 +75,6 @@ $ tree -L 2
 ```
 
 ```bash
-
 rm -f CMakeCache.txt && rm -rf CMakeFiles/
 
 cmake \
