@@ -14,7 +14,7 @@
 <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.je.dejpeg%22%2C%22url%22%3A%22https%3A%2F%2Fcodeberg.org%2Fdryerlint%2Fdejpeg%22%2C%22author%22%3A%22dryerlint%22%2C%22name%22%3A%22DeJPEG%22%2C%22preferredApkIndex%22%3A0%2C%22overrideSource%22%3A%22Codeberg%22%7D"><img src="fastlane/appassets/obtanium.png" width="220" alt="Obtainium config"></a>
 </div>
 
-this is not another "AI upscaler" but a compression artifact remover and denoiser using public models such as [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and [SCUNet](https://github.com/cszn/SCUNet)
+This is not another "AI upscaler" but a compression artifact remover and denoiser using public models such as [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and [SCUNet](https://github.com/cszn/SCUNet)
 
 ## features:
 - remove compression artifacts
@@ -32,10 +32,10 @@ check out [examples](examples/) to get an idea of what DeJPEG can be used for
 
 ## limitations:
 - processed locally, a fast device is recommended
-- no GIF, TIFF or RAW support
+- only standard image formats supported
 
-## other platforms
-please use [chaiNNer](https://github.com/chaiNNer-org/chaiNNer) which should work well with these models (regardless if PyTorch or ONNX)
+## desktop support
+[chaiNNer](https://github.com/chaiNNer-org/chaiNNer) is a cross-platform image/model utility, which should work well with these models
 
 for FBCNN, which chaiNNer does support but in a limited fashion, install [this custom node](chainner/) and use the [original PyTorch models](https://github.com/jiaxi-jiang/FBCNN/releases/latest), not the mobile onnx.
 
