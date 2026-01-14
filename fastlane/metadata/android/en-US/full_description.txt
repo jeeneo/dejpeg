@@ -1,5 +1,3 @@
-<p>De<i>JPEG</i> - an app for removing compression and noise from photos</p>
-
 <p>This is not another "AI upscaler" but a compression artifact remover and denoiser using open-source weights such as FBCNN and SCUNet</p>
 
 <h2>Features:</h2>
@@ -11,10 +9,10 @@
   <li>image descaling</li>
 </ul>
 
-<h2>Limitation:</h2>
+<h2>Limitations:</h2>
 <ul>
   <li>processed locally, a fast device is recommended</li>
-  <li>no GIF, TIFF or RAW support</li>
+  <li>only standard image formats supported</li>
 </ul>
 
 <p>(note: De<i>JPEG</i> is not affiliated with Topaz DEJPEG or any other similarly named software/project)</p>
