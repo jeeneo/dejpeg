@@ -32,7 +32,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.je.dejpeg.ExitActivity
 import com.je.dejpeg.R
 import com.je.dejpeg.compose.ui.components.RecoveryDialog
-import com.je.dejpeg.compose.ui.screens.BRISQUEScreen
+import com.je.dejpeg.compose.ui.BrisqueFeature
 import com.je.dejpeg.compose.ui.screens.BeforeAfterScreen
 import com.je.dejpeg.compose.ui.screens.ProcessingScreen
 import com.je.dejpeg.compose.ui.screens.SettingsScreen
@@ -216,7 +216,7 @@ fun MainScreen(
             }
             
             is AppScreen.Brisque -> {
-                BRISQUEScreen(
+                BrisqueFeature.Screen(
                     processingViewModel = viewModel,
                     imageId = (currentScreen as AppScreen.Brisque).imageId,
                     onBack = { goBack() }
