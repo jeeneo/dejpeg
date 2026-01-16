@@ -1,5 +1,3 @@
-// ./gradlew clean assembleRelease -PsignApk=true
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -15,19 +13,20 @@ android {
         applicationId = "com.je.dejpeg"
         minSdk = 24
         targetSdk = 36
+        buildConfigField("boolean", "BRISQUE_ENABLED", "true")
         // what is semantic versioning? libraries? you think i know? i just bump these numbers every now and then :(
         // it's the 3rd major release, with 3 minor updates, and this is the Nth(?) patch - random numbers fr
         // "adds features without breaking things" LOL i break things every update wha?
-        versionCode = 342
-        versionName = "3.4.2"
+        versionCode = 343
+        versionName = "3.4.3"
     }
     signingConfigs {
         if (project.hasProperty("signApk") && project.property("signApk") == "true") {
             create("release") {
-                storeFile = file(System.getenv("KEYSTORE_PATH") ?: "")
-                storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
-                keyAlias = System.getenv("KEYSTORE_ALIAS") ?: ""
-                keyPassword = System.getenv("KEY_PASSWORD") ?: ""
+                storeFile = file(project.findProperty("keystore.path")?.toString() ?: System.getenv("KEYSTORE_PATH")!!)
+                storePassword = project.findProperty("keystore.password")?.toString() ?: System.getenv("KEYSTORE_PASSWORD")!!
+                keyAlias = project.findProperty("keystore.alias")?.toString() ?: System.getenv("KEYSTORE_ALIAS")!!
+                keyPassword = project.findProperty("keystore.keyPassword")?.toString() ?: System.getenv("KEY_PASSWORD")!!
             }
         }
     }
@@ -61,18 +60,15 @@ android {
             }
             isUniversalApk = false
         }
-        applicationVariants.all {
-            outputs.all {
-                val output = this
-                val appName = "dejpeg"
-                val abiFilter = output.filters.find { it.filterType == com.android.build.api.variant.FilterConfiguration.FilterType.ABI.name }?.identifier
-                val variantName = name
-                val debugSuffix = if (variantName.contains("debug", ignoreCase = true)) "-debug" else ""
-                val apkName = if (abiFilter != null) "$appName-$abiFilter$debugSuffix.apk" else "$appName-universal$debugSuffix.apk"
-                if (output is com.android.build.gradle.internal.api.BaseVariantOutputImpl) {
-                    output.outputFileName = apkName
-                }
-            }
+    }
+    applicationVariants.all {
+        outputs.all {
+            val appName = "dejpeg"
+            val variant = this.name
+            val abiFilter = filters.find { it.filterType == "ABI" }?.identifier
+            val debugSuffix = if (variant.contains("debug", ignoreCase = true)) "-debug" else ""
+            val apkName = if (abiFilter != null) "$appName-$abiFilter$debugSuffix.apk" else "$appName$debugSuffix.apk"
+            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName = apkName
         }
     }
     compileOptions {
@@ -86,6 +82,20 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+    flavorDimensions += "variant"
+    productFlavors {
+        create("full") {
+            dimension = "variant"
+            applicationIdSuffix = ".opencv"
+            buildConfigField("boolean", "BRISQUE_ENABLED", "true")
+            versionNameSuffix = "-opencv"
+        }
+        create("lite") {
+            dimension = "variant"
+            buildConfigField("boolean", "BRISQUE_ENABLED", "false")
+        }
     }
     if (System.getenv("BUILD_BRISQUE_JNI") == "ON") {
         externalNativeBuild {
@@ -99,6 +109,14 @@ android {
     sourceSets {
         getByName("main") {
             jniLibs.srcDir("src/main/jniLibs")
+        }
+        getByName("full") {
+            java.srcDir("src/full/java")
+            jniLibs.srcDir("src/full/jniLibs")
+        }
+        getByName("lite") {
+            jniLibs.srcDir("src/lite/jniLibs")
+            java.srcDir("src/lite/java")
         }
     }
     packaging {
