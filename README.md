@@ -42,21 +42,23 @@ For FBCNN, which chaiNNer does support but in a limited fashion, install [this c
 <details>
 <summary><h3>building</h3></summary>
 
-A buildscript called `build.sh` exists to aid in building from scratch, use with no arguments to build using default configs (marked below by *)
+A buildscript called `build.sh` exists to aid in building from scratch, use with no arguments to build using defaults
 
 you can use additional arguments for changing the build:
 
-  `--abi`: following the ABI, can be any one of `arm64-v8a`*, `armeabi-v7a` `x86_64` `x86`
+  `--abi`: following the ABI, can be any one of `arm64-v8a`, `armeabi-v7a` `x86_64` `x86`
 
-  `--debug`*: build a debug variant
+  `--debug`: build a debug variant
 
   `--no-upx`: disables upx compression
 
   `--full`: builds with OpenCV for BRISQUE descaling
 
-  `--lite`*: builds without OpenCV for just onnx interference
+  `--lite`: builds without OpenCV for just onnx interference
 
   `--sign`: (internal) signs the output apk if it is a release provided you have correct keystores setup
+
+  `--no-cleanup`: (internal) will skip cleaning and reuse existing libraries
 
 </details>
 
@@ -73,6 +75,6 @@ You are welcome to embed parts of this app in your own project as long as it rem
 
   Credits to [@adrianerrea](https://github.com/adrianerrea/fromPytorchtoMobile) for a starting point, [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and [SCUNet](https://github.com/cszn/SCUNet) creators plus all other model owners.
 
-  De*JPEG* is not affiliated or related with Topaz `DEJPEG` or any other similarly named software/project. Although I've wondered if the term 'JPEG' is copyrighted/trademarked due to it literally being the acronym for Joint Photographic Experts Group, for this reason I might need to change the app's name if legal issues start to occur.
+  DeJPEG is not affiliated or related with Topaz `DEJPEG` or any other similarly named software/project. Although I've wondered if the term 'JPEG' is copyrighted/trademarked due to it literally being the acronym for Joint Photographic Experts Group, for this reason I might need to change the app's name if legal issues start to occur.
 
 </details>

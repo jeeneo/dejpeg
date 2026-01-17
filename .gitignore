@@ -13,3 +13,4 @@ apks
 .git-private
 opencv
 buildtemp
+app/src/*/jniLibs
