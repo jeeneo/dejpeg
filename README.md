@@ -42,23 +42,23 @@ For FBCNN, which chaiNNer does support but in a limited fashion, install [this c
 <details>
 <summary><h3>building</h3></summary>
 
-A buildscript called `build.sh` exists to aid in building from scratch, use with no arguments to build using defaults
+A buildscript called `build.sh` exists to aid in building from scratch, use with no arguments to build.
 
-you can use additional arguments for changing the build:
+You can use additional arguments overiding the defaults:
 
-  `--abi`: following the ABI, can be any one of `arm64-v8a`, `armeabi-v7a` `x86_64` `x86`
+  `--abi`: following the ABI, can be any one of `arm64-v8a`, `armeabi-v7a` `x86_64` `x86`, or `all`
 
   `--debug`: build a debug variant
 
   `--no-upx`: disables upx compression
 
-  `--full`: builds with OpenCV for BRISQUE descaling
-
-  `--lite`: builds without OpenCV for just onnx interference
-
   `--sign`: (internal) signs the output apk if it is a release provided you have correct keystores setup
 
+  `--full`: builds with OpenCV for BRISQUE descaling
+
   `--no-cleanup`: (internal) will skip cleaning and reuse existing libraries
+
+  `--skip-gradle` (internal) used when running from gradle wrapper or Android studio
 
 </details>
 
