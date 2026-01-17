@@ -153,7 +153,15 @@ tasks.register<Exec>("buildLibs") {
     description = "build native libraries"
     onlyIf { !project.hasProperty("skipBuildLibs") }
     val buildScript = file("${rootProject.rootDir}/build.sh")
-    commandLine("bash", buildScript.absolutePath, "--no-cleanup", "--skip-gradle", "--debug", "--no-upx")
+
+    // normal builds under gradle will build lite as per the defaults
+    // modify the command args to set the default behaviour for gradlew builds or run from ./build.sh directly
+    val isDebug = project.gradle.startParameter.taskNames.any { it.contains("debug", ignoreCase = true) }
+    if (isDebug) {
+        commandLine("bash", buildScript.absolutePath, "--no-upx", "--debug")
+    } else {
+        commandLine("bash", buildScript.absolutePath) // run without arguments since buildscript should have the defaults set for releases
+    }
 }
 
 tasks.register("cleandir") {
@@ -190,6 +198,7 @@ tasks.matching { it.name.startsWith("assemble") && it.name.contains("debug", ign
 
 tasks.matching { it.name.startsWith("assemble") && !it.name.contains("debug", ignoreCase = true) }.configureEach {
     dependsOn("cleandir")
+    dependsOn("buildLibs")
     if (project.hasProperty("signApk") && project.property("signApk") == "true") {
         finalizedBy("move")
     }
