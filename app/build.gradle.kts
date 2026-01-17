@@ -153,7 +153,7 @@ tasks.register<Exec>("buildLibs") {
     description = "build native libraries"
     onlyIf { !project.hasProperty("skipBuildLibs") }
     val buildScript = file("${rootProject.rootDir}/build.sh")
-    commandLine("bash", buildScript.absolutePath, "--no-cleanup", "--skip-gradle", "--debug", "--no-upx", "--full")
+    commandLine("bash", buildScript.absolutePath, "--no-cleanup", "--skip-gradle", "--debug", "--no-upx")
 }
 
 tasks.register("cleandir") {
