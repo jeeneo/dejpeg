@@ -96,7 +96,6 @@ fun RecoveryDialog(
             text = { 
                 Column {
                     Text(pluralStringResource(R.plurals.recover_images_message, count, count))
-                    
                     if (count <= 3) {
                         Spacer(modifier = Modifier.height(16.dp))
                         Row(
@@ -189,7 +188,6 @@ fun RecoveryDialog(
                     }
                     showDialog.value = false
                 }) { Text(recoverButtonText) } 
-
             }
         )
     }
