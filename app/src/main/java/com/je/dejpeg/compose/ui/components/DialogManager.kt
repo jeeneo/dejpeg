@@ -204,20 +204,31 @@ fun RemoveImageDialog(
 @Composable
 fun CancelProcessingDialog(imageFilename: String? = null, onDismissRequest: () -> Unit, onConfirm: () -> Unit) {
     val haptic = rememberHapticFeedback()
-    BaseDialog(
-        title = stringResource(R.string.stop_processing_title),
-        message = if (imageFilename != null) {
-            stringResource(R.string.stop_processing_question, imageFilename)
-        } else {
-            stringResource(R.string.stop_processing_all_question)
+    StyledAlertDialog(
+        onDismissRequest = onDismissRequest,
+        title = { Text(stringResource(R.string.stop_processing_title)) },
+        text = {
+            Text(
+                if (imageFilename != null) {
+                    stringResource(R.string.stop_processing_question, imageFilename)
+                } else {
+                    stringResource(R.string.stop_processing_all_question)
+                }
+            )
         },
-        onDismiss = onDismissRequest,
-        confirmButtonText = stringResource(R.string.yes_stop),
-        onConfirm = { onConfirm(); onDismissRequest() },
-        dismissButtonText = stringResource(R.string.nope),
-        onDismissButton = onDismissRequest,
-        onConfirmHaptic = { haptic.heavy() },
-        onDismissHaptic = { haptic.light() }
+        dismissButton = {
+            TextButton(onClick = { haptic.light(); onDismissRequest() }) {
+                Text(stringResource(R.string.nope))
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { haptic.heavy(); onConfirm(); onDismissRequest() },
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+            ) {
+                Text(stringResource(R.string.yes_stop))
+            }
+        }
     )
 }
 
