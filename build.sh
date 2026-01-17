@@ -5,7 +5,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 ###### user-configurable build params ######
 
 # below are the default build params (and other values)
-# abis: arm64-v8a, armeabi-v7a, x86_64, x86, all
+# abis: arm64-v8a, armeabi-v7a, x86_64, x86, or all
 TARGET_ABI="arm64-v8a"
 
 # build_type: debug, release (forced true for signing)
