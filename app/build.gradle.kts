@@ -148,6 +148,19 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
 }
 
+tasks.register("buildLibs") {
+    group = "build"
+    description = "build native libraries"
+    doFirst {
+        val buildScript = file("${rootProject.rootDir}/build.sh")
+        if (buildScript.exists()) {
+            project.exec {
+                commandLine("bash", buildScript.absolutePath, "--no-cleanup", "--debug", "--no-upx", "--full")
+            }
+        }
+    }
+}
+
 tasks.register("cleandir") {
     group = "build"
     description = "clean ./apks directory before build."
@@ -176,7 +189,11 @@ if (project.hasProperty("signApk") && project.property("signApk") == "true") {
     }
 }
 
-tasks.matching { it.name.startsWith("assemble") }.configureEach {
+tasks.matching { it.name.startsWith("assemble") && it.name.contains("debug", ignoreCase = true) }.configureEach {
+    dependsOn("buildLibs")
+}
+
+tasks.matching { it.name.startsWith("assemble") && !it.name.contains("debug", ignoreCase = true) }.configureEach {
     dependsOn("cleandir")
     if (project.hasProperty("signApk") && project.property("signApk") == "true") {
         finalizedBy("move")
