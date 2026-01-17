@@ -2,50 +2,82 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-###### user-configurable build params ######
-
-# below are the default build params (and other values)
+###### configurable build params ######
 # abis: arm64-v8a (default), armeabi-v7a, x86_64, x86, or all
 TARGET_ABI="arm64-v8a"
-
-# build_type: debug, release (forced true for signing, default is release)
+# build_type: debug, release (forced to release for signing)
 BUILD_TYPE="release"
-
-# upx: true/false (true by default, will attempt to download if not found in PATH)
+# upx: true/false (will attempt to download if not found in PATH)
 USE_UPX=true
-
-# build_variant: full, lite (lite by default)
-# full = opencv (brisque) + ONNX, lite = ONNX only
+# build_variant: full (opencv + ONNX), lite (ONNX only)
 BUILD_VARIANT="lite"
-
-# sign_apk: true/false (internal, for release builds only, false by default)
+# sign_apk: true/false (release builds only)
 SIGN_APK=false
-
-# no_clean: true/false (internal, will skip cleanup and reuse existing jniLibs if true, false by default)
-# user is expected to delete jniLibs manually
+# no_clean: skip cleanup and reuse existing jniLibs
 NO_CLEAN=false
+# skip_gradle: skip gradlew build, only build native libraries
+SKIP_GRADLE=false
 
-###### do not edit below this line ######
+###### constants - do not modify ######
 ALL_ABIS=(arm64-v8a armeabi-v7a x86_64 x86)
 UPX_URL="https://github.com/upx/upx/releases/download/v5.1.0/upx-5.1.0-amd64_linux.tar.xz"
 ONNX_MAVEN="https://repo1.maven.org/maven2/com/microsoft/onnxruntime/onnxruntime-android"
 BUILDTEMP="./buildtemp"
 UPX_BIN=""
+declare -A ABI_ARCH=([arm64-v8a]=aarch64-linux-android [armeabi-v7a]=arm-linux-androideabi [x86_64]=x86_64-linux-android [x86]=i686-linux-android)
+
+###### helper functions ######
+log() { echo -e "\033[0;34m[INFO]\033[0m $1"; }
+err() { echo -e "\033[0;31m[ERROR]\033[0m $1" >&2; exit 1; }
 
 cleanup() {
     if [[ -d app/src/main/jniLibs || -d app/src/full/jniLibs || -d app/src/lite/jniLibs ]]; then
-        log "deleting native libraries from source directory..."
+        log "deleting native libraries"
         rm -rf app/src/main/jniLibs app/src/full/jniLibs app/src/lite/jniLibs
     fi
     if [[ -d "opencv/build_android" ]]; then
-        log "deleting OpenCV"
+        log "deleting OpenCV build"
         rm -rf opencv/build_android
     fi
 }
 
-log() { echo -e "\033[0;34m[INFO]\033[0m $1"; }
-err() { echo -e "\033[0;31m[ERROR]\033[0m $1" >&2; exit 1; }
+compress_with_upx() {
+    local file=$1
+    if $USE_UPX && [[ -n "$UPX_BIN" ]] && [[ -f "$file" ]] && [[ "$BUILD_TYPE" == "release" ]]; then
+        chmod +x "$file"
+        "$UPX_BIN" --best --lzma --android-shlib "$file" 2>/dev/null || true
+    fi
+}
 
+process_existing_libs() {
+    log "processing existing libs for release (strip + compress)..."
+    for dir in app/src/main/jniLibs app/src/full/jniLibs app/src/lite/jniLibs; do
+        [[ ! -d "$dir" ]] && continue
+        find "$dir" -name "*.so" | while read -r lib; do
+            [[ -n "${STRIP:-}" ]] && "$STRIP" "$lib" 2>/dev/null || true
+            compress_with_upx "$lib"
+        done
+    done
+}
+
+validate_keystore() {
+    KEYSTORE_PATH="${KEYSTORE_PATH:-$(grep -oP 'keystore\.path=\K.*' local.properties 2>/dev/null || true)}"
+    KEYSTORE_PASSWORD="${KEYSTORE_PASSWORD:-$(grep -oP 'keystore\.password=\K.*' local.properties 2>/dev/null || true)}"
+    KEYSTORE_ALIAS="${KEYSTORE_ALIAS:-$(grep -oP 'keystore\.alias=\K.*' local.properties 2>/dev/null || true)}"
+    KEY_PASSWORD="${KEY_PASSWORD:-$(grep -oP 'keystore\.keyPassword=\K.*' local.properties 2>/dev/null || true)}"
+    
+    local required_vars=("KEYSTORE_PATH" "KEYSTORE_PASSWORD" "KEYSTORE_ALIAS" "KEY_PASSWORD")
+    for var in "${required_vars[@]}"; do
+        if [[ -z "${!var}" ]]; then
+            err "${var#KEYSTORE_} not set. Set via environment variable or keystore.${var@L} in local.properties"
+        fi
+    done
+    [[ ! -f "$KEYSTORE_PATH" ]] && err "Keystore file not found: $KEYSTORE_PATH"
+    
+    export KEYSTORE_PATH KEYSTORE_PASSWORD KEYSTORE_ALIAS KEY_PASSWORD
+}
+
+###### argument parsing ######
 while [[ $# -gt 0 ]]; do
     case $1 in
         --abi) TARGET_ABI="$2"; shift 2;;
@@ -53,85 +85,88 @@ while [[ $# -gt 0 ]]; do
         --no-upx) USE_UPX=false; shift;;
         --sign) SIGN_APK=true; BUILD_TYPE="release"; shift;;
         --full) BUILD_VARIANT="full"; shift;;
-        --lite) BUILD_VARIANT="lite"; shift;;
         --no-cleanup) NO_CLEAN=true; shift;;
-        --help) echo "Usage: $0 [--abi <abi|all>] [--debug] [--no-upx] [--sign] [--full] [--lite] [--no-cleanup]"; exit 0;;
+        --skip-gradle) SKIP_GRADLE=true; shift;;
+        --help) echo "Usage: $0 [--abi <abi|all>] [--debug] [--no-upx] [--sign] [--full] [--no-cleanup] [--skip-gradle]"; exit 0;;
         *) err "Unknown option: $1";;
     esac
 done
 
-# skip cleanup
-[[ "$NO_CLEAN" != "true" ]] && trap cleanup EXIT
+# validate arguments
+[[ "$TARGET_ABI" != "all" && ! " ${ALL_ABIS[*]} " =~ " $TARGET_ABI " ]] && err "Invalid ABI: $TARGET_ABI. Valid: ${ALL_ABIS[*]} or 'all'"
+[[ "$BUILD_VARIANT" != "full" && "$BUILD_VARIANT" != "lite" ]] && err "Invalid variant: $BUILD_VARIANT. Valid: full, lite"
+[[ "$SIGN_APK" == "true" && "$BUILD_TYPE" == "debug" ]] && { log "Ignoring --debug, signing requires release"; BUILD_TYPE="release"; }
 
-# check if jniLibs already exist when in no-cleanup mode
-if [[ "$NO_CLEAN" == "true" && ( -d "app/src/main/jniLibs" || -d "app/src/full/jniLibs" || -d "app/src/lite/jniLibs" ) ]]; then
-    log "libraries already exist"
-    exit 0
-fi
+###### environment setup ######
+mkdir -p "$BUILDTEMP"
 
-# force release if signing
-[[ "$SIGN_APK" == "true" && "$BUILD_TYPE" == "debug" ]] && { log "Ignoring --debug, signing requires a release"; BUILD_TYPE="release"; }
-
-# keystore validation
-if [[ "$SIGN_APK" == "true" ]]; then
-    KEYSTORE_PATH="${KEYSTORE_PATH:-$(grep -oP 'keystore\.path=\K.*' local.properties 2>/dev/null || true)}"
-    KEYSTORE_PASSWORD="${KEYSTORE_PASSWORD:-$(grep -oP 'keystore\.password=\K.*' local.properties 2>/dev/null || true)}"
-    KEYSTORE_ALIAS="${KEYSTORE_ALIAS:-$(grep -oP 'keystore\.alias=\K.*' local.properties 2>/dev/null || true)}"
-    KEY_PASSWORD="${KEY_PASSWORD:-$(grep -oP 'keystore\.keyPassword=\K.*' local.properties 2>/dev/null || true)}"
-    
-    [[ -z "$KEYSTORE_PATH" ]] && err "KEYSTORE_PATH not set. Set via environment variable or keystore.path in local.properties"
-    [[ ! -f "$KEYSTORE_PATH" ]] && err "Keystore file not found: $KEYSTORE_PATH"
-    [[ -z "$KEYSTORE_PASSWORD" ]] && err "KEYSTORE_PASSWORD not set. Set via environment variable or keystore.password in local.properties"
-    [[ -z "$KEYSTORE_ALIAS" ]] && err "KEYSTORE_ALIAS not set. Set via environment variable or keystore.alias in local.properties"
-    [[ -z "$KEY_PASSWORD" ]] && err "KEY_PASSWORD not set. Set via environment variable or keystore.keyPassword in local.properties"
-
-    export KEYSTORE_PATH KEYSTORE_PASSWORD KEYSTORE_ALIAS KEY_PASSWORD
-fi
-
-# grab NDK from local.properties or environment, prefer environment if both are set
+# SDK/NDK setup
 [[ -z "${ANDROID_SDK_ROOT:-}" ]] && ANDROID_SDK_ROOT=$(grep "sdk.dir" local.properties 2>/dev/null | cut -d= -f2 || true)
 [[ -z "$ANDROID_SDK_ROOT" || ! -d "$ANDROID_SDK_ROOT" ]] && err "Set ANDROID_SDK_ROOT"
 export ANDROID_SDK_ROOT ANDROID_HOME="$ANDROID_SDK_ROOT"
 
-if [[ "$BUILD_VARIANT" == "full" ]]; then
+if [[ "$BUILD_VARIANT" == "full" || "$BUILD_TYPE" == "release" ]]; then
     ANDROID_NDK_HOME="${ANDROID_NDK_HOME:-$(find "$ANDROID_SDK_ROOT/ndk" -maxdepth 1 -name "27.3.*" 2>/dev/null | head -1)}"
     [[ -z "$ANDROID_NDK_HOME" || ! -d "$ANDROID_NDK_HOME" ]] && err "NDK 27.3.x not found"
     export ANDROID_NDK_HOME
     STRIP="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip"
 fi
 
-# check and grab onnx aar
+# keystore validation
+[[ "$SIGN_APK" == "true" ]] && validate_keystore
+
+# ONNX version check
 ONNX_VER=$(grep -oP 'onnxruntimeAndroid\s*=\s*"\K[^"]+' gradle/libs.versions.toml 2>/dev/null || true)
 [[ -z "$ONNX_VER" ]] && { read -rp "ONNX Runtime version: " ONNX_VER; [[ -z "$ONNX_VER" ]] && err "Version required"; }
 
-# check if ONNX version changed and clean buildtemp if needed
-if [[ -f "$BUILDTEMP/.onnx_version" ]]; then
-    STORED_VER=$(cat "$BUILDTEMP/.onnx_version")
-    if [[ "$STORED_VER" != "$ONNX_VER" ]]; then
-        log "ONNX version changed ($STORED_VER -> $ONNX_VER), cleaning buildtemp"
-        rm -rf "$BUILDTEMP"
-    fi
-fi
-
-mkdir -p "$BUILDTEMP"
-echo "$ONNX_VER" > "$BUILDTEMP/.onnx_version"
-
-# check/download upx if needed
+# UPX setup (early, needed for process_existing_libs)
 if $USE_UPX; then
-    if command -v upx &>/dev/null; then UPX_BIN="upx"
+    if command -v upx &>/dev/null; then
+        UPX_BIN="upx"
+    elif [[ -x "$BUILDTEMP/upx-5.1.0-amd64_linux/upx" ]]; then
+        UPX_BIN="$BUILDTEMP/upx-5.1.0-amd64_linux/upx"
     else
         read -rp "UPX not found. Download? [Y/n]: " r
         if [[ "${r:-Y}" =~ ^[Yy]$ ]]; then
             curl -L "$UPX_URL" | tar -xJ -C "$BUILDTEMP" && UPX_BIN="$BUILDTEMP/upx-5.1.0-amd64_linux/upx"
-        else USE_UPX=false; fi
+        else
+            USE_UPX=false
+        fi
     fi
 fi
 
-# ABI helpers
-declare -A ABI_ARCH=([arm64-v8a]=aarch64-linux-android [armeabi-v7a]=arm-linux-androideabi [x86_64]=x86_64-linux-android [x86]=i686-linux-android)
+###### cache invalidation ######
+SKIP_LIB_BUILD=false
+BUILD_SIG="$TARGET_ABI|$BUILD_VARIANT|$ONNX_VER|$USE_UPX"
 
+if [[ -f "$BUILDTEMP/.build_sig" ]] && [[ "$(cat "$BUILDTEMP/.build_sig")" != "$BUILD_SIG" ]]; then
+    log "build config changed, cleaning"
+    rm -rf app/src/main/jniLibs app/src/full/jniLibs app/src/lite/jniLibs
+    rm -rf opencv/build_android
+    rm -f "$BUILDTEMP/.build_sig"
+fi
+echo "$BUILD_SIG" > "$BUILDTEMP/.build_sig"
+
+# handle cleanup mode
+if [[ "$NO_CLEAN" == "true" ]]; then
+    # check if libraries already exist
+    if [[ -d "app/src/main/jniLibs" || -d "app/src/full/jniLibs" || -d "app/src/lite/jniLibs" ]]; then
+        log "libraries already exist, skipping library build"
+        SKIP_LIB_BUILD=true
+    fi
+else
+    trap cleanup EXIT
+    cleanup
+fi
+
+# always process existing libs for release builds to ensure stripping + compression
+if [[ "$BUILD_TYPE" == "release" && "$SKIP_LIB_BUILD" == "true" ]]; then
+    process_existing_libs
+fi
+
+###### build functions ######
 build_opencv() {
-    if [[ -d "opencv/build_android" ]]; then
+    if [[ -d "opencv/build_android" && "$NO_CLEAN" != "true" ]]; then
         log "cleaning build_android"
         rm -rf opencv/build_android
     fi
@@ -143,8 +178,8 @@ build_opencv() {
     local cpu_baseline="" cpu_dispatch=""
     case "$abi" in
         arm64-v8a)
-            cpu_baseline="NEON"
-            cpu_dispatch="NEON_FP16"
+            cpu_baseline=""
+            cpu_dispatch=""
             ;;
         armeabi-v7a)
             cpu_baseline="NEON"
@@ -195,24 +230,27 @@ build_opencv() {
 setup_opencv_libs() {
     local abi=$1
     local dst="app/src/full/jniLibs/$abi"
-    mkdir -p "$dst"
-    
     build_opencv "$abi"
+    mkdir -p "$dst"
     cp opencv/build_android/lib/"$abi"/libopencv_{core,imgproc,ml,imgcodecs,quality}.so "$dst/"
     cp "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/${ABI_ARCH[$abi]}/libc++_shared.so" "$dst/" 2>/dev/null || true
     [[ "$NO_CLEAN" != "true" ]] && "$STRIP" "$dst"/libopencv_*.so
     
     # build BRISQUE JNI
-    rm -f "$dst/libbrisque_jni.so"
-    BUILD_BRISQUE_JNI=ON ./gradlew -PtargetAbi="$abi" :app:externalNativeBuildFullDebug
+    # rm -f "$dst/libbrisque_jni.so"
+    rm -rf "app/.cxx"
+
+    BUILD_BRISQUE_JNI=ON ./gradlew clean -PtargetAbi="$abi" :app:externalNativeBuildFullDebug
     find app/build -path "*/$abi/*" -name "libbrisque_jni.so" -exec cp {} "$dst/" \;
+
+    # strip and compress BRISQUE JNI library
+    [[ "$BUILD_TYPE" == "release" && -n "${STRIP:-}" ]] && "$STRIP" "$dst/libbrisque_jni.so" 2>/dev/null || true
+    compress_with_upx "$dst/libbrisque_jni.so"
     
-    # UPX compress OpenCV and BRISQUE JNI
-    if $USE_UPX && [[ -n "$UPX_BIN" ]]; then
-        for lib in "$dst"/libopencv_*.so "$dst/libbrisque_jni.so"; do
-            [[ -f "$lib" ]] && chmod +x "$lib" && "$UPX_BIN" --best --lzma --android-shlib "$lib" 2>/dev/null || true
-        done
-    fi
+    # compress OpenCV libraries
+    for lib in "$dst"/libopencv_*.so; do
+        compress_with_upx "$lib"
+    done
 }
 
 setup_onnx_runtime() {
@@ -228,10 +266,8 @@ setup_onnx_runtime() {
     fi
     cp "$tmp/jni/$abi/libonnxruntime.so" "$dst/"
     
-    # UPX compress ONNX
-    if $USE_UPX && [[ -n "$UPX_BIN" ]]; then
-        [[ -f "$dst/libonnxruntime.so" ]] && chmod +x "$dst/libonnxruntime.so" && "$UPX_BIN" --best --lzma --android-shlib "$dst/libonnxruntime.so" 2>/dev/null || true
-    fi
+    # compress ONNX library
+    compress_with_upx "$dst/libonnxruntime.so"
 
     log "ONNX $ONNX_VER set up for $abi under $dst"
 }
@@ -239,24 +275,31 @@ setup_onnx_runtime() {
 setup_libs() {
     local abi=$1
     setup_onnx_runtime "$abi"
-    if [[ "$BUILD_VARIANT" == "full" ]]; then
-        setup_opencv_libs "$abi"
-    fi
+    [[ "$BUILD_VARIANT" == "full" ]] && setup_opencv_libs "$abi"
 }
 
+###### main build process ######
 log "arch: $TARGET_ABI | compress: $USE_UPX | variant: $BUILD_VARIANT | build: $BUILD_TYPE | sign: $SIGN_APK"
 [[ -n "${ANDROID_NDK_HOME:-}" ]] && log "NDK: $ANDROID_NDK_HOME"
 
-abis=("${ALL_ABIS[@]}"); [[ "$TARGET_ABI" != "all" ]] && abis=("$TARGET_ABI")
-for abi in "${abis[@]}"; do log "processing $abi..."; setup_libs "$abi"; done
+# build native libraries
+if [[ "$SKIP_LIB_BUILD" != "true" ]]; then
+    abis=("${ALL_ABIS[@]}")
+    [[ "$TARGET_ABI" != "all" ]] && abis=("$TARGET_ABI")
+    for abi in "${abis[@]}"; do
+        log "processing $abi..."
+        setup_libs "$abi"
+    done
+fi
 
-# exit in no-cleanup mode
-if [[ "$NO_CLEAN" == "true" ]]; then
+# exit if skipping gradle build
+if [[ "$SKIP_GRADLE" == "true" ]]; then
     log "libraries built"
     exit 0
 fi
 
-gradle_args=(clean)
+# build APK
+gradle_args=(clean -PskipBuildLibs=true)
 variant_cap="${BUILD_VARIANT^}"
 if [[ "$BUILD_TYPE" == "release" ]]; then
     gradle_args+=("assemble${variant_cap}Release")
@@ -267,12 +310,12 @@ fi
 [[ "$TARGET_ABI" != "all" ]] && gradle_args+=(-PtargetAbi="$TARGET_ABI")
 ./gradlew "${gradle_args[@]}"
 
-if [[ "$SIGN_APK" == "true" ]]; then
-    unset KEYSTORE_PATH KEYSTORE_PASSWORD KEYSTORE_ALIAS KEY_PASSWORD
-fi
+# cleanup sensitive env vars
+[[ "$SIGN_APK" == "true" ]] && unset KEYSTORE_PATH KEYSTORE_PASSWORD KEYSTORE_ALIAS KEY_PASSWORD
 
+# output location
 if [[ "$SIGN_APK" == "true" ]]; then
     log "signed APK(s) built at apks/"
 else
-    log "unsigned APK(s) built at app/build/outputs/apk/"
+    log "APK(s) built at app/build/outputs/apk/"
 fi
