@@ -5,24 +5,27 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 ###### user-configurable build params ######
 
 # below are the default build params (and other values)
-# abis: arm64-v8a, armeabi-v7a, x86_64, x86, or all
+# abis: arm64-v8a (default), armeabi-v7a, x86_64, x86, or all
 TARGET_ABI="arm64-v8a"
 
-# build_type: debug, release (forced true for signing)
+# build_type: debug, release (forced true for signing, default is release)
 BUILD_TYPE="release"
 
 # upx: true/false (true by default, will attempt to download if not found in PATH)
 USE_UPX=true
 
-# build_variant: full, lite
+# build_variant: full, lite (lite by default)
 # full = opencv (brisque) + ONNX, lite = ONNX only
 BUILD_VARIANT="lite"
 
-# sign_apk: true/false (internal, for release builds only)
+# sign_apk: true/false (internal, for release builds only, false by default)
 SIGN_APK=false
 
-###### do not edit below this line ######
+# no_clean: true/false (internal, will skip cleanup and reuse existing jniLibs if true, false by default)
+# user is expected to delete jniLibs manually
+NO_CLEAN=false
 
+###### do not edit below this line ######
 ALL_ABIS=(arm64-v8a armeabi-v7a x86_64 x86)
 UPX_URL="https://github.com/upx/upx/releases/download/v5.1.0/upx-5.1.0-amd64_linux.tar.xz"
 ONNX_MAVEN="https://repo1.maven.org/maven2/com/microsoft/onnxruntime/onnxruntime-android"
@@ -31,15 +34,14 @@ UPX_BIN=""
 
 cleanup() {
     if [[ -d app/src/main/jniLibs || -d app/src/full/jniLibs || -d app/src/lite/jniLibs ]]; then
-        echo "deleting native libraries from source directory..."
+        log "deleting native libraries from source directory..."
         rm -rf app/src/main/jniLibs app/src/full/jniLibs app/src/lite/jniLibs
     fi
     if [[ -d "opencv/build_android" ]]; then
-        echo "deleting OpenCV"
+        log "deleting OpenCV"
         rm -rf opencv/build_android
     fi
 }
-trap cleanup EXIT
 
 log() { echo -e "\033[0;34m[INFO]\033[0m $1"; }
 err() { echo -e "\033[0;31m[ERROR]\033[0m $1" >&2; exit 1; }
@@ -52,10 +54,20 @@ while [[ $# -gt 0 ]]; do
         --sign) SIGN_APK=true; BUILD_TYPE="release"; shift;;
         --full) BUILD_VARIANT="full"; shift;;
         --lite) BUILD_VARIANT="lite"; shift;;
-        --help) echo "Usage: $0 [--abi <abi|all>] [--debug] [--no-upx] [--sign] [--full] [--lite]"; exit 0;;
+        --no-cleanup) NO_CLEAN=true; shift;;
+        --help) echo "Usage: $0 [--abi <abi|all>] [--debug] [--no-upx] [--sign] [--full] [--lite] [--no-cleanup]"; exit 0;;
         *) err "Unknown option: $1";;
     esac
 done
+
+# skip cleanup
+[[ "$NO_CLEAN" != "true" ]] && trap cleanup EXIT
+
+# check if jniLibs already exist when in no-cleanup mode
+if [[ "$NO_CLEAN" == "true" && ( -d "app/src/main/jniLibs" || -d "app/src/full/jniLibs" || -d "app/src/lite/jniLibs" ) ]]; then
+    log "libraries already exist"
+    exit 0
+fi
 
 # force release if signing
 [[ "$SIGN_APK" == "true" && "$BUILD_TYPE" == "debug" ]] && { log "Ignoring --debug, signing requires a release"; BUILD_TYPE="release"; }
@@ -126,6 +138,28 @@ build_opencv() {
     local abi=$1
     [[ ! -d opencv/opencv ]] && { mkdir -p opencv && git -C opencv clone https://github.com/opencv/opencv.git; }
     [[ ! -d opencv/opencv_contrib ]] && git -C opencv clone https://github.com/opencv/opencv_contrib.git
+    
+    # CPU optimization
+    local cpu_baseline="" cpu_dispatch=""
+    case "$abi" in
+        arm64-v8a)
+            cpu_baseline="NEON"
+            cpu_dispatch="NEON_FP16"
+            ;;
+        armeabi-v7a)
+            cpu_baseline="NEON"
+            cpu_dispatch=""
+            ;;
+        x86_64)
+            cpu_baseline="SSE3"
+            cpu_dispatch="SSE4_2,AVX,AVX2"
+            ;;
+        x86)
+            cpu_baseline="SSE2"
+            cpu_dispatch="SSE4_2,AVX"
+            ;;
+    esac
+
     mkdir -p opencv/build_android && cd opencv/build_android
     rm -rf CMakeCache.txt CMakeFiles/
     cmake -Wno-deprecated -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake" \
@@ -137,6 +171,8 @@ build_opencv() {
         -DCMAKE_SHARED_LINKER_FLAGS="-Wl,--gc-sections -Wl,-z,max-page-size=16384" \
         -DOPENCV_EXTRA_MODULES_PATH=../opencv_contrib/modules -DBUILD_SHARED_LIBS=ON \
         -DBUILD_LIST=core,imgproc,imgcodecs,ml,quality \
+        -DCPU_BASELINE="$cpu_baseline" \
+        ${cpu_dispatch:+-DCPU_DISPATCH="$cpu_dispatch"} \
         -DBUILD_TESTS=OFF -DBUILD_PERF_TESTS=OFF -DBUILD_ANDROID_EXAMPLES=OFF -DBUILD_DOCS=OFF -DBUILD_opencv_java=OFF \
         -DBUILD_opencv_python2=OFF -DBUILD_opencv_python3=OFF -DBUILD_opencv_apps=OFF \
         -DBUILD_EXAMPLES=OFF -DBUILD_PACKAGE=OFF -DBUILD_FAT_JAVA_LIB=OFF \
@@ -164,7 +200,7 @@ setup_opencv_libs() {
     build_opencv "$abi"
     cp opencv/build_android/lib/"$abi"/libopencv_{core,imgproc,ml,imgcodecs,quality}.so "$dst/"
     cp "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/${ABI_ARCH[$abi]}/libc++_shared.so" "$dst/" 2>/dev/null || true
-    "$STRIP" "$dst"/libopencv_*.so
+    [[ "$NO_CLEAN" != "true" ]] && "$STRIP" "$dst"/libopencv_*.so
     
     # build BRISQUE JNI
     rm -f "$dst/libbrisque_jni.so"
@@ -196,6 +232,8 @@ setup_onnx_runtime() {
     if $USE_UPX && [[ -n "$UPX_BIN" ]]; then
         [[ -f "$dst/libonnxruntime.so" ]] && chmod +x "$dst/libonnxruntime.so" && "$UPX_BIN" --best --lzma --android-shlib "$dst/libonnxruntime.so" 2>/dev/null || true
     fi
+
+    log "ONNX $ONNX_VER set up for $abi under $dst"
 }
 
 setup_libs() {
@@ -210,7 +248,13 @@ log "arch: $TARGET_ABI | compress: $USE_UPX | variant: $BUILD_VARIANT | build: $
 [[ -n "${ANDROID_NDK_HOME:-}" ]] && log "NDK: $ANDROID_NDK_HOME"
 
 abis=("${ALL_ABIS[@]}"); [[ "$TARGET_ABI" != "all" ]] && abis=("$TARGET_ABI")
-for abi in "${abis[@]}"; do log "Processing $abi..."; setup_libs "$abi"; done
+for abi in "${abis[@]}"; do log "processing $abi..."; setup_libs "$abi"; done
+
+# exit in no-cleanup mode
+if [[ "$NO_CLEAN" == "true" ]]; then
+    log "libraries built"
+    exit 0
+fi
 
 gradle_args=(clean)
 variant_cap="${BUILD_VARIANT^}"
