@@ -14,9 +14,9 @@ BUILD_VARIANT="lite"
 # sign_apk: true/false (release builds only)
 SIGN_APK=false
 # no_clean: skip cleanup and reuse existing jniLibs
-NO_CLEAN=false
+NO_CLEAN=true
 # skip_gradle: skip gradlew build, only build native libraries
-SKIP_GRADLE=false
+SKIP_GRADLE=true
 
 ###### constants - do not edit ######
 ALL_ABIS=(arm64-v8a armeabi-v7a x86_64 x86)
@@ -42,6 +42,7 @@ require() {
 get_prop() { grep -oP "$1=\\K.*" local.properties 2>/dev/null || true; }
 
 cleanup() {
+    log "cleaning build artifacts"
     rm -rf "$JNILIBS_ONNX" "$JNILIBS_BRISQUE" opencv/build_android_* 2>/dev/null || true
 }
 
@@ -55,8 +56,9 @@ compress_lib() {
 process_libs() {
     local search_path="$JNILIBS_ONNX"
     [[ "$BUILD_VARIANT" == "full" ]] && search_path="$JNILIBS_BRISQUE"
-    log "stripping/compressing libs in $search_path"
-    find "$search_path" -name "*.so" 2>/dev/null | while read -r lib; do compress_lib "$lib"; done
+    [[ ! -d "$search_path" ]] && { log "skipping lib processing: $search_path not found"; return 0; }
+    log "processing libs in $search_path"
+    find "$search_path" -name "*.so" 2>/dev/null | while read -r lib; do compress_lib "$lib"; done || true
 }
 
 validate_keystore() {
@@ -85,7 +87,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-[[ "$TARGET_ABI" != "all" && ! " ${ALL_ABIS[*]} " =~ " $TARGET_ABI " ]] && err "invalidd ABI: $TARGET_ABI"
+[[ "$TARGET_ABI" != "all" && ! " ${ALL_ABIS[*]} " =~ " $TARGET_ABI " ]] && err "invalid ABI: $TARGET_ABI"
 [[ "$SIGN_APK" == "true" ]] && BUILD_TYPE="release"
 
 ###### environment setup ######
@@ -174,22 +176,6 @@ build_opencv() {
     cd ../..
 }
 
-setup_opencv_libs() {
-    local abi=$1 build_dir="opencv/build_android_$abi" dst="$JNILIBS_BRISQUE/$abi"
-    build_opencv "$abi"
-    mkdir -p "$dst"
-    for lib in core imgproc ml imgcodecs quality; do
-        local src="$build_dir/lib/$abi/libopencv_$lib.so"
-        require f "$src" "OpenCV build failed: libopencv_$lib.so missing"
-        cp "$src" "$dst/"
-    done
-    cp "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/${ABI_ARCH[$abi]}/libc++_shared.so" "$dst/" 2>/dev/null || true
-    
-    BUILD_BRISQUE_JNI=ON ./gradlew clean -PtargetAbi="$abi" :app:externalNativeBuildFullDebug || err "BRISQUE JNI build failed"
-    find app/build -path "*/$abi/*" -name "libbrisque_jni.so" -exec cp {} "$dst/" \;
-    require f "$dst/libbrisque_jni.so" "BRISQUE JNI not found for $abi"
-}
-
 setup_onnx_runtime() {
     local abi=$1 dst="$JNILIBS_ONNX/$abi" tmp="$BUILDTEMP/onnx_$abi"
     local lib="$tmp/jni/$abi/libonnxruntime.so"
@@ -202,6 +188,22 @@ setup_onnx_runtime() {
     fi
     require f "$lib" "ONNX library missing for $abi"
     cp "$lib" "$dst/" && log "ONNX $ONNX_VER ready for $abi"
+}
+
+setup_opencv_libs() {
+    local abi=$1 build_dir="opencv/build_android_$abi" dst="$JNILIBS_BRISQUE/$abi"
+    build_opencv "$abi"
+    mkdir -p "$dst"
+    for lib in core imgproc ml imgcodecs quality; do
+        local src="$build_dir/lib/$abi/libopencv_$lib.so"
+        require f "$src" "OpenCV build failed: libopencv_$lib.so missing"
+        cp "$src" "$dst/"
+    done
+    cp "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/${ABI_ARCH[$abi]}/libc++_shared.so" "$dst/" 2>/dev/null || true
+    log "building brisque_jni for $abi"
+    BUILD_BRISQUE_JNI=ON ./gradlew clean -PtargetAbi="$abi" :app:externalNativeBuildFullDebug || err "BRISQUE JNI build failed"
+    find app/build -path "*/$abi/*" -name "libbrisque_jni.so" -exec cp {} "$dst/" \;
+    require f "$dst/libbrisque_jni.so" "BRISQUE JNI not found for $abi"
 }
 
 ###### main build ######
@@ -217,12 +219,13 @@ if [[ "$SKIP_LIB_BUILD" != "true" ]]; then
     [[ "$BUILD_TYPE" == "release" ]] && process_libs
 fi
 
-[[ "$SKIP_GRADLE" == "true" ]] && { log "libs ready"; exit 0; }
+[[ "$SKIP_GRADLE" == "true" ]] && { log "prebuild complete"; exit 0; }
 
 # gradle build
 gradle_args=(clean -PskipBuildLibs=true "assemble${BUILD_VARIANT^}${BUILD_TYPE^}")
 [[ "$SIGN_APK" == "true" ]] && gradle_args+=(-PsignApk=true)
 [[ "$TARGET_ABI" != "all" ]] && gradle_args+=(-PtargetAbi="$TARGET_ABI")
+[[ "$BUILD_TYPE" == "release" ]] && gradle_args+=(--no-daemon) # disable daemon for release since we wont have repeated builds
 ./gradlew "${gradle_args[@]}"
 
 [[ "$SIGN_APK" == "true" ]] && unset KEYSTORE_PATH KEYSTORE_PASSWORD KEYSTORE_ALIAS KEY_PASSWORD
