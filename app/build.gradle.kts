@@ -148,17 +148,12 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
 }
 
-tasks.register("buildLibs") {
+tasks.register<Exec>("buildLibs") {
     group = "build"
     description = "build native libraries"
-    doFirst {
-        val buildScript = file("${rootProject.rootDir}/build.sh")
-        if (buildScript.exists()) {
-            project.exec {
-                commandLine("bash", buildScript.absolutePath, "--no-cleanup", "--debug", "--no-upx", "--full")
-            }
-        }
-    }
+    onlyIf { !project.hasProperty("skipBuildLibs") }
+    val buildScript = file("${rootProject.rootDir}/build.sh")
+    commandLine("bash", buildScript.absolutePath, "--no-cleanup", "--skip-gradle", "--debug", "--no-upx", "--full")
 }
 
 tasks.register("cleandir") {
