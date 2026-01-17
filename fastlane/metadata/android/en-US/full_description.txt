@@ -6,7 +6,6 @@
   <li>denoise</li>
   <li>before/after view</li>
   <li>fully offline</li>
-  <li>image descaling</li>
 </ul>
 
 <h2>Limitations:</h2>

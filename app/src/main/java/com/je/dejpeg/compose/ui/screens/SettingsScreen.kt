@@ -22,6 +22,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -42,6 +43,7 @@ import com.je.dejpeg.compose.utils.rememberHapticFeedback
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.runBlocking
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,7 +60,9 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
     var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
     val chunkSize by viewModel.chunkSize.collectAsState()
     val overlapSize by viewModel.overlapSize.collectAsState()
-    var activeModelName by remember { mutableStateOf<String?>(null) }
+    var activeModelName by remember { 
+        mutableStateOf(runBlocking { viewModel.getActiveModelName() })
+    }
     var pendingModelSelection by remember { mutableStateOf<String?>(null) }
     var warningState by remember { mutableStateOf<ModelWarningState?>(null) }
     val skipSaveDialog by appPreferences.skipSaveDialog.collectAsState(initial = false)
@@ -76,8 +80,8 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
         }
     }
 
-    LaunchedEffect(installedModels) { 
-        activeModelName = withContext(Dispatchers.IO) { viewModel.getActiveModelName() } 
+    LaunchedEffect(installedModels) {
+        activeModelName = withContext(Dispatchers.IO) { viewModel.getActiveModelName() }
     }
 
     val modelPickerLauncher = rememberLauncherForActivityResult(
@@ -135,59 +139,66 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
                 .background(MaterialTheme.colorScheme.background)
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
+                .padding(top = 8.dp, bottom = 16.dp)
         ) {
-            Spacer(modifier = Modifier.height(20.dp))
+            PreferenceGroupHeading(stringResource(R.string.processing))
 
-            SettingsSectionCard(stringResource(R.string.processing)) {
-                ModernSettingsItem(
+            PreferenceGroupCard {
+                PreferenceItemWithDivider(
                     icon = painterResource(id = R.drawable.ic_model),
                     iconBackgroundColor = MaterialTheme.colorScheme.surfaceVariant,
                     iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                     title = stringResource(R.string.model_management, ""),
                     subtitle = activeModelName ?: stringResource(R.string.no_model_loaded),
-                    ellipsizeSubtitle = true
-                ) { dialogState = DialogState.Model }
+                    ellipsizeSubtitle = true,
+                    showDivider = true,
+                    onClick = { dialogState = DialogState.Model }
+                )
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                ModernSettingsItem(
+                PreferenceItem(
                     icon = Icons.Filled.GridOn,
                     iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
                     iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
                     title = stringResource(R.string.chunk_settings),
                     subtitle = stringResource(R.string.chunk_size_px, chunkSize) + " • " + 
-                              stringResource(R.string.overlap_size_px, overlapSize)
-                ) { dialogState = DialogState.Chunk }
+                              stringResource(R.string.overlap_size_px, overlapSize),
+                    onClick = { dialogState = DialogState.Chunk }
+                )
             }
 
-            SettingsSectionCard(stringResource(R.string.app)) {
-                ModernSettingsItem(
+            Spacer(modifier = Modifier.height(8.dp))
+
+            PreferenceGroupHeading(stringResource(R.string.app))
+
+            PreferenceGroupCard {
+                PreferenceItemWithDivider(
                     icon = Icons.Filled.Settings,
                     iconBackgroundColor = MaterialTheme.colorScheme.surfaceVariant,
                     iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                     title = stringResource(R.string.preferences),
-                    subtitle = stringResource(R.string.preferences_desc)
-                ) { dialogState = DialogState.Preferences }
+                    subtitle = stringResource(R.string.preferences_desc),
+                    showDivider = true,
+                    onClick = { dialogState = DialogState.Preferences }
+                )
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                ModernSettingsItem(
+                PreferenceItemWithDivider(
                     icon = Icons.Filled.QuestionAnswer,
                     iconBackgroundColor = MaterialTheme.colorScheme.primaryContainer,
                     iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
                     title = stringResource(R.string.faqs),
-                    subtitle = stringResource(R.string.show_frequently_asked_questions)
-                ) { dialogState = DialogState.FAQ }
+                    subtitle = stringResource(R.string.show_frequently_asked_questions),
+                    showDivider = true,
+                    onClick = { dialogState = DialogState.FAQ }
+                )
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                ModernSettingsItem(
+                PreferenceItem(
                     icon = Icons.Filled.Info,
                     iconBackgroundColor = MaterialTheme.colorScheme.primaryContainer,
                     iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
                     title = stringResource(R.string.about),
-                    subtitle = stringResource(R.string.version_info_and_credits)
-                ) { dialogState = DialogState.About }
+                    subtitle = stringResource(R.string.version_info_and_credits),
+                    onClick = { dialogState = DialogState.About }
+                )
             }
 
             Spacer(modifier = Modifier.height(96.dp))
@@ -393,23 +404,41 @@ sealed class ModelWarningState {
 }
 
 @Composable
-fun SettingsSectionCard(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Column(modifier = Modifier
-        .fillMaxWidth()
-        .padding(horizontal = 16.dp, vertical = 8.dp)) {
+fun PreferenceGroupHeading(title: String, modifier: Modifier = Modifier) {
+    Column(
+        verticalArrangement = Arrangement.Center,
+        modifier = modifier
+            .height(48.dp)
+            .padding(horizontal = 32.dp)
+            .fillMaxWidth()
+    ) {
         Text(
-            title,
+            text = title,
             style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 12.dp)
+            fontWeight = FontWeight.Bold
         )
-        content()
     }
 }
 
 @Composable
-fun ModernSettingsItem(
+fun PreferenceGroupCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = MaterialTheme.shapes.large,
+        tonalElevation = 1.dp,
+        color = MaterialTheme.colorScheme.surface
+    ) {
+        Column {
+            content()
+        }
+    }
+}
+
+@Composable
+fun PreferenceItem(
     icon: Any,
     iconBackgroundColor: Color,
     iconTint: Color,
@@ -422,93 +451,90 @@ fun ModernSettingsItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .clickable { 
+            .clickable {
                 haptic.light()
-                onClick() 
+                onClick()
             }
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 16.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(iconBackgroundColor, RoundedCornerShape(14.dp))
-            ) {
-                when (icon) {
-                    is ImageVector -> Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = iconTint,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    is Painter -> Icon(
-                        painter = icon,
-                        contentDescription = null,
-                        tint = iconTint,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(48.dp)
+                .background(iconBackgroundColor, RoundedCornerShape(14.dp))
+        ) {
+            when (icon) {
+                is ImageVector -> Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(24.dp)
                 )
-                Spacer(modifier = Modifier.height(3.dp))
-                Text(
-                    subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = if (ellipsizeSubtitle) 1 else Int.MAX_VALUE,
-                    overflow = if (ellipsizeSubtitle) androidx.compose.ui.text.style.TextOverflow.Ellipsis else androidx.compose.ui.text.style.TextOverflow.Clip
+                is Painter -> Icon(
+                    painter = icon,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(24.dp)
                 )
             }
-            Icon(
-                Icons.Filled.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                modifier = Modifier.size(24.dp)
-            )
         }
-    }
 
-@Composable
-fun SettingsItem(title: String, subtitle: String, onClick: () -> Unit) {
-    val haptic = rememberHapticFeedback()
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .clickable { haptic.light(); onClick() }
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+        Spacer(modifier = Modifier.width(16.dp))
+        
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(3.dp))
             Text(
                 subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = if (ellipsizeSubtitle) 1 else Int.MAX_VALUE,
+                overflow = if (ellipsizeSubtitle) androidx.compose.ui.text.style.TextOverflow.Ellipsis else androidx.compose.ui.text.style.TextOverflow.Clip
             )
         }
+
         Icon(
             Icons.Filled.ChevronRight,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(18.dp)
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            modifier = Modifier.size(24.dp)
         )
+    }
+}
+
+@Composable
+fun PreferenceItemWithDivider(
+    icon: Any,
+    iconBackgroundColor: Color,
+    iconTint: Color,
+    title: String,
+    subtitle: String,
+    ellipsizeSubtitle: Boolean = false,
+    showDivider: Boolean = true,
+    onClick: () -> Unit
+) {
+    Column {
+        PreferenceItem(
+            icon = icon,
+            iconBackgroundColor = iconBackgroundColor,
+            iconTint = iconTint,
+            title = title,
+            subtitle = subtitle,
+            ellipsizeSubtitle = ellipsizeSubtitle,
+            onClick = onClick
+        )
+        if (showDivider) {
+            HorizontalDivider(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .fillMaxWidth(), thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant
+            )
+        }
     }
 }
