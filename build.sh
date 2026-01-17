@@ -50,7 +50,7 @@ compress_with_upx() {
 }
 
 process_existing_libs() {
-    log "processing existing libs for release (strip + compress)..."
+    log "processing existing libs for release"
     for dir in app/src/main/jniLibs app/src/full/jniLibs app/src/lite/jniLibs; do
         [[ ! -d "$dir" ]] && continue
         find "$dir" -name "*.so" | while read -r lib; do
@@ -159,9 +159,11 @@ else
     cleanup
 fi
 
-# always process existing libs for release builds to ensure stripping + compression
-if [[ "$BUILD_TYPE" == "release" && "$SKIP_LIB_BUILD" == "true" ]]; then
-    process_existing_libs
+# always process existing libs for release
+if [[ "$BUILD_TYPE" == "release" ]]; then
+    if [[ -d "app/src/main/jniLibs" || -d "app/src/full/jniLibs" || -d "app/src/lite/jniLibs" ]]; then
+        process_existing_libs
+    fi
 fi
 
 ###### build functions ######
