@@ -42,8 +42,11 @@ For FBCNN, which chaiNNer does support but in a limited fashion, install [this c
 <details>
 <summary><h3>building</h3></summary>
 
-A buildscript called `build.sh` exists to aid in building from scratch, use with no arguments to build.
+requirements: standard gradle build process under a normal amd64 linux distro
 
+optional: android NDK
+
+A buildscript called `build.sh` exists to aid in building, use with no arguments to build.
 You can use additional arguments overiding the defaults:
 
   `--abi`: following the ABI, can be any one of `arm64-v8a`, `armeabi-v7a` `x86_64` `x86`, or `all`
@@ -58,8 +61,7 @@ You can use additional arguments overiding the defaults:
 
   `--no-cleanup`: (internal) will skip cleaning and reuse existing libraries
 
-  `--skip-gradle` (internal) used when running from gradle wrapper or Android studio
-
+  `--skip-gradle`: (internal) used when running from gradle wrapper or Android studio
 </details>
 
 <details>
@@ -76,5 +78,4 @@ You are welcome to embed parts of this app in your own project as long as it rem
   Credits to [@adrianerrea](https://github.com/adrianerrea/fromPytorchtoMobile) for a starting point, [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and [SCUNet](https://github.com/cszn/SCUNet) creators plus all other model owners.
 
   DeJPEG is not affiliated or related with Topaz `DEJPEG` or any other similarly named software/project. Although I've wondered if the term 'JPEG' is copyrighted/trademarked due to it literally being the acronym for Joint Photographic Experts Group, for this reason I might need to change the app's name if legal issues start to occur.
-
 </details>
