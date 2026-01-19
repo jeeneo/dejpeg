@@ -61,6 +61,7 @@ cleanup() {
 compress_lib() {
     local f=$1
     [[ "$BUILD_TYPE" != "release" || ! -f "$f" ]] && return 0
+    [[ "$(basename "$f")" == "libc++_shared.so" ]] && return 0
     [[ -n "${STRIP:-}" ]] && "$STRIP" "$f" 2>/dev/null || true
     $USE_UPX && [[ -n "$UPX_BIN" ]] && { chmod +x "$f"; "$UPX_BIN" --best --lzma --android-shlib "$f" 2>/dev/null || true; }
 }
@@ -160,8 +161,6 @@ if [[ "$NO_CLEAN" == "true" ]]; then
     else
         log "incomplete libs found, rebuilding"
     fi
-else
-    trap cleanup EXIT; cleanup
 fi
 
 ###### build functions ######
