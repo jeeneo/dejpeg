@@ -3,19 +3,28 @@ set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
 ###### configurable build params ######
-# abis: arm64-v8a (default), armeabi-v7a, x86_64, x86, or all
+
+# abis: arm64-v8a, armeabi-v7a, x86_64, x86, or all
 TARGET_ABI="arm64-v8a"
-# build_type: debug, release (forced to release for signing)
+
+# build_type: debug, release
 BUILD_TYPE="release"
+
 # upx: true/false (will attempt to download if not found in PATH)
 USE_UPX=true
+
 # build_variant: full (opencv + ONNX), lite (ONNX only)
 BUILD_VARIANT="lite"
+
 # sign_apk: true/false (release builds only)
 SIGN_APK=false
+
 # no_clean: skip cleanup and reuse existing jniLibs
-NO_CLEAN=true
+# required when compiling from gradle since it will expect the libs to be there
+NO_CLEAN=false
+
 # skip_gradle: skip gradlew build, only build native libraries
+# useful for when running *from* gradle so that this script doesn't call it
 SKIP_GRADLE=true
 
 ###### constants - do not edit ######
@@ -89,6 +98,7 @@ done
 
 [[ "$TARGET_ABI" != "all" && ! " ${ALL_ABIS[*]} " =~ " $TARGET_ABI " ]] && err "invalid ABI: $TARGET_ABI"
 [[ "$SIGN_APK" == "true" ]] && BUILD_TYPE="release"
+[[ "$SKIP_GRADLE" == "true" ]] && NO_CLEAN=true
 
 ###### environment setup ######
 mkdir -p "$BUILDTEMP"
@@ -181,7 +191,7 @@ setup_onnx_runtime() {
     local lib="$tmp/jni/$abi/libonnxruntime.so"
     mkdir -p "$dst"
     if [[ ! -f "$lib" ]]; then
-        mkdir -p "$tmp"; log "Downloading ONNX Runtime $ONNX_VER for $abi..."
+        mkdir -p "$tmp"; log "Downloading ONNX Runtime $ONNX_VER for $abi"
         curl -sL "https://repo1.maven.org/maven2/com/microsoft/onnxruntime/onnxruntime-android/$ONNX_VER/onnxruntime-android-$ONNX_VER.aar" -o "$tmp/onnx.aar" \
             || err "ONNX download failed"
         unzip -q "$tmp/onnx.aar" -d "$tmp" || err "ONNX extraction failed"
