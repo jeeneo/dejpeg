@@ -25,7 +25,7 @@ NO_CLEAN=false
 
 # skip_gradle: skip gradlew build, only build native libraries
 # useful for when running *from* gradle so that this script doesn't call it
-SKIP_GRADLE=true
+SKIP_GRADLE=false
 
 ###### constants - do not edit ######
 ALL_ABIS=(arm64-v8a armeabi-v7a x86_64 x86)
@@ -51,6 +51,9 @@ require() {
 get_prop() { grep -oP "$1=\\K.*" local.properties 2>/dev/null || true; }
 
 cleanup() {
+    if [[ "$NO_CLEAN" == "true" ]]; then
+        return
+    fi
     log "cleaning build artifacts"
     rm -rf "$JNILIBS_ONNX" "$JNILIBS_BRISQUE" opencv/build_android_* 2>/dev/null || true
 }
@@ -63,11 +66,13 @@ compress_lib() {
 }
 
 process_libs() {
-    local search_path="$JNILIBS_ONNX"
-    [[ "$BUILD_VARIANT" == "full" ]] && search_path="$JNILIBS_BRISQUE"
-    [[ ! -d "$search_path" ]] && { log "skipping lib processing: $search_path not found"; return 0; }
-    log "processing libs in $search_path"
-    find "$search_path" -name "*.so" 2>/dev/null | while read -r lib; do compress_lib "$lib"; done || true
+    local search_paths=("$JNILIBS_ONNX")
+    [[ "$BUILD_VARIANT" == "full" ]] && search_paths+=("$JNILIBS_BRISQUE")
+    for search_path in "${search_paths[@]}"; do
+        [[ ! -d "$search_path" ]] && { log "skipping lib processing: $search_path not found"; continue; }
+        log "processing libs in $search_path"
+        find "$search_path" -name "*.so" 2>/dev/null | while read -r lib; do compress_lib "$lib"; done || true
+    done
 }
 
 validate_keystore() {
@@ -142,15 +147,20 @@ fi
 echo "$BUILD_SIG" > "$BUILDTEMP/.build_sig"
 
 # check existing libs
-variant_lib="$JNILIBS_ONNX"
-[[ "$BUILD_VARIANT" == "full" ]] && variant_lib="$JNILIBS_BRISQUE"
-if [[ "$NO_CLEAN" == "true" && -d "$variant_lib" ]]; then
-    if ls "$variant_lib"/*/libonnxruntime.so &>/dev/null; then
+if [[ "$NO_CLEAN" == "true" ]]; then
+    libs_exist=true
+    if ! ls "$JNILIBS_ONNX"/*/libonnxruntime.so &>/dev/null 2>&1; then
+        libs_exist=false
+    fi
+    if [[ "$BUILD_VARIANT" == "full" ]] && ! ls "$JNILIBS_BRISQUE"/*/libopencv_core.so &>/dev/null 2>&1; then
+        libs_exist=false
+    fi
+    if [[ "$libs_exist" == "true" ]]; then
         log "reusing existing $BUILD_VARIANT libs"; SKIP_LIB_BUILD=true
     else
         log "incomplete libs found, rebuilding"
     fi
-elif [[ "$NO_CLEAN" != "true" ]]; then
+else
     trap cleanup EXIT; cleanup
 fi
 
