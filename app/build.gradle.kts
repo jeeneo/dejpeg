@@ -160,7 +160,7 @@ tasks.register<Exec>("buildLibs") {
     if (isDebug) {
         commandLine("bash", buildScript.absolutePath, "--no-upx", "--debug")
     } else {
-        commandLine("bash", buildScript.absolutePath) // run without arguments since buildscript should have the defaults set for releases
+        commandLine("bash", buildScript.absolutePath, "--skip-gradle")
     }
 }
 
