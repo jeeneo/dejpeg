@@ -124,14 +124,11 @@ if $USE_UPX; then
     if command -v upx &>/dev/null; then UPX_BIN="upx"
     elif [[ -x "$UPX_LOCAL" ]]; then UPX_BIN="$UPX_LOCAL"
     else
-        read -rp "upx not found, download? [Y/n]: " r
-        if [[ "${r:-Y}" =~ ^[Yy]$ ]]; then
-            if curl -L "https://github.com/upx/upx/releases/download/v5.1.0/upx-5.1.0-amd64_linux.tar.xz" | tar -xJ -C "$BUILDTEMP"; then
-                [[ -x "$UPX_LOCAL" ]] && UPX_BIN="$UPX_LOCAL" || err "upx binary not executable after download"
-            else
-                err "upx download/extraction failed"
-            fi
-        else USE_UPX=false; fi
+        if curl -L "https://github.com/upx/upx/releases/download/v5.1.0/upx-5.1.0-amd64_linux.tar.xz" | tar -xJ -C "$BUILDTEMP"; then
+            [[ -x "$UPX_LOCAL" ]] && UPX_BIN="$UPX_LOCAL" || err "upx binary not executable after download"
+        else
+            err "upx download/extraction failed"
+        fi
     fi
 fi
 
