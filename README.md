@@ -42,10 +42,10 @@ For FBCNN, which chaiNNer does support but in a limited fashion, install [this c
 <details>
 <summary><h3>building</h3></summary>
 
-requirements: standard gradle build process under a normal amd64 linux distro
+requirements: standard gradle build process
 
-optional: android NDK
-
+details for building opencv are being worked on
+<!-- optional: android NDK
 A buildscript called `build.sh` exists to aid in building, use with no arguments to build.
 You can use additional arguments overiding the defaults:
 
@@ -61,7 +61,7 @@ You can use additional arguments overiding the defaults:
 
   `--no-cleanup`: (internal) will skip cleaning and reuse existing libraries
 
-  `--skip-gradle`: (internal) used when running from gradle wrapper or Android studio
+  `--skip-gradle`: (internal) used when running from gradle wrapper or Android studio -->
 </details>
 
 <details>
