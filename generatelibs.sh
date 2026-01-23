@@ -13,8 +13,8 @@ USE_UPX=true
 BUILD_VARIANT="lite"
 # no_clean: skip cleanup and reuse existing jniLibs
 NO_CLEAN=false
-###### constants - do not edit ######
 
+###### constants - do not edit ######
 ALL_ABIS=(arm64-v8a armeabi-v7a x86_64 x86)
 UPX_BIN=""
 BUILDTEMP="./buildtemp"
