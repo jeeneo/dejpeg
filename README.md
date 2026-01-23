@@ -42,26 +42,29 @@ For FBCNN, which chaiNNer does support but in a limited fashion, install [this c
 <details>
 <summary><h3>building</h3></summary>
 
-requirements: standard gradle build process
+### requirements
+- Android SDK
+- For full builds: Android NDK (tested on version 27.3.x)
+- Optional: UPX for library compression (must be in path if enabled)
 
-details for building opencv are being worked on
-<!-- optional: android NDK
-A buildscript called `build.sh` exists to aid in building, use with no arguments to build.
-You can use additional arguments overiding the defaults:
+### steps
+1. Clone repo
 
-  `--abi`: following the ABI, can be any one of `arm64-v8a`, `armeabi-v7a` `x86_64` `x86`, or `all`
+2. (optional) run `./generatelibs.sh` to build native libraries (not needed for lite builds)
 
-  `--debug`: build a debug variant
+   options:
+   - `--abi <abi>`: Target ABI (arm64-v8a, armeabi-v7a, x86_64, x86, or all). Default: arm64-v8a
+   - `--debug`: Build debug variant (disables compression).
+   - `--no-upx`: Disable UPX compression.
+   - `--full`: Build with OpenCV for BRISQUE descaling (requires NDK).
+   - `--no-cleanup`: Reuse existing libraries without rebuilding.
+   - `--help`: Show usage.
 
-  `--no-upx`: disables upx compression
+   Note: UPX will only work if found in path.
 
-  `--sign`: (internal) signs the output apk if it is a release provided you have correct keystores setup
+ 3. `./gradlew clean assembleLiteDebug`
 
-  `--full`: builds with OpenCV for BRISQUE descaling
-
-  `--no-cleanup`: (internal) will skip cleaning and reuse existing libraries
-
-  `--skip-gradle`: (internal) used when running from gradle wrapper or Android studio -->
+   Or open in Android Studio and build from there.
 </details>
 
 <details>
