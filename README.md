@@ -62,7 +62,7 @@ For FBCNN, which chaiNNer does support but in a limited fashion, install [this c
 
    Note: UPX will only work if found in path.
 
-3. `./gradlew clean assembleLiteDebug`
+3. `./gradlew clean assembleLiteDebug` or `assembleFullDebug` (for BRISQUE)
 
    Or open in Android Studio and build from there.
 </details>
