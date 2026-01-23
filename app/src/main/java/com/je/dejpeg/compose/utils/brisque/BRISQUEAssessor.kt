@@ -4,7 +4,7 @@ import android.util.Log
 import java.io.File
 
 class BRISQUEAssessor {
-    companion object { // awww it's cute
+    companion object {
         private const val TAG = "BRISQUEAssessor"
         private var librariesLoaded = false
 

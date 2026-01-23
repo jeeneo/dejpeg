@@ -14,9 +14,6 @@ android {
         minSdk = 24
         targetSdk = 36
         buildConfigField("boolean", "BRISQUE_ENABLED", "true")
-        // what is semantic versioning? libraries? you think i know? i just bump these numbers every now and then :(
-        // it's the 3rd major release, with 3 minor updates, and this is the Nth(?) patch - random numbers fr
-        // "adds features without breaking things" LOL i break things every update wha?
         versionCode = 343
         versionName = "3.4.3"
     }
@@ -119,12 +116,12 @@ android {
             java.srcDir("src/lite/java")
         }
     }
-    // packaging {
-    //     jniLibs {
-    //         pickFirsts += "lib/*/libonnxruntime.so"
-    //         keepDebugSymbols += "**/*.so" // they're already stripped, just stop warning
-    //     }
-    // }
+    packaging {
+        jniLibs {
+            pickFirsts += "lib/*/libonnxruntime.so"
+            keepDebugSymbols += "**/*.so"
+        }
+    }
 }
 
 dependencies {
@@ -152,15 +149,6 @@ tasks.register<Exec>("buildLibs") {
     group = "build"
     description = "build native libraries"
     onlyIf { !project.hasProperty("skipBuildLibs") }
-    // val buildScript = file("${rootProject.rootDir}/build.sh")
-    // normal builds under gradle will build lite as per the defaults
-    // modify the command args to set the default behaviour for gradlew builds or run from ./build.sh directly
-    // val isDebug = project.gradle.startParameter.taskNames.any { it.contains("debug", ignoreCase = true) }
-    // if (isDebug) {
-    //     commandLine("bash", buildScript.absolutePath, "--no-upx", "--debug")
-    // } else {
-    //     commandLine("bash", buildScript.absolutePath, "--skip-gradle")
-    // }
 }
 
 tasks.register("cleandir") {
@@ -191,14 +179,10 @@ if (project.hasProperty("signApk") && project.property("signApk") == "true") {
     }
 }
 
-// tasks.matching { it.name.startsWith("assemble") && it.name.contains("debug", ignoreCase = true) }.configureEach {
-//     dependsOn("buildLibs")
-// }
-
-// tasks.matching { it.name.startsWith("assemble") && !it.name.contains("debug", ignoreCase = true) }.configureEach {
-//     dependsOn("cleandir")
-//     dependsOn("buildLibs")
-//     if (project.hasProperty("signApk") && project.property("signApk") == "true") {
-//         finalizedBy("move")
-//     }
-// }
+tasks.matching { it.name.startsWith("assemble") && !it.name.contains("debug", ignoreCase = true) }.configureEach {
+    dependsOn("cleandir")
+    dependsOn("buildLibs")
+    if (project.hasProperty("signApk") && project.property("signApk") == "true") {
+        finalizedBy("move")
+    }
+}
