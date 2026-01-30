@@ -1,21 +1,44 @@
 package com.je.dejpeg.compose.ui.components
 
 import android.content.Intent
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -31,25 +54,84 @@ fun AboutDialog(onDismiss: () -> Unit) {
     val versionName = try {
         context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "Unknown"
     } catch (_: Exception) { "Unknown" }
+    var spawnTrigger by remember { mutableStateOf(0L) }
     
-    StyledAlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("${stringResource(R.string.app_name)} v$versionName", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) },
-        text = {
-            Column {
-                Text(stringResource(R.string.open_source_app_description))
-                Spacer(Modifier.height(8.dp))
-                Text(stringResource(R.string.license_text), style = MaterialTheme.typography.bodySmall)
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = DialogDefaults.Shape,
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+        ) {
+            Box {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .height(128.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(R.drawable.depeg_raster),
+                                contentDescription = "App icon",
+                                modifier = Modifier
+                                    .size(128.dp)
+                                    .clickable(
+                                        indication = null,
+                                        interactionSource = remember { MutableInteractionSource() }
+                                    ) { haptic.light(); spawnTrigger = System.currentTimeMillis() }
+                            )
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "${stringResource(R.string.app_name)} v$versionName",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(Modifier.height(16.dp))
+                    Column {
+                        Text(stringResource(R.string.open_source_app_description))
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(onClick = {
+                            haptic.light()
+                            try {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW, "https://codeberg.org/dryerlint/dejpeg".toUri())
+                                )
+                            } catch (_: Exception) { }
+                        }) {
+                            Text(stringResource(R.string.source_code))
+                        }
+                        Button(onClick = { haptic.light(); onDismiss() }) {
+                            Text(stringResource(R.string.ok))
+                        }
+                    }
+                }
+                val painter = painterResource(R.drawable.depeg_raster)
+                val density = LocalDensity.current
+                val logoSizePx = with(density) { 128.dp.roundToPx() }
+                RainingLogoEffect(
+                    painter = painter,
+                    logoSize = IntSize(logoSizePx, logoSizePx),
+                    modifier = Modifier.matchParentSize(),
+                    particleCount = 15,
+                    onTap = { haptic.light() },
+                    spawnTrigger = spawnTrigger
+                )
             }
-        },
-        dismissButton = {
-            TextButton(onClick = {
-                haptic.medium()
-                try { context.startActivity(Intent(Intent.ACTION_VIEW, "https://codeberg.org/dryerlint/dejpeg".toUri())) } catch (_: Exception) { }
-            }) { Text(stringResource(R.string.source_code)) }
-        },
-        confirmButton = { Button(onClick = { haptic.light(); onDismiss() }) { Text(stringResource(R.string.ok)) } }
-    )
+        }
+    }
 }
 
 @Composable
@@ -144,7 +226,7 @@ fun SaveImageDialog(
         },
         confirmButton = {
             Button(onClick = {
-                haptic.medium()
+                haptic.light()
                 val sanitizedFilename = textState.text.trim().replace(Regex("[/\\\\:*?\"<>|]"), "_").takeIf { it.isNotBlank() } ?: "image"
                 onSave(sanitizedFilename, saveAll, skipNext)
                 onDismissRequest()
@@ -305,5 +387,3 @@ fun ModelInfoDialog(modelName: String, infoText: String, onDismiss: () -> Unit) 
         }
     )
 }
-
-

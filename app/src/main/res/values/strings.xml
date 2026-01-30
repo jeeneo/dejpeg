@@ -103,7 +103,6 @@
     <string name="import_model_text">Import model</string>
     <string name="progress_percent">%1$d%%</string>
     <string name="open_source_app_description">An open source app for removing noise and compression from photos</string>
-    <string name="license_text">Licensed under GPLv3</string>
     <string name="source_code">Source code</string>
     <string name="show_save_dialog">Show save dialog</string>
     <string name="show_save_dialog_desc">Show dialog when saving images</string>
