@@ -85,7 +85,7 @@ android {
     productFlavors {
         create("full") {
             dimension = "variant"
-            applicationIdSuffix = ".opencv"
+            // applicationIdSuffix = ".opencv" // nvm, dont think i should change appid for this
             buildConfigField("boolean", "BRISQUE_ENABLED", "true")
             versionNameSuffix = "-opencv"
         }
@@ -145,12 +145,6 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
 }
 
-tasks.register<Exec>("buildLibs") {
-    group = "build"
-    description = "build native libraries"
-    onlyIf { !project.hasProperty("skipBuildLibs") }
-}
-
 tasks.register("cleandir") {
     group = "build"
     description = "clean ./apks directory before build."
@@ -181,7 +175,6 @@ if (project.hasProperty("signApk") && project.property("signApk") == "true") {
 
 tasks.matching { it.name.startsWith("assemble") && !it.name.contains("debug", ignoreCase = true) }.configureEach {
     dependsOn("cleandir")
-    dependsOn("buildLibs")
     if (project.hasProperty("signApk") && project.property("signApk") == "true") {
         finalizedBy("move")
     }
