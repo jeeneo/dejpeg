@@ -1,4 +1,4 @@
-<p>This is not another "AI upscaler" but a compression artifact remover and denoiser using open-source weights such as FBCNN and SCUNet</p>
+<p>This is not another "AI upscaler" but a compression artifact remover and denoiser using public models such as FBCNN and SCUNet</p>
 
 <h2>Features:</h2>
 <ul>
