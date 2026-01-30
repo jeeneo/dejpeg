@@ -11,7 +11,7 @@ if(CMAKE_BUILD_BRISQUE)
     get_filename_component(PROJECT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../.." ABSOLUTE)
     set(OPENCV_SRC_DIR "${PROJECT_ROOT}/opencv/opencv")
     set(OPENCV_CONTRIB_DIR "${PROJECT_ROOT}/opencv/opencv_contrib")
-    set(OPENCV_BUILD_DIR "${PROJECT_ROOT}/opencv/build_android")
+    set(OPENCV_BUILD_DIR "${PROJECT_ROOT}/opencv/build_android_${ANDROID_ABI}")
     include_directories(
         ${OPENCV_SRC_DIR}/modules/core/include
         ${OPENCV_SRC_DIR}/modules/imgproc/include

@@ -2,10 +2,10 @@
 
 <h2>Features:</h2>
 <ul>
-  <li>remove compression artifacts</li>
-  <li>denoise</li>
-  <li>before/after view</li>
-  <li>fully offline</li>
+  <li>Remove compression artifacts</li>
+  <li>Denoise</li>
+  <li>Before/after view</li>
+  <li>Fully offline</li>
 </ul>
 
 <h2>Limitations:</h2>

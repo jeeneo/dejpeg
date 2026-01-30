@@ -1,5 +1,5 @@
 <div align="center">
-<img src="fastlane/appassets/dejpeg.png" height="140" alt="DeJPEG logotype in white text, with the letters JPEG italicized">
+<img src="fastlane/appassets/dejpeg.png" height="140" alt="A grey mountain rotated 45 degrees clockwise with a lowercase letter j rotated 90 degrees clockwise">
 <br>An app for removing compression and noise from photos<h2></h2>
 <table>
 <tr>
@@ -21,20 +21,23 @@ This is not another "AI upscaler" but a compression artifact remover and denoise
 - Denoise
 - Before/after view
 - Fully offline
-- Image descaling
 
 ## models:
-
 You can download models [here](models/)
 
-## examples
+## examples:
 Check out [examples](examples/) to get an idea of what DeJPEG can be used for
 
 ## limitations:
 - Processed locally, a fast device is recommended
 - Only standard image formats supported
 
-## desktop support
+## versions:
+There exists 2 "build types" of dejpeg, `lite` and `full` (noted by the presense of `-opencv` in full builds' version name). `lite` does not mean it has any limitations, it only lacks OpenCV binaries thus image descaling is not available. This is the version distributed in app stores like IzzyOnDroid.
+
+This change was done on my part to make building more transparent, previously to be under the 30mb app limit and still have both onnx and OpenCV, I used to manually build, compress and upload compiled binaries directly, which created ambiguity on how they were made. In order to not further complicate the build process, the app was split. `full` builds are available in compressed zip/7z form under releases alongside the `lite` builds, and the need for compression is not longer a strict requirement.
+
+## desktop support:
 [chaiNNer](https://github.com/chaiNNer-org/chaiNNer) is a cross-platform image/model utility, which should work well with these models
 
 For FBCNN, which chaiNNer does support but in a limited fashion, install [this custom node](chainner/) and use the [original PyTorch models](https://github.com/jiaxi-jiang/FBCNN/releases/latest), not the mobile onnx.
@@ -62,7 +65,7 @@ For FBCNN, which chaiNNer does support but in a limited fashion, install [this c
 
    Note: UPX will only work if found in path.
 
-3. `./gradlew clean assembleLiteDebug` or `assembleFullDebug` (for BRISQUE)
+3. `./gradlew clean assembleLiteDebug` (or `assembleFullDebug` for BRISQUE)
 
    Or open in Android Studio and build from there.
 </details>

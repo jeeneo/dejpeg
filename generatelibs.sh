@@ -8,11 +8,13 @@ TARGET_ABI="arm64-v8a"
 # build_type: debug, release
 BUILD_TYPE="release"
 # upx: true/false (will attempt to download if not found in PATH)
-USE_UPX=true
+USE_UPX=false
 # build_variant: full (opencv + ONNX), lite (ONNX only)
 BUILD_VARIANT="lite"
-# no_clean: skip cleanup and reuse existing jniLibs
-NO_CLEAN=false
+# no_clean: skip cleanup
+NO_CLEAN=true
+# sign_apk: true/false (release builds only)
+SIGN_APK=false
 
 ###### constants - do not edit ######
 ALL_ABIS=(arm64-v8a armeabi-v7a x86_64 x86)
@@ -63,20 +65,33 @@ process_libs() {
     done
 }
 
+validate_keystore() {
+    local props=(path password alias keyPassword) vars=(KEYSTORE_PATH KEYSTORE_PASSWORD KEYSTORE_ALIAS KEY_PASSWORD)
+    for i in "${!props[@]}"; do
+        local v="${vars[$i]}" p="keystore.${props[$i]}"
+        eval "$v=\"\${$v:-\$(get_prop '$p')}\""
+        [[ -z "${!v}" ]] && err "$p not set (env: $v or local.properties)"
+    done
+    require f "$KEYSTORE_PATH" "Keystore not found: $KEYSTORE_PATH"
+    export KEYSTORE_PATH KEYSTORE_PASSWORD KEYSTORE_ALIAS KEY_PASSWORD
+}
+
 ###### argument parsing ######
 while [[ $# -gt 0 ]]; do
     case $1 in
         --abi) TARGET_ABI="$2"; shift 2;;
         --debug) BUILD_TYPE="debug"; shift;;
         --no-upx) USE_UPX=false; shift;;
+        --sign) SIGN_APK=true BUILD_TYPE="release"; shift;;
         --full) BUILD_VARIANT="full"; shift;;
         --no-cleanup) NO_CLEAN=true; shift;;
-        --help) echo "Usage: $0 [--abi <abi|all>] [--debug] [--no-upx] [--full] [--no-cleanup]"; exit 0;;
+        --help) echo "Usage: $0 [--abi <abi|all>] [--debug] [--no-upx] [--sign] [--full] [--no-cleanup]"; exit 0;;
         *) err "Unknown option: $1";;
     esac
 done
 
 [[ "$TARGET_ABI" != "all" && ! " ${ALL_ABIS[*]} " =~ " $TARGET_ABI " ]] && err "invalid ABI: $TARGET_ABI"
+[[ "$SIGN_APK" == "true" ]] && BUILD_TYPE="release"
 
 ###### environment setup ######
 mkdir -p "$BUILDTEMP"
@@ -90,6 +105,8 @@ if [[ "$BUILD_VARIANT" == "full" || "$BUILD_TYPE" == "release" ]]; then
     export ANDROID_NDK_HOME
     STRIP="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip"
 fi
+
+[[ "$SIGN_APK" == "true" ]] && validate_keystore
 
 ONNX_VER=$(grep -oP 'onnxruntimeAndroid\s*=\s*"\K[^"]+' gradle/libs.versions.toml 2>/dev/null || true)
 [[ -z "$ONNX_VER" ]] && { read -rp "ONNX version: " ONNX_VER; [[ -z "$ONNX_VER" ]] && err "Version required"; }
@@ -111,7 +128,8 @@ BUILD_SIG="$TARGET_ABI|$BUILD_VARIANT|$ONNX_VER|$USE_UPX"
 if [[ -f "$BUILDTEMP/.build_sig" ]] && [[ "$(cat "$BUILDTEMP/.build_sig")" != "$BUILD_SIG" ]]; then
     log "build config changed, cleaning"; cleanup
 fi
-echo "$BUILD_SIG" > "$BUILDTEMP/.build_sig"s
+
+echo "$BUILD_SIG" > "$BUILDTEMP/.build_sig"
 
 # check existing libs
 if [[ "$NO_CLEAN" == "true" ]]; then
@@ -159,6 +177,10 @@ build_opencv() {
 }
 
 setup_onnx_runtime() {
+    if [[ "$USE_UPX" == "false" ]]; then
+        log "skipping onnx compression"
+        return
+    fi
     local abi=$1 dst="$JNILIBS_ONNX/$abi" tmp="$BUILDTEMP/onnx_$abi"
     local lib="$tmp/jni/$abi/libonnxruntime.so"
     mkdir -p "$dst"
@@ -189,7 +211,13 @@ setup_opencv_libs() {
 }
 
 ###### main build ######
-log "arch: $TARGET_ABI | upx: $USE_UPX | variant: $BUILD_VARIANT | build: $BUILD_TYPE"
+log "arch: $TARGET_ABI | upx: $USE_UPX | variant: $BUILD_VARIANT | build: $BUILD_TYPE | sign: $SIGN_APK"
+rm -rf "app/.cxx"
+
+if [[ "$NO_CLEAN" != "true" ]]; then
+    cleanup
+fi
+
 if [[ "$SKIP_LIB_BUILD" != "true" ]]; then
     abis=("${ALL_ABIS[@]}"); [[ "$TARGET_ABI" != "all" ]] && abis=("$TARGET_ABI")
     for abi in "${abis[@]}"; do
@@ -199,4 +227,29 @@ if [[ "$SKIP_LIB_BUILD" != "true" ]]; then
     [[ "$BUILD_TYPE" == "release" ]] && process_libs
 fi
 
-log "lib generation complete"
+# gradle build
+gradle_args=(clean "assemble${BUILD_VARIANT^}${BUILD_TYPE^}")
+[[ "$SIGN_APK" == "true" ]] && gradle_args+=(-PsignApk=true)
+[[ "$TARGET_ABI" != "all" ]] && gradle_args+=(-PtargetAbi="$TARGET_ABI")
+[[ "$BUILD_TYPE" == "release" ]] && gradle_args+=(--no-daemon) # disable daemon for release since we wont have repeated builds
+log "running: ./gradlew ${gradle_args[*]}"
+./gradlew "${gradle_args[@]}"
+
+[[ "$SIGN_APK" == "true" ]] && unset KEYSTORE_PATH KEYSTORE_PASSWORD KEYSTORE_ALIAS KEY_PASSWORD
+
+# verify output
+if [[ "$SIGN_APK" == "true" ]]; then
+    apk_dir="apks"
+else
+    apk_dir="app/build/outputs/apk"
+fi
+
+require d "$apk_dir" "APK directory not found: $apk_dir"
+count_apks() { find "$1" -name "*.apk" 2>/dev/null | wc -l; }
+apk_count=$(count_apks "$apk_dir")
+[[ $apk_count -eq 0 ]] && err "No APKs in $apk_dir"
+if [[ $apk_count -eq 1 ]]; then
+    log "built apk in $apk_dir"
+else
+    log "built $apk_count APKs in $apk_dir"
+fi
