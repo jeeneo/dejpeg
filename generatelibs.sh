@@ -56,6 +56,10 @@ compress_lib() {
 }
 
 process_libs() {
+    if [[ "$USE_UPX" == "false" ]]; then
+        log "skipping compression"
+        return
+    fi
     local search_paths=("$JNILIBS_ONNX")
     [[ "$BUILD_VARIANT" == "full" ]] && search_paths+=("$JNILIBS_BRISQUE")
     for search_path in "${search_paths[@]}"; do
