@@ -121,6 +121,10 @@ android {
             pickFirsts += "lib/*/libonnxruntime.so"
             keepDebugSymbols += "**/*.so"
         }
+        resources {
+            excludes += "DebugProbesKt.bin"
+            excludes += "kotlin-tooling-metadata.json"
+        }
     }
 }
 
