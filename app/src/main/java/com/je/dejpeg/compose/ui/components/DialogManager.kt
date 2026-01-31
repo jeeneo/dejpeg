@@ -77,7 +77,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
                             contentAlignment = Alignment.Center
                         ) {
                             Image(
-                                painter = painterResource(R.drawable.depeg_raster),
+                                painter = painterResource(R.drawable.dejpeg_logo_rounded),
                                 contentDescription = "App icon",
                                 modifier = Modifier
                                     .size(128.dp)
@@ -118,7 +118,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
                         }
                     }
                 }
-                val painter = painterResource(R.drawable.depeg_raster)
+                val painter = painterResource(R.drawable.dejpeg_logo_rounded)
                 val density = LocalDensity.current
                 val logoSizePx = with(density) { 128.dp.roundToPx() }
                 RainingLogoEffect(
