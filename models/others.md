@@ -5,7 +5,7 @@ A list of all other models currently converted to `onnx` from their `pytorch` va
 
 support status
 - ✧ = tested, but can be unstable
-- ✚ = didn't crash, was only checked for runability
+- ✚ = might crash, was only checked for runability
 
 speed:
 - ➤ = fast, good on low-end devices
