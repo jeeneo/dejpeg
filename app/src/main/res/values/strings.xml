@@ -106,7 +106,7 @@
     <string name="source_code">Source code</string>
     <string name="show_save_dialog">Show save dialog</string>
     <string name="show_save_dialog_desc">Show dialog when saving images</string>
-    <string name="swap_swipe_actions">Swipe actions</string>
+    <string name="swap_swipe_actions">Swap swipe actions</string>
     <string name="swap_swipe_actions_desc_default">Swipe right to delete/cancel, left to save/process</string>
     <string name="swap_swipe_actions_desc_swapped">Swipe right to save/process, left to delete/cancel</string>
     <string name="default_image_source">Default source</string>
