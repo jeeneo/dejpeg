@@ -4,7 +4,7 @@
 support status
 - ✦ = officially supported, stable
 - ✧ = tested, but can be unstable
-- ✚ = didn't crash, was only checked for runability
+- ✚ = might crash, was only checked for runability
 
 speed:
 - ➤ = fast, good on low-end devices
