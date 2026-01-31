@@ -33,7 +33,7 @@ Check out [examples](examples/) to get an idea of what DeJPEG can be used for
 - Only standard image formats supported
 
 ## versions:
-There exists 2 "build types" of dejpeg, `lite` and `full` (noted by the presense of `-opencv` in full builds' version name). `lite` does not mean it has any limitations, it only lacks OpenCV binaries thus image descaling is not available. This is the version distributed in app stores like IzzyOnDroid.
+There exists 2 "build types" of dejpeg, `lite` and `full` (noted by the presence of `-opencv` in full builds' version name). `lite` does not mean it has any limitations, it only lacks OpenCV binaries thus image descaling is not available. This is the version distributed in app stores like IzzyOnDroid.
 
 This change was done on my part to make building more transparent, previously to be under the 30mb app limit and still have both onnx and OpenCV, I used to manually build, compress and upload compiled binaries directly, which created ambiguity on how they were made. In order to not further complicate the build process, the app was split. `full` builds are available under releases alongside the `lite` builds, and the need for compressed binaries is no longer a strict requirement.
 
