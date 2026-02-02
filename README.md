@@ -62,7 +62,7 @@ or use the helper script:
 ./build.sh --help    # show all options
 ```
 
-Note: when building, it will by default clone [OpenCV](https://github.com/opencv/opencv) and [OpenCV_contrib](https://github.com/opencv/opencv_contrib) to build the library for BRISQUE. If you don't have the NDK or wish to not build this library, download and place any [prebuilt APK](https://codeberg.org/dryerlint/dejpeg/releases) from `v3.5.0` or later into the projects root directory, then run gradle as normal.
+Note: when building, it will by default clone [OpenCV](https://github.com/opencv/opencv) and [OpenCV_contrib](https://github.com/opencv/opencv_contrib) to build the library for BRISQUE. If you don't have the NDK or wish to not build this library, download and place the latest [prebuilt APK](https://codeberg.org/dryerlint/dejpeg/releases) (`v3.5.0` or later) into the projects root directory, then run gradle as normal.
 </details>
 
 <details>
