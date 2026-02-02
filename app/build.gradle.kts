@@ -77,7 +77,7 @@ android {
             version = "3.22.1"
         }
     }
-    ndkVersion = "27.3.13750724"
+    ndkVersion = "29.0.14206865"
     packaging {
         resources {
             excludes += "DebugProbesKt.bin"
@@ -121,7 +121,7 @@ val opencvDir = rootProject.projectDir.resolve("opencv")
 val supportedAbis = listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
 val cpuBaseline = mapOf("arm64-v8a" to "", "armeabi-v7a" to "NEON", "x86_64" to "SSE3", "x86" to "SSE2")
 val cpuDispatch = mapOf("arm64-v8a" to "", "armeabi-v7a" to "", "x86_64" to "SSE4_2,AVX,AVX2", "x86" to "SSE4_2,AVX")
-val ndkVersion = "27.3.13750724"
+val ndkVersion = "29.0.14206865"
 val signRelease = project.hasProperty("signApk") && project.property("signApk") == "true"
 
 fun getTargetAbis(): List<String> {
@@ -151,12 +151,17 @@ tasks.register("cloneOpencv") {
     description = "Clone OpenCV and OpenCV contrib repositories"
     val opencvRepo = opencvDir.resolve("opencv")
     val contribRepo = opencvDir.resolve("opencv_contrib")
-    outputs.dir(opencvRepo)
-    outputs.dir(contribRepo)
-    onlyIf { !opencvRepo.exists() || !contribRepo.exists() }
+    onlyIf { !opencvRepo.resolve(".git").exists() || !contribRepo.resolve(".git").exists() }
     doLast {
-        if (!opencvRepo.exists()) makeProcess(opencvDir, "git", "clone", "--depth", "1", "https://github.com/opencv/opencv.git", opencvRepo.absolutePath)
-        if (!contribRepo.exists()) makeProcess(opencvDir, "git", "clone", "--depth", "1", "https://github.com/opencv/opencv_contrib.git", contribRepo.absolutePath)
+        opencvDir.mkdirs()
+        if (!opencvRepo.resolve(".git").exists()) {
+            opencvRepo.deleteRecursively()
+            makeProcess(opencvDir, "git", "clone", "--depth", "1", "https://github.com/opencv/opencv.git")
+        }
+        if (!contribRepo.resolve(".git").exists()) {
+            contribRepo.deleteRecursively()
+            makeProcess(opencvDir, "git", "clone", "--depth", "1", "https://github.com/opencv/opencv_contrib.git")
+        }
     }
 }
 

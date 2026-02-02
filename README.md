@@ -45,8 +45,8 @@ For FBCNN, which chaiNNer does support but in a limited fashion, install [this c
 
 ### requirements
 - Android SDK
-- Android NDK 27.3.x
-- CMake 3.22.1+
+- Android NDK
+- CMake 4.2.3
 
 ### steps
 1. Clone repo
