@@ -2,104 +2,64 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-###### defaults ######
-TARGET_ABI="arm64-v8a"
-BUILD_TYPE="release"
-SIGN_APK=false
+# defaults
+ABI="arm64-v8a"
+DEBUG=false
+SIGN=false
 CLEAN=true
 
-###### argument parsing ######
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        --abi) TARGET_ABI="$2"; shift 2;;
-        --debug) BUILD_TYPE="debug"; shift;;
-        --sign) SIGN_APK=true; BUILD_TYPE="release"; shift;;
-        --no-clean) CLEAN=false; shift;;
-        --help) 
-            echo "usage: $0 [--abi <abi|all>] [--debug] [--sign] [--no-clean]"
-            echo "  --abi <abi>  target abi: arm64-v8a, armeabi-v7a, x86_64, x86, or all"
-            echo "  --debug      build debug variant"
-            echo "  --sign       sign release APK (requires keystore config)"
-            echo "  --no-clean   skip cleaning of build artifacts (default: clean everything)"
+# parse arguments
+for arg in "$@"; do
+    case $arg in
+        --abi=*) ABI="${arg#*=}";;
+        --debug) DEBUG=true;;
+        --sign) SIGN=true;;
+        --no-clean) CLEAN=false;;
+        --help)
+            echo "usage: $0 [--abi=<abi|all>] [--debug] [--sign] [--no-clean]"
+            echo "  --abi=<abi>  arm64-v8a, armeabi-v7a, x86_64, x86, or all (default: arm64-v8a)"
+            echo "  --debug      build debug variant (default: release)"
+            echo "  --sign       sign release APK"
+            echo "  --no-clean   skip cleaning build artifacts"
             exit 0;;
-        *) echo "unknown option: $1"; exit 1;;
+        *) echo "unknown option: $arg (try --help)"; exit 1;;
     esac
 done
 
-###### validate ######
-ALL_ABIS=(arm64-v8a armeabi-v7a x86_64 x86)
-if [[ "$TARGET_ABI" != "all" ]] && [[ ! " ${ALL_ABIS[*]} " =~ " $TARGET_ABI " ]]; then
-    echo "Invalid ABI: $TARGET_ABI"
-    exit 1
-fi
+# validate abi
+[[ "$ABI" =~ ^(arm64-v8a|armeabi-v7a|x86_64|x86|all)$ ]] || { echo "Invalid ABI: $ABI"; exit 1; }
 
-if [[ "$SIGN_APK" == "true" ]]; then
-    BUILD_TYPE="release"
-fi
-
-###### clean if requested ######
-if [[ "$CLEAN" == "true" ]]; then
+# clean
+if $CLEAN; then
     echo "cleaning"
-    rm -rf opencv/build_android_* 2>/dev/null || true
-    rm -rf app/.cxx 2>/dev/null || true
-    rm -rf app/src/main/jniLibs 2>/dev/null || true
-    rm -rf buildtemp 2>/dev/null || true
-    rm -rf app/build 2>/dev/null || true
-    rm -rf build 2>/dev/null || true
-    rm -rf apks 2>/dev/null || true
+    rm -rf opencv/build_android_* app/{.cxx,build,src/main/jniLibs} {build,buildtemp,apks} 2>/dev/null || true
 fi
 
-###### build opencv first if needed ######
-if [[ "$TARGET_ABI" == "all" ]]; then
-    OPENCV_TASK="buildOpencv"
-else
-    OPENCV_TASK="buildOpencv_$TARGET_ABI"
-fi
+# build opencv
+OPENCV_TASK="buildOpencv${ABI:+_$ABI}"
+[[ "$ABI" == "all" ]] && OPENCV_TASK="buildOpencv"
+echo "running: ./gradlew $OPENCV_TASK --no-daemon"
+./gradlew "$OPENCV_TASK" --no-daemon
 
-echo "running: ./gradlew $OPENCV_TASK"
-./gradlew "$OPENCV_TASK"
+# build apk
+VARIANT=$($DEBUG && echo "Debug" || echo "Release")
+ARGS=("assemble$VARIANT")
+$CLEAN && ARGS=("clean" "${ARGS[@]}")
+[[ "$ABI" != "all" ]] && ARGS+=("-PtargetAbi=$ABI")
+$SIGN && ARGS+=("-PsignApk=true")
+! $DEBUG && ARGS+=("--no-daemon")
 
-###### build gradle args ######
-GRADLE_ARGS=()
+echo "running: ./gradlew ${ARGS[*]}"
+./gradlew "${ARGS[@]}"
 
-if [[ "$CLEAN" == "true" ]]; then
-    GRADLE_ARGS+=("clean")
-fi
-
-VARIANT="${BUILD_TYPE^}"
-GRADLE_ARGS+=("assemble${VARIANT}")
-
-if [[ "$TARGET_ABI" != "all" ]]; then
-    GRADLE_ARGS+=("-PtargetAbi=$TARGET_ABI")
-fi
-
-if [[ "$SIGN_APK" == "true" ]]; then
-    GRADLE_ARGS+=("-PsignApk=true")
-fi
-
-if [[ "$BUILD_TYPE" == "release" ]]; then
-    GRADLE_ARGS+=(--no-daemon)
-fi
-
-###### execute ######
-echo "running: ./gradlew ${GRADLE_ARGS[*]}"
-./gradlew "${GRADLE_ARGS[@]}"
-
-###### report ######
-if [[ "$SIGN_APK" == "true" ]]; then
-    APK_DIR="apks"
-else
-    APK_DIR="app/build/outputs/apk"
-fi
-
+# report results
+APK_DIR=$($SIGN && echo "apks" || echo "app/build/outputs/apk")
 if [[ -d "$APK_DIR" ]]; then
-    APK_COUNT=$(find "$APK_DIR" -name "*.apk" 2>/dev/null | wc -l)
-    if [[ $APK_COUNT -gt 0 ]]; then
-        if [[ $APK_COUNT -eq 1 ]]; then
-            echo "built $APK_COUNT apk in $APK_DIR"
-        else
-            echo "built $APK_COUNT apks in $APK_DIR"
-        fi
-        find "$APK_DIR" -name "*.apk" -exec ls -lh {} \;
-    fi
+    APKS=($(find "$APK_DIR" -name "*.apk" 2>/dev/null))
+    [[ ${#APKS[@]} -gt 0 ]] && {
+        count=${#APKS[@]}
+        plural=$([[ $count -eq 1 ]] && echo "apk" || echo "apks")
+        echo "built $count $plural"
+        ls -lh "${APKS[@]}"
+    }
 fi
