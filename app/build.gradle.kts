@@ -1,29 +1,28 @@
-plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
-}
+import java.util.Properties
+import java.io.FileInputStream
 
 android {
     namespace = "com.je.dejpeg"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
     defaultConfig {
         applicationId = "com.je.dejpeg"
         minSdk = 24
         targetSdk = 36
-        buildConfigField("boolean", "BRISQUE_ENABLED", "true")
-        versionCode = 343
-        versionName = "3.4.3"
+        versionCode = 350
+        versionName = "3.5.0"
+        externalNativeBuild {
+            cmake {
+                arguments("-DANDROID_STL=c++_static")
+            }
+        }
     }
     signingConfigs {
-        if (project.hasProperty("signApk") && project.property("signApk") == "true") {
+        if (signRelease) {
             create("release") {
-                storeFile = file(project.findProperty("keystore.path")?.toString() ?: System.getenv("KEYSTORE_PATH")!!)
-                storePassword = project.findProperty("keystore.password")?.toString() ?: System.getenv("KEYSTORE_PASSWORD")!!
-                keyAlias = project.findProperty("keystore.alias")?.toString() ?: System.getenv("KEYSTORE_ALIAS")!!
-                keyPassword = project.findProperty("keystore.keyPassword")?.toString() ?: System.getenv("KEY_PASSWORD")!!
+                storeFile = file(getProp("keystore.path", "KEYSTORE_PATH"))
+                storePassword = getProp("keystore.password", "KEYSTORE_PASSWORD")
+                keyAlias = getProp("keystore.alias", "KEYSTORE_ALIAS")
+                keyPassword = getProp("keystore.keyPassword", "KEY_PASSWORD")
             }
         }
     }
@@ -32,40 +31,31 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             isDebuggable = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-            if (project.hasProperty("signApk") && project.property("signApk") == "true") {
-                signingConfig = signingConfigs.getByName("release")
-            }
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            if (signRelease) signingConfig = signingConfigs.getByName("release")
+            externalNativeBuild { cmake { arguments("-DCMAKE_BUILD_TYPE=MinSizeRel") } }
         }
         getByName("debug") {
             isDebuggable = true
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+            externalNativeBuild { cmake { arguments("-DCMAKE_BUILD_TYPE=Debug") } }
         }
     }
     splits {
         abi {
             isEnable = true
             reset()
-            if (project.hasProperty("targetAbi")) {
-                include(project.property("targetAbi") as String)
-            } else {
-                include("arm64-v8a")
-            }
+            include(project.findProperty("targetAbi")?.toString() ?: "arm64-v8a")
             isUniversalApk = false
         }
     }
     applicationVariants.all {
         outputs.all {
-            val appName = "dejpeg"
-            val variant = this.name
             val abiFilter = filters.find { it.filterType == "ABI" }?.identifier
-            val debugSuffix = if (variant.contains("debug", ignoreCase = true)) "-debug" else ""
-            val apkName = if (abiFilter != null) "$appName-$abiFilter$debugSuffix.apk" else "$appName$debugSuffix.apk"
-            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName = apkName
+            val debugSuffix = if (name.contains("debug", true)) "-debug" else ""
+            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName =
+                listOfNotNull("dejpeg", abiFilter).joinToString("-") + "$debugSuffix.apk"
         }
     }
     compileOptions {
@@ -81,46 +71,14 @@ android {
         compose = true
         buildConfig = true
     }
-    flavorDimensions += "variant"
-    productFlavors {
-        create("full") {
-            dimension = "variant"
-            // applicationIdSuffix = ".opencv" // nvm, dont think i should change appid for this
-            buildConfigField("boolean", "BRISQUE_ENABLED", "true")
-            versionNameSuffix = "-opencv"
-        }
-        create("lite") {
-            dimension = "variant"
-            buildConfigField("boolean", "BRISQUE_ENABLED", "false")
-        }
-    }
-    if (System.getenv("BUILD_BRISQUE_JNI") == "ON") {
-        externalNativeBuild {
-            cmake {
-                path = file("src/main/cpp/CMakeLists.txt")
-                version = "3.22.1"
-            }
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
         }
     }
     ndkVersion = "27.3.13750724"
-    sourceSets {
-        getByName("main") {
-            jniLibs.srcDir("src/main/jniLibs")
-        }
-        getByName("full") {
-            java.srcDir("src/full/java")
-            jniLibs.srcDir("src/full/jniLibs")
-        }
-        getByName("lite") {
-            jniLibs.srcDir("src/lite/jniLibs")
-            java.srcDir("src/lite/java")
-        }
-    }
     packaging {
-        jniLibs {
-            pickFirsts += "lib/*/libonnxruntime.so"
-            keepDebugSymbols += "**/*.so"
-        }
         resources {
             excludes += "DebugProbesKt.bin"
             excludes += "kotlin-tooling-metadata.json"
@@ -149,37 +107,151 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
 }
 
-tasks.register("cleandir") {
-    group = "build"
-    description = "clean ./apks directory before build."
-    doFirst {
-        val destDir = file("${rootProject.rootDir}/apks")
-        if (destDir.exists()) {
-            destDir.deleteRecursively()
-            println("deleted $destDir")
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
+}
+
+val localProperties = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.exists() }?.let { load(FileInputStream(it)) }
+}
+
+val opencvDir = rootProject.projectDir.resolve("opencv")
+val supportedAbis = listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
+val cpuBaseline = mapOf("arm64-v8a" to "", "armeabi-v7a" to "NEON", "x86_64" to "SSE3", "x86" to "SSE2")
+val cpuDispatch = mapOf("arm64-v8a" to "", "armeabi-v7a" to "", "x86_64" to "SSE4_2,AVX,AVX2", "x86" to "SSE4_2,AVX")
+val ndkVersion = "27.3.13750724"
+val signRelease = project.hasProperty("signApk") && project.property("signApk") == "true"
+
+fun getTargetAbis(): List<String> {
+    val targetAbi = project.findProperty("targetAbi")?.toString()
+    return when {
+        targetAbi == "all" -> supportedAbis
+        !targetAbi.isNullOrEmpty() -> listOf(targetAbi)
+        else -> listOf("arm64-v8a")
+    }
+}
+
+fun getProp(key: String, envKey: String): String =
+    localProperties.getProperty(key) ?: project.findProperty(key)?.toString() ?: System.getenv(envKey)
+    ?: throw GradleException("$key not found in local.properties, project properties, or $envKey env var")
+
+fun getNdkDir(): File = 
+    File(localProperties.getProperty("sdk.dir") ?: throw GradleException("sdk.dir not found in local.properties"))
+        .resolve("ndk/$ndkVersion")
+
+fun opencvBuildDir(abi: String) = opencvDir.resolve("build_android_$abi")
+fun opencvInstallDir(abi: String) = opencvBuildDir(abi).resolve("install/sdk/native")
+fun isOpencvBuilt(abi: String) = opencvInstallDir(abi).resolve("staticlibs/$abi/libopencv_quality.a").exists()
+fun makeProcess(workDir: File, vararg args: String) = providers.exec { workingDir = workDir; commandLine(*args) }.result.get()
+
+tasks.register("cloneOpencv") {
+    group = "native"
+    description = "Clone OpenCV and OpenCV contrib repositories"
+    val opencvRepo = opencvDir.resolve("opencv")
+    val contribRepo = opencvDir.resolve("opencv_contrib")
+    outputs.dir(opencvRepo)
+    outputs.dir(contribRepo)
+    onlyIf { !opencvRepo.exists() || !contribRepo.exists() }
+    doLast {
+        if (!opencvRepo.exists()) makeProcess(opencvDir, "git", "clone", "--depth", "1", "https://github.com/opencv/opencv.git", opencvRepo.absolutePath)
+        if (!contribRepo.exists()) makeProcess(opencvDir, "git", "clone", "--depth", "1", "https://github.com/opencv/opencv_contrib.git", contribRepo.absolutePath)
+    }
+}
+
+getTargetAbis().forEach { abi ->
+    tasks.register("buildOpencv_$abi") {
+        group = "native"
+        description = "Build OpenCV static libraries for $abi"
+        dependsOn("cloneOpencv")
+        val buildDir = opencvBuildDir(abi)
+        outputs.dir(opencvInstallDir(abi))
+        onlyIf { !isOpencvBuilt(abi) }
+        doLast {
+            val toolchain = getNdkDir().resolve("build/cmake/android.toolchain.cmake")
+            buildDir.mkdirs()
+            
+            val cmakeArgs = buildList {
+                add("cmake"); add("-Wno-deprecated")
+                add("-DCMAKE_TOOLCHAIN_FILE=${toolchain.absolutePath}")
+                add("-DANDROID_USE_LEGACY_TOOLCHAIN_FILE=OFF")
+                add("-DANDROID_ABI=$abi"); add("-DANDROID_PLATFORM=android-24"); add("-DANDROID_STL=c++_static")
+                add("-DCMAKE_BUILD_TYPE=MinSizeRel"); add("-DCMAKE_INSTALL_PREFIX=${buildDir.absolutePath}/install")
+                add("-DBUILD_SHARED_LIBS=OFF")
+                add("-DOPENCV_EXTRA_MODULES_PATH=${opencvDir.resolve("opencv_contrib/modules").absolutePath}")
+                add("-DBUILD_LIST=core,imgproc,imgcodecs,ml,quality")
+                add("-DCPU_BASELINE=${cpuBaseline[abi] ?: ""}")
+                cpuDispatch[abi]?.takeIf { it.isNotEmpty() }?.let { add("-DCPU_DISPATCH=$it") }
+                listOf("TESTS", "PERF_TESTS", "ANDROID_EXAMPLES", "DOCS", "opencv_java", "opencv_python2",
+                    "opencv_python3", "opencv_apps", "EXAMPLES", "PACKAGE", "FAT_JAVA_LIB", "JASPER",
+                    "OPENEXR", "PROTOBUF", "JAVA", "OBJC", "ANDROID_PROJECTS").forEach { add("-DBUILD_$it=OFF") }
+                add("-DBUILD_ZLIB=ON"); add("-DBUILD_PNG=ON"); add("-DBUILD_JPEG=ON")
+                listOf("JPEG", "PNG").forEach { add("-DWITH_$it=ON") }
+                listOf("TIFF", "WEBP", "OPENEXR", "JASPER", "OPENJPEG", "IMGCODEC_HDR", "IMGCODEC_SUNRASTER",
+                    "IMGCODEC_PXM", "IMGCODEC_PFM", "IPP", "EIGEN", "TBB", "OPENCL", "CUDA", "OPENGL", "VTK",
+                    "GTK", "QT", "GSTREAMER", "FFMPEG", "V4L", "1394", "ADE", "PROTOBUF", "QUIRC", "LAPACK",
+                    "OBSENSOR", "ANDROID_MEDIANDK", "ITT").forEach { add("-DWITH_$it=OFF") }
+                add("-DOPENCV_ENABLE_NONFREE=OFF"); add("-DOPENCV_GENERATE_PKGCONFIG=OFF"); add("-DENABLE_LTO=ON")
+                val flags = "-ffunction-sections -fdata-sections -fvisibility=hidden -Os"
+                add("-DCMAKE_CXX_FLAGS=$flags"); add("-DCMAKE_C_FLAGS=$flags")
+                add(opencvDir.resolve("opencv").absolutePath)
+            }
+            providers.exec { workingDir = buildDir; commandLine(cmakeArgs) }.result.get()
+            
+            val makeResult = providers.exec {
+                workingDir = buildDir
+                commandLine("make", "-j${Runtime.getRuntime().availableProcessors()}")
+                isIgnoreExitValue = true
+            }.result.get()
+            if (makeResult.exitValue != 0) makeProcess(buildDir, "make", "-j1")
+            makeProcess(buildDir, "make", "install")
         }
     }
 }
 
-if (project.hasProperty("signApk") && project.property("signApk") == "true") {
+tasks.register("buildOpencv") {
+    group = "native"
+    description = "Build OpenCV static libraries for all target ABIs"
+    dependsOn(getTargetAbis().map { "buildOpencv_$it" })
+}
+
+fun cleanDir(dir: File, label: String) { if (dir.exists()) { dir.deleteRecursively(); println("deleted $label") } }
+
+tasks.register("cleandir") {
+    group = "build"
+    description = "clean ./apks directory before build."
+    doFirst { cleanDir(file("${rootProject.rootDir}/apks"), "apks") }
+}
+
+tasks.register("cleanJniLibs") {
+    group = "build"
+    description = "Clean jniLibs directory (libraries now built by CMake)"
+    doFirst { cleanDir(file("src/main/jniLibs"), "jniLibs") }
+}
+
+if (signRelease) {
     tasks.register("move") {
         group = "build"
         description = "move apks to the root ./apks directory."
         doLast {
-            val apkDir = file("${layout.buildDirectory.get()}/outputs/apk")
-            val destDir = file("${rootProject.rootDir}/apks")
-            if (!destDir.exists()) destDir.mkdirs()
-            apkDir.walkTopDown().filter { it.isFile && it.extension == "apk" }.forEach { apk ->
-                apk.copyTo(destDir.resolve(apk.name), overwrite = true)
-            }
+            val destDir = file("${rootProject.rootDir}/apks").apply { mkdirs() }
+            file("${layout.buildDirectory.get()}/outputs/apk").walkTopDown()
+                .filter { it.isFile && it.extension == "apk" }
+                .forEach { it.copyTo(destDir.resolve(it.name), overwrite = true) }
             println("moved apks to $destDir")
         }
     }
 }
 
-tasks.matching { it.name.startsWith("assemble") && !it.name.contains("debug", ignoreCase = true) }.configureEach {
-    dependsOn("cleandir")
-    if (project.hasProperty("signApk") && project.property("signApk") == "true") {
-        finalizedBy("move")
+tasks.whenTaskAdded {
+    if (name.startsWith("configureCMake")) dependsOn("buildOpencv")
+}
+
+tasks.matching { it.name.startsWith("assemble") }.configureEach {
+    dependsOn("cleanJniLibs", "buildOpencv")
+    if (!name.contains("debug", true)) {
+        dependsOn("cleandir")
+        if (signRelease) finalizedBy("move")
     }
 }
