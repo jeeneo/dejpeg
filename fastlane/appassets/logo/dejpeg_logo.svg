@@ -5,8 +5,46 @@
    width="1000"
    height="1000"
    id="svg1"
+   sodipodi:docname="dejpeg_logo.svg"
+   inkscape:version="1.4.3 (0d15f75042, 2025-12-25)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#505050"
+     bordercolor="#eeeeee"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#505050"
+     showgrid="true"
+     inkscape:zoom="0.26958516"
+     inkscape:cx="977.4277"
+     inkscape:cy="834.61568"
+     inkscape:window-width="1920"
+     inkscape:window-height="1115"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg1">
+    <inkscape:grid
+       id="grid1"
+       units="px"
+       originx="0"
+       originy="0"
+       spacingx="1"
+       spacingy="1"
+       empcolor="#0099e5"
+       empopacity="0.30196078"
+       color="#0099e5"
+       opacity="0.14902"
+       empspacing="5"
+       enabled="true"
+       visible="true" />
+  </sodipodi:namedview>
   <defs
      id="defs1" />
   <style
@@ -17,18 +55,22 @@
   <path
      id="Layer copy"
      class="s0"
-     d="m 605.25111,633.60037 h -231.13 v -231.15 L 0,402.42589 V 1000 h 605.26284 z" />
+     d="m 605.25111,633.60037 h -231.13 v -231.15 H 0 V 1000 h 605.25111 z"
+     sodipodi:nodetypes="ccccccc" />
   <path
      class="s1"
-     d="m 374.12111,402.45037 v 231.15 h 231.13 L 605.26284,1000 H 1000 V 0 H 443.18325 0 v 402.42589 z"
-     id="path1" />
+     d="m 374.12111,402.45037 v 231.15 h 231.13 V 1000 H 1000 V 0 H 0 v 402.45037 z"
+     id="path1"
+     sodipodi:nodetypes="ccccccccc" />
   <path
      id="Shape 1"
      fill-rule="evenodd"
      class="s0"
-     d="m 767.37889,557.74333 c -31.92,0 -57.73,-25.8 -57.73,-57.73 0,-31.92 25.81,-57.73 57.73,-57.73 31.93,0 57.74,25.81 57.74,57.73 0,31.93 -25.81,57.73 -57.74,57.73 z" />
+     d="m 728.83416,586.48965 c -30.36908,0 -54.92503,-24.54643 -54.92503,-54.92503 0,-30.36907 24.55595,-54.92502 54.92503,-54.92502 30.37859,0 54.93454,24.55595 54.93454,54.92502 0,30.3786 -24.55595,54.92503 -54.93454,54.92503 z"
+     style="stroke-width:0.95141" />
   <path
      id="j"
      class="s0"
-     d="m 684.58889,557.12333 0.88,-113.35 -52.56,-0.43 -1.45,22.18 c -0.71,12.02 -4.56,15.79 -18.47,15.69 l -69.93,-0.55 c -41.78,-0.33 -55.61,-13.74 -55.43,-37.8 0.15,-16.47 5.33,-31.63 13.67,-46.77 l -52.37,-23.18 c -14.12,22.03 -22.59,54.91 -22.79,80.86 -0.73,89.9 58.72,101.77 119.5,102.25 z" />
+     d="m 656.81343,580.8353 0.82117,-105.77238 -49.04628,-0.40125 -1.35307,20.69723 C 606.57272,506.57535 602.98009,510.09332 590,510 l -65.25507,-0.51323 c -38.98695,-0.30794 -51.89239,-12.82146 -51.72442,-35.27301 0.13997,-15.36896 4.97368,-29.51549 12.75614,-43.64336 l -48.86899,-21.63038 c -13.17606,20.55726 -21.07983,51.23918 -21.26645,75.45439 -0.6812,83.89004 54.79447,94.96652 111.51124,95.41443 z"
+     style="display:inline;stroke-width:0.933149" />
 </svg>
