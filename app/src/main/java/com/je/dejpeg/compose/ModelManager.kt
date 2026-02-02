@@ -80,7 +80,7 @@ class ModelManager(
 
         private val MODEL_INFO = mapOf(
             // starter models
-            "1x-RGB-max-Denoise-fp16.onnx" to "Fast, noise and compression, mostly for animation. Or can turn photos into weird cartoon-looking things.",
+            "1x-RGB-max-Denoise-fp16.onnx" to "Fast, noise and compression, mostly for animation. Or can turn photos into cartoons.",
             "1x-span-anime-pretrain-fp16.onnx" to "Fast, general compression, general noise. Good for animation, comics, anime, and some photos.",
 
             // fbcnn (jpeg model)
@@ -105,6 +105,7 @@ class ModelManager(
             "1xBook-Compact-fp16.onnx" to "Book scanning",
             "1xOverExposureCorrection_compact-fp16.onnx" to "Exposure correction",
 
+            // other compression
             "1x_JPEGDestroyerV2_96000G-fp16.onnx" to "General JPEG compression",
             "1x-NMKD-Jaywreck3-Lite-fp16.onnx" to "General compression",
             "1x_NMKD-h264Texturize-fp16.onnx" to "Texturization, h264 compression",
