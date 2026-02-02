@@ -33,11 +33,7 @@ Check out [examples](examples/) to get an idea of what DeJPEG can be used for
 - Only standard image formats supported
 
 ## versions:
-There exists 2 "build types" of dejpeg, `lite` and `full` (noted by the presence of `-opencv` in full builds' version name). `lite` does not mean it has any limitations, it only lacks OpenCV binaries thus image descaling is not available. This is the version distributed in app stores like IzzyOnDroid.
-
-This change was done on my part to make building more transparent, previously to be under the 30mb app limit and still have both onnx and OpenCV, I used to manually build, compress and upload compiled binaries directly, which created ambiguity on how they were made. In order to not further complicate the build process, the app was split. `full` builds are available under releases alongside the `lite` builds, and the need for compressed binaries is no longer a strict requirement.
-
-[Obtainium config for opencv builds](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.je.dejpeg%22%2C%22url%22%3A%22https%3A%2F%2Fcodeberg.org%2Fdryerlint%2Fdejpeg%22%2C%22author%22%3A%22dryerlint%22%2C%22name%22%3A%22DeJPEG%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Afalse%2C%5C%22fallbackToOlderReleases%5C%22%3Atrue%2C%5C%22filterReleaseTitlesByRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22filterReleaseNotesByRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22verifyLatestTag%5C%22%3Afalse%2C%5C%22sortMethodChoice%5C%22%3A%5C%22date%5C%22%2C%5C%22useLatestAssetDateAsReleaseDate%5C%22%3Afalse%2C%5C%22releaseTitleAsVersion%5C%22%3Afalse%2C%5C%22trackOnly%5C%22%3Afalse%2C%5C%22versionExtractionRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22matchGroupToUse%5C%22%3A%5C%22%5C%22%2C%5C%22versionDetection%5C%22%3Atrue%2C%5C%22useVersionCodeAsOSVersion%5C%22%3Afalse%2C%5C%22apkFilterRegEx%5C%22%3A%5C%22.*-opencv%5C%22%2C%5C%22invertAPKFilter%5C%22%3Afalse%2C%5C%22autoApkFilterByArch%5C%22%3Atrue%2C%5C%22appName%5C%22%3A%5C%22%5C%22%2C%5C%22appAuthor%5C%22%3A%5C%22%5C%22%2C%5C%22shizukuPretendToBeGooglePlay%5C%22%3Afalse%2C%5C%22allowInsecure%5C%22%3Afalse%2C%5C%22exemptFromBackgroundUpdates%5C%22%3Afalse%2C%5C%22skipUpdateNotifications%5C%22%3Afalse%2C%5C%22about%5C%22%3A%5C%22%5C%22%2C%5C%22refreshBeforeDownload%5C%22%3Afalse%7D%22%2C%22overrideSource%22%3A%22Codeberg%22%7D)
+`v3.4.x` was released with seperate builds for descaling, in `v3.5.0` this was changed back to a unified release since better building methods were used and can still fit under the 30mb size requirement. Appologies.
 
 ## desktop support:
 [chaiNNer](https://github.com/chaiNNer-org/chaiNNer) is a cross-platform image/model utility, which should work well with these models
@@ -49,27 +45,23 @@ For FBCNN, which chaiNNer does support but in a limited fashion, install [this c
 
 ### requirements
 - Android SDK
-- For full builds: Android NDK (tested on version 27.3.x)
-- Optional: UPX for library compression (must be in path if enabled)
+- Android NDK 27.3.x
+- CMake 3.22.1+
 
 ### steps
 1. Clone repo
 
-2. (optional) run `./generatelibs.sh` to build native libraries (not needed for lite builds)
-
-   options:
-   - `--abi <abi>`: Target ABI (arm64-v8a, armeabi-v7a, x86_64, x86, or all). Default: arm64-v8a
-   - `--debug`: Build debug variant (disables compression).
-   - `--no-upx`: Disable UPX compression.
-   - `--full`: Build with OpenCV for BRISQUE descaling (requires NDK).
-   - `--no-cleanup`: Reuse existing libraries without rebuilding.
-   - `--help`: Show usage.
-
-   Note: UPX will only work if found in path.
-
-3. `./gradlew clean assembleLiteDebug` (or `assembleFullDebug` for BRISQUE)
-
-   Or open in Android Studio and build from there.
+2. Build with Gradle:
+   ```bash
+   ./gradlew assembleDebug
+   ```
+   
+   or use the helper script:
+   ```bash
+   ./generatelibs.sh           # release build for arm64-v8a
+   ./generatelibs.sh --debug   # debug build
+   ./generatelibs.sh --sign    # signed release build (requires signing config)
+   ```
 </details>
 
 <details>
