@@ -1,6 +1,16 @@
 import java.util.Properties
 import java.io.FileInputStream
 
+val localProperties = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.exists() }?.let { load(FileInputStream(it)) }
+}
+
+fun getProp(key: String, envKey: String): String =
+    localProperties.getProperty(key) ?: project.findProperty(key)?.toString() ?: System.getenv(envKey)
+    ?: throw GradleException("$key not found in local.properties, project properties, or $envKey env var")
+
+val signRelease = project.hasProperty("signApk") && project.property("signApk") == "true"
+
 android {
     namespace = "com.je.dejpeg"
     compileSdk = 36
@@ -74,7 +84,7 @@ android {
     externalNativeBuild {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
-            version = "3.22.1"
+            version = "4.2.3"
         }
     }
     ndkVersion = "29.0.14206865"
@@ -113,16 +123,11 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
-val localProperties = Properties().apply {
-    rootProject.file("local.properties").takeIf { it.exists() }?.let { load(FileInputStream(it)) }
-}
-
 val opencvDir = rootProject.projectDir.resolve("opencv")
 val supportedAbis = listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
 val cpuBaseline = mapOf("arm64-v8a" to "", "armeabi-v7a" to "NEON", "x86_64" to "SSE3", "x86" to "SSE2")
 val cpuDispatch = mapOf("arm64-v8a" to "", "armeabi-v7a" to "", "x86_64" to "SSE4_2,AVX,AVX2", "x86" to "SSE4_2,AVX")
 val ndkVersion = "29.0.14206865"
-val signRelease = project.hasProperty("signApk") && project.property("signApk") == "true"
 
 fun getTargetAbis(): List<String> {
     val targetAbi = project.findProperty("targetAbi")?.toString()
@@ -132,10 +137,6 @@ fun getTargetAbis(): List<String> {
         else -> listOf("arm64-v8a")
     }
 }
-
-fun getProp(key: String, envKey: String): String =
-    localProperties.getProperty(key) ?: project.findProperty(key)?.toString() ?: System.getenv(envKey)
-    ?: throw GradleException("$key not found in local.properties, project properties, or $envKey env var")
 
 fun getNdkDir(): File = 
     File(localProperties.getProperty("sdk.dir") ?: throw GradleException("sdk.dir not found in local.properties"))
