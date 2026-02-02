@@ -17,10 +17,10 @@ while [[ $# -gt 0 ]]; do
         --no-clean) CLEAN=false; shift;;
         --help) 
             echo "Usage: $0 [--abi <abi|all>] [--debug] [--sign] [--no-clean]"
-            echo "  --abi <abi>  Target ABI: arm64-v8a, armeabi-v7a, x86_64, x86, or all"
-            echo "  --debug      Build debug variant"
-            echo "  --sign       Sign release APK (requires keystore config)"
-            echo "  --no-clean   Skip cleaning of build artifacts (default: clean everything)"
+            echo "  --abi <abi>  target abi: arm64-v8a, armeabi-v7a, x86_64, x86, or all"
+            echo "  --debug      build debug variant"
+            echo "  --sign       sign release APK (requires keystore config)"
+            echo "  --no-clean   skip cleaning of build artifacts (default: clean everything)"
             exit 0;;
         *) echo "unknown option: $1"; exit 1;;
     esac
@@ -31,6 +31,10 @@ ALL_ABIS=(arm64-v8a armeabi-v7a x86_64 x86)
 if [[ "$TARGET_ABI" != "all" ]] && [[ ! " ${ALL_ABIS[*]} " =~ " $TARGET_ABI " ]]; then
     echo "Invalid ABI: $TARGET_ABI"
     exit 1
+fi
+
+if [[ "$SIGN_APK" == "true" ]]; then
+    BUILD_TYPE="release"
 fi
 
 ###### clean if requested ######
