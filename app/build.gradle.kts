@@ -64,8 +64,7 @@ android {
         outputs.all {
             val abiFilter = filters.find { it.filterType == "ABI" }?.identifier
             val debugSuffix = if (name.contains("debug", true)) "-debug" else ""
-            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName =
-                listOfNotNull("dejpeg", abiFilter).joinToString("-") + "$debugSuffix.apk"
+            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName = listOfNotNull("dejpeg", abiFilter).joinToString("-") + "$debugSuffix.apk"
         }
     }
     compileOptions {
