@@ -13,7 +13,6 @@
     <string name="dont_show_dialog">Don\'t show this dialog</string>
     <string name="cancel">Cancel</string>
     <string name="back_exit_confirm">Press back again to exit</string>
-
     <string name="remove_image_title">Remove image?</string>
     <string name="remove_image_question">You haven\'t saved %1$s yet, do you want to remove it?</string>
     <string name="remove">Remove</string>
