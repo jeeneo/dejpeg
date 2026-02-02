@@ -4,6 +4,7 @@ import android.app.Service
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.os.Binder
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
@@ -40,6 +41,12 @@ class ProcessingService : Service() {
         const val PID_ACTION = "com.je.dejpeg.action.PID"
         const val PID_EXTRA_VALUE = "extra_pid"
     }
+
+    inner class LocalBinder : Binder() {
+        fun getService(): ProcessingService = this@ProcessingService
+    }
+    
+    private val binder = LocalBinder()
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var currentJob: Job? = null
@@ -255,7 +262,7 @@ class ProcessingService : Service() {
         imageProcessor = null
     }
 
-    override fun onBind(intent: Intent?): IBinder? = null
+    override fun onBind(intent: Intent?): IBinder = binder
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         Log.d("ProcessingService", "onTaskRemoved() -> cancelling")

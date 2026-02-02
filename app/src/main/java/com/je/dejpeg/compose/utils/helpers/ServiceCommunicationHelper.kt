@@ -2,16 +2,18 @@ package com.je.dejpeg.compose.utils.helpers
 
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.ServiceConnection
 import android.os.Build
+import android.os.IBinder
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.je.dejpeg.compose.ProcessingService
-import java.io.File
 
 class ServiceCommunicationHelper(
     private val context: Context,
@@ -29,51 +31,74 @@ class ServiceCommunicationHelper(
     private var serviceProcessPid: Int? = null
     private var isRegistered = false
     private var currentProcessingImageId: String? = null
-    private val pidCheckHandler = Handler(Looper.getMainLooper())
-    private val pidCheckInterval = 500L // Check every 500ms
-    
-    private val pidCheckRunnable = object : Runnable {
-        override fun run() {
-            val pid = serviceProcessPid ?: return
-            val imageId = currentProcessingImageId ?: return
-            
-            if (!isProcessAlive(pid)) {
-                Log.e("ServiceCommHelper", "Service process $pid crashed while processing $imageId")
-                onServiceProcessDied(imageId)
-                return
+    private var serviceBinder: IBinder? = null
+    private var isBound = false
+    private val mainHandler = Handler(Looper.getMainLooper())
+
+    private val deathRecipient = IBinder.DeathRecipient {
+        mainHandler.post {
+            Log.e("ServiceCommHelper", "Service process died (DeathRecipient triggered) while processing: $currentProcessingImageId")
+            val imageId = currentProcessingImageId
+            cleanupBinding()
+            if (imageId != null) {
+                callbacks.onServiceCrash(imageId)
             }
-            
-            pidCheckHandler.postDelayed(this, pidCheckInterval)
         }
     }
-    
-    private fun isProcessAlive(pid: Int): Boolean {
-        return try {
-            File("/proc/$pid").exists()
+
+    private val serviceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
+            Log.d("ServiceCommHelper", "Service connected, registering DeathRecipient")
+            serviceBinder = binder
+            isBound = true
+            try {
+                binder?.linkToDeath(deathRecipient, 0)
+                Log.d("ServiceCommHelper", "DeathRecipient linked successfully")
+            } catch (e: Exception) {
+                Log.e("ServiceCommHelper", "Failed to link DeathRecipient: ${e.message}")
+            }
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            Log.w("ServiceCommHelper", "Service disconnected unexpectedly")
+            val imageId = currentProcessingImageId
+            cleanupBinding()
+            if (imageId != null) {
+                callbacks.onServiceCrash(imageId)
+            }
+        }
+    }
+
+    private fun bindToService() {
+        if (isBound) return
+        try {
+            val intent = Intent(context, ProcessingService::class.java)
+            context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+            Log.d("ServiceCommHelper", "Binding to service...")
         } catch (e: Exception) {
-            Log.w("ServiceCommHelper", "Failed to check process status: ${e.message}")
-            true
+            Log.e("ServiceCommHelper", "Failed to bind to service: ${e.message}")
         }
     }
-    
-    private fun onServiceProcessDied(imageId: String) {
-        stopPidMonitoring()
-        callbacks.onServiceCrash(imageId)
-    }
-    
-    private fun startPidMonitoring() {
-        currentProcessingImageId?.let { imageId ->
-            Log.d("ServiceCommHelper", "Started PID monitoring for: $imageId (pid=$serviceProcessPid)")
-            pidCheckHandler.removeCallbacks(pidCheckRunnable)
-            pidCheckHandler.postDelayed(pidCheckRunnable, pidCheckInterval)
+
+    private fun unbindFromService() {
+        if (!isBound) return
+        try {
+            serviceBinder?.unlinkToDeath(deathRecipient, 0)
+        } catch (e: Exception) {
+            Log.w("ServiceCommHelper", "Failed to unlink DeathRecipient: ${e.message}")
         }
-    }
-    
-    private fun stopPidMonitoring() {
-        if (currentProcessingImageId != null) {
-            Log.d("ServiceCommHelper", "Stopped PID monitoring for: $currentProcessingImageId")
+        try {
+            context.unbindService(serviceConnection)
+            Log.d("ServiceCommHelper", "Unbound from service")
+        } catch (e: Exception) {
+            Log.w("ServiceCommHelper", "Failed to unbind from service: ${e.message}")
         }
-        pidCheckHandler.removeCallbacks(pidCheckRunnable)
+        cleanupBinding()
+    }
+
+    private fun cleanupBinding() {
+        serviceBinder = null
+        isBound = false
         currentProcessingImageId = null
         serviceProcessPid = null
     }
@@ -82,7 +107,6 @@ class ServiceCommunicationHelper(
         override fun onReceive(ctx: Context?, intent: Intent?) {
             val action = intent?.action ?: return
             val imageId = intent.getStringExtra(ProcessingService.EXTRA_IMAGE_ID)
-            
             when (action) {
                 ProcessingService.PID_ACTION -> {
                     intent.getIntExtra(ProcessingService.PID_EXTRA_VALUE, -1)
@@ -90,7 +114,6 @@ class ServiceCommunicationHelper(
                         ?.let { pid ->
                             serviceProcessPid = pid
                             callbacks.onPidReceived(pid)
-                            startPidMonitoring()
                         }
                 }
                 ProcessingService.PROGRESS_ACTION -> {
@@ -104,14 +127,14 @@ class ServiceCommunicationHelper(
                     }
                 }
                 ProcessingService.COMPLETE_ACTION -> {
-                    stopPidMonitoring()
+                    unbindFromService()
                     val path = intent.getStringExtra(ProcessingService.COMPLETE_EXTRA_PATH)
                     if (path != null && !imageId.isNullOrEmpty()) {
                         callbacks.onComplete(imageId, path)
                     }
                 }
                 ProcessingService.ERROR_ACTION -> {
-                    stopPidMonitoring()
+                    unbindFromService()
                     val message = intent.getStringExtra(ProcessingService.ERROR_EXTRA_MESSAGE) ?: "Error"
                     callbacks.onError(imageId, message)
                 }
@@ -129,7 +152,6 @@ class ServiceCommunicationHelper(
                 addAction(ProcessingService.COMPLETE_ACTION)
                 addAction(ProcessingService.ERROR_ACTION)
             }
-            
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
             } else {
@@ -144,7 +166,7 @@ class ServiceCommunicationHelper(
 
     fun unregister() {
         if (!isRegistered) return
-        stopPidMonitoring()
+        unbindFromService()
         try {
             context.unregisterReceiver(receiver)
             Log.d("ServiceCommHelper", "Receiver unregistered successfully")
@@ -164,6 +186,7 @@ class ServiceCommunicationHelper(
         modelName: String?
     ) {
         currentProcessingImageId = imageId
+        bindToService()
         startService(ProcessingService.ACTION_PROCESS) {
             putExtra(ProcessingService.EXTRA_URI, uriString)
             putExtra(ProcessingService.EXTRA_FILENAME, filename)
@@ -177,7 +200,7 @@ class ServiceCommunicationHelper(
 
     fun cancelProcessing(onCleanup: () -> Unit): Boolean {
         val pid = serviceProcessPid
-        stopPidMonitoring()
+        unbindFromService()
         if (pid != null && pid > 0) {
             try {
                 android.os.Process.killProcess(pid)
