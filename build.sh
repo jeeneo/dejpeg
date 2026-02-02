@@ -16,7 +16,7 @@ while [[ $# -gt 0 ]]; do
         --sign) SIGN_APK=true; BUILD_TYPE="release"; shift;;
         --no-clean) CLEAN=false; shift;;
         --help) 
-            echo "Usage: $0 [--abi <abi|all>] [--debug] [--sign] [--no-clean]"
+            echo "usage: $0 [--abi <abi|all>] [--debug] [--sign] [--no-clean]"
             echo "  --abi <abi>  target abi: arm64-v8a, armeabi-v7a, x86_64, x86, or all"
             echo "  --debug      build debug variant"
             echo "  --sign       sign release APK (requires keystore config)"
