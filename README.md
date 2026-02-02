@@ -48,20 +48,21 @@ For FBCNN, which chaiNNer does support but in a limited fashion, install [this c
 - Android NDK
 - CMake 4.2.3
 
-### steps
-1. Clone repo
+Optional:
+- ~1GB of free space
 
-2. Build with Gradle:
-   ```bash
-   ./gradlew assembleDebug
-   ```
-   
-   or use the helper script:
-   ```bash
-   ./generatelibs.sh           # release build for arm64-v8a
-   ./generatelibs.sh --debug   # debug build
-   ./generatelibs.sh --sign    # signed release build (requires signing config)
-   ```
+### steps
+standard gradle build process
+
+or use the helper script:
+```bash
+./build.sh           # release build for arm64-v8a
+./build.sh --debug   # debug build
+./build.sh --sign    # signed release build (requires signing config)
+./build.sh --help    # show all options
+```
+
+Note: when building, it will by default clone [OpenCV](https://github.com/opencv/opencv) and [OpenCV_contrib](https://github.com/opencv/opencv_contrib) to build the library for BRISQUE. If you don't have the NDK or wish to not build this library, download and place any [prebuilt APK](https://codeberg.org/dryerlint/dejpeg/releases) from releases into the projects root directory, then run gradle as normal.
 </details>
 
 <details>

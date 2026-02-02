@@ -92,6 +92,10 @@ android {
             excludes += "DebugProbesKt.bin"
             excludes += "kotlin-tooling-metadata.json"
         }
+        jniLibs {
+            useLegacyPackaging = false
+            pickFirsts.add("lib/*/libbrisque_jni.so")
+        }
     }
 }
 
@@ -137,21 +141,64 @@ fun getTargetAbis(): List<String> {
     }
 }
 
-fun getNdkDir(): File = 
-    File(localProperties.getProperty("sdk.dir") ?: throw GradleException("sdk.dir not found in local.properties"))
-        .resolve("ndk/$ndkVersion")
-
 fun opencvBuildDir(abi: String) = opencvDir.resolve("build_android_$abi")
 fun opencvInstallDir(abi: String) = opencvBuildDir(abi).resolve("install/sdk/native")
 fun isOpencvBuilt(abi: String) = opencvInstallDir(abi).resolve("staticlibs/$abi/libopencv_quality.a").exists()
 fun makeProcess(workDir: File, vararg args: String) = providers.exec { workingDir = workDir; commandLine(*args) }.result.get()
+
+fun jniLibsDir(abi: String) = file("src/main/jniLibs/$abi")
+fun hasLib(abi: String) = jniLibsDir(abi).resolve("libbrisque_jni.so").exists()
+fun hasPrebuilt() = getTargetAbis().all { hasLib(it) }
+
+tasks.register("extractLibrariesFromApk") {
+    group = "native"
+    description = "Extracts libbrisque_jni.so from existing prebuilt if available"
+    onlyIf { !hasPrebuilt() }
+    doLast {
+        val apkFiles = rootProject.projectDir.listFiles { _, name -> name.matches(Regex("dejpeg-.*\\.apk")) }
+        if (apkFiles.isNullOrEmpty()) {
+            return@doLast
+        }
+        val apkFile = apkFiles.first()
+        println("found apk: ${apkFile.name}, extracting...")
+        val tempDir = file("${layout.buildDirectory.get()}/tmp/apk-extract").apply { 
+            deleteRecursively()
+            mkdirs() 
+        }
+        try {
+            copy {
+                from(zipTree(apkFile))
+                into(tempDir)
+            }
+            var extractedCount = 0
+            getTargetAbis().forEach { abi ->
+                val libSource = tempDir.resolve("lib/$abi/libbrisque_jni.so")
+                val libDest = jniLibsDir(abi).apply { mkdirs() }.resolve("libbrisque_jni.so")
+                if (libSource.exists()) {
+                    libSource.copyTo(libDest, overwrite = true)
+                    println("extracted libbrisque_jni.so for $abi")
+                    extractedCount++
+                } else {
+                    println("warning: libbrisque_jni.so not found for $abi in ${apkFile.name}")
+                }
+            }
+            if (extractedCount > 0) {
+                println("extracted libraries for $extractedCount ABI(s)")
+            } else {
+                println("no libraries extracted from ${apkFile.name}")
+            }
+        } finally {
+            tempDir.deleteRecursively()
+        }
+    }
+}
 
 tasks.register("cloneOpencv") {
     group = "native"
     description = "Clone OpenCV and OpenCV contrib repositories"
     val opencvRepo = opencvDir.resolve("opencv")
     val contribRepo = opencvDir.resolve("opencv_contrib")
-    onlyIf { !opencvRepo.resolve(".git").exists() || !contribRepo.resolve(".git").exists() }
+    onlyIf { !hasPrebuilt() && (!opencvRepo.resolve(".git").exists() || !contribRepo.resolve(".git").exists()) }
     doLast {
         opencvDir.mkdirs()
         if (!opencvRepo.resolve(".git").exists()) {
@@ -165,6 +212,8 @@ tasks.register("cloneOpencv") {
     }
 }
 
+fun getNdkDir(): File = File(localProperties.getProperty("sdk.dir") ?: throw GradleException("sdk.dir not found in local.properties")).resolve("ndk/$ndkVersion")
+
 getTargetAbis().forEach { abi ->
     tasks.register("buildOpencv_$abi") {
         group = "native"
@@ -172,11 +221,10 @@ getTargetAbis().forEach { abi ->
         dependsOn("cloneOpencv")
         val buildDir = opencvBuildDir(abi)
         outputs.dir(opencvInstallDir(abi))
-        onlyIf { !isOpencvBuilt(abi) }
+        onlyIf { !hasPrebuilt() && !isOpencvBuilt(abi) }
         doLast {
             val toolchain = getNdkDir().resolve("build/cmake/android.toolchain.cmake")
             buildDir.mkdirs()
-            
             val cmakeArgs = buildList {
                 add("cmake"); add("-Wno-deprecated")
                 add("-DCMAKE_TOOLCHAIN_FILE=${toolchain.absolutePath}")
@@ -203,7 +251,6 @@ getTargetAbis().forEach { abi ->
                 add(opencvDir.resolve("opencv").absolutePath)
             }
             providers.exec { workingDir = buildDir; commandLine(cmakeArgs) }.result.get()
-            
             val makeResult = providers.exec {
                 workingDir = buildDir
                 commandLine("make", "-j${Runtime.getRuntime().availableProcessors()}")
@@ -218,6 +265,7 @@ getTargetAbis().forEach { abi ->
 tasks.register("buildOpencv") {
     group = "native"
     description = "Build OpenCV static libraries for all target ABIs"
+    onlyIf { !hasPrebuilt() }
     dependsOn(getTargetAbis().map { "buildOpencv_$it" })
 }
 
@@ -232,6 +280,7 @@ tasks.register("cleandir") {
 tasks.register("cleanJniLibs") {
     group = "build"
     description = "Clean jniLibs directory (libraries now built by CMake)"
+    onlyIf { hasPrebuilt() }
     doFirst { cleanDir(file("src/main/jniLibs"), "jniLibs") }
 }
 
@@ -250,11 +299,18 @@ if (signRelease) {
 }
 
 tasks.whenTaskAdded {
-    if (name.startsWith("configureCMake")) dependsOn("buildOpencv")
+    if (name.startsWith("configureCMake") || name.startsWith("buildCMake")) {
+        dependsOn("extractLibrariesFromApk")
+        onlyIf { !hasPrebuilt() }
+        dependsOn("buildOpencv")
+    }
 }
 
 tasks.matching { it.name.startsWith("assemble") }.configureEach {
-    dependsOn("cleanJniLibs", "buildOpencv")
+    dependsOn("extractLibrariesFromApk")
+    if (!hasPrebuilt()) {
+        dependsOn("cleanJniLibs", "buildOpencv")
+    }
     if (!name.contains("debug", true)) {
         dependsOn("cleandir")
         if (signRelease) finalizedBy("move")
