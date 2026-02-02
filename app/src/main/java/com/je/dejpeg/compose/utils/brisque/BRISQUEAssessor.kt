@@ -6,41 +6,34 @@ import java.io.File
 class BRISQUEAssessor {
     companion object {
         private const val TAG = "BRISQUEAssessor"
-        private var librariesLoaded = false
+        private var libraryLoaded = false
 
-        fun loadLibraries() {
+        fun loadLibrary() {
             synchronized(this) {
-                if (librariesLoaded) return
+                if (libraryLoaded) return
                 try {
-                    listOf("opencv_core", "opencv_imgproc", "opencv_imgcodecs", "opencv_quality", "brisque_jni").forEach { loadLib(it) }
-                    librariesLoaded = true
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to load libraries: ${e.message}", e)
+                    // Single library with all OpenCV code statically linked
+                    System.loadLibrary("brisque_jni")
+                    libraryLoaded = true
+                    Log.i(TAG, "BRISQUE library loaded")
+                } catch (e: UnsatisfiedLinkError) {
+                    Log.e(TAG, "Failed to load brisque_jni: ${e.message}")
                 }
             }
         }
 
-        private fun loadLib(name: String) {
-            try {
-                Log.d(TAG, "Loading $name...")
-                System.loadLibrary(name)
-            } catch (e: UnsatisfiedLinkError) {
-                Log.w(TAG, "Library $name not found: ${e.message}")
-            } catch (e: Exception) {
-                Log.e(TAG, "Error loading $name: ${e.message}", e)
-                throw e
-            }
-        }
-
         init {
-            loadLibraries()
+            loadLibrary()
         }
     }
 
     external fun computeBRISQUEFromFile(imagePath: String, modelPath: String, rangePath: String): Float
 
     fun assessImageQuality(imagePath: String, modelPath: String, rangePath: String): Float {
-        loadLibraries()
+        if (!libraryLoaded) {
+            Log.e(TAG, "Library not loaded")
+            return -2.0f
+        }
         if (!File(imagePath).exists() || !File(modelPath).exists() || !File(rangePath).exists()) {
             Log.e(TAG, "One or more files do not exist")
             return -1.0f

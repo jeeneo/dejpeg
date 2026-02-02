@@ -96,7 +96,6 @@ import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.compose.utils.HapticFeedbackPerformer
 import com.je.dejpeg.compose.utils.ImageActions
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
-import com.je.dejpeg.compose.ui.BrisqueFeature
 import com.je.dejpeg.data.AppPreferences
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -545,9 +544,7 @@ fun ImageCard(image: ImageItem, onRemove: () -> Unit, onProcess: () -> Unit, onB
                     else {
                         IconButton({ haptic.medium(); onProcess() }, Modifier.size(36.dp)) { Icon(Icons.Filled.PlayArrow, stringResource(R.string.process), tint = Color(0xFF4CAF50), modifier = Modifier.size(20.dp)) }
                         IconButton({ haptic.heavy(); onRemove() }, Modifier.size(36.dp)) { Icon(Icons.Filled.Delete, stringResource(R.string.remove), tint = Color(0xFFEF5350), modifier = Modifier.size(18.dp)) }
-                        if (BrisqueFeature.isEnabled) {
-                            IconButton({ onBrisque() }, Modifier.size(36.dp)) { Box(Modifier.fillMaxSize(), Alignment.Center) { Text("B", fontStyle = FontStyle.Italic, color = MaterialTheme.colorScheme.primary, fontSize = 20.sp, fontWeight = FontWeight.Bold) } }
-                        }
+                        IconButton({ onBrisque() }, Modifier.size(36.dp)) { Box(Modifier.fillMaxSize(), Alignment.Center) { Text("B", fontStyle = FontStyle.Italic, color = MaterialTheme.colorScheme.primary, fontSize = 20.sp, fontWeight = FontWeight.Bold) } }
                     }
                 }
             }
