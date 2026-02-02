@@ -49,8 +49,6 @@ standard gradle build process
 
 optional, for descaling: Android NDK, CMake `4.2.3` and ~1GB of free space
 
-### steps
-
 or use the helper script:
 ```bash
 ./build.sh           # release build for arm64-v8a
