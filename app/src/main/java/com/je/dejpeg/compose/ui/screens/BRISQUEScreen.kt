@@ -367,7 +367,6 @@ private fun LogEntry(text: String, isActive: Boolean = false) {
     }
 }
 
-@SuppressLint("AutoboxingStateCreation")
 @Composable
 private fun BRISQUESettings(
     settings: BrisqueSettings,
