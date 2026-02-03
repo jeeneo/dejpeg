@@ -116,9 +116,7 @@ class ProcessingService : Service() {
                 val chunkSize = intent.getIntExtra(EXTRA_CHUNK_SIZE, AppPreferences.DEFAULT_CHUNK_SIZE)
                 val overlapSize = intent.getIntExtra(EXTRA_OVERLAP_SIZE, AppPreferences.DEFAULT_OVERLAP_SIZE)
                 imageProcessor?.apply {
-                    customChunkSize = chunkSize
-                    customOverlapSize = overlapSize
-                    Log.d("ProcessingService", "Loaded settings from Intent - chunk_size: $customChunkSize, overlap_size: $customOverlapSize")
+                    Log.d("ProcessingService", "Loaded settings from Intent - chunk_size: $chunkSize, overlap_size: $overlapSize")
                 }
                 chunkProgressCompleted = 0
                 chunkProgressTotal = 0

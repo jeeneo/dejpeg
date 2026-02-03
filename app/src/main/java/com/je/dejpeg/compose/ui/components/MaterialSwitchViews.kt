@@ -54,7 +54,6 @@ fun MaterialSwitchRow(
     )
 }
 
-@SuppressLint("InflateParams")
 @Composable
 fun MaterialSwitchPreference(
     title: String,
