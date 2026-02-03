@@ -32,8 +32,8 @@ class ImageProcessor(
     private val context: Context,
     private val modelManager: ModelManager
 ) {
-    var customChunkSize: Int? = null
-    var customOverlapSize: Int? = null
+    var chunkSize: Int? = null
+    var overlapSize: Int? = null
 
     @Volatile
     private var isCancelled = false
@@ -60,7 +60,7 @@ class ImageProcessor(
         try {
             val modelName = modelManager.getActiveModelName()
             val session = modelManager.loadModel()
-            val modelInfo = ModelInfo(modelName, strength, session, customChunkSize, customOverlapSize)
+            val modelInfo = ModelInfo(modelName, strength, session, chunkSize, overlapSize)
             val result = processBitmap(session, inputBitmap, callback, modelInfo, index, total)
             withContext(Dispatchers.Main) {
                 callback.onComplete(result)
@@ -177,16 +177,18 @@ class ImageProcessor(
                     } else {
                         chunk
                     }
-                    val chunkFile = File(chunksDir, "chunk_${chunkIndex}.png")
+                    val inputChunkFile = File(chunksDir, "chunk_${chunkIndex}.png")
+                    val processedChunkFile = File(chunksDir, "chunk_${chunkIndex}_processed.png")
                     withContext(Dispatchers.IO) {
-                        FileOutputStream(chunkFile).use { 
+                        FileOutputStream(inputChunkFile).use { 
                             converted.compress(Bitmap.CompressFormat.PNG, 100, it) 
                         }
                     }
                     converted.recycle()
                     chunkInfoList.add(ChunkInfo(
                         index = chunkIndex,
-                        file = chunkFile,
+                        inputFile = inputChunkFile,
+                        processedFile = processedChunkFile,
                         x = chunkX,
                         y = chunkY,
                         width = chunkW,
@@ -215,16 +217,15 @@ class ImageProcessor(
                     callback.onProgress(progressMessage)
                 }
                 val loadedChunk = withContext(Dispatchers.IO) {
-                    BitmapFactory.decodeFile(chunkInfo.file.absolutePath)
+                    BitmapFactory.decodeFile(chunkInfo.inputFile.absolutePath)
                 } ?: throw Exception("Failed to load chunk ${chunkInfo.index}")
                 val processed = processChunk(session, loadedChunk, config, hasTransparency, info)
                 loadedChunk.recycle()
-                val processedChunkFile = File(chunksDir, "chunk_${chunkInfo.index}_processed.png")
                 withContext(Dispatchers.IO) {
-                    FileOutputStream(processedChunkFile).use {
+                    FileOutputStream(chunkInfo.processedFile).use {
                         processed.compress(Bitmap.CompressFormat.PNG, 100, it)
                     }
-                    chunkInfo.file.delete()
+                    chunkInfo.inputFile.delete()
                 }
                 processed.recycle()
                 if (totalChunks > 1) {
@@ -241,15 +242,11 @@ class ImageProcessor(
             val result = createBitmap(width, height, config)
             for (chunkInfo in chunkInfoList) {
                 if (isCancelled) throw Exception(context.getString(R.string.error_processing_cancelled))
-                val processedChunkFile = File(chunksDir, "chunk_${chunkInfo.index}_processed.png")
                 val loadedProcessed = withContext(Dispatchers.IO) {
-                    BitmapFactory.decodeFile(processedChunkFile.absolutePath)
+                    BitmapFactory.decodeFile(chunkInfo.processedFile.absolutePath)
                 } ?: throw Exception("Failed to load processed chunk ${chunkInfo.index}")
                 mergeChunkWithBlending(result, loadedProcessed, chunkInfo, cols, rows, overlap)
                 loadedProcessed.recycle()
-                withContext(Dispatchers.IO) {
-                    processedChunkFile.delete()
-                }
             }
             CacheManager.clearChunks(context)
             return result
@@ -402,6 +399,7 @@ class ImageProcessor(
         return 0.coerceAtLeast(255.coerceAtMost(v.toInt()))
     }
 
+    @Suppress("UNCHECKED_CAST")
     private fun extractOutputArray(outputValue: Any, channels: Int, h: Int, w: Int): Pair<FloatArray, Int> {
         Log.d("ImageProcessor", "Output type received: ${outputValue.javaClass.name}")
         return when (outputValue) {
@@ -415,7 +413,6 @@ class ImageProcessor(
             }
             is Array<*> -> {
                 try {
-                    @Suppress("UNCHECKED_CAST")
                     val arr = outputValue as Array<Array<Array<FloatArray>>>
                     val actualChannels = arr[0].size
                     Log.d("ImageProcessor", "Expected channels: $channels, Actual channels: $actualChannels")
@@ -431,7 +428,6 @@ class ImageProcessor(
                     out to actualChannels
                 } catch (e: Exception) {
                     try {
-                        @Suppress("UNCHECKED_CAST")
                         val arr = outputValue as Array<Array<Array<ShortArray>>>
                         val actualChannels = arr[0].size
                         Log.d("ImageProcessor", "Expected channels: $channels, Actual channels: $actualChannels")
@@ -512,7 +508,8 @@ class ImageProcessor(
 
     private data class ChunkInfo(
         val index: Int,
-        val file: File,
+        val inputFile: File,
+        val processedFile: File,
         val x: Int,
         val y: Int,
         val width: Int,
@@ -566,8 +563,8 @@ class ImageProcessor(
         modelName: String?,
         val strength: Float,
         session: OrtSession,
-        customChunkSize: Int?,
-        customOverlapSize: Int?
+        chunkSize: Int?,
+        overlapSize: Int?
     ) {
         val env: OrtEnvironment?
         val inputName: String
@@ -575,12 +572,12 @@ class ImageProcessor(
         val inputChannels: Int
         val outputChannels: Int
         val isFp16: Boolean
-        val chunkSize: Int = customChunkSize ?: AppPreferences.DEFAULT_CHUNK_SIZE
-        val overlap: Int = customOverlapSize ?: AppPreferences.DEFAULT_OVERLAP_SIZE
+        val chunkSize: Int = chunkSize ?: AppPreferences.DEFAULT_CHUNK_SIZE
+        val overlap: Int = overlapSize ?: AppPreferences.DEFAULT_OVERLAP_SIZE
         val expectedWidth: Int?
         val expectedHeight: Int?
         init {
-            Log.d("ModelInfo", "Initialized with customChunkSize: $customChunkSize, customOverlapSize: $customOverlapSize -> chunkSize: $chunkSize, overlap: $overlap")
+            Log.d("ModelInfo", "Initialized with chunkSize: $chunkSize, overlapSize: $overlapSize -> chunkSize: $chunkSize, overlap: $overlap")
             inputInfoMap = session.inputInfo
             env = OrtEnvironment.getEnvironment()
             var foundInputName: String? = null
