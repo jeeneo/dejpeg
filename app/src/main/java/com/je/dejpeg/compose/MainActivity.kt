@@ -44,13 +44,13 @@ class MainActivity : ComponentActivity() {
             // denied - nothing shown cause its annoying
         }
     }
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         val modelManager = ModelManager(this)
         val starterModelExtracted = modelManager.initializeStarterModel()
-        
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(
                     this,
@@ -112,6 +112,7 @@ class MainActivity : ComponentActivity() {
         handleShareIntent(intent)
     }
 
+    @Suppress("DEPRECATION")
     private fun handleShareIntent(intent: Intent?) {
         if (intent == null) return
         when (intent.action) {
@@ -119,7 +120,6 @@ class MainActivity : ComponentActivity() {
                 val uri: Uri? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
                 } else {
-                    @Suppress("DEPRECATION")
                     intent.getParcelableExtra(Intent.EXTRA_STREAM)
                 }
                 uri?.let { addSharedUri(it, intent.flags) }
@@ -128,7 +128,6 @@ class MainActivity : ComponentActivity() {
                 val uris: List<Uri> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java) ?: emptyList()
                 } else {
-                    @Suppress("DEPRECATION")
                     intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM) ?: emptyList()
                 }
                 uris.forEach { addSharedUri(it, intent.flags) }
