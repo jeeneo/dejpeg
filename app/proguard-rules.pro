@@ -9,7 +9,6 @@
 -keepattributes InnerClasses
 
 -keep class ai.onnxruntime.** { *; }
--keep class com.microsoft.onnxruntime.** { *; }
 
 -keepnames class * implements java.io.Serializable
 -keepclassmembers class * implements java.io.Serializable {
