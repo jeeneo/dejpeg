@@ -17,3 +17,4 @@ app/src/*/jniLibs
 cmake-local
 docker*
 DOCKER*
+build*
