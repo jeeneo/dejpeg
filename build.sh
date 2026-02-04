@@ -17,7 +17,7 @@ sign_apk() {
     KA=$(grep "^keystore.alias=" local.properties | cut -d= -f2-)
     KYP=$(grep "^keystore.keyPassword=" local.properties | cut -d= -f2-)
     apksigner sign --ks "$KP" --ks-pass "pass:$KPP" --ks-key-alias "$KA" --key-pass "pass:$KYP" --out "$s" "$u"
-    [[ $? -eq 0 ]] && { echo "✓ Signed APK created: $s"; rm "$u"; return 0; } || { echo "Error: Failed to sign APK"; return 1; }
+    [[ $? -eq 0 ]] && { echo "signed apk: $s"; rm "$u"; return 0; } || { echo "failed to sign APK"; return 1; }
 }
 
 # parse arguments
@@ -92,7 +92,7 @@ if $DOCKER; then
 
     if $SIGN; then
         for apk in apks/*.apk; do
-            if [[ -f "$apk" ]]; then
+            if [[ -f "$apk" && "$apk" != *-signed.apk ]]; then
                 sign_apk "$apk"
             fi
         done
