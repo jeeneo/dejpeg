@@ -28,8 +28,23 @@ target_link_libraries(brisque_jni
 
 target_link_libraries(brisque_jni log z dl m atomic)
 
-target_compile_options(brisque_jni PRIVATE -Os -ffunction-sections -fdata-sections -fvisibility=hidden)
-target_link_options(brisque_jni PRIVATE -Wl,--gc-sections -Wl,--exclude-libs,ALL -Wl,-z,max-page-size=16384)
+target_compile_options(brisque_jni PRIVATE 
+    -Os 
+    -ffunction-sections 
+    -fdata-sections 
+    -fvisibility=hidden
+    -frandom-seed=brisque_jni
+    -fdebug-prefix-map=${CMAKE_SOURCE_DIR}=/workspace/app/src/main/cpp
+    -fdebug-prefix-map=${PROJECT_ROOT}=/workspace
+)
+
+target_link_options(brisque_jni PRIVATE 
+    -Wl,--gc-sections 
+    -Wl,--exclude-libs,ALL 
+    -Wl,-z,max-page-size=16384
+    -Wl,--build-id=none
+    -Wl,--hash-style=gnu
+)
 
 set_target_properties(brisque_jni PROPERTIES 
     CXX_STANDARD 17 
