@@ -47,7 +47,7 @@ For FBCNN, which chaiNNer does support but in a limited fashion, install [this c
 
 standard gradle build process
 
-optional, for descaling: Android NDK, CMake `4.2.3` and ~1GB of free space
+optional, for descaling: Android NDK, CMake `3.22.1` and ~1GB of free space
 
 or use the helper script:
 ```bash
