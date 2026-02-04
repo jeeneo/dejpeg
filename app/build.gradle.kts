@@ -83,7 +83,7 @@ android {
     externalNativeBuild {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
-            version = "4.0.2"
+            version = "3.22.1"
         }
     }
     ndkVersion = "29.0.14206865"
@@ -213,6 +213,38 @@ tasks.register("cloneOpencv") {
 }
 
 fun getNdkDir(): File = File(localProperties.getProperty("sdk.dir") ?: throw GradleException("sdk.dir not found in local.properties")).resolve("ndk/$ndkVersion")
+fun getSdkDir(): File = File(localProperties.getProperty("sdk.dir") ?: throw GradleException("sdk.dir not found in local.properties"))
+
+tasks.register("checkCMake") {
+    group = "native"
+    description = "Check and install CMake `3.22.1` if not present"
+    doLast {
+        val sdkDir = getSdkDir()
+        val cmakeDir = sdkDir.resolve("cmake")
+        val targetVersion = "3.22.1"
+        val installedVersions = if (cmakeDir.exists()) {
+            cmakeDir.listFiles()?.filter { it.isDirectory }?.map { it.name } ?: emptyList()
+        } else {
+            emptyList()
+        }
+        println("installed cmake versions: ${installedVersions.joinToString(", ").ifEmpty { "none" }}")
+        if (targetVersion !in installedVersions) {
+            println("cmake $targetVersion not found, installing")
+            val sdkmanager = sdkDir.resolve("cmdline-tools/latest/bin/sdkmanager").takeIf { it.exists() } ?: sdkDir.resolve("tools/bin/sdkmanager").takeIf { it.exists() } ?: throw GradleException("sdkmanager not found in SDK directory")
+            val installResult = providers.exec {
+                commandLine(sdkmanager.absolutePath, "cmake;$targetVersion")
+                isIgnoreExitValue = true
+            }.result.get()
+            if (installResult.exitValue == 0) {
+                println("cmake $targetVersion installed")
+            } else {
+                throw GradleException("failed to install cmake $targetVersion")
+            }
+        } else {
+            println("cmake $targetVersion already installed, skipping")
+        }
+    }
+}
 
 getTargetAbis().forEach { abi ->
     tasks.register("buildOpencv_$abi") {
@@ -300,7 +332,7 @@ if (signRelease) {
 
 tasks.whenTaskAdded {
     if (name.startsWith("configureCMake") || name.startsWith("buildCMake")) {
-        dependsOn("extractLibrariesFromApk")
+        dependsOn("checkCMake", "extractLibrariesFromApk")
         onlyIf { !hasPrebuilt() }
         dependsOn("buildOpencv")
     }
