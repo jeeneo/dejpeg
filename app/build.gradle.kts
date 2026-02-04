@@ -212,8 +212,17 @@ tasks.register("cloneOpencv") {
     }
 }
 
-fun getNdkDir(): File = File(localProperties.getProperty("sdk.dir") ?: throw GradleException("sdk.dir not found in local.properties")).resolve("ndk/$ndkVersion")
-fun getSdkDir(): File = File(localProperties.getProperty("sdk.dir") ?: throw GradleException("sdk.dir not found in local.properties"))
+fun getNdkDir(): File {
+    val ndkPath = localProperties.getProperty("ndk.dir") ?: project.findProperty("ndk.dir")?.toString() ?: System.getenv("ANDROID_NDK_HOME") ?: System.getenv("ANDROID_NDK_ROOT") ?: getSdkDir().resolve("ndk/$ndkVersion").absolutePath
+    return File(ndkPath)
+}
+
+fun getSdkDir(): File {
+    val sdkPath = localProperties.getProperty("sdk.dir") ?: project.findProperty("sdk.dir")?.toString() ?: System.getenv("ANDROID_HOME") ?: System.getenv("ANDROID_SDK_ROOT") ?: throw GradleException("sdk was not found")
+    return File(sdkPath)
+}
+
+fun getCMakeExecutable(): File = getSdkDir().resolve("cmake/3.22.1/bin/cmake")
 
 tasks.register("checkCMake") {
     group = "native"
@@ -230,7 +239,7 @@ tasks.register("checkCMake") {
         println("installed cmake versions: ${installedVersions.joinToString(", ").ifEmpty { "none" }}")
         if (targetVersion !in installedVersions) {
             println("cmake $targetVersion not found, installing")
-            val sdkmanager = sdkDir.resolve("cmdline-tools/latest/bin/sdkmanager").takeIf { it.exists() } ?: sdkDir.resolve("tools/bin/sdkmanager").takeIf { it.exists() } ?: throw GradleException("sdkmanager not found in SDK directory")
+            val sdkmanager = sdkDir.resolve("cmdline-tools/latest/bin/sdkmanager").takeIf { it.exists() } ?: sdkDir.resolve("tools/bin/sdkmanager").takeIf { it.exists() } ?: throw GradleException("sdkmanager not found")
             val installResult = providers.exec {
                 commandLine(sdkmanager.absolutePath, "cmake;$targetVersion")
                 isIgnoreExitValue = true
@@ -250,15 +259,16 @@ getTargetAbis().forEach { abi ->
     tasks.register("buildOpencv_$abi") {
         group = "native"
         description = "Build OpenCV static libraries for $abi"
-        dependsOn("cloneOpencv")
+        dependsOn("cloneOpencv", "checkCMake")
         val buildDir = opencvBuildDir(abi)
         outputs.dir(opencvInstallDir(abi))
         onlyIf { !hasPrebuilt() && !isOpencvBuilt(abi) }
         doLast {
             val toolchain = getNdkDir().resolve("build/cmake/android.toolchain.cmake")
             buildDir.mkdirs()
+            val cmakeExe = getCMakeExecutable().absolutePath
             val cmakeArgs = buildList {
-                add("cmake"); add("-Wno-deprecated")
+                add(cmakeExe); add("-Wno-deprecated")
                 add("-DCMAKE_TOOLCHAIN_FILE=${toolchain.absolutePath}")
                 add("-DANDROID_USE_LEGACY_TOOLCHAIN_FILE=OFF")
                 add("-DANDROID_ABI=$abi"); add("-DANDROID_PLATFORM=android-24"); add("-DANDROID_STL=c++_static")
