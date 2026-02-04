@@ -22,7 +22,11 @@ android {
         versionName = "3.5.0"
         externalNativeBuild {
             cmake {
-                arguments("-DANDROID_STL=c++_static", "-DCMAKE_BUILD_RPATH_USE_ORIGIN=ON")
+                arguments(
+                    "-DANDROID_STL=c++_static",
+                    "-DCMAKE_BUILD_RPATH_USE_ORIGIN=ON",
+                    "-DCMAKE_BUILD_TIMESTAMP="
+                )
             }
         }
     }
@@ -43,13 +47,13 @@ android {
             isDebuggable = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             if (signRelease) signingConfig = signingConfigs.getByName("release")
-            externalNativeBuild { cmake { arguments("-DCMAKE_BUILD_TYPE=MinSizeRel", "-DCMAKE_BUILD_RPATH_USE_ORIGIN=ON") } }
+            externalNativeBuild { cmake { arguments("-DCMAKE_BUILD_TYPE=MinSizeRel", "-DCMAKE_BUILD_RPATH_USE_ORIGIN=ON", "-DCMAKE_BUILD_TIMESTAMP=") } }
         }
         getByName("debug") {
             isDebuggable = true
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
-            externalNativeBuild { cmake { arguments("-DCMAKE_BUILD_TYPE=Debug") } }
+            externalNativeBuild { cmake { arguments("-DCMAKE_BUILD_TYPE=Debug", "-DCMAKE_BUILD_TIMESTAMP=") } }
         }
     }
     splits {
@@ -292,10 +296,19 @@ getTargetAbis().forEach { abi ->
                 add("-DCMAKE_CXX_FLAGS=$flags"); add("-DCMAKE_C_FLAGS=$flags")
                 add(opencvDir.resolve("opencv").absolutePath)
             }
-            providers.exec { workingDir = buildDir; commandLine(cmakeArgs) }.result.get()
+            providers.exec { 
+                workingDir = buildDir
+                commandLine(cmakeArgs)
+                environment("SOURCE_DATE_EPOCH", "0")
+                environment("TZ", "UTC")
+                environment("LANG", "C.UTF-8")
+            }.result.get()
             val makeResult = providers.exec {
                 workingDir = buildDir
                 commandLine("make", "-j${Runtime.getRuntime().availableProcessors()}")
+                environment("SOURCE_DATE_EPOCH", "0")
+                environment("TZ", "UTC")
+                environment("LANG", "C.UTF-8")
                 isIgnoreExitValue = true
             }.result.get()
             if (makeResult.exitValue != 0) makeProcess(buildDir, "make", "-j1")
@@ -345,6 +358,11 @@ tasks.whenTaskAdded {
         dependsOn("checkCMake", "extractLibrariesFromApk")
         onlyIf { !hasPrebuilt() }
         dependsOn("buildOpencv")
+        doFirst {
+            System.setProperty("SOURCE_DATE_EPOCH", "0")
+            System.setProperty("TZ", "UTC")
+            System.setProperty("LANG", "C.UTF-8")
+        }
     }
 }
 
