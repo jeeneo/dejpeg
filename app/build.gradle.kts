@@ -22,7 +22,7 @@ android {
         versionName = "3.5.0"
         externalNativeBuild {
             cmake {
-                arguments("-DANDROID_STL=c++_static")
+                arguments("-DANDROID_STL=c++_static", "-DCMAKE_BUILD_RPATH_USE_ORIGIN=ON")
             }
         }
     }
@@ -43,7 +43,7 @@ android {
             isDebuggable = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             if (signRelease) signingConfig = signingConfigs.getByName("release")
-            externalNativeBuild { cmake { arguments("-DCMAKE_BUILD_TYPE=MinSizeRel") } }
+            externalNativeBuild { cmake { arguments("-DCMAKE_BUILD_TYPE=MinSizeRel", "-DCMAKE_BUILD_RPATH_USE_ORIGIN=ON") } }
         }
         getByName("debug") {
             isDebuggable = true
