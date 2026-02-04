@@ -14,3 +14,4 @@ apks
 opencv
 buildtemp
 app/src/*/jniLibs
+cmake-local
