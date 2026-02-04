@@ -2,10 +2,6 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-export PATH="$PWD/cmake-local/bin:$PATH"
-echo "cmake path: $(which cmake)"
-echo "cmake version: $(cmake --version | head -n1)"
-
 # defaults
 ABI="arm64-v8a"
 DEBUG=false
