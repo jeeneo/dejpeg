@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: DOCKERFILE
     volumes:
-      - .:/repo
+      - .:/build/repo
       - dejpeg-gradle:/root/.gradle
       - $ANDROID_HOME:/opt/sdk
     working_dir: /repo
