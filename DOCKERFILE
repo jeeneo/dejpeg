@@ -1,0 +1,23 @@
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y \
+    git \
+    openjdk-17-jdk \
+    wget \
+    unzip \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV ANDROID_HOME=/opt/android-sdk
+RUN mkdir -p ${ANDROID_HOME} && cd ${ANDROID_HOME} && \
+    wget -q https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip && \
+    unzip commandlinetools-linux-13114758_latest.zip && \
+    mv cmdline-tools latest && mkdir cmdline-tools && mv latest cmdline-tools/ && \
+    rm commandlinetools-linux-13114758_latest.zip
+
+ENV PATH=${PATH}:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools
+
+RUN yes | sdkmanager --licenses && \
+    sdkmanager "platform-tools" "platforms;android-36" "build-tools;35.0.0" "ndk;29.0.14206865" "cmake;3.22.1"
+
+WORKDIR /repo
