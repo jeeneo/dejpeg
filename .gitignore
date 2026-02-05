@@ -7,3 +7,4 @@
 apks
 opencv
 app/src/*/jniLibs
+*.apk
