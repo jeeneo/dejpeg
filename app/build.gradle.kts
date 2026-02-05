@@ -18,8 +18,8 @@ android {
         applicationId = "com.je.dejpeg"
         minSdk = 24
         targetSdk = 36
-        versionCode = 350
-        versionName = "3.5.0"
+        versionCode = 351
+        versionName = "3.5.1"
         externalNativeBuild {
             cmake {
                 arguments(
