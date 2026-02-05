@@ -4,16 +4,15 @@ services:
       context: .
       dockerfile: DOCKERFILE
     volumes:
-      - dejpeg-repo:/repo
+      - .:/repo
       - dejpeg-gradle:/root/.gradle
+      - $ANDROID_HOME:/opt/sdk
     working_dir: /repo
     environment:
-      - GIT_REPO=${GIT_REPO:-https://codeberg.org/dryerlint/dejpeg.git}
-      - GIT_BRANCH=${GIT_BRANCH:-main}
+      - ANDROID_HOME=/opt/sdk
       - SOURCE_DATE_EPOCH=0
       - TZ=UTC
       - LANG=C.UTF-8
 
 volumes:
-  dejpeg-repo:
   dejpeg-gradle:
