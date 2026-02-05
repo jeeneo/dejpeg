@@ -54,6 +54,10 @@ if $DOCKER; then
         exit 1
     fi
 
+    if [ -d "./apks" ]; then
+        rm -rf "./apks"
+    fi
+
     if $CLEAN; then
         echo -e "${YELLOW}cleaning up...${NC}"
         docker-compose down --remove-orphans -v 2>/dev/null || true
