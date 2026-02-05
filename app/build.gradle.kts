@@ -240,7 +240,7 @@ tasks.register("checkCMake") {
         } else {
             emptyList()
         }
-        println("installed cmake versions: ${installedVersions.joinToString(", ").ifEmpty { "none" }}")
+        println("found cmake versions: ${installedVersions.joinToString(", ").ifEmpty { "none" }}")
         if (targetVersion !in installedVersions) {
             println("cmake $targetVersion not found, installing")
             val sdkmanager = sdkDir.resolve("cmdline-tools/latest/bin/sdkmanager").takeIf { it.exists() } ?: sdkDir.resolve("tools/bin/sdkmanager").takeIf { it.exists() } ?: throw GradleException("sdkmanager not found")
