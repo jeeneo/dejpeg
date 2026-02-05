@@ -11,6 +11,8 @@ RUN apt-get update && apt-get install -y \
 ENV ANDROID_HOME=/opt/android-sdk
 RUN mkdir -p ${ANDROID_HOME} && cd ${ANDROID_HOME} && \
     wget -q https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip && \
+    computed_hash=$(sha256sum commandlinetools-linux-13114758_latest.zip | cut -d' ' -f1) && \
+    if [ "$computed_hash" != "7ec965280a073311c339e571cd5de778b9975026cfcbe79f2b1cdcb1e15317ee" ]; then exit 1; fi && \
     unzip commandlinetools-linux-13114758_latest.zip && \
     mv cmdline-tools latest && mkdir cmdline-tools && mv latest cmdline-tools/ && \
     rm commandlinetools-linux-13114758_latest.zip
