@@ -17,7 +17,7 @@ sign_apk() {
     KA=$(grep "^keystore.alias=" local.properties | cut -d= -f2-)
     KYP=$(grep "^keystore.keyPassword=" local.properties | cut -d= -f2-)
     apksigner sign --ks "$KP" --ks-pass "pass:$KPP" --ks-key-alias "$KA" --key-pass "pass:$KYP" --out "$s" "$u"
-    [[ $? -eq 0 ]] && { echo "signed apk: $s"; rm "$u"; return 0; } || { echo "failed to sign APK"; return 1; }
+    [[ $? -eq 0 ]] && { echo "signed apk: $s"; return 0; } || { echo "failed to sign"; return 1; }
 }
 
 # parse arguments
@@ -55,51 +55,49 @@ if $DOCKER; then
     fi
 
     if $CLEAN; then
-        echo -e "${YELLOW}Cleaning up orphan containers and volumes...${NC}"
-        docker-compose down --remove-orphans -v
+        echo -e "${YELLOW}cleaning up...${NC}"
+        docker-compose down --remove-orphans -v 2>/dev/null || true
         rm -rf apks 2>/dev/null || true
     fi
 
-    mkdir -p apks
+    VARIANT=$($DEBUG && echo "Debug" || echo "Release")
+    variant_lower=$(echo "$VARIANT" | tr '[:upper:]' '[:lower:]')
 
-    echo -e "${YELLOW}cloning/updating repository...${NC}"
+    echo -e "${YELLOW}building...${NC}"
     docker-compose run --rm dejpeg bash -c '
+        set -e
+        # clone or update repo
         if [ -d .git ]; then
-            echo "Repository exists, pulling latest changes..."
+            echo "checking repo..."
             git fetch origin
             git reset --hard origin/${GIT_BRANCH:-main}
-            git clean -fdx
         else
-            echo "Cloning repository..."
-            git clone ${GIT_REPO:-https://github.com/deyerlint/dejpeg.git} .
+            echo "cloning repo..."
+            git clone ${GIT_REPO} . || git clone https://codeberg.org/dryerlint/dejpeg.git .
             git checkout ${GIT_BRANCH:-main}
         fi
+        echo "commit: $(git log -1 --oneline)"
+        # build
+        ./gradlew assemble'"$VARIANT"' -PtargetAbi='"$ABI"' --no-daemon
     '
 
-    echo -e "${BLUE}Current commit:${NC}"
-    docker-compose run --rm dejpeg git log -1 --oneline
+    mkdir -p apks
+    container_id=$(docker-compose run -d dejpeg sleep 10)
+    docker cp "$container_id:/repo/app/build/outputs/apk/$variant_lower/." apks/
+    docker rm -f "$container_id" >/dev/null 2>&1
 
-    echo -e "${YELLOW}Building APK...${NC}"
-    VARIANT=$($DEBUG && echo "Debug" || echo "Release")
-    CMD="./gradlew assemble$VARIANT -PtargetAbi=$ABI"
-
-    ! $DEBUG && CMD="$CMD --no-daemon"
-    docker-compose run --rm -e SOURCE_DATE_EPOCH=0 -e TZ=UTC -e LANG=C.UTF-8 dejpeg bash -c "$CMD"
-
-    echo -e "${YELLOW}moving apk${NC}"
-    variant=$(echo $VARIANT | tr '[:upper:]' '[:lower:]')
-    docker-compose run --rm dejpeg bash -c "cp -v app/build/outputs/apk/$variant/*.apk /apks/"
+    if [[ $(stat -c %u apks/*.apk 2>/dev/null | head -1) == "0" ]]; then
+        sudo chown -R "$(id -u):$(id -g)" apks/
+    fi
 
     if $SIGN; then
         for apk in apks/*.apk; do
-            if [[ -f "$apk" && "$apk" != *-signed.apk ]]; then
-                sign_apk "$apk"
-            fi
+            [[ -f "$apk" && "$apk" != *-signed.apk ]] && sign_apk "$apk"
         done
     fi
 
-    echo -e "${GREEN}✓ Build complete! APK is available in apks/${NC}"
-    ls -lh apks/*.apk
+    echo -e "${GREEN}build complete!${NC}"
+    ls -lh apks/*.apk 2>/dev/null || echo "No APKs found"
 else
     # clean
     if $CLEAN; then
