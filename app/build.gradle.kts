@@ -177,7 +177,7 @@ getTargetAbis().forEach { abi ->
                 add("-DBUILD_ZLIB=ON"); add("-DBUILD_PNG=ON"); add("-DBUILD_JPEG=ON")
                 listOf("JPEG", "PNG").forEach { add("-DWITH_$it=ON") }
                 listOf("TIFF", "WEBP", "OPENEXR", "JASPER", "OPENJPEG", "IMGCODEC_HDR", "IMGCODEC_SUNRASTER", "IMGCODEC_PXM", "IMGCODEC_PFM", "IPP", "EIGEN", "TBB", "OPENCL", "CUDA", "OPENGL", "VTK", "GTK", "QT", "GSTREAMER", "FFMPEG", "V4L", "1394", "ADE", "PROTOBUF", "QUIRC", "LAPACK", "OBSENSOR", "ANDROID_MEDIANDK", "ITT").forEach { add("-DWITH_$it=OFF") }
-                add("-DOPENCV_ENABLE_NONFREE=OFF"); add("-DOPENCV_GENERATE_PKGCONFIG=OFF"); add("-DBUILD_INFO_SKIP_SYSTEM_VERSION=ON"); add("-DENABLE_LTO=ON")
+                add("-DOPENCV_ENABLE_NONFREE=OFF"); add("-DOPENCV_GENERATE_PKGCONFIG=OFF"); add("-DBUILD_INFO_SKIP_SYSTEM_VERSION=ON"); add("-DBUILD_INFO_SKIP_TIMESTAMP=ON"); add("-DENABLE_LTO=ON")
                 add("-DCMAKE_CXX_FLAGS=$flags"); add("-DCMAKE_C_FLAGS=$flags"); add(opencvDir.resolve("opencv").absolutePath)
             }
             val env = mapOf("SOURCE_DATE_EPOCH" to "0", "TZ" to "UTC", "LANG" to "C.UTF-8")
