@@ -36,13 +36,29 @@ get_cmake() {
     echo "$(get_sdk_dir)/cmake/${CMAKE_VERSION}/bin/cmake"
 }
 
+get_sdkmanager() {
+    local sdkmanager="$(get_sdk_dir)/cmdline-tools/latest/bin/sdkmanager"
+    [ ! -f "$sdkmanager" ] && sdkmanager="$(get_sdk_dir)/tools/bin/sdkmanager"
+    [ ! -f "$sdkmanager" ] && { echo "sdkmanager not found" >&2; exit 1; }
+    echo "$sdkmanager"
+}
+
+check_sdk() {
+    local sdkmanager
+    sdkmanager="$(get_sdkmanager)"
+    yes | "$sdkmanager" --licenses
+    "$sdkmanager" "platform-tools" "platforms;android-36" "build-tools;35.0.0" "ndk;${NDK_VERSION}" "cmake;${CMAKE_VERSION}" || {
+        echo "failed to install SDK components" >&2
+        exit 1
+    }
+}
+
 check_cmake() {
     local cmake_path="$(get_cmake)"
     if [ ! -f "$cmake_path" ]; then
         echo "adding cmake ${CMAKE_VERSION}..."
-        local sdkmanager="$(get_sdk_dir)/cmdline-tools/latest/bin/sdkmanager"
-        [ ! -f "$sdkmanager" ] && sdkmanager="$(get_sdk_dir)/tools/bin/sdkmanager"
-        [ ! -f "$sdkmanager" ] && { echo "sdkmanager not found" >&2; exit 1; }
+        local sdkmanager
+        sdkmanager="$(get_sdkmanager)"
         "$sdkmanager" "cmake;${CMAKE_VERSION}" || { echo "failed to install CMake" >&2; exit 1; }
     fi
 }
@@ -153,6 +169,7 @@ build_jni_abi() {
 TARGET_ABI="${1:-arm64-v8a}"
 [ "$TARGET_ABI" = "all" ] && TARGET_ABI="${ABIS[*]}"
 
+check_sdk
 check_cmake
 check_opencv
 
