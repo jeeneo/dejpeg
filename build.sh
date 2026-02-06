@@ -16,11 +16,11 @@ for arg in "$@"; do
         --sign) SIGN=true;;
         --clean) CLEAN=true;;
         --help)
-            echo "usage: $0 [--abi=<abi>] [--debug] [--sign] [--no-clean]"
+            echo "usage: $0 [--abi=<abi>] [--debug] [--sign] [--clean]"
             echo "  --abi=<abi>  arm64-v8a, armeabi-v7a, x86_64, x86 (default: arm64-v8a)"
             echo "  --debug      build debug variant (default: release)"
             echo "  --sign       sign release APK"
-            echo "  --no-clean   skip cleaning build artifacts"
+            echo "  --clean      clean before building (default: false)"
             exit 0;;
         *) echo "unknown option: $arg (try --help)"; exit 1;;
     esac
@@ -36,6 +36,7 @@ NC='\033[0m'
 if $CLEAN; then
     echo -e "${YELLOW}cleaning up...${NC}"
     docker-compose down --remove-orphans -v 2>/dev/null || true
+    docker-compose run --rm dejpeg bash -c 'rm -rf /build/repo/opencv/build_android_* /build/repo/app/{.cxx,build,src/main/jniLibs} 2>/dev/null || true' 2>/dev/null || true
     rm -rf opencv/build_android_* app/{.cxx,build,src/main/jniLibs} {build,buildtemp,apks} 2>/dev/null || true
 fi
 
