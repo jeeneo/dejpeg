@@ -47,15 +47,6 @@ For FBCNN, which chaiNNer does support but in a limited fashion, install [this c
 
 standard gradle build process (will install additional requirements if needed)
 
-or use the helper script:
-```bash
-./build.sh           # release build for arm64-v8a
-./build.sh --debug   # debug build
-./build.sh --sign    # signed release build (requires signing config)
-./build.sh --help    # show all options
-```
-
-Note: when building, it will by default clone [OpenCV](https://github.com/opencv/opencv) and [OpenCV_contrib](https://github.com/opencv/opencv_contrib) to build the library for BRISQUE. If you don't have the NDK or wish to not build this library, download and place the latest [prebuilt APK](https://codeberg.org/dryerlint/dejpeg/releases) (`v3.5.0` or later) into the projects root directory, then run gradle as normal.
 </details>
 
 <details>
