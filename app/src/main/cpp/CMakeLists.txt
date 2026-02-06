@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.10)
 project(brisque_jni)
 
+set(CMAKE_BUILD_RPATH_USE_ORIGIN ON)
+set(CMAKE_BUILD_TIMESTAMP "")
+
 get_filename_component(PROJECT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../.." ABSOLUTE)
 set(OPENCV_BUILD "${PROJECT_ROOT}/opencv/build_android_${ANDROID_ABI}")
 set(STATIC_DIR "${OPENCV_BUILD}/install/sdk/native")
