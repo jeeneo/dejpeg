@@ -138,15 +138,15 @@ tasks.register("cloneOpencv") {
     doLast {
         opencvDir.mkdirs()
         listOf("opencv" to opencvRepo, "opencv_contrib" to contribRepo).forEach { (name, repo) ->
-            if (!repo.resolve(".git").exists()) { 
-                repo.deleteRecursively()
-                makeProcess(opencvDir, "git", "clone", "--depth", "1", "https://github.com/opencv/$name.git") 
-            } else {
-                println("updating $name...")
-                makeProcess(repo, "git", "pull", "--depth", "1")
-            }
             val commit = opencvCommits[name] ?: throw GradleException("commit not defined for $name")
-            println("checking out $name commit: $commit")
+            if (!repo.resolve(".git").exists()) {
+                repo.deleteRecursively()
+                makeProcess(opencvDir, "git", "clone", "https://github.com/opencv/$name.git")
+            } else {
+                println("fetching $name...")
+                makeProcess(repo, "git", "fetch", "origin")
+            }
+            println("checking out $name at $commit")
             makeProcess(repo, "git", "checkout", commit)
         }
     }

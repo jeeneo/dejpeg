@@ -22,4 +22,6 @@ ENV PATH=${PATH}:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platfo
 RUN yes | sdkmanager --licenses && \
     sdkmanager "platform-tools" "platforms;android-36" "build-tools;35.0.0" "ndk;29.0.14206865" "cmake;3.22.1"
 
+RUN git config --global --add safe.directory '*'
+
 WORKDIR /build/repo
