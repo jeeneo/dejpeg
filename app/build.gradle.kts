@@ -15,6 +15,10 @@ val signRelease = project.hasProperty("signApk") && project.property("signApk") 
 val ndkVersion = "29.0.14206865"
 val cmakeVersion = "3.22.1"
 val opencvDir = rootProject.projectDir.resolve("opencv")
+val opencvCommits = mapOf(
+    "opencv" to "52633170a7c3c427dbddd7836b13d46db1915e9e",
+    "opencv_contrib" to "abaddbcddf27554137d2fc4f0f70df013cf31a65"
+)
 val supportedAbis = listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
 val cpuBaseline = mapOf("arm64-v8a" to "", "armeabi-v7a" to "NEON", "x86_64" to "SSE3", "x86" to "SSE2")
 val cpuDispatch = mapOf("arm64-v8a" to "", "armeabi-v7a" to "", "x86_64" to "SSE4_2,AVX,AVX2", "x86" to "SSE4_2,AVX")
@@ -130,11 +134,20 @@ tasks.register("cloneOpencv") {
     group = "native"
     val opencvRepo = opencvDir.resolve("opencv")
     val contribRepo = opencvDir.resolve("opencv_contrib")
-    onlyIf { !skipOpenCV && (!opencvRepo.resolve(".git").exists() || !contribRepo.resolve(".git").exists()) }
+    onlyIf { !skipOpenCV }
     doLast {
         opencvDir.mkdirs()
         listOf("opencv" to opencvRepo, "opencv_contrib" to contribRepo).forEach { (name, repo) ->
-            if (!repo.resolve(".git").exists()) { repo.deleteRecursively(); makeProcess(opencvDir, "git", "clone", "--depth", "1", "https://github.com/opencv/$name.git") }
+            if (!repo.resolve(".git").exists()) { 
+                repo.deleteRecursively()
+                makeProcess(opencvDir, "git", "clone", "--depth", "1", "https://github.com/opencv/$name.git") 
+            } else {
+                println("updating $name...")
+                makeProcess(repo, "git", "pull", "--depth", "1")
+            }
+            val commit = opencvCommits[name] ?: throw GradleException("commit not defined for $name")
+            println("checking out $name commit: $commit")
+            makeProcess(repo, "git", "checkout", commit)
         }
     }
 }
