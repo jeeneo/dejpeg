@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# ################################# #
+#  DO NOT RUN THIS SCRIPT DIRECTLY  #
+# unless you know what you're doing #
+# ################################# #
+
 NDK_VERSION="29.0.14206865"
 CMAKE_VERSION="3.22.1"
 OPENCV_COMMIT="52633170a7c3c427dbddd7836b13d46db1915e9e"
