@@ -36,7 +36,6 @@ class ModelManager(
 
     companion object {
         private val MODEL_HASHES = mapOf(
-
             // older fp32 models (legacy, download links removed)
             "fbcnn_color.onnx" to "3bb0ff3060c217d3b3af95615157fca8a65506455cf4e3d88479e09efffec97f",
             "fbcnn_gray.onnx" to "041b360fc681ae4b134e7ec98da1ae4c7ea57435e5abe701530d5a995a7a27b3",
@@ -98,6 +97,8 @@ class ModelManager(
             "scunet_gray_25_fp16.onnx" to "General noise, grayscale images, stronger",
             "scunet_gray_50_fp16.onnx" to "Heavy general noise, grayscale images, strongest",
 
+            "deblurring_nafnet_2025may.onnx" to "Deblurring, restoration, denoising. General purpose but best on photos",
+
             // small models (for low-end devices)
             "1x-AnimeUndeint-Compact-fp16.onnx" to "Compression, jagged lines",
             "1x-BroadcastToStudio_Compact-fp16.onnx" to "Cartoons, broadcast compression",
@@ -152,6 +153,20 @@ class ModelManager(
             "1x_artifacts_dithering_alsa-fp16.onnx" to "Dithering artifacts",
             "1x_nmkdbrighten_10000_G-fp16.onnx" to "Brightening",
         )
+
+        private val MIN_SPATIAL_SIZE_BY_NAME = mapOf(
+            "nafnet" to 512 // nafnet deblurring, set to 512
+        )
+    }
+
+    fun getMinSpatialSize(modelName: String?): Int {
+        val normalized = modelName?.lowercase() ?: return 256
+        for ((pattern, size) in MIN_SPATIAL_SIZE_BY_NAME) {
+            if (normalized.contains(pattern)) {
+                return size
+            }
+        }
+        return 256
     }
 
     data class ModelWarning(
