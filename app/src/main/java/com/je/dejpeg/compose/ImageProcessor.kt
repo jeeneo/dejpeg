@@ -264,20 +264,20 @@ class ImageProcessor(
     ): Bitmap {
         val originalW = chunk.width
         val originalH = chunk.height
-        val minModelSize = 256
+        val minImgSize = modelManager.getMinSpatialSize(info.modelName)
         val w = if (info.expectedWidth != null && info.expectedWidth > 0) {
             info.expectedWidth
         } else {
             val padFactor = 8
             val paddedW = ((originalW + padFactor - 1) / padFactor) * padFactor
-            maxOf(paddedW, minModelSize)
+            maxOf(paddedW, minImgSize)
         }
         val h = if (info.expectedHeight != null && info.expectedHeight > 0) {
             info.expectedHeight
         } else {
             val padFactor = 8
             val paddedH = ((originalH + padFactor - 1) / padFactor) * padFactor
-            maxOf(paddedH, minModelSize)
+            maxOf(paddedH, minImgSize)
         }
         val needsPadding = w != originalW || h != originalH
         val paddedChunk = if (needsPadding) {
@@ -566,6 +566,7 @@ class ImageProcessor(
         chunkSize: Int?,
         overlapSize: Int?
     ) {
+        val modelName: String? = modelName
         val env: OrtEnvironment?
         val inputName: String
         val inputInfoMap: Map<String, NodeInfo>
