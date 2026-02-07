@@ -66,8 +66,8 @@
     <string name="chunk_settings">Chunk settings</string>
     <string name="chunk_size">Chunk size</string>
     <string name="overlap_size">Overlap size</string>
-    <string name="note_chunk_info">Images over %1$d px will be sliced and processed in chunks, overlap blends these to prevent visible seams.</string>
-    <string name="large_chunk_warning">Large sizes can cause instability with low-end devices.</string>
+    <string name="note_chunk_info">Images over %1$d px will be tiled and overlap prevents visible seams.</string>
+    <string name="large_chunk_warning">Large sizes can cause instability.</string>
     <string name="preferences">Preferences</string>
     <string name="vibration_on_touch">Vibration on touch</string>
     <string name="haptic_feedback_desc">Enable small vibrations for actions and gestures</string>
@@ -89,9 +89,9 @@
     <string name="chunk_size_px">%1$d px</string>
     <string name="overlap_size_px">%1$d px</string>
     <string name="app">App</string>
-    <string name="preferences_desc">Manage defaults and settings</string>
+    <string name="preferences_desc">Manage settings</string>
     <string name="about">About</string>
-    <string name="version_info_and_credits">Version info and license</string>
+    <string name="version_info_and_credits">Version info</string>
     <string name="show_frequently_asked_questions">Show frequently asked questions</string>
     <string name="imported_model">Imported %1$s</string>
     <string name="deleted_model">Deleted %1$s</string>
