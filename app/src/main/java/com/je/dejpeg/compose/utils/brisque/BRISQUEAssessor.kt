@@ -1,51 +1,97 @@
-package com.je.dejpeg.compose.utils.brisque
+/**
+* Copyright (C) 2026 dryerlint <codeberg.org/dryerlint>
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*
+*/
 
+/*
+* Also please don't steal my work and claim it as your own, thanks.
+*/
+
+import android.content.Context
+import android.graphics.BitmapFactory
 import android.util.Log
 import java.io.File
 
 class BRISQUEAssessor {
     companion object {
         private const val TAG = "BRISQUEAssessor"
-        private var libraryLoaded = false
-
-        fun loadLibrary() {
-            synchronized(this) {
-                if (libraryLoaded) return
-                try {
-                    // Single library with all OpenCV code statically linked
-                    System.loadLibrary("brisque_jni")
-                    libraryLoaded = true
-                    Log.i(TAG, "BRISQUE library loaded")
-                } catch (e: UnsatisfiedLinkError) {
-                    Log.e(TAG, "Failed to load brisque_jni: ${e.message}")
-                }
-            }
+        private var contextRef: Context? = null
+        fun initialize(context: Context) {
+            contextRef = context.applicationContext
         }
-
-        init {
-            loadLibrary()
+        private fun getModel(): BrisqueSVMModel? {
+            val ctx = contextRef ?: return null
+            return BrisqueModelLoader.loadFromAssets(ctx)
         }
     }
 
-    external fun computeBRISQUEFromFile(imagePath: String, modelPath: String, rangePath: String): Float
-
     fun assessImageQuality(imagePath: String, modelPath: String, rangePath: String): Float {
-        if (!libraryLoaded) {
-            Log.e(TAG, "Library not loaded")
-            return -2.0f
-        }
-        if (!File(imagePath).exists() || !File(modelPath).exists() || !File(rangePath).exists()) {
-            Log.e(TAG, "One or more files do not exist")
+        return assessImageQuality(imagePath)
+    }
+
+    fun assessImageQuality(imagePath: String): Float {
+        if (!File(imagePath).exists()) {
+            Log.e(TAG, "Image file does not exist: $imagePath")
             return -1.0f
         }
+        
         return try {
-            Log.d(TAG, "Computing BRISQUE score for image: $imagePath")
-            computeBRISQUEFromFile(imagePath, modelPath, rangePath).also {
-                Log.d(TAG, "BRISQUE score computed: $it")
+            val model = getModel()
+            if (model == null) {
+                Log.e(TAG, "Failed to load BRISQUE model - call initialize(context) first")
+                return -2.0f
             }
-        } catch (e: UnsatisfiedLinkError) {
-            Log.e(TAG, "Native method not found: ${e.message}", e)
-            -2.0f
+            val bitmap = BitmapFactory.decodeFile(imagePath)
+            if (bitmap == null) {
+                Log.e(TAG, "Failed to decode image: $imagePath")
+                return -1.0f
+            }
+            try {
+                Log.d(TAG, "Computing BRISQUE score for image: $imagePath (${bitmap.width}x${bitmap.height})")
+                val score = BrisqueCore.computeScore(bitmap, model)
+                Log.d(TAG, "BRISQUE score computed: $score")
+                score
+            } finally {
+                bitmap.recycle()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error computing BRISQUE score: ${e.message}", e)
+            -1.0f
+        }
+    }
+    
+    fun assessImageQualityFromBitmap(
+        bitmap: android.graphics.Bitmap, 
+        modelPath: String, 
+        rangePath: String
+    ): Float {
+        return assessImageQualityFromBitmap(bitmap)
+    }
+
+    fun assessImageQualityFromBitmap(bitmap: android.graphics.Bitmap): Float {
+        return try {
+            val model = getModel()
+            if (model == null) {
+                Log.e(TAG, "Failed to load BRISQUE model - call initialize(context) first")
+                return -2.0f
+            }
+            Log.d(TAG, "Computing BRISQUE score for bitmap (${bitmap.width}x${bitmap.height})")
+            val score = BrisqueCore.computeScore(bitmap, model)
+            Log.d(TAG, "BRISQUE score computed: $score")
+            score
         } catch (e: Exception) {
             Log.e(TAG, "Error computing BRISQUE score: ${e.message}", e)
             -1.0f

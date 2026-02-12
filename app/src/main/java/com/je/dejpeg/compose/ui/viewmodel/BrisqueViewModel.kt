@@ -1,4 +1,24 @@
-package com.je.dejpeg.compose.ui.viewmodel
+/**
+* Copyright (C) 2026 dryerlint <codeberg.org/dryerlint>
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*
+*/
+
+/*
+* Also please don't steal my work and claim it as your own, thanks.
+*/
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -9,7 +29,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.je.dejpeg.compose.utils.brisque.BRISQUEAssessor
 import com.je.dejpeg.compose.utils.brisque.BRISQUEDescaler
-import com.je.dejpeg.compose.utils.ZipExtractor
 import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.data.BrisqueSettings
 import kotlinx.coroutines.Dispatchers
@@ -68,6 +87,8 @@ class BrisqueViewModel : ViewModel() {
     fun initialize(context: Context, bitmap: Bitmap, filename: String) {
         appContext = context.applicationContext
         appPreferences = AppPreferences(context.applicationContext)
+
+        BRISQUEAssessor.initialize(context.applicationContext)
         viewModelScope.launch {
             appPreferences?.brisqueSettings?.collect { loadedSettings ->
                 settings.value = loadedSettings
@@ -79,19 +100,9 @@ class BrisqueViewModel : ViewModel() {
             filename = filename
         )
     }
-    
-    private fun checkModelsInit(context: Context) {
-        if (!ZipExtractor.modelsExist(context)) {
-            if (ZipExtractor.extractFromAssets(context, "brisquemodels.zip")) {
-            } else {
-                Log.e(TAG, "Failed to extract models from zip")
-            }
-        } else {
-            Log.d(TAG, "Models already extracted")
-        }
-    }
 
     private fun checkDescaleInit(context: Context): BRISQUEDescaler {
+        BRISQUEDescaler.initialize(context.applicationContext)
         return brisqueDescaler ?: BRISQUEDescaler(brisqueAssessor, context.applicationContext).also {
             brisqueDescaler = it
         }
@@ -103,35 +114,31 @@ class BrisqueViewModel : ViewModel() {
         imageState.value = state.copy(isAssessing = true, assessError = null)
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                checkModelsInit(context)
+                BRISQUEDescaler.initialize(context.applicationContext)
                 val descaler = checkDescaleInit(context)
                 val bmp = state.descaledBitmap ?: state.originalBitmap
-                val temp = File.createTempFile("brisque_assess_${System.currentTimeMillis()}_", ".png", context.cacheDir)
-                bmp.compress(Bitmap.CompressFormat.PNG, 100, temp.outputStream())
-                try {
-                    val model = File(ZipExtractor.getBrisqueModelsDir(context), "brisque_model_live.yml")
-                    val range = File(ZipExtractor.getBrisqueModelsDir(context), "brisque_range_live.yml")
-                    if (!model.exists() || !range.exists()) {
-                        throw IllegalStateException("Model files not found in app data directory.")
-                    }
-                    val score = brisqueAssessor.assessImageQuality(temp.absolutePath, model.absolutePath, range.absolutePath)
-                    val sharpness = descaler.estimateSharpness(bmp)
-                    withContext(Dispatchers.Main) {
-                        imageState.value = imageState.value?.copy(
-                            brisqueScore = if (score < 0) null else score,
-                            sharpnessScore = sharpness,
-                            isAssessing = false,
-                            assessError = if (score < 0) "Failed to compute BRISQUE score (error code: $score)" else null
-                        )
-                    }
-                } finally {
-                    temp.delete()
+                val score = brisqueAssessor.assessImageQualityFromBitmap(bmp)
+                val sharpness = descaler.estimateSharpness(bmp)
+                withContext(Dispatchers.Main) {
+                    imageState.value = imageState.value?.copy(
+                        brisqueScore = if (score >= 0) score else null,
+                        sharpnessScore = sharpness,
+                        isAssessing = false,
+                        assessError = if (score < 0) {
+                            when (score) {
+                                -1.0f -> "BRISQUE error: Image processing failed"
+                                -2.0f -> "BRISQUE error: Model not loaded (check brisque_model.bin in assets)"
+                                else -> "BRISQUE error (code: $score)"
+                            }
+                        } else null
+                    )
                 }
             } catch (e: Exception) {
+                Log.e(TAG, "BRISQUE assessment error", e)
                 withContext(Dispatchers.Main) {
                     imageState.value = imageState.value?.copy(
                         isAssessing = false,
-                        assessError = e.message ?: "Unknown error occurred"
+                        assessError = "Error: ${e.message}"
                     )
                 }
             }
@@ -149,7 +156,7 @@ class BrisqueViewModel : ViewModel() {
         )
         descaleJob = viewModelScope.launch(Dispatchers.IO) {
             try {
-                checkModelsInit(context)
+                BRISQUEDescaler.initialize(context.applicationContext)
                 val descaler = checkDescaleInit(context)
                 val bmp = state.descaledBitmap ?: state.originalBitmap
                 val currentSettings = settings.value

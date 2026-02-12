@@ -1,26 +1,31 @@
-package com.je.dejpeg.compose.utils.brisque
+/**
+* Copyright (C) 2026 dryerlint <codeberg.org/dryerlint>
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*
+*/
+
+/*
+* Also please don't steal my work and claim it as your own, thanks.
+*/
 
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
-import com.je.dejpeg.compose.utils.ZipExtractor
 import kotlinx.coroutines.yield
-import java.io.File
 import kotlin.math.sqrt
 import androidx.core.graphics.scale
-
-/**
-BRISQUEDescaler.kt - licensed under GPLv3
-Copyleft (🄯) 2025
-BRISQUE is a library (https://github.com/krshrimali/No-Reference-Image-Quality-Assessment-using-BRISQUE-Model, https://github.com/rehanguha/brisque, https://docs.opencv.org/4.x/d8/d99/classcv_1_1quality_1_1QualityBRISQUE.html)
-for guessing an images perceptual quality, lower value, better quality.
-This can be used in tandem with a rough Sharpness estimate to descale an image that was scaled up to a larger resolution without anything other than standard interpolation to extract its approximate original resolution.
-
-Example: an image scaled to 800px but originally 500px (currently unknown) can look blurred, if used 'as-is', it can't be upscaled or cleaned up without wasting resources or looking worse with little to no improvement, or manually resized until it looks right, which can get tedious.
-Solution: implement a BRISQUE assessment with a rough Sharpness estimation for descaling an image to provide a better result which can be used by other models to remove artifacts later on.
-
-It's not perfect but it helps sometimes.
-*/
 
 class BRISQUEDescaler(
     private val brisqueAssessor: BRISQUEAssessor,
@@ -34,6 +39,9 @@ class BRISQUEDescaler(
         private const val DEFAULT_MIN_WIDTH_RATIO = 0.5f     // minimum width as fraction of original
         private const val BRISQUE_WEIGHT = 0.7f              // 70% weight for BRISQUE
         private const val SHARPNESS_WEIGHT = 0.3f            // 30% weight for sharpness
+        fun initialize(context: Context) {
+            BRISQUEAssessor.initialize(context)
+        }
     }
 
     data class ProgressUpdate(
@@ -292,19 +300,7 @@ class BRISQUEDescaler(
 
     private fun computeBRISQUE(bitmap: Bitmap): Float {
         return try {
-            val tempFile = File.createTempFile("brisque_${System.currentTimeMillis()}_", ".png", context.cacheDir)
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, tempFile.outputStream())
-            try {
-                val modelFile = File(ZipExtractor.getBrisqueModelsDir(context), "brisque_model_live.yml")
-                val rangeFile = File(ZipExtractor.getBrisqueModelsDir(context), "brisque_range_live.yml")
-                if (!modelFile.exists() || !rangeFile.exists()) {
-                    Log.w(TAG, "Model files not found in app data directory")
-                    return 100f
-                }
-                brisqueAssessor.assessImageQuality(tempFile.absolutePath, modelFile.absolutePath, rangeFile.absolutePath).takeIf { it >= 0 } ?: 100f
-            } finally {
-                tempFile.delete()
-            }
+            brisqueAssessor.assessImageQualityFromBitmap(bitmap).takeIf { it >= 0 } ?: 100f
         } catch (e: Exception) {
             Log.e(TAG, "Error computing BRISQUE score: ${e.message}")
             100f

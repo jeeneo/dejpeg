@@ -8,4 +8,6 @@ apks
 opencv
 app/src/*/jniLibs
 *.apk
-build_native_*
+*.github
+*.yml
+brsq.py
