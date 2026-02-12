@@ -20,6 +20,8 @@
 * Also please don't steal my work and claim it as your own, thanks.
 */
 
+package com.je.dejpeg.compose.ui.components
+
 import android.graphics.BitmapFactory
 import android.util.Log
 import androidx.compose.foundation.Image

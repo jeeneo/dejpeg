@@ -20,6 +20,8 @@
 * Also please don't steal my work and claim it as your own, thanks.
 */
 
+package com.je.dejpeg.compose.ui.components
+
 import android.os.Handler
 import android.os.Looper
 import android.widget.Toast

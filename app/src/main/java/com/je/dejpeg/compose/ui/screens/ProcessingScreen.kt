@@ -20,6 +20,8 @@
 * Also please don't steal my work and claim it as your own, thanks.
 */
 
+package com.je.dejpeg.compose.ui.screens
+
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri

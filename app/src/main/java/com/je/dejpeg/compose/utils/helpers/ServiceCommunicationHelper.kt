@@ -20,6 +20,8 @@
 * Also please don't steal my work and claim it as your own, thanks.
 */
 
+package com.je.dejpeg.compose.utils.helpers
+
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.ComponentName
