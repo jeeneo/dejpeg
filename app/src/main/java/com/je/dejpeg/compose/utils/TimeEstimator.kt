@@ -20,6 +20,8 @@
 * Also please don't steal my work and claim it as your own, thanks.
 */
 
+package com.je.dejpeg.compose.utils
+
 import android.content.Context
 import com.je.dejpeg.data.dataStore
 import androidx.datastore.preferences.core.edit

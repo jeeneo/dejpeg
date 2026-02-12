@@ -20,6 +20,8 @@
 * Also please don't steal my work and claim it as your own, thanks.
 */
 
+package com.je.dejpeg.compose
+
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtException
 import ai.onnxruntime.OrtSession

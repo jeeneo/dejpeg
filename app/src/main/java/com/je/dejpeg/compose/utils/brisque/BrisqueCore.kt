@@ -20,6 +20,8 @@
 * Also please don't steal my work and claim it as your own, thanks.
 */
 
+package com.je.dejpeg.compose.utils.brisque
+
 import android.graphics.Bitmap
 import android.util.Log
 import kotlin.math.*

@@ -20,6 +20,8 @@
 * Also please don't steal my work and claim it as your own, thanks.
 */
 
+package com.je.dejpeg.compose.utils
+
 import android.os.Build
 import android.view.HapticFeedbackConstants
 import android.view.View

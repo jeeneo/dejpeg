@@ -20,6 +20,8 @@
 * Also please don't steal my work and claim it as your own, thanks.
 */
 
+package com.je.dejpeg.compose.utils.brisque
+
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.util.Log

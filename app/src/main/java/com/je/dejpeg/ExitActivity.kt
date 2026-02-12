@@ -20,6 +20,8 @@
 * Also please don't steal my work and claim it as your own, thanks.
 */
 
+package com.je.dejpeg
+
 import android.app.Activity
 import android.content.Context
 import android.content.Intent

@@ -20,6 +20,8 @@
 * Also please don't steal my work and claim it as your own, thanks.
 */
 
+package com.je.dejpeg.ui
+
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler

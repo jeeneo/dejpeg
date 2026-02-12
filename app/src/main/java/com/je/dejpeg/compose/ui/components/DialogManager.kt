@@ -20,6 +20,8 @@
 * Also please don't steal my work and claim it as your own, thanks.
 */
 
+package com.je.dejpeg.compose.ui.components
+
 import android.content.Intent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
