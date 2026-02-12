@@ -45,7 +45,7 @@ For FBCNN, which chaiNNer does support but in a limited fashion, install [this c
 
 ### requirements
 
-standard gradle build process (will install additional requirements if needed)
+standard gradle build process
 
 </details>
 

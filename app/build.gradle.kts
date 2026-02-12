@@ -12,36 +12,19 @@ val localProperties = Properties().apply {
 }
 
 val signRelease = project.hasProperty("signApk") && project.property("signApk") == "true"
-val ndkVersion = "29.0.14206865"
-val cmakeVersion = "3.22.1"
-val supportedAbis = listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
 
 fun getProp(key: String, envKey: String): String = localProperties.getProperty(key) ?: project.findProperty(key)?.toString() ?: System.getenv(envKey) ?: throw GradleException("$key not found")
-fun getTargetAbis(): List<String> = when (val abi = project.findProperty("targetAbi")?.toString()) { "all" -> supportedAbis; null, "" -> listOf("arm64-v8a"); else -> listOf(abi) }
 fun cleanDir(dir: File, label: String) { if (dir.exists()) { dir.deleteRecursively(); println("deleted $label") } }
-
-fun jniLibsDir(abi: String) = file("src/main/jniLibs/$abi")
-val hasPrebuilt: Boolean by lazy { getTargetAbis().all { file("src/main/jniLibs/$it/libbrisque_jni.so").exists() } }
-val hasApk: Boolean by lazy { rootProject.projectDir.listFiles { _, name -> name.matches(Regex("dejpeg-.*\\.apk")) }?.isNotEmpty() == true }
-val skipOpenCV: Boolean by lazy {
-    when {
-        hasApk -> { println("found apk, skipping native build"); true }
-        hasPrebuilt -> { println("found prebuilt libs, skipping native build"); true }
-        else -> false
-    }
-}
 
 android {
     namespace = "com.je.dejpeg"
     compileSdk = 36
-    ndkVersion = this@Build_gradle.ndkVersion
     defaultConfig {
         applicationId = "com.je.dejpeg"
         minSdk = 24
         targetSdk = 36
         versionCode = 351
         versionName = "3.5.1"
-        if (!skipOpenCV) externalNativeBuild { cmake { arguments("-DANDROID_STL=c++_static") } }
     }
     signingConfigs { if (signRelease) create("release") {
         storeFile = file(getProp("keystore.path", "KEYSTORE_PATH"))
@@ -57,7 +40,6 @@ android {
         }
         debug {
             isDebuggable = true; applicationIdSuffix = ".debug"; versionNameSuffix = "-debug"
-            if (!skipOpenCV) externalNativeBuild { cmake { arguments("-DCMAKE_BUILD_TYPE=Debug") } }
         }
     }
     splits.abi { isEnable = true; reset(); include(project.findProperty("targetAbi")?.toString() ?: "arm64-v8a"); isUniversalApk = false }
@@ -69,7 +51,6 @@ android {
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
     buildFeatures { compose = true; buildConfig = true }
-    if (!skipOpenCV) externalNativeBuild { cmake { path = file("src/main/cpp/CMakeLists.txt"); version = cmakeVersion } }
     packaging {
         resources.excludes += listOf("DebugProbesKt.bin", "kotlin-tooling-metadata.json")
         jniLibs { useLegacyPackaging = false; pickFirsts.add("lib/*/libbrisque_jni.so") }
@@ -97,63 +78,7 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
 }
 
-tasks.register("extractLibrariesFromApk") {
-    group = "native"
-    onlyIf { !hasPrebuilt && hasApk }
-    doLast {
-        val apkFile = rootProject.projectDir.listFiles { _, name -> name.matches(Regex("dejpeg-.*\\.apk")) }?.firstOrNull() ?: return@doLast
-        println("found apk: ${apkFile.name}, extracting...")
-        val tempDir = file("${layout.buildDirectory.get()}/tmp/apk-extract").apply { deleteRecursively(); mkdirs() }
-        try {
-            copy { from(zipTree(apkFile)); into(tempDir) }
-            var count = 0
-            getTargetAbis().forEach { abi ->
-                val src = tempDir.resolve("lib/$abi/libbrisque_jni.so")
-                if (src.exists()) { src.copyTo(jniLibsDir(abi).apply { mkdirs() }.resolve("libbrisque_jni.so"), overwrite = true); println("extracted for $abi"); count++ }
-                else println("warning: not found for $abi")
-            }
-            println(if (count > 0) "extracted $count ABI(s)" else "no libraries extracted")
-        } finally { tempDir.deleteRecursively() }
-    }
-}
-
-tasks.register("prepareOpencv") {
-    group = "native"
-    dependsOn("extractLibrariesFromApk")
-    onlyIf { !skipOpenCV }
-    doLast {
-        val buildScript = rootProject.projectDir.resolve("build.sh")
-        if (!buildScript.exists()) throw GradleException("build.sh not found")
-        val targetAbi = project.findProperty("targetAbi")?.toString() ?: "arm64-v8a"
-        println("running script for $targetAbi...")
-        val result = project.exec {
-            workingDir = rootProject.projectDir
-            commandLine(buildScript.absolutePath, targetAbi)
-            environment("BUILD_JNI", "0")
-        }
-        if (result.exitValue != 0) throw GradleException("build.sh failed with exit code ${result.exitValue}")
-    }
-}
-
-tasks.register("cleanBuild") {
-    group = "native"
-    onlyIf { !skipOpenCV }
-    doFirst {
-        cleanDir(file("../build"), "root/build")
-        cleanDir(file(".cxx"), "app/.cxx")
-        cleanDir(layout.buildDirectory.get().asFile, "app/build")
-        rootProject.file("opencv").listFiles { _, name -> name.startsWith("build_android_") }?.forEach {
-            cleanDir(it, "${it.name}")
-        }
-    }
-}
-
-tasks.matching { it.name.startsWith("buildCMake") || it.name.startsWith("externalNativeBuild") }.configureEach {
-    dependsOn("cleanBuild", "prepareOpencv")
-}
-
 tasks.register("cleanApks") { group = "build"; doFirst { cleanDir(file("${rootProject.rootDir}/apks"), "apks") } }
-tasks.register("cleanJniLibs") { group = "build"; onlyIf { hasPrebuilt }; doFirst { cleanDir(file("src/main/jniLibs"), "jniLibs") } }
 
 if (signRelease) tasks.register("moveApks") {
     group = "build"
@@ -165,7 +90,5 @@ if (signRelease) tasks.register("moveApks") {
 }
 
 tasks.matching { it.name.startsWith("assemble") }.configureEach {
-    dependsOn("extractLibrariesFromApk")
-    if (!skipOpenCV) dependsOn("cleanJniLibs", "prepareOpencv")
     if (!name.contains("debug", true)) { dependsOn("cleanApks"); if (signRelease) finalizedBy("moveApks") }
 }
