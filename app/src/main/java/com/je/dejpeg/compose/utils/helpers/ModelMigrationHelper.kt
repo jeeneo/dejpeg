@@ -33,84 +33,46 @@ object ModelMigrationHelper {
     private const val TAG = "ModelMigrationHelper"
     fun getOnnxModelsDir(context: Context): File = File(context.filesDir, "models/onnx")
     fun getBrisqueModelsDir(context: Context): File = File(context.filesDir, "models/brisque")
+
     suspend fun migrateModelsIfNeeded(context: Context): Boolean = withContext(Dispatchers.IO) {
-        val appPreferences = AppPreferences(context.applicationContext)
-        val onnxResult = migrateFiles(
-            label = "ONNX",
-            sourceDir = context.filesDir,
-            targetDir = getOnnxModelsDir(context),
-            fileFilter = { it.isFile && it.name.lowercase().endsWith(".onnx") },
-            isComplete = { appPreferences.getCompatModelCleanupImmediate() },
-            markComplete = { appPreferences.setCompatModelCleanup(true) }
-        )
-        val brisqueResult = migrateFiles(
-            label = "BRISQUE",
-            sourceDir = File(context.filesDir, "models"),
-            targetDir = getBrisqueModelsDir(context),
-            fileFilter = { it.isFile && it.name in listOf("brisque_model_live.yml", "brisque_range_live.yml") },
-            isComplete = { appPreferences.getCompatBrisqueCleanupImmediate() },
-            markComplete = { appPreferences.setCompatBrisqueCleanup(true) }
-        )
-        onnxResult && brisqueResult
+        val prefs = AppPreferences(context.applicationContext)
+        val onnx = migrateFiles("ONNX", context.filesDir, getOnnxModelsDir(context),
+            { it.isFile && it.name.lowercase().endsWith(".onnx") },
+            { prefs.getCompatModelCleanupImmediate() }, { prefs.setCompatModelCleanup(true) })
+        val brisque = deleteDeprecated("BRISQUE",
+            listOf(File(context.filesDir, "models"), getBrisqueModelsDir(context)),
+            listOf("brisque_model_live.yml", "brisque_range_live.yml"))
+        onnx && brisque
     }
-    
-    private suspend fun migrateFiles(
-        label: String,
-        sourceDir: File,
-        targetDir: File,
-        fileFilter: (File) -> Boolean,
-        isComplete: suspend () -> Boolean,
-        markComplete: suspend () -> Unit
+
+    private suspend fun migrateFiles(label: String, src: File, dst: File,
+        filter: (File) -> Boolean, done: suspend () -> Boolean, mark: suspend () -> Unit
     ): Boolean {
-        if (isComplete()) {
-            Log.d(TAG, "$label migration already completed, skipping")
-            return true
-        }
-        
+        if (done()) return true
         return try {
-            val filesToMigrate = sourceDir.listFiles(fileFilter) ?: emptyArray()
-            
-            if (filesToMigrate.isEmpty()) {
-                Log.d(TAG, "No $label files found, marking migration as complete")
-                markComplete()
-                return true
-            }
-            
-            if (!targetDir.exists() && !targetDir.mkdirs()) {
-                Log.e(TAG, "Failed to create $label directory: ${targetDir.absolutePath}")
-                return false
-            }
-            
-            var successCount = 0
-            for (file in filesToMigrate) {
-                if (moveFile(file, File(targetDir, file.name))) successCount++
-            }
-            
-            Log.d(TAG, "$label migration complete: $successCount/${filesToMigrate.size} files migrated")
-            markComplete()
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "$label migration failed: ${e.message}", e)
-            false
-        }
+            val files = src.listFiles(filter) ?: emptyArray()
+            if (files.isEmpty()) { mark(); return true }
+            if (!dst.exists() && !dst.mkdirs()) return false
+            val count = files.count { moveFile(it, File(dst, it.name)) }
+            Log.d(TAG, "$label migration: $count/${files.size} moved")
+            mark(); true
+        } catch (e: Exception) { Log.e(TAG, "$label migration failed: ${e.message}", e); false }
     }
-    
-    private fun moveFile(source: File, target: File): Boolean {
-        return try {
-            if (target.exists()) {
-                Log.d(TAG, "File already exists in target, deleted old: ${source.name}")
-                source.delete()
-            } else if (!source.renameTo(target)) {
-                source.copyTo(target, overwrite = true)
-                source.delete()
-                Log.d(TAG, "Copied and deleted: ${source.name}")
-            } else {
-                Log.d(TAG, "Moved: ${source.name}")
-            }
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to migrate ${source.name}: ${e.message}")
-            false
+
+    private fun deleteDeprecated(label: String, dirs: List<File>, names: List<String>): Boolean = try {
+        val count = dirs.sumOf { dir ->
+            (dir.listFiles { f -> f.isFile && f.name in names } ?: emptyArray()).count { f -> f.delete() }
         }
-    }
+        dirs.forEach { dir ->
+            if (dir.exists() && dir.isDirectory && (dir.listFiles()?.isEmpty() == true)) dir.delete()
+        }
+        Log.d(TAG, if (count > 0) "Deleted $count deprecated $label file(s)" else "No deprecated $label files"); true
+    } catch (e: Exception) { Log.e(TAG, "$label cleanup failed: ${e.message}", e); false }
+
+    private fun moveFile(src: File, dst: File): Boolean = try {
+        when {
+            dst.exists() -> src.delete()
+            !src.renameTo(dst) -> { src.copyTo(dst, true); src.delete() }
+        }; true
+    } catch (e: Exception) { false }
 }

@@ -46,10 +46,10 @@ object BrisqueCore {
     private const val GAUSSIAN_KERNEL_SIZE = 7
     private const val GAUSSIAN_SIGMA = 7.0 / 6.0
     private val gaussianKernel: DoubleArray by lazy {
-        createGaussianKernel(GAUSSIAN_KERNEL_SIZE, GAUSSIAN_SIGMA)
+        createGKernel(GAUSSIAN_KERNEL_SIZE, GAUSSIAN_SIGMA)
     }
 
-    private fun createGaussianKernel(size: Int, sigma: Double): DoubleArray {
+    private fun createGKernel(size: Int, sigma: Double): DoubleArray {
         val kernel = DoubleArray(size)
         val half = size / 2
         var sum = 0.0
@@ -166,7 +166,6 @@ object BrisqueCore {
 
     /**
      * Lanczos approximation of gamma function (tgamma)
-     * More accurate than Stirling's approximation
      */
     fun tgamma(x: Double): Double {
         if (x <= 0.0) return Double.NaN
@@ -254,7 +253,7 @@ object BrisqueCore {
         return stats.compute()
     }
 
-    fun computeFeaturesForScale(mscn: FloatArray, width: Int, height: Int): FloatArray {
+    fun computeForScale(mscn: FloatArray, width: Int, height: Int): FloatArray {
         val n = width * height
         val features = FloatArray(18)
         val (leftSigma, rightSigma, gamma) = fitAGGD(mscn, n)
@@ -294,7 +293,7 @@ object BrisqueCore {
         return features
     }
 
-    fun calcBrisqueFeat(bitmap: Bitmap): FloatArray {
+    fun calcBrisqueFeatures(bitmap: Bitmap): FloatArray {
         val features = FloatArray(36)
         val width = bitmap.width
         val height = bitmap.height
@@ -303,7 +302,7 @@ object BrisqueCore {
         val buf1 = FloatArray(n)
         val buf2 = FloatArray(n)
         computeMSCN(gray, buf1, buf2, width, height)
-        val features1 = computeFeaturesForScale(buf1, width, height)
+        val features1 = computeForScale(buf1, width, height)
         System.arraycopy(features1, 0, features, 0, 18)
         val halfWidth = width / 2
         val halfHeight = height / 2
@@ -311,7 +310,7 @@ object BrisqueCore {
             val scale2 = FloatArray(halfWidth * halfHeight)
             ImageResampler.resizeInterCubic(gray, width, height, scale2, halfWidth, halfHeight)
             computeMSCN(scale2, buf1, buf2, halfWidth, halfHeight)
-            val features2 = computeFeaturesForScale(buf1, halfWidth, halfHeight)
+            val features2 = computeForScale(buf1, halfWidth, halfHeight)
             System.arraycopy(features2, 0, features, 18, 18)
         }
         return features
@@ -356,7 +355,7 @@ object BrisqueCore {
     
     fun computeScore(bitmap: Bitmap, model: BrisqueSVMModel): BrisqueResult {
         return try {
-            val features = calcBrisqueFeat(bitmap)
+            val features = calcBrisqueFeatures(bitmap)
             val scaledFeatures = scaleFeatures(features, model.rangeMin, model.rangeMax)
             BrisqueResult.Success(predictSVM(scaledFeatures, model))
         } catch (e: Exception) {

@@ -53,7 +53,7 @@ I am by no means a professional developer and only do this in my spare time, the
 
 This is a GUI for a select amount of `1x` ONNX processing models, used under their respective licenses (Apache 2.0)
 
-You are welcome to embed parts of this app in your own project as long as it remains free as in beer and abides to the GPLv3 license.
+You are welcome to embed parts of this app in your own project as long as it remains free as in beer, abides to the GPLv3 license, and credit has been given
 
   Credits to [@adrianerrea](https://github.com/adrianerrea/fromPytorchtoMobile) for a starting point, [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and [SCUNet](https://github.com/cszn/SCUNet) creators plus all other model owners.
 

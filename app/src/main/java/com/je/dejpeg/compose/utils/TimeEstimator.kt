@@ -20,6 +20,8 @@
 * If you use this code in your own project, please give credit
 */
 
+// unattached old utility class for calculating time per chunk/model, deprecated
+
 package com.je.dejpeg.compose.utils
 
 import android.content.Context
