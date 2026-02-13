@@ -24,6 +24,7 @@ package com.je.dejpeg.compose.utils.brisque
 
 import android.content.Context
 import android.util.Log
+import com.je.dejpeg.compose.utils.HashUtils
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -68,13 +69,13 @@ data class BrisqueSVMModel(
 object BrisqueModelLoader {
     private const val TAG = "BrisqueModelLoader"
     private const val MAGIC = "BRSQ"
-    
+    private const val BRISQUE_MDL_HASH = "fe4a6bcee5aa2357e34ce845133cfc2d707dcc2613627c38d4ef805bf81fc59b"
+
     @Volatile
     private var cachedModel: BrisqueSVMModel? = null
 
     fun loadFromAssets(context: Context): BrisqueSVMModel? {
         cachedModel?.let { return it }
-        
         return synchronized(this) {
             cachedModel?.let { return it }
             try {
@@ -86,6 +87,12 @@ object BrisqueModelLoader {
                             input.copyTo(output)
                         }
                     }
+                }
+                val realHash = HashUtils.computeSHA256(inputFile)
+                if (realHash != BRISQUE_MDL_HASH) {
+                    Log.e(TAG, "BRISQUE model SHA256 verification failed. Expected: $BRISQUE_MDL_HASH, Actual: $realHash")
+                    inputFile.delete()
+                    return null
                 }
                 val model = loadFromBinary(inputFile)
                 val elapsed = System.currentTimeMillis() - startTime

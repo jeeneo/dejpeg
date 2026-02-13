@@ -36,6 +36,11 @@ import kotlin.math.*
  * more work will need to be done but the current implementation should be functionally correct and produce similar or close results to the original.
  */
 
+sealed class BrisqueResult {
+    data class Success(val score: Float) : BrisqueResult()
+    data class Error(val message: String, val exception: Exception? = null) : BrisqueResult()
+}
+
 object BrisqueCore {
     private const val TAG = "BrisqueCore"
     private const val GAUSSIAN_KERNEL_SIZE = 7
@@ -98,6 +103,13 @@ object BrisqueCore {
         return gray
     }
 
+    /**
+     * computes the Mean Subtracted Contrast Normalized (MSCN) coefficients.
+     *
+     * [buf1] and [buf2] are used as scratch space during Gaussian blur.
+     * on return, [buf1] contains the MSCN output image,
+     * [buf2] is left in an undefined state and should not be read after this call
+     */
     fun computeMSCN(image: FloatArray, buf1: FloatArray, buf2: FloatArray, width: Int, height: Int) {
         val n = width * height
         val kernel = gaussianKernel
@@ -147,6 +159,8 @@ object BrisqueCore {
                 buf2[idx] = s2.toFloat()
             }
         }
+        // compute MSCN = (image - mu) / (sigma + eps)
+        // after this, buf1 holds the MSCN coefficients.
         val eps = 1.0f / 255.0f
         for (i in 0 until n) {
             val mu = buf1[i]
@@ -156,79 +170,6 @@ object BrisqueCore {
         }
     }
 
-    private fun reflect101(index: Int, length: Int): Int {
-        if (length <= 1) return 0
-        var idx = index
-        while (idx < 0 || idx >= length) {
-            idx = if (idx < 0) -idx else (2 * length - idx - 2)
-        }
-        return idx
-    }
-
-    private fun cubicWeight(x: Double): Double {
-        val a = -0.75
-        val ax = abs(x)
-        return when {
-            ax <= 1.0 -> ((a + 2.0) * ax - (a + 3.0)) * ax * ax + 1.0
-            ax < 2.0 -> (((a * ax - 5.0 * a) * ax + 8.0 * a) * ax) - 4.0 * a
-            else -> 0.0
-        }
-    }
-
-    private fun resizeInterCubic(
-        src: FloatArray,
-        srcWidth: Int,
-        srcHeight: Int,
-        dst: FloatArray,
-        dstWidth: Int,
-        dstHeight: Int
-    ) {
-        val scaleX = srcWidth.toDouble() / dstWidth
-        val scaleY = srcHeight.toDouble() / dstHeight
-        val xWeights = DoubleArray(dstWidth * 4)
-        val xSrcCols = IntArray(dstWidth * 4)
-        for (dx in 0 until dstWidth) {
-            val fx = (dx + 0.5) * scaleX - 0.5
-            val sx = floor(fx).toInt()
-            val tx = fx - sx
-            val base = dx * 4
-            xWeights[base]     = cubicWeight(1.0 + tx)
-            xWeights[base + 1] = cubicWeight(tx)
-            xWeights[base + 2] = cubicWeight(1.0 - tx)
-            xWeights[base + 3] = cubicWeight(2.0 - tx)
-            for (n in 0..3) xSrcCols[base + n] = reflect101(sx + n - 1, srcWidth)
-        }
-        val yWeights = DoubleArray(dstHeight * 4)
-        val ySrcRowOffs = IntArray(dstHeight * 4)
-        for (dy in 0 until dstHeight) {
-            val fy = (dy + 0.5) * scaleY - 0.5
-            val sy = floor(fy).toInt()
-            val ty = fy - sy
-            val base = dy * 4
-            yWeights[base]     = cubicWeight(1.0 + ty)
-            yWeights[base + 1] = cubicWeight(ty)
-            yWeights[base + 2] = cubicWeight(1.0 - ty)
-            yWeights[base + 3] = cubicWeight(2.0 - ty)
-            for (m in 0..3) ySrcRowOffs[base + m] = reflect101(sy + m - 1, srcHeight) * srcWidth
-        }
-        for (dy in 0 until dstHeight) {
-            val yBase = dy * 4
-            val dstRowOff = dy * dstWidth
-            for (dx in 0 until dstWidth) {
-                val xBase = dx * 4
-                var sum = 0.0
-                for (m in 0..3) {
-                    val rowOff = ySrcRowOffs[yBase + m]
-                    val wY = yWeights[yBase + m]
-                    for (n in 0..3) {
-                        sum += src[rowOff + xSrcCols[xBase + n]] * wY * xWeights[xBase + n]
-                    }
-                }
-                dst[dstRowOff + dx] = sum.toFloat()
-            }
-        }
-    }
-    
     /**
      * Lanczos approximation of gamma function (tgamma)
      * More accurate than Stirling's approximation
@@ -296,15 +237,18 @@ object BrisqueCore {
                     (gammaHat.pow(2) + 1).pow(2)
             val gammaVals = aggdGammaValues
             val rGammaVals = aggdRGammaValues
-            var bestGamma = 0.2
-            var prevDiff = Double.MAX_VALUE
-            for (i in gammaVals.indices) {
-                val diff = abs(rGammaVals[i] - rHatNorm)
-                if (diff > prevDiff) break
-                prevDiff = diff
-                bestGamma = gammaVals[i]
+            // aggdRGammaValues is monotonically increasing, so binary search
+            // for the closest value is O(log n) instead of O(n) linear scan.
+            var lo = 0
+            var hi = gammaVals.size - 1
+            while (lo < hi) {
+                val mid = (lo + hi) ushr 1
+                if (rGammaVals[mid] < rHatNorm) lo = mid + 1 else hi = mid
             }
-            return Triple(leftSigma, rightSigma, bestGamma)
+            val bestIdx = if (lo > 0 &&
+                abs(rGammaVals[lo - 1] - rHatNorm) < abs(rGammaVals[lo] - rHatNorm)
+            ) lo - 1 else lo
+            return Triple(leftSigma, rightSigma, gammaVals[bestIdx])
         }
     }
 
@@ -371,7 +315,7 @@ object BrisqueCore {
         val halfHeight = height / 2
         if (halfWidth > 0 && halfHeight > 0) {
             val scale2 = FloatArray(halfWidth * halfHeight)
-            resizeInterCubic(gray, width, height, scale2, halfWidth, halfHeight)
+            ImageResampler.resizeInterCubic(gray, width, height, scale2, halfWidth, halfHeight)
             computeMSCN(scale2, buf1, buf2, halfWidth, halfHeight)
             val features2 = computeFeaturesForScale(buf1, halfWidth, halfHeight)
             System.arraycopy(features2, 0, features, 18, 18)
@@ -394,19 +338,13 @@ object BrisqueCore {
         return scaled
     }
 
-    fun rbfKernel(x: FloatArray, y: FloatArray, gamma: Float): Double {
-        var distSq = 0.0
-        for (i in x.indices) {
-            val diff = x[i] - y[i]
-            distSq += diff * diff
-        }
-        return exp(-gamma * distSq)
-    }
-
     fun predictSVM(features: FloatArray, model: BrisqueSVMModel): Float {
+        val numFeatures = BrisqueSVMModel.NUM_FEATURES
+        val numSV = BrisqueSVMModel.NUM_SUPPORT_VECTORS
+        require(model.supportVectors.size == numSV * numFeatures) { "Support vector array size (${model.supportVectors.size}) " + "doesn't match expected ${numSV}x${numFeatures}" }
+        require(model.alphas.size == numSV) { "Alphas array size (${model.alphas.size}) doesn't match expected $numSV" }
         var sum = 0.0
         val svData = model.supportVectors
-        val numFeatures = BrisqueSVMModel.NUM_FEATURES
         val gamma = model.gamma
         for (i in 0 until BrisqueSVMModel.NUM_SUPPORT_VECTORS) {
             val svStart = i * numFeatures
@@ -421,14 +359,14 @@ object BrisqueCore {
         return rawScore.coerceIn(0.0, 100.0).toFloat()
     }
     
-    fun computeScore(bitmap: Bitmap, model: BrisqueSVMModel): Float {
-        try {
+    fun computeScore(bitmap: Bitmap, model: BrisqueSVMModel): BrisqueResult {
+        return try {
             val features = calcBrisqueFeat(bitmap)
             val scaledFeatures = scaleFeatures(features, model.rangeMin, model.rangeMax)
-            return predictSVM(scaledFeatures, model)
+            BrisqueResult.Success(predictSVM(scaledFeatures, model))
         } catch (e: Exception) {
             Log.e(TAG, "Error computing BRISQUE score: ${e.message}")
-            return -1.0f
+            BrisqueResult.Error(e.message ?: "Unknown error", e)
         }
     }
 }
