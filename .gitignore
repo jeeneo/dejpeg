@@ -9,3 +9,4 @@ opencv
 app/src/*/jniLibs
 *.apk
 build_native_*
+brsq
