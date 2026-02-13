@@ -32,9 +32,6 @@ Check out [examples](examples/) to get an idea of what DeJPEG can be used for
 - Processed locally, a fast device is recommended
 - Only standard image formats supported
 
-## versions:
-`v3.4.3` was released with seperate builds for descaling, in `v3.5.0` this was changed back to a unified release without compression since better building methods were used and can still fit under the 30mb size requirement. Apologies.
-
 ## desktop support:
 [chaiNNer](https://github.com/chaiNNer-org/chaiNNer) is a cross-platform image/model utility, which should work well with these models
 
