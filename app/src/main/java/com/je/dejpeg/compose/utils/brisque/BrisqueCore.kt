@@ -31,7 +31,7 @@ import kotlin.math.*
  * primarily based on `qualitybrisque.cpp` in opencv_contrib (https://github.com/opencv/opencv_contrib/blob/master/modules/quality/src/qualitybrisque.cpp)
  * 
  * NOTE: LLMs (Generative AIs) were used to help with algorithm reimplementation and porting, however the final code was manually reviewed
- * it's not a direct 1-to-1 translation of the original C++, but that follows the same basic algorithmic steps
+ * it's not a direct 1-to-1 translation of the original C++, but aims to follow the same algorithmic steps
  *
  * more work will need to be done but the current implementation should be functionally correct and produce similar or close results to the original.
  */
@@ -64,31 +64,16 @@ object BrisqueCore {
         return kernel
     }
 
-    private val aggdGammaCount = ((10.0 - 0.2) / 0.001).toInt()
-
-    private val aggdGammaValues: DoubleArray by lazy {
-        DoubleArray(aggdGammaCount) { i -> 0.2 + i * 0.001 }
-    }
-
-    private val aggdRGammaValues: DoubleArray by lazy {
-        DoubleArray(aggdGammaCount) { i ->
-            val g = aggdGammaValues[i]
-            tgamma(2.0 / g).pow(2) / (tgamma(1.0 / g) * tgamma(3.0 / g))
-        }
-    }
-
     fun bitmapToGrayscaleFloat(bitmap: Bitmap): FloatArray {
         val width = bitmap.width
         val height = bitmap.height
         val gray = FloatArray(width * height)
         val chunkRows = 64
         val rowPixels = IntArray(width * chunkRows)
-        
         var y = 0
         while (y < height) {
             val rows = minOf(chunkRows, height - y)
             bitmap.getPixels(rowPixels, 0, width, 0, y, width, rows)
-            
             val baseIdx = y * width
             val count = rows * width
             for (i in 0 until count) {
@@ -96,7 +81,12 @@ object BrisqueCore {
                 val r = (pixel shr 16) and 0xFF
                 val g = (pixel shr 8) and 0xFF
                 val b = pixel and 0xFF
-                gray[baseIdx + i] = (0.299f * r + 0.587f * g + 0.114f * b) / 255.0f
+                // match OpenCV's cvtColor(BGR2GRAY) for 8-bit input:
+                // Y = (R*4899 + G*9617 + B*1868 + 8192) >> 14
+                // rounds to an 8-bit integer, then divide by 255
+                // to match the convertTo(CV_32F, 1./255.) step.
+                val yInt = (r * 4899 + g * 9617 + b * 1868 + 8192) shr 14
+                gray[baseIdx + i] = yInt / 255.0f
             }
             y += rows
         }
@@ -164,9 +154,13 @@ object BrisqueCore {
         val eps = 1.0f / 255.0f
         for (i in 0 until n) {
             val mu = buf1[i]
-            val variance = maxOf(0.0, buf2[i].toDouble() - mu.toDouble() * mu.toDouble())
-            val sigma = sqrt(variance) + eps
-            buf1[i] = ((image[i].toDouble() - mu.toDouble()) / sigma).toFloat()
+            val variance = buf2[i].toDouble() - mu.toDouble() * mu.toDouble()
+            if (variance <= 0.0) {
+                buf1[i] = 0.0f
+            } else {
+                val sigma = sqrt(variance) + eps
+                buf1[i] = ((image[i].toDouble() - mu.toDouble()) / sigma).toFloat()
+            }
         }
     }
 
@@ -209,14 +203,16 @@ object BrisqueCore {
         var totalCount = 0L
         fun add(value: Float) {
             totalCount++
+            // all accumulation in AGGD uses double precision for the pixel value.
+            val dv = value.toDouble()
             if (value > 0) {
                 posCount++
-                posSqSum += value * value
-                absSum += value
+                posSqSum += dv * dv
+                absSum += dv
             } else if (value < 0) {
                 negCount++
-                negSqSum += value * value
-                absSum -= value
+                negSqSum += dv * dv
+                absSum -= dv
             }
         }
         fun compute(): Triple<Double, Double, Double> {
@@ -233,22 +229,20 @@ object BrisqueCore {
             val rightSigma = if (rightSigmaRaw == 0.0) epsilon else rightSigmaRaw
             val gammaHat = leftSigma / rightSigma
             val rHat = (absSum / totalCount).pow(2) / (sumSq / totalCount)
-            val rHatNorm = rHat * (gammaHat.pow(3) + 1) * (gammaHat + 1) /
-                    (gammaHat.pow(2) + 1).pow(2)
-            val gammaVals = aggdGammaValues
-            val rGammaVals = aggdRGammaValues
-            // aggdRGammaValues is monotonically increasing, so binary search
-            // for the closest value is O(log n) instead of O(n) linear scan.
-            var lo = 0
-            var hi = gammaVals.size - 1
-            while (lo < hi) {
-                val mid = (lo + hi) ushr 1
-                if (rGammaVals[mid] < rHatNorm) lo = mid + 1 else hi = mid
+            val rHatNorm = rHat * (gammaHat.pow(3) + 1) * (gammaHat + 1) / (gammaHat.pow(2) + 1).pow(2)
+            var prevGamma = 0.0
+            var prevDiff = 1e10
+            val sampling = 0.001
+            var gam = 0.2
+            while (gam < 10.0) {
+                val rGam = tgamma(2.0 / gam).pow(2) / (tgamma(1.0 / gam) * tgamma(3.0 / gam))
+                val diff = abs(rGam - rHatNorm)
+                if (diff > prevDiff) break
+                prevDiff = diff
+                prevGamma = gam
+                gam += sampling
             }
-            val bestIdx = if (lo > 0 &&
-                abs(rGammaVals[lo - 1] - rHatNorm) < abs(rGammaVals[lo] - rHatNorm)
-            ) lo - 1 else lo
-            return Triple(leftSigma, rightSigma, gammaVals[bestIdx])
+            return Triple(leftSigma, rightSigma, prevGamma)
         }
     }
 
@@ -350,10 +344,11 @@ object BrisqueCore {
             val svStart = i * numFeatures
             var distSq = 0.0
             for (j in 0 until numFeatures) {
-                val diff = features[j] - svData[svStart + j]
+                val diff = features[j].toDouble() - svData[svStart + j].toDouble()
                 distSq += diff * diff
             }
-            sum += model.alphas[i] * exp(-gamma * distSq)
+            val preExp = (-gamma * distSq).toFloat()
+            sum += model.alphas[i] * exp(preExp.toDouble())
         }
         val rawScore = sum - model.rho
         return rawScore.coerceIn(0.0, 100.0).toFloat()
