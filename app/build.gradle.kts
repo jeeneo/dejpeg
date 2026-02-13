@@ -23,8 +23,8 @@ android {
         applicationId = "com.je.dejpeg"
         minSdk = 24
         targetSdk = 36
-        versionCode = 351
-        versionName = "3.5.1"
+        versionCode = 352
+        versionName = "3.5.2"
     }
     signingConfigs { if (signRelease) create("release") {
         storeFile = file(getProp("keystore.path", "KEYSTORE_PATH"))

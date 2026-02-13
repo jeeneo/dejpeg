@@ -62,7 +62,7 @@ speed:
 - ✧ ➽ [1x_DitherDeleterV3-Smooth-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_DitherDeleterV3-Smooth-fp16.onnx) ([source](https://openmodeldb.info/models/1x-DitherDeleterV3-Smooth)) - usage: dithering
 - ✧ ➠ [1x_GainresV4-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_GainresV4-fp16.onnx) ([source](https://openmodeldb.info/models/1x-GainRESV4)) - usage: anti-aliasing, general artifacts, CGI
 
-- ✚ ➽ nafnet models, [deblurring_nafnet_2025may](https://huggingface.co/opencv/deblurring_nafnet/resolve/main/deblurring_nafnet_2025may.onnx?download=true), additional models [here](https://huggingface.co/deepghs/image_restoration/tree/main)
+- ✚ ➽ [deblurring_nafnet_2025may](https://huggingface.co/opencv/deblurring_nafnet/resolve/main/deblurring_nafnet_2025may.onnx?download=true)  ([source](https://github.com/megvii-research/NAFNet)), additional models [here](https://huggingface.co/deepghs/image_restoration/tree/main)
 
 ([sources](https://huggingface.co/utnah/esrgan))
 

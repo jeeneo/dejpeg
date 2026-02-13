@@ -33,7 +33,7 @@ object ZipExtractor {
     fun extractFromAssets(
         context: Context,
         assetFileName: String,
-        targetDir: File = getBrisqueModelsDir(context)
+        targetDir: File
     ): Boolean {
         return try {
             if (!targetDir.exists()) {
@@ -62,18 +62,5 @@ object ZipExtractor {
             Log.e(TAG, "Error extracting $assetFileName: ${e.message}", e)
             false
         }
-    }
-
-    fun modelsExist(
-        context: Context,
-        targetDir: File = getBrisqueModelsDir(context)
-    ): Boolean {
-        val modelFile = File(targetDir, "brisque_model_live.yml")
-        val rangeFile = File(targetDir, "brisque_range_live.yml")
-        return modelFile.exists() && rangeFile.exists()
-    }
-
-    fun getBrisqueModelsDir(context: Context): File {
-        return ModelMigrationHelper.getBrisqueModelsDir(context)
     }
 }
