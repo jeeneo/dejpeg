@@ -53,7 +53,6 @@ android {
     buildFeatures { compose = true; buildConfig = true }
     packaging {
         resources.excludes += listOf("DebugProbesKt.bin", "kotlin-tooling-metadata.json")
-        jniLibs { useLegacyPackaging = false; pickFirsts.add("lib/*/libbrisque_jni.so") }
     }
 }
 

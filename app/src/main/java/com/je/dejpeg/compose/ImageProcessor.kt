@@ -286,7 +286,7 @@ class ImageProcessor(
     ): Bitmap {
         val originalW = chunk.width
         val originalH = chunk.height
-        val minImgSize = modelManager.getMinSpatialSize(info.modelName)
+        val minImgSize = modelManager.getMinSpatialSize(info.modelName) // redirected to modelManager
         val w = if (info.expectedWidth != null && info.expectedWidth > 0) {
             info.expectedWidth
         } else {

@@ -63,9 +63,16 @@ class BRISQUEAssessor {
             }
             try {
                 Log.d(TAG, "Computing BRISQUE score for image: $imagePath (${bitmap.width}x${bitmap.height})")
-                val score = BrisqueCore.computeScore(bitmap, model)
-                Log.d(TAG, "BRISQUE score computed: $score")
-                score
+                when (val result = BrisqueCore.computeScore(bitmap, model)) {
+                    is BrisqueResult.Success -> {
+                        Log.d(TAG, "BRISQUE score computed: ${result.score}")
+                        result.score
+                    }
+                    is BrisqueResult.Error -> {
+                        Log.e(TAG, "BRISQUE computation error: ${result.message}")
+                        -1.0f
+                    }
+                }
             } finally {
                 bitmap.recycle()
             }
@@ -91,9 +98,16 @@ class BRISQUEAssessor {
                 return -2.0f
             }
             Log.d(TAG, "Computing BRISQUE score for bitmap (${bitmap.width}x${bitmap.height})")
-            val score = BrisqueCore.computeScore(bitmap, model)
-            Log.d(TAG, "BRISQUE score computed: $score")
-            score
+            when (val result = BrisqueCore.computeScore(bitmap, model)) {
+                is BrisqueResult.Success -> {
+                    Log.d(TAG, "BRISQUE score computed: ${result.score}")
+                    result.score
+                }
+                is BrisqueResult.Error -> {
+                    Log.e(TAG, "BRISQUE computation error: ${result.message}")
+                    -1.0f
+                }
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error computing BRISQUE score: ${e.message}", e)
             -1.0f

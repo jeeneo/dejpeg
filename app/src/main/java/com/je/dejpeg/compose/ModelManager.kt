@@ -32,6 +32,7 @@ import android.util.Log
 import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.compose.utils.helpers.ModelMigrationHelper
 import com.je.dejpeg.compose.utils.ZipExtractor
+import com.je.dejpeg.compose.utils.HashUtils
 import com.je.dejpeg.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -41,7 +42,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.io.FileOutputStream
-import java.security.MessageDigest
 import kotlin.collections.iterator
 
 class ModelManager(
@@ -330,7 +330,7 @@ class ModelManager(
                 onError("Only .onnx and .ort model files are supported")
                 return
             }
-            val actualHash = computeFileHash(modelUri)
+            val actualHash = HashUtils.computeSHA256(modelUri, context)
             val (matchedModel, modelWarning) = findModelByHash(actualHash)
             if (modelWarning != null && !force) {
                 onWarning?.invoke(matchedModel ?: "", modelWarning)
@@ -375,20 +375,6 @@ class ModelManager(
             return path.substring(path.lastIndexOf('/') + 1).trim()
         }
         return uri.lastPathSegment?.trim() ?: "model.onnx"
-    }
-
-    private fun computeFileHash(fileUri: Uri): String {
-        val inputStream = context.contentResolver.openInputStream(fileUri)
-            ?: throw Exception("Could not open file")
-        return inputStream.use { stream ->
-            val digest = MessageDigest.getInstance("SHA-256")
-            val buffer = ByteArray(8192)
-            var read: Int
-            while (stream.read(buffer).also { read = it } != -1) {
-                digest.update(buffer, 0, read)
-            }
-            digest.digest().joinToString("") { "%02x".format(it) }
-        }
     }
 
     private fun importModelInternal(

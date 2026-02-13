@@ -58,7 +58,7 @@
     <string name="import_error">Import error</string>
     <string name="model_management">Model management</string>
     <string name="no_models_installed">No models found. Import a model to get started.</string>
-    <string name="active">Active</string>
+    <string name="active">active</string>
     <string name="download">Download</string>
     <string name="delete">Delete</string>
     <string name="delete_models">Delete models</string>

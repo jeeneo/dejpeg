@@ -6,7 +6,6 @@
 .kotlin
 apks
 opencv
-app/src/*/jniLibs
 *.apk
 *.yml
 brsq.py
