@@ -69,7 +69,7 @@ data class BrisqueSVMModel(
 object BrisqueModelLoader {
     private const val TAG = "BrisqueModelLoader"
     private const val MAGIC = "BRSQ"
-    private const val BRISQUE_MDL_HASH = "fe4a6bcee5aa2357e34ce845133cfc2d707dcc2613627c38d4ef805bf81fc59b"
+    private const val BRISQUE_MDL_HASH = "5e8828abad9dbaefa727de9312371590c6010795fd10f4e2e2a563a2bd988548"
 
     @Volatile
     private var cachedModel: BrisqueSVMModel? = null

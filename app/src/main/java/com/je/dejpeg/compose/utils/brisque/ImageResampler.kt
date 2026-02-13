@@ -28,6 +28,7 @@ import kotlin.math.floor
 /**
  * helper for image resampling operations (bicubic interpolation)
  */
+
 internal object ImageResampler {
     fun reflect101(index: Int, length: Int): Int {
         if (length <= 1) return 0
