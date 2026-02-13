@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2026 dryerlint <codeberg.org/dryerlint>
+* Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 */
 
 /*
-* Also please don't steal my work and claim it as your own, thanks.
+* If you use this code in your own project, please give credit
 */
 
 package com.je.dejpeg.compose.utils.helpers
@@ -83,8 +83,6 @@ object ImageLoadingHelper {
         return flipped
     }
 
-    // TODO: if applicable, never use the full-size bitmap, scale down, blur, then scale back up.
-    // i guess also use RenderScript at one point but idk
     fun generateThumbnail(bitmap: Bitmap, size: Int = THUMBNAIL_SIZE, blurRadius: Int = 5): Bitmap {
         val cropSize = minOf(bitmap.width, bitmap.height)
         val x = (bitmap.width - cropSize) / 2
@@ -96,7 +94,7 @@ object ImageLoadingHelper {
         croppedBitmap.recycle()
         return if (blurRadius > 0) fastblur(resizedBitmap, 1f, blurRadius) ?: resizedBitmap else resizedBitmap
     }
-
+    
     fun getFileNameFromUri(context: Context, uri: Uri): String {
         return try {
             context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
