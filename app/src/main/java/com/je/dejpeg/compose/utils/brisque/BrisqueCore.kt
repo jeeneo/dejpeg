@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2026 dryerlint <codeberg.org/dryerlint>
+* Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 */
 
 /*
-* Also please don't steal my work and claim it as your own, thanks.
+* If you use this code in your own project, please give credit
 */
 
 package com.je.dejpeg.compose.utils.brisque
@@ -25,31 +25,51 @@ package com.je.dejpeg.compose.utils.brisque
 import android.graphics.Bitmap
 import android.util.Log
 import kotlin.math.*
+
 /**
- * pure Kotlin implementation of BRISQUE
- * primarily based on `qualitybrisque.cpp` in opencv_contrib
+ * attempt at a pure Kotlin implementation of BRISQUE
+ * primarily based on `qualitybrisque.cpp` in opencv_contrib (https://github.com/opencv/opencv_contrib/blob/master/modules/quality/src/qualitybrisque.cpp)
+ * 
+ * NOTE: LLMs (Generative AIs) were used to help with algorithm reimplementation and porting, however the final code was manually reviewed
+ * it's not a direct 1-to-1 translation of the original C++, but that follows the same basic algorithmic steps
+ *
+ * more work will need to be done but the current implementation should be functionally correct and produce similar or close results to the original.
  */
 
 object BrisqueCore {
     private const val TAG = "BrisqueCore"
     private const val GAUSSIAN_KERNEL_SIZE = 7
     private const val GAUSSIAN_SIGMA = 7.0 / 6.0
-    private val gaussianKernel: FloatArray by lazy {
+    private val gaussianKernel: DoubleArray by lazy {
         createGaussianKernel(GAUSSIAN_KERNEL_SIZE, GAUSSIAN_SIGMA)
     }
-    private fun createGaussianKernel(size: Int, sigma: Double): FloatArray {
-        val kernel = FloatArray(size)
+
+    private fun createGaussianKernel(size: Int, sigma: Double): DoubleArray {
+        val kernel = DoubleArray(size)
         val half = size / 2
         var sum = 0.0
         for (i in 0 until size) {
             val x = i - half
-            kernel[i] = exp(-x * x / (2 * sigma * sigma)).toFloat()
+            kernel[i] = exp(-x * x / (2 * sigma * sigma))
             sum += kernel[i]
         }
         for (i in 0 until size) {
-            kernel[i] = (kernel[i] / sum).toFloat()
+            kernel[i] = kernel[i] / sum
         }
         return kernel
+    }
+
+    private val aggdGammaCount = ((10.0 - 0.2) / 0.001).toInt()
+
+    private val aggdGammaValues: DoubleArray by lazy {
+        DoubleArray(aggdGammaCount) { i -> 0.2 + i * 0.001 }
+    }
+
+    private val aggdRGammaValues: DoubleArray by lazy {
+        DoubleArray(aggdGammaCount) { i ->
+            val g = aggdGammaValues[i]
+            tgamma(2.0 / g).pow(2) / (tgamma(1.0 / g) * tgamma(3.0 / g))
+        }
     }
 
     fun bitmapToGrayscaleFloat(bitmap: Bitmap): FloatArray {
@@ -78,77 +98,133 @@ object BrisqueCore {
         return gray
     }
 
-    fun gaussianBlurInPlace(data: FloatArray, buf: FloatArray, width: Int, height: Int) {
+    fun computeMSCN(image: FloatArray, buf1: FloatArray, buf2: FloatArray, width: Int, height: Int) {
+        val n = width * height
         val kernel = gaussianKernel
         val half = GAUSSIAN_KERNEL_SIZE / 2
+        for (i in 0 until n) {
+            buf1[i] = image[i]
+            buf2[i] = image[i] * image[i]
+        }
+        val rowBuf1 = FloatArray(width)
+        val rowBuf2 = FloatArray(width)
         for (y in 0 until height) {
             val rowOff = y * width
             for (x in 0 until width) {
-                var sum = 0.0f
+                var s1 = 0.0
+                var s2 = 0.0
                 for (k in -half..half) {
                     val nx = (x + k).coerceIn(0, width - 1)
-                    sum += data[rowOff + nx] * kernel[k + half]
+                    val w = kernel[k + half]
+                    s1 += buf1[rowOff + nx] * w
+                    s2 += buf2[rowOff + nx] * w
                 }
-                buf[rowOff + x] = sum
+                rowBuf1[x] = s1.toFloat()
+                rowBuf2[x] = s2.toFloat()
             }
+            System.arraycopy(rowBuf1, 0, buf1, rowOff, width)
+            System.arraycopy(rowBuf2, 0, buf2, rowOff, width)
         }
-        for (y in 0 until height) {
-            for (x in 0 until width) {
-                var sum = 0.0f
+        val colBuf1 = FloatArray(height)
+        val colBuf2 = FloatArray(height)
+        for (x in 0 until width) {
+            for (y in 0 until height) {
+                val idx = y * width + x
+                colBuf1[y] = buf1[idx]
+                colBuf2[y] = buf2[idx]
+            }
+            for (y in 0 until height) {
+                var s1 = 0.0
+                var s2 = 0.0
                 for (k in -half..half) {
                     val ny = (y + k).coerceIn(0, height - 1)
-                    sum += buf[ny * width + x] * kernel[k + half]
+                    val w = kernel[k + half]
+                    s1 += colBuf1[ny] * w
+                    s2 += colBuf2[ny] * w
                 }
-                data[y * width + x] = sum
+                val idx = y * width + x
+                buf1[idx] = s1.toFloat()
+                buf2[idx] = s2.toFloat()
             }
         }
-    }
-    
-    fun computeMSCN(image: FloatArray, buf1: FloatArray, buf2: FloatArray, width: Int, height: Int) {
-        val n = width * height        
-        System.arraycopy(image, 0, buf1, 0, n)
-        gaussianBlurInPlace(buf1, buf2, width, height)
-        for (i in 0 until n) {
-            buf2[i] = image[i] * image[i]
-        }
-        gaussianBlurInPlaceWithRowTemp(buf2, width, height)
         val eps = 1.0f / 255.0f
         for (i in 0 until n) {
             val mu = buf1[i]
-            val variance = maxOf(0.0f, buf2[i] - mu * mu)
+            val variance = maxOf(0.0, buf2[i].toDouble() - mu.toDouble() * mu.toDouble())
             val sigma = sqrt(variance) + eps
-            buf1[i] = (image[i] - mu) / sigma
+            buf1[i] = ((image[i].toDouble() - mu.toDouble()) / sigma).toFloat()
         }
     }
 
-    private fun gaussianBlurInPlaceWithRowTemp(data: FloatArray, width: Int, height: Int) {
-        val kernel = gaussianKernel
-        val half = GAUSSIAN_KERNEL_SIZE / 2
-        val rowBuf = FloatArray(width)        
-        for (y in 0 until height) {
-            val rowOff = y * width
-            for (x in 0 until width) {
-                var sum = 0.0f
-                for (k in -half..half) {
-                    val nx = (x + k).coerceIn(0, width - 1)
-                    sum += data[rowOff + nx] * kernel[k + half]
-                }
-                rowBuf[x] = sum
-            }
-            System.arraycopy(rowBuf, 0, data, rowOff, width)
+    private fun reflect101(index: Int, length: Int): Int {
+        if (length <= 1) return 0
+        var idx = index
+        while (idx < 0 || idx >= length) {
+            idx = if (idx < 0) -idx else (2 * length - idx - 2)
         }
-        val colBuf = FloatArray(height)
-        for (x in 0 until width) {
-            for (y in 0 until height) {
-                colBuf[y] = data[y * width + x]
-            }
-            for (y in 0 until height) {
-                var sum = 0.0f
-                for (k in -half..half) {
-                    val ny = (y + k).coerceIn(0, height - 1)
-                    sum += colBuf[ny] * kernel[k + half]
+        return idx
+    }
+
+    private fun cubicWeight(x: Double): Double {
+        val a = -0.75
+        val ax = abs(x)
+        return when {
+            ax <= 1.0 -> ((a + 2.0) * ax - (a + 3.0)) * ax * ax + 1.0
+            ax < 2.0 -> (((a * ax - 5.0 * a) * ax + 8.0 * a) * ax) - 4.0 * a
+            else -> 0.0
+        }
+    }
+
+    private fun resizeInterCubic(
+        src: FloatArray,
+        srcWidth: Int,
+        srcHeight: Int,
+        dst: FloatArray,
+        dstWidth: Int,
+        dstHeight: Int
+    ) {
+        val scaleX = srcWidth.toDouble() / dstWidth
+        val scaleY = srcHeight.toDouble() / dstHeight
+        val xWeights = DoubleArray(dstWidth * 4)
+        val xSrcCols = IntArray(dstWidth * 4)
+        for (dx in 0 until dstWidth) {
+            val fx = (dx + 0.5) * scaleX - 0.5
+            val sx = floor(fx).toInt()
+            val tx = fx - sx
+            val base = dx * 4
+            xWeights[base]     = cubicWeight(1.0 + tx)
+            xWeights[base + 1] = cubicWeight(tx)
+            xWeights[base + 2] = cubicWeight(1.0 - tx)
+            xWeights[base + 3] = cubicWeight(2.0 - tx)
+            for (n in 0..3) xSrcCols[base + n] = reflect101(sx + n - 1, srcWidth)
+        }
+        val yWeights = DoubleArray(dstHeight * 4)
+        val ySrcRowOffs = IntArray(dstHeight * 4)
+        for (dy in 0 until dstHeight) {
+            val fy = (dy + 0.5) * scaleY - 0.5
+            val sy = floor(fy).toInt()
+            val ty = fy - sy
+            val base = dy * 4
+            yWeights[base]     = cubicWeight(1.0 + ty)
+            yWeights[base + 1] = cubicWeight(ty)
+            yWeights[base + 2] = cubicWeight(1.0 - ty)
+            yWeights[base + 3] = cubicWeight(2.0 - ty)
+            for (m in 0..3) ySrcRowOffs[base + m] = reflect101(sy + m - 1, srcHeight) * srcWidth
+        }
+        for (dy in 0 until dstHeight) {
+            val yBase = dy * 4
+            val dstRowOff = dy * dstWidth
+            for (dx in 0 until dstWidth) {
+                val xBase = dx * 4
+                var sum = 0.0
+                for (m in 0..3) {
+                    val rowOff = ySrcRowOffs[yBase + m]
+                    val wY = yWeights[yBase + m]
+                    for (n in 0..3) {
+                        sum += src[rowOff + xSrcCols[xBase + n]] * wY * xWeights[xBase + n]
+                    }
                 }
-                data[y * width + x] = sum
+                dst[dstRowOff + dx] = sum.toFloat()
             }
         }
     }
@@ -161,7 +237,6 @@ object BrisqueCore {
         if (x <= 0.0) return Double.NaN
         if (x < 0.5) {
             return PI / (sin(PI * x) * tgamma(1.0 - x)) // reflection formula: Gamma(x) * Gamma(1-x) = PI / sin(PI*x)
-
         }
         val g = 7.0
         val coefficients = doubleArrayOf( // Lanczos coefficients for g=7, n=9
@@ -183,10 +258,7 @@ object BrisqueCore {
         val t = z + g + 0.5
         return sqrt(2.0 * PI) * t.pow(z + 0.5) * exp(-t) * ag
     }
-    
-    /**
-     * AGGD statistics accumulator, avoids allocating a full array.
-     */
+
     private class AGGDStats {
         var posCount = 0L
         var negCount = 0L
@@ -207,45 +279,47 @@ object BrisqueCore {
             }
         }
         fun compute(): Triple<Double, Double, Double> {
-            if (posCount == 0L || negCount == 0L) {
-                return Triple(1.0, 1.0, 1.0)
+            if (totalCount == 0L || posCount == 0L || negCount == 0L) {
+                return Triple(0.0, 0.0, 1.0)
+            }
+            val sumSq = negSqSum + posSqSum
+            if (sumSq == 0.0) {
+                return Triple(0.0, 0.0, 1.0)
             }
             val leftSigma = sqrt(negSqSum / negCount)
-            val rightSigma = sqrt(posSqSum / posCount)
+            val rightSigmaRaw = sqrt(posSqSum / posCount)
+            val epsilon = 1e-10
+            val rightSigma = if (rightSigmaRaw == 0.0) epsilon else rightSigmaRaw
             val gammaHat = leftSigma / rightSigma
-            val rHat = (absSum / totalCount).pow(2) / ((negSqSum + posSqSum) / totalCount)
+            val rHat = (absSum / totalCount).pow(2) / (sumSq / totalCount)
             val rHatNorm = rHat * (gammaHat.pow(3) + 1) * (gammaHat + 1) /
                     (gammaHat.pow(2) + 1).pow(2)
+            val gammaVals = aggdGammaValues
+            val rGammaVals = aggdRGammaValues
             var bestGamma = 0.2
             var prevDiff = Double.MAX_VALUE
-            val step = 0.001
-            var gamma = 0.2
-            while (gamma < 10.0) {
-                val rGamma = tgamma(2.0 / gamma).pow(2) /
-                        (tgamma(1.0 / gamma) * tgamma(3.0 / gamma))
-                val diff = abs(rGamma - rHatNorm)
-                
+            for (i in gammaVals.indices) {
+                val diff = abs(rGammaVals[i] - rHatNorm)
                 if (diff > prevDiff) break
-                
                 prevDiff = diff
-                bestGamma = gamma
-                gamma += step
+                bestGamma = gammaVals[i]
             }
             return Triple(leftSigma, rightSigma, bestGamma)
         }
     }
 
-    fun fitAGGD(data: FloatArray): Triple<Double, Double, Double> {
+    fun fitAGGD(data: FloatArray, count: Int = data.size): Triple<Double, Double, Double> {
         val stats = AGGDStats()
-        for (value in data) {
-            stats.add(value)
+        for (i in 0 until count) {
+            stats.add(data[i])
         }
         return stats.compute()
     }
 
     fun computeFeaturesForScale(mscn: FloatArray, width: Int, height: Int): FloatArray {
+        val n = width * height
         val features = FloatArray(18)
-        val (leftSigma, rightSigma, gamma) = fitAGGD(mscn)
+        val (leftSigma, rightSigma, gamma) = fitAGGD(mscn, n)
         features[0] = gamma.toFloat()
         features[1] = ((leftSigma * leftSigma + rightSigma * rightSigma) / 2).toFloat()
         val shifts = arrayOf(
@@ -254,29 +328,23 @@ object BrisqueCore {
             intArrayOf(1, 1),
             intArrayOf(-1, 1) 
         )
-        
+        val pairProduct = FloatArray(n)
         for (shiftIdx in shifts.indices) {
             val dy = shifts[shiftIdx][0]
-            val dx = shifts[shiftIdx][1]            
-            val stats = AGGDStats()
+            val dx = shifts[shiftIdx][1]
             for (y in 0 until height) {
                 val ny = y + dy
-                if (ny < 0 || ny >= height) {
-                    stats.totalCount += width
-                    continue
-                }
                 val rowOff = y * width
-                val nRowOff = ny * width
                 for (x in 0 until width) {
                     val nx = x + dx
-                    if (nx in 0 until width) {
-                        stats.add(mscn[rowOff + x] * mscn[nRowOff + nx])
+                    pairProduct[rowOff + x] = if (ny in 0 until height && nx in 0 until width) {
+                        mscn[rowOff + x] * mscn[ny * width + nx]
                     } else {
-                        stats.totalCount++
+                        0.0f
                     }
                 }
             }
-            val (ls, rs, g) = stats.compute()
+            val (ls, rs, g) = fitAGGD(pairProduct, n)
             val constant = sqrt(tgamma(1.0 / g)) / sqrt(tgamma(3.0 / g))
             val meanParam = (rs - ls) * (tgamma(2.0 / g) / tgamma(1.0 / g)) * constant
             val baseIdx = 2 + shiftIdx * 4
@@ -285,40 +353,30 @@ object BrisqueCore {
             features[baseIdx + 2] = (ls * ls).toFloat()
             features[baseIdx + 3] = (rs * rs).toFloat()
         }
-        
         return features
     }
 
-    fun computeBrisqueFeatures(bitmap: Bitmap): FloatArray {
-        val allFeatures = FloatArray(36)
+    fun calcBrisqueFeat(bitmap: Bitmap): FloatArray {
+        val features = FloatArray(36)
         val width = bitmap.width
         val height = bitmap.height
         val n = width * height        
         val gray = bitmapToGrayscaleFloat(bitmap)
         val buf1 = FloatArray(n)
-        val buf2 = FloatArray(n)        
+        val buf2 = FloatArray(n)
         computeMSCN(gray, buf1, buf2, width, height)
         val features1 = computeFeaturesForScale(buf1, width, height)
-        System.arraycopy(features1, 0, allFeatures, 0, 18)
+        System.arraycopy(features1, 0, features, 0, 18)
         val halfWidth = width / 2
         val halfHeight = height / 2
         if (halfWidth > 0 && halfHeight > 0) {
-            for (y in 0 until halfHeight) {
-                for (x in 0 until halfWidth) {
-                    val sx = x * 2
-                    val sy = y * 2
-                    val idx00 = sy * width + sx
-                    val idx01 = idx00 + 1
-                    val idx10 = idx00 + width
-                    val idx11 = idx10 + 1
-                    gray[y * halfWidth + x] = (gray[idx00] + gray[idx01] + gray[idx10] + gray[idx11]) * 0.25f
-                }
-            }
-            computeMSCN(gray, buf1, buf2, halfWidth, halfHeight)
+            val scale2 = FloatArray(halfWidth * halfHeight)
+            resizeInterCubic(gray, width, height, scale2, halfWidth, halfHeight)
+            computeMSCN(scale2, buf1, buf2, halfWidth, halfHeight)
             val features2 = computeFeaturesForScale(buf1, halfWidth, halfHeight)
-            System.arraycopy(features2, 0, allFeatures, 18, 18)
+            System.arraycopy(features2, 0, features, 18, 18)
         }
-        return allFeatures
+        return features
     }
 
     fun scaleFeatures(features: FloatArray, rangeMin: FloatArray, rangeMax: FloatArray): FloatArray {
@@ -350,7 +408,6 @@ object BrisqueCore {
         val svData = model.supportVectors
         val numFeatures = BrisqueSVMModel.NUM_FEATURES
         val gamma = model.gamma
-        
         for (i in 0 until BrisqueSVMModel.NUM_SUPPORT_VECTORS) {
             val svStart = i * numFeatures
             var distSq = 0.0
@@ -366,7 +423,7 @@ object BrisqueCore {
     
     fun computeScore(bitmap: Bitmap, model: BrisqueSVMModel): Float {
         try {
-            val features = computeBrisqueFeatures(bitmap)
+            val features = calcBrisqueFeat(bitmap)
             val scaledFeatures = scaleFeatures(features, model.rangeMin, model.rangeMax)
             return predictSVM(scaledFeatures, model)
         } catch (e: Exception) {

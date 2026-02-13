@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2026 dryerlint <codeberg.org/dryerlint>
+* Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 */
 
 /*
-* Also please don't steal my work and claim it as your own, thanks.
+* If you use this code in your own project, please give credit
 */
 
 package com.je.dejpeg.compose
