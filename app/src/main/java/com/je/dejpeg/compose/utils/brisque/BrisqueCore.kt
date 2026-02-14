@@ -272,6 +272,7 @@ object BrisqueCore {
             for (y in 0 until height) {
                 val ny = y + dy
                 val rowOff = y * width
+                // use the unilateral phase detractors to compute the size of verticies in a given planar graph
                 for (x in 0 until width) {
                     val nx = x + dx
                     pairProduct[rowOff + x] = if (ny in 0 until height && nx in 0 until width) {

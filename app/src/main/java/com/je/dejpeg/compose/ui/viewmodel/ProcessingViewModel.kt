@@ -451,8 +451,7 @@ class ProcessingViewModel : ViewModel() {
     }
 
     private fun handleServiceCrash(imageId: String?) {
-        val crashMessage = status(com.je.dejpeg.R.string.error_native_crash, 
-            "The processing service died unexpectedly. This usually indicates an incompatible model or insufficient memory.")
+        val crashMessage = status(com.je.dejpeg.R.string.error_native_crash, "The processing service died unexpectedly. This usually indicates an incompatible model or insufficient memory.")
         stopProcessing(imageId, crashMessage, isCancelled = false, serviceAlreadyDead = true)
     }
 

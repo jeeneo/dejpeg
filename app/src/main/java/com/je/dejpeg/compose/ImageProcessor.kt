@@ -54,6 +54,12 @@ class ImageProcessor(
     private val context: Context,
     private val modelManager: ModelManager
 ) {
+
+    private companion object {
+        const val EDGE_BORDER_SIZE = 8
+        const val MODEL_PAD_FACTOR = 8
+    }
+
     var chunkSize: Int? = null
     var overlapSize: Int? = null
 
@@ -88,14 +94,18 @@ class ImageProcessor(
                 callback.onComplete(result)
             }
         } catch (e: Exception) {
-            if (isCancelled) {
-                withContext(Dispatchers.Main) {
-                    callback.onError(context.getString(R.string.error_processing_cancelled))
-                }
+            val errorMessage = if (isCancelled) {
+                context.getString(R.string.error_processing_cancelled)
             } else {
-                withContext(Dispatchers.Main) {
-                    callback.onError("${e.javaClass.simpleName}${if (e.message != null) ": ${e.message}" else ""}")
+                val message = e.message
+                if (message.isNullOrBlank()) {
+                    e.javaClass.simpleName
+                } else {
+                    "${e.javaClass.simpleName}: $message"
                 }
+            }
+            withContext(Dispatchers.Main) {
+                callback.onError(errorMessage)
             }
         }
     }
@@ -127,7 +137,7 @@ class ImageProcessor(
         index: Int,
         total: Int
     ): Bitmap {
-        val borderSize = 8 // to handle edge artifacts, dunno if it's needed for *all* models, but it helped with SCUNet
+        val borderSize = EDGE_BORDER_SIZE // to handle edge artifacts, dunno if it's needed for *all* models, but it helped with SCUNet
         val borderedBitmap = addBlackBorder(inputBitmap, borderSize)
         val width = borderedBitmap.getWidth()
         val height = borderedBitmap.getHeight()
@@ -290,14 +300,14 @@ class ImageProcessor(
         val w = if (info.expectedWidth != null && info.expectedWidth > 0) {
             info.expectedWidth
         } else {
-            val padFactor = 8
+            val padFactor = MODEL_PAD_FACTOR
             val paddedW = ((originalW + padFactor - 1) / padFactor) * padFactor
             maxOf(paddedW, minImgSize)
         }
         val h = if (info.expectedHeight != null && info.expectedHeight > 0) {
             info.expectedHeight
         } else {
-            val padFactor = 8
+            val padFactor = MODEL_PAD_FACTOR
             val paddedH = ((originalH + padFactor - 1) / padFactor) * padFactor
             maxOf(paddedH, minImgSize)
         }

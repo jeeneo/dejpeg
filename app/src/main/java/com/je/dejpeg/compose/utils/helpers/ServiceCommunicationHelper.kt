@@ -80,7 +80,6 @@ class ServiceCommunicationHelper(
                 Log.e("ServiceCommHelper", "Failed to link DeathRecipient: ${e.message}")
             }
         }
-
         override fun onServiceDisconnected(name: ComponentName?) {
             Log.w("ServiceCommHelper", "Service disconnected unexpectedly")
             val imageId = currentProcessingImageId
