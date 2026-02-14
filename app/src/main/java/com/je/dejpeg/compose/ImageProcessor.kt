@@ -56,7 +56,6 @@ class ImageProcessor(
 ) {
 
     private companion object {
-        const val EDGE_BORDER_SIZE = 8
         const val MODEL_PAD_FACTOR = 8
     }
 
@@ -110,25 +109,6 @@ class ImageProcessor(
         }
     }
 
-    private fun addBlackBorder(bitmap: Bitmap, borderSize: Int): Bitmap {
-        val newWidth = bitmap.width + 2 * borderSize
-        val newHeight = bitmap.height + 2 * borderSize
-        val borderedBitmap = createBitmap(newWidth, newHeight, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(borderedBitmap)
-        canvas.drawColor(Color.BLACK)
-        canvas.drawBitmap(bitmap, borderSize.toFloat(), borderSize.toFloat(), null)
-        return borderedBitmap
-    }
-
-    private fun removeBlackBorder(bitmap: Bitmap, borderSize: Int): Bitmap {
-        val croppedWidth = bitmap.width - 2 * borderSize
-        val croppedHeight = bitmap.height - 2 * borderSize
-        if (croppedWidth <= 0 || croppedHeight <= 0) {
-            return bitmap
-        }
-        return Bitmap.createBitmap(bitmap, borderSize, borderSize, croppedWidth, croppedHeight)
-    }
-
     private suspend fun processBitmap(
         session: OrtSession,
         inputBitmap: Bitmap,
@@ -137,23 +117,21 @@ class ImageProcessor(
         index: Int,
         total: Int
     ): Bitmap {
-        val borderSize = EDGE_BORDER_SIZE // to handle edge artifacts, dunno if it's needed for *all* models, but it helped with SCUNet
-        val borderedBitmap = addBlackBorder(inputBitmap, borderSize)
-        val width = borderedBitmap.getWidth()
-        val height = borderedBitmap.getHeight()
-        val hasTransparency = borderedBitmap.hasAlpha()
+        val width = inputBitmap.getWidth()
+        val height = inputBitmap.getHeight()
+        val hasTransparency = inputBitmap.hasAlpha()
         val processingConfig = Bitmap.Config.ARGB_8888
         val effectiveMaxChunkSize = if (info.expectedWidth != null && info.expectedHeight != null) {
             minOf(info.chunkSize, info.expectedWidth, info.expectedHeight)
         } else {
             info.chunkSize
         }
-        val mustTile = width > effectiveMaxChunkSize + (2 * borderSize) || height > effectiveMaxChunkSize + (2 * borderSize)
-        val processedBitmap = if (mustTile) processTiled(session, borderedBitmap, callback, info, processingConfig, hasTransparency, index, total, effectiveMaxChunkSize)
+        val mustTile = width > effectiveMaxChunkSize || height > effectiveMaxChunkSize
+        val processedBitmap = if (mustTile) processTiled(session, inputBitmap, callback, info, processingConfig, hasTransparency, index, total, effectiveMaxChunkSize)
         else
         {
-            val bitmapToProcess = if (borderedBitmap.config != processingConfig) borderedBitmap.copy(processingConfig, true)
-            else borderedBitmap
+            val bitmapToProcess = if (inputBitmap.config != processingConfig) inputBitmap.copy(processingConfig, true)
+            else inputBitmap
             val progressMessage = { context.getString(R.string.processing) }
             withContext(Dispatchers.Main) {
                 callback.onProgress(progressMessage())
@@ -161,11 +139,7 @@ class ImageProcessor(
             val result = processChunk(session, bitmapToProcess, processingConfig, hasTransparency, info)
             result
         }
-        borderedBitmap.recycle()
-        val finalResult = removeBlackBorder(processedBitmap, borderSize)
-        if (processedBitmap != finalResult) {
-            processedBitmap.recycle()
-        }
+        val finalResult = processedBitmap
         return finalResult
     }
 
