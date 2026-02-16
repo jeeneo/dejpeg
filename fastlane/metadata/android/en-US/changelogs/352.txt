@@ -1,1 +1,3 @@
-internal fixes
+fixes:
+- edge artifacts
+- config changing bugs

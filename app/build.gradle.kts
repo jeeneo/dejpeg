@@ -26,12 +26,14 @@ android {
         versionCode = 352
         versionName = "3.5.2"
     }
-    signingConfigs { if (signRelease) create("release") {
-        storeFile = file(getProp("keystore.path", "KEYSTORE_PATH"))
-        storePassword = getProp("keystore.password", "KEYSTORE_PASSWORD")
-        keyAlias = getProp("keystore.alias", "KEYSTORE_ALIAS")
-        keyPassword = getProp("keystore.keyPassword", "KEY_PASSWORD")
-    } }
+    signingConfigs{
+        if (signRelease) create("release") {
+            storeFile = file(getProp("keystore.path", "KEYSTORE_PATH"))
+            storePassword = getProp("keystore.password", "KEYSTORE_PASSWORD")
+            keyAlias = getProp("keystore.alias", "KEYSTORE_ALIAS")
+            keyPassword = getProp("keystore.keyPassword", "KEY_PASSWORD")
+        }
+    }
     buildTypes {
         release {
             isMinifyEnabled = true; isShrinkResources = true; isDebuggable = false
@@ -39,7 +41,9 @@ android {
             if (signRelease) signingConfig = signingConfigs.getByName("release")
         }
         debug {
-            isDebuggable = true; applicationIdSuffix = ".debug"; versionNameSuffix = "-debug"
+            isDebuggable = true;
+            applicationIdSuffix = ".debug";
+            versionNameSuffix = "-debug"
         }
     }
     splits.abi { isEnable = true; reset(); include(project.findProperty("targetAbi")?.toString() ?: "arm64-v8a"); isUniversalApk = false }
