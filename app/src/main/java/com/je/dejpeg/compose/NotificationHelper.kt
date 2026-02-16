@@ -30,10 +30,10 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import com.je.dejpeg.R
 
 object NotificationHelper {
     const val CHANNEL_ID = "processing_channel"
-    const val CHANNEL_NAME = "Image processing"
     const val NOTIFICATION_ID = 1001
 
     fun checkChannel(context: Context) {
@@ -43,10 +43,10 @@ object NotificationHelper {
             if (existing == null) {
                 val channel = NotificationChannel(
                     CHANNEL_ID,
-                    CHANNEL_NAME,
+                    context.getString(R.string.notification_channel_name),
                     NotificationManager.IMPORTANCE_LOW
                 ).apply {
-                    description = "Shows progress of image processing"
+                    description = context.getString(R.string.notification_channel_description)
                     setShowBadge(false)
                 }
                 mgr?.createNotificationChannel(channel)
@@ -74,7 +74,7 @@ object NotificationHelper {
 
     fun build(context: Context, message: String): Notification {
         return baseBuilder(context)
-            .setContentTitle("Processing")
+            .setContentTitle(context.getString(R.string.notification_title_processing))
             .setContentText(message)
             .build()
     }
@@ -92,13 +92,13 @@ object NotificationHelper {
         cancellable: Boolean = true
     ) {
         val builder = baseBuilder(context)
-            .setContentTitle("Processing")
+            .setContentTitle(context.getString(R.string.notification_title_processing))
             .setContentText(message)
         val hasChunkInfo = currentChunkIndex != null && totalChunks != null && totalChunks > 1
         if (hasChunkInfo) {
             val displayChunk = (currentChunkIndex + 1).coerceIn(1, totalChunks)
             builder.setProgress(totalChunks, currentChunkIndex, false)
-            builder.setSubText("Chunk $displayChunk / $totalChunks")
+            builder.setSubText(context.getString(R.string.notification_chunk_progress, displayChunk, totalChunks))
         } else {
             builder.setProgress(0, 0, true)
         }
@@ -110,7 +110,7 @@ object NotificationHelper {
                 cancelIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or (PendingIntent.FLAG_IMMUTABLE)
             )
-            builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "Cancel", pendingCancel)
+            builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, context.getString(R.string.cancel), pendingCancel)
         }
         val mgr = context.getSystemService(NotificationManager::class.java)
         mgr?.notify(NOTIFICATION_ID, builder.build())

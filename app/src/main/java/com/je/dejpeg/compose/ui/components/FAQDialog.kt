@@ -185,8 +185,16 @@ fun MarkdownText(
 fun loadFAQSections(context: android.content.Context): List<FAQSectionData> {
     val sections = mutableListOf<FAQSectionData>()
     try {
-        context.assets.list("faq")?.filter { it.endsWith(".md") }?.forEach { fileName ->
-            val lines = context.assets.open("faq/$fileName").bufferedReader().readText().lines()
+        val locale = context.resources.configuration.locales[0]
+        val language = locale.language
+        val localizedDir = "faq-$language"
+        val faqDir = when {
+            context.assets.list("")?.contains(localizedDir) == true -> localizedDir
+            context.assets.list("")?.contains("faq-en") == true -> "faq-en"
+            else -> throw IllegalStateException("no faqs found")
+        }
+        context.assets.list(faqDir)?.filter { it.endsWith(".md") }?.forEach { fileName ->
+            val lines = context.assets.open("$faqDir/$fileName").bufferedReader().readText().lines()
             var title: String? = null
             var content = StringBuilder()
             var subSections = mutableListOf<Pair<String, String>>()

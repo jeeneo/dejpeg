@@ -151,4 +151,174 @@
     <string name="starter_model_message">DeJPEG now comes with small fast general purpose models. Don\'t expect them to handle every image perfectly.\n\nYou can still import additional models from settings anytime.\n\nIf you don\'t want these models, you can delete them and they won\'t show up again. They can also be added back from preferences.</string>
     <string name="got_it">Got it</string>
     <string name="extract_starter_model">Extract the embedded models</string>
+
+    <!-- Model descriptions -->
+    <!-- Starter models -->
+    <string name="model_info_1x_rgb_max_denoise_fp16">Fast, noise and compression, mostly for animation. Or can turn photos into cartoons.</string>
+    <string name="model_info_1x_span_anime_pretrain_fp16">Fast, general compression, general noise. Good for animation, comics, anime, and some photos.</string>
+    
+    <!-- FBCNN (JPEG model) -->
+    <string name="model_info_fbcnn_color_fp16">Best at general JPEG compression, minor noise, any kind of color images</string>
+    <string name="model_info_fbcnn_gray_fp16">General compression and noise, only grayscale images</string>
+    <string name="model_info_fbcnn_gray_double_fp16">Strongest at general compression and noise, only grayscale images</string>
+    
+    <!-- SCUNet (noise model) -->
+    <string name="model_info_scunet_color_real_gan_fp16">Moderate noise, GAN architecture, color images, better details</string>
+    <string name="model_info_scunet_color_real_psnr_fp16">General noise, PSNR architecture, color images, less details</string>
+    <string name="model_info_scunet_color_15_fp16">Minor noise, color images</string>
+    <string name="model_info_scunet_color_25_fp16">Minor noise, color images, stronger</string>
+    <string name="model_info_scunet_color_50_fp16">Minor noise, color images, strongest</string>
+    <string name="model_info_scunet_gray_15_fp16">General noise, grayscale images</string>
+    <string name="model_info_scunet_gray_25_fp16">General noise, grayscale images, stronger</string>
+    <string name="model_info_scunet_gray_50_fp16">Heavy general noise, grayscale images, strongest</string>
+    
+    <string name="model_info_deblurring_nafnet_2025may">Deblurring, restoration, denoising. General purpose but best on photos</string>
+    
+    <!-- Small models (for low-end devices) -->
+    <string name="model_info_1x_anime_undeint_compact_fp16">Compression, jagged lines</string>
+    <string name="model_info_1x_broadcast_to_studio_compact_fp16">Cartoons, broadcast compression</string>
+    <string name="model_info_1x_wb_denoise_fp16">Colorless cartoon noise</string>
+    <string name="model_info_1x_book_compact_fp16">Book scanning</string>
+    <string name="model_info_1x_over_exposure_correction_compact_fp16">Exposure correction</string>
+    
+    <!-- Other compression -->
+    <string name="model_info_1x_jpeg_destroyer_v2_96000g_fp16">General JPEG compression</string>
+    <string name="model_info_1x_nmkd_jaywreck3_lite_fp16">General compression</string>
+    <string name="model_info_1x_nmkd_h264_texturize_fp16">Texturization, h264 compression</string>
+    <string name="model_info_vhs_sharpen_1x_46000_g_fp16">VHS compression</string>
+    <string name="model_info_1x_bc_gone_smooth_110000_g_fp16">BC1 compression</string>
+    <string name="model_info_1x_cinepak_fp16">Cinepak, msvideo1, roq compression</string>
+    <string name="model_info_1x_bc_gone_detailed_v2_40_60_115000_g_fp16">BC1 compression with detail</string>
+    <string name="model_info_1x_de_bink_v4">Bink compression, better geometry</string>
+    <string name="model_info_1x_de_bink_v5">Bink compression, stronger</string>
+    <string name="model_info_1x_de_bink_v6">Bink compression, soft with detail</string>
+    
+    <!-- JPEG quality range models -->
+    <string name="model_info_1x_jpeg_00_20_fp16">JPEG compression (quality 0-20)</string>
+    <string name="model_info_1x_jpeg_20_40_fp16">JPEG compression (quality 20-40)</string>
+    <string name="model_info_1x_jpeg_40_60_fp16">JPEG compression (quality 40-60)</string>
+    <string name="model_info_1x_jpeg_60_80_fp16">JPEG compression (quality 60-80)</string>
+    <string name="model_info_1x_jpeg_80_100_fp16">JPEG compression (quality 80-100)</string>
+    <string name="model_info_1x_artifacts_jpg_00_20_alsa_fp16">JPEG artifacts (quality 0-20)</string>
+    <string name="model_info_1x_artifacts_jpg_20_40_alsa_fp16">JPEG artifacts (quality 20-40)</string>
+    <string name="model_info_1x_artifacts_jpg_40_60_alsa_fp16">JPEG artifacts (quality 40-60)</string>
+    <string name="model_info_1x_artifacts_jpg_60_800_alsa_fp16">JPEG artifacts (quality 60-80)</string>
+    <string name="model_info_1x_artifacts_jpg_80_100_alsa_fp16">JPEG artifacts (quality 80-100)</string>
+    
+    <!-- Miscellaneous models -->
+    <string name="model_info_1x_anti_aliasing_fp16">Anti-aliasing</string>
+    <string name="model_info_1x_kdm003_scans_fp16">Scanned art, drawings, moire removal</string>
+    <string name="model_info_1x_sponge_color_lite_fp16">Colorization for cartoons</string>
+    <string name="model_info_1x_bandage_smooth_fp16">Color banding removal</string>
+    <string name="model_info_1x_bendel_halftone_fp32">Halftone removal</string>
+    <string name="model_info_1x_colorizer_v2_22000g_fp16">General colorization</string>
+    <string name="model_info_1x_de_edge_fp16">Edge removal</string>
+    <string name="model_info_1x_de_sharpen_fp16">Removes oversharpening</string>
+    <string name="model_info_1x_dither_deleter_v3_smooth_fp16">Dither removal</string>
+    <string name="model_info_1x_gainres_v4_fp16">Anti-aliasing, general artifacts, CGI</string>
+    <string name="model_info_1x_debandurh_fs_ultra_lite_fp16">Debanding</string>
+    <string name="model_info_1x_nmkd_brighten_redux_200k_fp16">Brightness reduction</string>
+    <string name="model_info_1x_nmkd_detoon_97500_g_fp16">Detoning</string>
+    <string name="model_info_1x_noise_toner_poisson_detailed_108000_g_fp16">Poisson noise toning (detailed)</string>
+    <string name="model_info_1x_noise_toner_poisson_soft_101000_g_fp16">Poisson noise toning (soft)</string>
+    <string name="model_info_1x_noise_toner_uniform_detailed_100000_g_fp16">Uniform noise toning (detailed)</string>
+    <string name="model_info_1x_noise_toner_uniform_soft_100000_g_fp16">Uniform noise toning (soft)</string>
+    <string name="model_info_1x_re_detail_v2_126000_g_fp16">Detail \"enhancement\"</string>
+    <string name="model_info_1x_repainter_20000_g_fp16">Repainting(?)</string>
+    <string name="model_info_1x_artifacts_dithering_alsa_fp16">Dithering artifacts</string>
+    <string name="model_info_1x_nmkd_brighten_10000_g_fp16">Brightening</string>
+    
+    <!-- General UI strings -->
+    <string name="copy">Copy</string>
+    <string name="tip">Tip</string>
+    <string name="tip_model_long_press">Tap and hold on a model to view its information.</string>
+    <string name="drag_to_compare">Drag to compare</string>
+    <string name="app_icon">App icon</string>
+    <string name="close_desc">Close</string>
+    <string name="back_desc">Back</string>
+    <string name="info_desc">Info</string>
+    <string name="settings_desc">Settings</string>
+    <string name="reset">Reset</string>
+    <string name="yes">Yes</string>
+    
+    <!-- Processing Service strings -->
+    <string name="processing_filename">Processing %1$s…</string>
+    <string name="processing_complete_notification">Processing complete</string>
+    
+    <!-- Notification strings -->
+    <string name="notification_channel_name">Image processing</string>
+    <string name="notification_channel_description">Shows progress of image processing</string>
+    <string name="notification_title_processing">Processing</string>
+    <string name="notification_chunk_progress">Chunk %1$d / %2$d</string>
+    
+    <!-- BRISQUE Screen strings -->
+    <string name="brisque_analysis">BRISQUE analysis</string>
+    <string name="brisque_save_image_desc">Save image</string>
+    <string name="brisque_image_saved">Image saved successfully</string>
+    <string name="brisque_failed_to_save">Failed to save: %1$s</string>
+    <string name="brisque_descale_analysis">Descale analysis</string>
+    <string name="brisque_original">Original</string>
+    <string name="brisque_descaled">Descaled</string>
+    <string name="brisque_label">BRISQUE</string>
+    <string name="brisque_sharpness">Sharpness</string>
+    <string name="brisque_assessing">Assessing…</string>
+    <string name="brisque_reassess">Reassess</string>
+    <string name="brisque_assess">Assess</string>
+    <string name="brisque_descaling">Descaling…</string>
+    <string name="brisque_descale">Descale</string>
+    <string name="brisque_assessment_error">Assessment error:</string>
+    <string name="brisque_descale_error">Descale error:</string>
+    
+    <!-- BRISQUE score labels -->
+    <string name="brisque_score_excellent">excellent</string>
+    <string name="brisque_score_fair">fair</string>
+    <string name="brisque_score_poor">poor</string>
+    <string name="brisque_score_bad">bad</string>
+    <string name="brisque_score_horrible">horrible!</string>
+    
+    <!-- Sharpness score labels -->
+    <string name="sharpness_very_sharp">very sharp</string>
+    <string name="sharpness_sharp">sharp</string>
+    <string name="sharpness_moderate">moderate</string>
+    <string name="sharpness_soft">soft</string>
+    <string name="sharpness_blurry">blurry</string>
+    
+    <!-- BRISQUE About Dialog -->
+    <string name="brisque_about_title">About BRISQUE</string>
+    <string name="brisque_about_message">BRISQUE (Blind/Referenceless Image Spatial Quality Evaluator) is a no-reference image quality score.\n\nIn plain English, it takes an image and assigns it a quality value between 0 and 100, lower being best and higher being worse.\n\nUsing this with a sharpness estimate can provide a semi-reliable method for getting an image that\'s been scaled to a larger size back down to close to it\'s original resolution.\n\nImages like this include screenshots of screenshots, overscaled memes, or old photos scanned at large DPIs.\n\nYou shouldn\'t need to apply this to every image, but only ones that look blurry or don\'t match the images true size.</string>
+    
+    <!-- BRISQUE Confirm Dialog -->
+    <string name="brisque_descale_again_title">Descale again?</string>
+    <string name="brisque_descale_again_message">This will descale the image again, which may produce worse results, continue?</string>
+    
+    <!-- BRISQUE Progress Dialog -->
+    <string name="brisque_descaling_image">Descaling image</string>
+    <string name="brisque_current_size">Current size:</string>
+    <string name="brisque_log">Log:</string>
+    <string name="brisque_waiting_for_logs">Waiting for logs…</string>
+    
+    <!-- BRISQUE Settings Dialog -->
+    <string name="brisque_settings_title">BRISQUE settings</string>
+    <string name="brisque_coarse_stepping">Coarse stepping</string>
+    <string name="brisque_fine_stepping">Fine stepping</string>
+    <string name="brisque_fine_range">Fine range</string>
+    <string name="brisque_minimum_image_size">Minimum image size</string>
+    <string name="brisque_weight">BRISQUE weight</string>
+    <string name="brisque_sharpness_weight">Sharpness weight</string>
+    <string name="brisque_coarse_stepping_info">Steps (px) per iteration in the initial scan</string>
+    <string name="brisque_fine_stepping_info">Steps (px) per iteration in the second scan</string>
+    <string name="brisque_fine_range_info">Range around the coarse result to explore</string>
+    <string name="brisque_minimum_image_size_info">Minimum size of the final image the algorithm is willing to scale down to</string>
+    <string name="brisque_weight_info">BRISQUE confidence in calculating</string>
+    <string name="brisque_sharpness_weight_info">Sharpness confidence in calculating</string>
+    
+    <!-- BRISQUE Descaler progress messages -->
+    <string name="brisque_analyzing_original">Analyzing original image…</string>
+    <string name="brisque_original_scores">Original BRISQUE: %1$.2f, Sharpness: %2$.2f</string>
+    <string name="brisque_scaling_progress">Scaling %1$s (%2$d/%3$d)</string>
+    <string name="brisque_best_coarse">Best coarse result: %1$s (BRISQUE: %2$.2f)</string>
+    <string name="brisque_refining_progress">Refining %1$s (%2$d/%3$d)</string>
+    <string name="brisque_analyzing">Analyzing…</string>
+    <string name="brisque_starting_descale">Starting descale…</string>
+    <string name="brisque_descaling_failed">Descaling failed</string>
 </resources>

@@ -23,6 +23,7 @@
 package com.je.dejpeg.compose.ui.components
 
 import android.graphics.Bitmap
+import com.je.dejpeg.R
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -69,7 +70,6 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.get
-import com.je.dejpeg.R
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
 import com.je.dejpeg.data.AppPreferences
 import me.saket.telephoto.zoomable.OverzoomEffect
@@ -174,7 +174,7 @@ fun BeforeAfterSlider(
                     ) {
                         Icon(
                             Icons.Filled.SwapHoriz,
-                            contentDescription = "Drag to compare",
+                            contentDescription = stringResource(R.string.drag_to_compare),
                             tint = iconColor,
                             modifier = Modifier.size(sliderHandleSize * 0.5f)
                         )

@@ -62,8 +62,8 @@ fun ModelDialog(
     if (showHelpDialog) {
         StyledAlertDialog(
             onDismissRequest = { showHelpDialog = false },
-            title = { Text("Tip") },
-            text = { Text("Tap and hold on a model to view its information.") },
+            title = { Text(stringResource(R.string.tip)) },
+            text = { Text(stringResource(R.string.tip_model_long_press)) },
             confirmButton = {
                 Button(onClick = { showHelpDialog = false }) {
                     Text(stringResource(R.string.ok))
@@ -87,7 +87,7 @@ fun ModelDialog(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Info,
-                        contentDescription = "Help",
+                        contentDescription = stringResource(R.string.help),
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(18.dp)
                     )

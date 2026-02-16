@@ -33,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import com.je.dejpeg.R
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
 
@@ -78,7 +79,7 @@ fun BaseDialog(
                         haptic.light()
                         clipboardManager.setPrimaryClip(ClipData.newPlainText("error", textToCopy))
                         context?.let { Toast.makeText(it, it.getString(R.string.error_copied), Toast.LENGTH_SHORT).show() }
-                    }) { Text("Copy") }
+                    }) { Text(stringResource(R.string.copy)) }
                 }
             }
             else -> null

@@ -142,7 +142,7 @@ class ProcessingService : Service() {
                 }
                 chunkProgressCompleted = 0
                 chunkProgressTotal = 0
-                currentProgressMessage = "Processing $filename..."
+                currentProgressMessage = getString(R.string.processing_filename, filename)
                 notifyProgressChange()
                 currentJob = serviceScope.launch {
                     try {
@@ -158,7 +158,7 @@ class ProcessingService : Service() {
                         imageProcessor?.processImage(bitmap, strength, object : ImageProcessor.ProcessCallback {
                             override fun onComplete(result: Bitmap) {
                                 try {
-                                    NotificationHelper.show(this@ProcessingService, "Processing complete")
+                                    NotificationHelper.show(this@ProcessingService, getString(R.string.processing_complete_notification))
                                     val safeName = if (!imageId.isNullOrEmpty()) imageId else filename
                                     val outFile = File(cacheDir, "${safeName}_processed.png")
                                     FileOutputStream(outFile).use { result.compress(Bitmap.CompressFormat.PNG, 95, it) }

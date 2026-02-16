@@ -14,10 +14,10 @@ The base model is `color`, the `grey` FBCNN models are for black and white image
 
 It can also remove compression and GIF artifacts, to some degree.
 
-The "grey 15/25/50" SCUNet models are only for greyscale images as well, with different levels of noise removal.
+The `grey` `15/25/50` SCUNet models are only for greyscale images as well, with different levels of noise removal.
 
 Higher the number, the more noise is removed.
 
-The "PSNR" variant tries to pixel-match the original image as closely as possible, so it looks mathematically correct but may appear overly smooth.
+The `PSNR` variant tries to pixel-match the original image as closely as possible, so it looks mathematically correct but may appear overly smooth.
 
-"GAN" sacrifices pixel-perfect accuracy to add realistic textures or details, which can look more natural. As with most cases, try both and see which one suits your image better.
+`GAN` sacrifices pixel-perfect accuracy to add realistic textures or details, which can look more natural. As with most cases, try both and see which one suits your image better.

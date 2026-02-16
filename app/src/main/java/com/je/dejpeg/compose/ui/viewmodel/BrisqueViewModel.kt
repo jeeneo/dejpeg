@@ -29,6 +29,7 @@ import android.provider.MediaStore
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.je.dejpeg.R
 import com.je.dejpeg.compose.utils.brisque.BRISQUEAssessor
 import com.je.dejpeg.compose.utils.brisque.BRISQUEDescaler
 import com.je.dejpeg.data.AppPreferences
@@ -153,7 +154,7 @@ class BrisqueViewModel : ViewModel() {
             isDescaling = true,
             descaleError = null,
             descaleProgress = null,
-            descaleLog = listOf("Starting descale...")
+            descaleLog = listOf(context.getString(R.string.brisque_starting_descale))
         )
         descaleJob = viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -162,6 +163,7 @@ class BrisqueViewModel : ViewModel() {
                 val bmp = state.descaledBitmap ?: state.originalBitmap
                 val currentSettings = settings.value
                 val result = descaler.descale(
+                    context = context.applicationContext,
                     bitmap = bmp,
                     coarseStep = currentSettings.coarseStep,
                     fineStep = currentSettings.fineStep,

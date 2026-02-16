@@ -87,6 +87,7 @@ import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -106,8 +107,7 @@ import me.saket.telephoto.zoomable.rememberZoomableState
 import me.saket.telephoto.zoomable.zoomable
 import java.util.Locale
 import kotlin.math.roundToInt
-
-// note: do not add to strings.xml yet
+import com.je.dejpeg.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -132,25 +132,25 @@ fun BRISQUEScreen(
     LaunchedEffect(image.id) { brisqueViewModel.initialize(context, image.inputBitmap, image.filename) }
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         TopAppBar(
-            title = { Text("BRISQUE analysis", style = MaterialTheme.typography.titleMedium) },
+            title = { Text(stringResource(R.string.brisque_analysis), style = MaterialTheme.typography.titleMedium) },
             navigationIcon = {
                 IconButton(onClick = { haptic.light(); onBack() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back_desc))
                 }
             },
             actions = {
-                IconButton(onClick = { haptic.light(); showInfoDialog = true }) { Icon(Icons.Filled.Info, "Info") }
-                IconButton(onClick = { haptic.light(); showBRISQUESettings = true }) { Icon(Icons.Filled.Settings, "Settings") }
+                IconButton(onClick = { haptic.light(); showInfoDialog = true }) { Icon(Icons.Filled.Info, stringResource(R.string.info_desc)) }
+                IconButton(onClick = { haptic.light(); showBRISQUESettings = true }) { Icon(Icons.Filled.Settings, stringResource(R.string.settings_desc)) }
                 IconButton(
                     onClick = {
                         haptic.medium()
                         brisqueViewModel.saveCurrentImage(context,
-                            { Toast.makeText(context, "Image saved successfully", Toast.LENGTH_SHORT).show() })
-                            { error -> Toast.makeText(context, "Failed to save: $error", Toast.LENGTH_SHORT).show() }
+                            { Toast.makeText(context, context.getString(R.string.brisque_image_saved), Toast.LENGTH_SHORT).show() })
+                            { error -> Toast.makeText(context, context.getString(R.string.brisque_failed_to_save, error), Toast.LENGTH_SHORT).show() }
                     },
                     enabled = brisqueState != null
                 ) {
-                    Icon(Icons.Filled.Save, "Save image")
+                    Icon(Icons.Filled.Save, stringResource(R.string.brisque_save_image_desc))
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -173,13 +173,13 @@ fun BRISQUEScreen(
                 brisqueState?.descaleInfo?.let { info ->
                     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                         Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("Descale analysis", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            Text(stringResource(R.string.brisque_descale_analysis), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    InfoRow(label = "Original", value = "${info.originalWidth}×${info.originalHeight}", isSmall = true)
-                                    InfoRow(label = "Descaled", value = "${info.detectedWidth}×${info.detectedHeight}", isSmall = true)
-                                    InfoRow(label = "BRISQUE", value = "${String.format(Locale.US, "%.1f", info.brisqueScore)} (${getScoreInfo(info.brisqueScore, isBRISQUE = true).label})", isSmall = true, color = getScoreInfo(info.brisqueScore, isBRISQUE = true).color)
-                                    InfoRow(label = "Sharpness", value = "${String.format(Locale.US, "%.1f", info.sharpness)} (${getScoreInfo(info.sharpness, isBRISQUE = false).label})", isSmall = true, color = getScoreInfo(info.sharpness, isBRISQUE = false).color)
+                                    InfoRow(label = stringResource(R.string.brisque_original), value = "${info.originalWidth}×${info.originalHeight}", isSmall = true)
+                                    InfoRow(label = stringResource(R.string.brisque_descaled), value = "${info.detectedWidth}×${info.detectedHeight}", isSmall = true)
+                                    InfoRow(label = stringResource(R.string.brisque_label), value = "${String.format(Locale.US, "%.1f", info.brisqueScore)} (${getScoreInfo(info.brisqueScore, isBRISQUE = true, context).label})", isSmall = true, color = getScoreInfo(info.brisqueScore, isBRISQUE = true, context).color)
+                                    InfoRow(label = stringResource(R.string.brisque_sharpness), value = "${String.format(Locale.US, "%.1f", info.sharpness)} (${getScoreInfo(info.sharpness, isBRISQUE = false, context).label})", isSmall = true, color = getScoreInfo(info.sharpness, isBRISQUE = false, context).color)
                                 }
                             }
                         }
@@ -190,11 +190,11 @@ fun BRISQUEScreen(
                 brisqueState?.brisqueScore?.let { score ->
                     val sharpness = brisqueState?.sharpnessScore
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        val qualityInfo = getScoreInfo(score, isBRISQUE = true)
-                        ScoreCard("BRISQUE", String.format(Locale.US, "%.1f", score), qualityInfo.label, qualityInfo.color, Modifier.weight(1f))
+                        val qualityInfo = getScoreInfo(score, isBRISQUE = true, context)
+                        ScoreCard(stringResource(R.string.brisque_label), String.format(Locale.US, "%.1f", score), qualityInfo.label, qualityInfo.color, Modifier.weight(1f))
                         if (sharpness != null) {
-                            val sharpnessInfo = getScoreInfo(sharpness, isBRISQUE = false)
-                            ScoreCard("Sharpness", String.format(Locale.US, "%.2f", sharpness), sharpnessInfo.label, sharpnessInfo.color, Modifier.weight(1f))
+                            val sharpnessInfo = getScoreInfo(sharpness, isBRISQUE = false, context)
+                            ScoreCard(stringResource(R.string.brisque_sharpness), String.format(Locale.US, "%.2f", sharpness), sharpnessInfo.label, sharpnessInfo.color, Modifier.weight(1f))
                         }
                     }
                 }
@@ -205,9 +205,9 @@ fun BRISQUEScreen(
                         if (brisqueState?.isAssessing == true) {
                             CircularProgressIndicator(modifier = Modifier.size(16.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 1.5.dp)
                             Spacer(Modifier.width(6.dp))
-                            Text("Assessing...", style = MaterialTheme.typography.labelMedium)
+                            Text(stringResource(R.string.brisque_assessing), style = MaterialTheme.typography.labelMedium)
                         } else {
-                            Text(if (brisqueState?.brisqueScore != null) "Reassess" else "Assess", style = MaterialTheme.typography.labelMedium)
+                            Text(if (brisqueState?.brisqueScore != null) stringResource(R.string.brisque_reassess) else stringResource(R.string.brisque_assess), style = MaterialTheme.typography.labelMedium)
                         }
                     }
                     Button(onClick = { haptic.medium(); if (brisqueState?.descaledBitmap != null) showConfirm = true else brisqueViewModel.descaleImage(context) }, modifier = Modifier.fillMaxWidth().height(40.dp), enabled = brisqueState?.isAssessing == false && brisqueState?.isDescaling == false, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary), contentPadding = PaddingValues(0.dp)) {
@@ -215,13 +215,13 @@ fun BRISQUEScreen(
                             CircularProgressIndicator(modifier = Modifier.size(16.dp), color = MaterialTheme.colorScheme.onSecondary, strokeWidth = 1.5.dp)
                             Spacer(Modifier.width(6.dp))
                         }
-                        Text(if (brisqueState?.isDescaling == true) "Descaling..." else "Descale", style = MaterialTheme.typography.labelMedium)
+                        Text(if (brisqueState?.isDescaling == true) stringResource(R.string.brisque_descaling) else stringResource(R.string.brisque_descale), style = MaterialTheme.typography.labelMedium)
                     }
                 }
             }
             item {
-                brisqueState?.assessError?.let { ErrorCard("Assessment error:", it) }
-                brisqueState?.descaleError?.let { ErrorCard("Descale error:", it) }
+                brisqueState?.assessError?.let { ErrorCard(stringResource(R.string.brisque_assessment_error), it) }
+                brisqueState?.descaleError?.let { ErrorCard(stringResource(R.string.brisque_descale_error), it) }
             }
             item { Spacer(Modifier.height(8.dp)) }
         }
@@ -268,12 +268,12 @@ private fun InfoRow(label: String, value: String, isSmall: Boolean = false, colo
 private fun ConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
     val haptic = rememberHapticFeedback()
     ConfirmAlertDialog(
-        title = "Descale again?",
-        message = "This will descale the image again, which may produce worse results, continue?",
+        title = stringResource(R.string.brisque_descale_again_title),
+        message = stringResource(R.string.brisque_descale_again_message),
         onConfirm = onConfirm,
         onDismiss = onDismiss,
-        confirmButtonText = "Yes",
-        dismissButtonText = "Cancel",
+        confirmButtonText = stringResource(R.string.yes),
+        dismissButtonText = stringResource(R.string.cancel),
         confirmHaptic = { haptic.medium() },
         dismissHaptic = { haptic.light() }
     )
@@ -288,27 +288,27 @@ private fun ImageViewerModal(bitmap: Bitmap, filename: String, onDismiss: () -> 
                 Image(bitmap = bitmap.asImageBitmap(), contentDescription = filename, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit, filterQuality = FilterQuality.None)
             }
             IconButton(onClick = { haptic.light(); onDismiss() }, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))) {
-                Icon(Icons.Filled.Close, "Close", Modifier.size(28.dp))
+                Icon(Icons.Filled.Close, stringResource(R.string.close_desc), Modifier.size(28.dp))
             }
         }
     }
 }
 
 private data class ScoreInfo(val color: Color, val label: String)
-private fun getScoreInfo(value: Float, isBRISQUE: Boolean = true): ScoreInfo = when {
+private fun getScoreInfo(value: Float, isBRISQUE: Boolean = true, context: android.content.Context): ScoreInfo = when {
     isBRISQUE -> when {
-        value < 30 -> ScoreInfo(Color(0xFF4CAF50), "excellent") 
-        value < 55 -> ScoreInfo(Color(0xFF2196F3), "fair")
-        value < 70 -> ScoreInfo(Color(0xFFFFC107), "poor")
-        value < 85 -> ScoreInfo(Color(0xFFFF9800), "bad")
-        else -> ScoreInfo(Color(0xFFF44336), "horrible!")
+        value < 30 -> ScoreInfo(Color(0xFF4CAF50), context.getString(R.string.brisque_score_excellent)) 
+        value < 55 -> ScoreInfo(Color(0xFF2196F3), context.getString(R.string.brisque_score_fair))
+        value < 70 -> ScoreInfo(Color(0xFFFFC107), context.getString(R.string.brisque_score_poor))
+        value < 85 -> ScoreInfo(Color(0xFFFF9800), context.getString(R.string.brisque_score_bad))
+        else -> ScoreInfo(Color(0xFFF44336), context.getString(R.string.brisque_score_horrible))
     }
     else -> when {
-        value >= 60 -> ScoreInfo(Color(0xFF4CAF50), "very sharp")
-        value >= 45 -> ScoreInfo(Color(0xFF2196F3), "sharp")
-        value >= 35 -> ScoreInfo(Color(0xFFFFC107), "moderate")
-        value >= 10 -> ScoreInfo(Color(0xFFFF9800), "soft")
-        else -> ScoreInfo(Color(0xFFF44336), "blurry")
+        value >= 60 -> ScoreInfo(Color(0xFF4CAF50), context.getString(R.string.sharpness_very_sharp))
+        value >= 45 -> ScoreInfo(Color(0xFF2196F3), context.getString(R.string.sharpness_sharp))
+        value >= 35 -> ScoreInfo(Color(0xFFFFC107), context.getString(R.string.sharpness_moderate))
+        value >= 10 -> ScoreInfo(Color(0xFFFF9800), context.getString(R.string.sharpness_soft))
+        else -> ScoreInfo(Color(0xFFF44336), context.getString(R.string.sharpness_blurry))
     }
 }
 
@@ -317,16 +317,16 @@ private fun InfoDialog(onDismiss: () -> Unit) {
     val haptic = rememberHapticFeedback()
     StyledAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("About BRISQUE") },
+        title = { Text(stringResource(R.string.brisque_about_title)) },
         text = {
             Text(
-                "BRISQUE (Blind/Referenceless Image Spatial Quality Evaluator) is a no-reference image quality score.\n\nIn plain English, it takes an image and assigns it a quality value between 0 and 100, lower being best and higher being worse.\n\nUsing this with a sharpness estimate can provide a semi-reliable method for getting an image that's been scaled to a larger size back down to close to it's original resolution.\n\nImages like this include screenshots of screenshots, overscaled memes, or old photos scanned at large DPIs.\n\nYou shouldn't need to apply this to every image, but only ones that look blurry or don't match the images true size.",
+                stringResource(R.string.brisque_about_message),
                 style = MaterialTheme.typography.bodyMedium
             )
         },
         confirmButton = {
             Button(onClick = { haptic.light(); onDismiss() }) {
-                Text("OK")
+                Text(stringResource(R.string.ok))
             }
         }
     )
@@ -347,7 +347,7 @@ private fun DescaleProgressDialog(progress: BRISQUEDescaler.ProgressUpdate, logM
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Descaling image", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.brisque_descaling_image), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     LinearProgressIndicator(progress = { progress.currentStep.toFloat() / progress.totalSteps.toFloat() }, Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)), color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.surfaceVariant)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -358,21 +358,21 @@ private fun DescaleProgressDialog(progress: BRISQUEDescaler.ProgressUpdate, logM
                 Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         if (progress.currentSize.isNotEmpty()) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Current size:", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                            Text(stringResource(R.string.brisque_current_size), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
                             Text(progress.currentSize, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
                         }
                         Text(progress.message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
                     }
                 }
-                Text("Log:", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.brisque_log), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Card(Modifier.fillMaxWidth().weight(1f), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                    if (logMessages.isEmpty()) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Waiting for logs...", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    if (logMessages.isEmpty()) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(stringResource(R.string.brisque_waiting_for_logs), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     else LazyColumn(Modifier.fillMaxSize().padding(12.dp), state = logListState, verticalArrangement = Arrangement.spacedBy(4.dp)) { items(logMessages) { LogEntry(text = it, isActive = it == logMessages.lastOrNull()) } }
                 }
                 OutlinedButton(onClick = { haptic.heavy(); onCancel() }, Modifier.fillMaxWidth(), colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error), border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)) {
-                    Icon(Icons.Filled.Close, contentDescription = "Cancel", Modifier.size(18.dp))
+                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.cancel), Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         }
@@ -413,7 +413,7 @@ private fun BRISQUESettings(
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("$label: ${format(range.start + (index * stepSize))}", style = MaterialTheme.typography.labelMedium)
-                if (infoText.isNotEmpty()) IconButton(onClick = { haptic.light(); expandedInfo = if (expandedInfo == label) null else label }, Modifier.size(24.dp)) { Icon(Icons.Filled.Info, "Info", Modifier.size(18.dp)) }
+                if (infoText.isNotEmpty()) IconButton(onClick = { haptic.light(); expandedInfo = if (expandedInfo == label) null else label }, Modifier.size(24.dp)) { Icon(Icons.Filled.Info, stringResource(R.string.info_desc), Modifier.size(18.dp)) }
             }
             Slider(value = index.toFloat(), onValueChange = { newIdx ->
                 val newIndex = newIdx.roundToInt().coerceIn(0, steps)
@@ -429,20 +429,20 @@ private fun BRISQUESettings(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("BRISQUE settings") },
+        title = { Text(stringResource(R.string.brisque_settings_title)) },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                item { SettingSlider("Coarse stepping", coarseStep, { coarseStep = it.clamp(10f, 50f) }, 10f..50f, 1f, infoText = "Steps (px) per iteration in the initial scan") }
-                item { SettingSlider("Fine stepping", fineStep, { fineStep = it.clamp(1f, 10f) }, 1f..10f, 1f, infoText = "Steps (px) per iteration in the second scan") }
-                item { SettingSlider("Fine range", fineRange, { fineRange = it.clamp(10f, 100f) }, 10f..100f, 5f, infoText = "Range around the coarse result to explore") }
-                item { SettingSlider("Minimum image size", minWidthRatio, { minWidthRatio = it.clamp(0.1f, 0.9f) }, 0.1f..0.9f, 0.05f, format = { val px = (imageWidth * it).toInt(); val py = (imageHeight * it).toInt(); "${px}×${py}px (${String.format(Locale.US, "%.0f", it * 100)}%)" }, infoText = "Minimum size of the final image the algorithm is willing to scale down to") }
-                item { SettingSlider("BRISQUE weight", brisqueWeight, { brisqueWeight = it.clamp(0f, 1f) }, 0f..1f, 0.05f, format = { "%.2f".format(it) }, infoText = "BRISQUE confidence in calculating") }
-                item { SettingSlider("Sharpness weight", sharpnessWeight, { sharpnessWeight = it.clamp(0f, 1f) }, 0f..1f, 0.05f, format = { "%.2f".format(it) }, infoText = "Sharpness confidence in calculating") }
+                item { SettingSlider(stringResource(R.string.brisque_coarse_stepping), coarseStep, { coarseStep = it.clamp(10f, 50f) }, 10f..50f, 1f, infoText = stringResource(R.string.brisque_coarse_stepping_info)) }
+                item { SettingSlider(stringResource(R.string.brisque_fine_stepping), fineStep, { fineStep = it.clamp(1f, 10f) }, 1f..10f, 1f, infoText = stringResource(R.string.brisque_fine_stepping_info)) }
+                item { SettingSlider(stringResource(R.string.brisque_fine_range), fineRange, { fineRange = it.clamp(10f, 100f) }, 10f..100f, 5f, infoText = stringResource(R.string.brisque_fine_range_info)) }
+                item { SettingSlider(stringResource(R.string.brisque_minimum_image_size), minWidthRatio, { minWidthRatio = it.clamp(0.1f, 0.9f) }, 0.1f..0.9f, 0.05f, format = { val px = (imageWidth * it).toInt(); val py = (imageHeight * it).toInt(); "${px}×${py}px (${String.format(Locale.US, "%.0f", it * 100)}%)" }, infoText = stringResource(R.string.brisque_minimum_image_size_info)) }
+                item { SettingSlider(stringResource(R.string.brisque_weight), brisqueWeight, { brisqueWeight = it.clamp(0f, 1f) }, 0f..1f, 0.05f, format = { "%.2f".format(it) }, infoText = stringResource(R.string.brisque_weight_info)) }
+                item { SettingSlider(stringResource(R.string.brisque_sharpness_weight), sharpnessWeight, { sharpnessWeight = it.clamp(0f, 1f) }, 0f..1f, 0.05f, format = { "%.2f".format(it) }, infoText = stringResource(R.string.brisque_sharpness_weight_info)) }
             }
         },
         confirmButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = { haptic.light(); onDismiss() }) { Text("Cancel") }
+                TextButton(onClick = { haptic.light(); onDismiss() }) { Text(stringResource(R.string.cancel)) }
                 TextButton(onClick = {
                     haptic.light()
                     coarseStep = 20f
@@ -451,14 +451,14 @@ private fun BRISQUESettings(
                     minWidthRatio = 0.5f
                     brisqueWeight = 0.7f
                     sharpnessWeight = 0.3f
-                }) { Text("Reset") }
+                }) { Text(stringResource(R.string.reset)) }
                 Button(onClick = {
                     haptic.medium()
                     brisqueViewModel.updateSettings(
                         BrisqueSettings(coarseStep.toInt(), fineStep.toInt(), fineRange.toInt(), minWidthRatio, brisqueWeight, sharpnessWeight)
                     )
                     onDismiss()
-                }) { Text("Save") }
+                }) { Text(stringResource(R.string.save)) }
             }
         },
         dismissButton = null

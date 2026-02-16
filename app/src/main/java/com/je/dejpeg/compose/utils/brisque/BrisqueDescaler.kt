@@ -25,6 +25,7 @@ package com.je.dejpeg.compose.utils.brisque
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
+import com.je.dejpeg.R
 import kotlinx.coroutines.yield
 import kotlin.math.sqrt
 import androidx.core.graphics.scale
@@ -75,6 +76,7 @@ class BRISQUEDescaler(
     )
     
     suspend fun descale(
+        context: Context,
         bitmap: Bitmap,
         coarseStep: Int = DEFAULT_COARSE_STEP,
         fineStep: Int = DEFAULT_FINE_STEP,
@@ -94,7 +96,7 @@ class BRISQUEDescaler(
             currentStep = 0,
             totalSteps = 100,
             currentSize = "${origW}x${origH}",
-            message = "Analyzing original image..."
+            message = context.getString(R.string.brisque_analyzing_original)
         ))
         val originalBrisqueScore = computeBRISQUE(bitmap)
         val originalSharpness = estimateSharpness(bitmap)
@@ -104,7 +106,7 @@ class BRISQUEDescaler(
             currentStep = 5,
             totalSteps = 100,
             currentSize = "${origW}x${origH}",
-            message = "Original BRISQUE: %.2f, Sharpness: %.2f".format(originalBrisqueScore, originalSharpness)
+            message = context.getString(R.string.brisque_original_scores, originalBrisqueScore, originalSharpness)
         ))
         Log.d(TAG, "Scanning (coarse)...")
         val coarseResults = mutableListOf<ScanResult>()
@@ -124,7 +126,7 @@ class BRISQUEDescaler(
                 currentStep = 5 + (coarseStepCount * 45 / totalCoarseSteps),
                 totalSteps = 100,
                 currentSize = "${w}x${h}",
-                message = "Scaling ${w}x${h} (${coarseStepCount}/${totalCoarseSteps})"
+                message = context.getString(R.string.brisque_scaling_progress, "${w}x${h}", coarseStepCount, totalCoarseSteps)
             ))
             val resized = resizeBitmap(bitmap, w, h)
             try {
@@ -150,7 +152,7 @@ class BRISQUEDescaler(
             currentStep = 50,
             totalSteps = 100,
             currentSize = "${bestCoarseResult.width}x${bestCoarseResult.height}",
-            message = "Best coarse result: ${bestCoarseResult.width}x${bestCoarseResult.height} (BRISQUE: %.2f)".format(bestCoarseResult.brisqueScore)
+            message = context.getString(R.string.brisque_best_coarse, "${bestCoarseResult.width}x${bestCoarseResult.height}", bestCoarseResult.brisqueScore)
         ))
         
         Log.d(TAG, "Scanning (fine)...")
@@ -171,7 +173,7 @@ class BRISQUEDescaler(
                 currentStep = 50 + (fineStepCount * 40 / totalFineSteps),
                 totalSteps = 100,
                 currentSize = "${w}x${h}",
-                message = "Refining ${w}x${h} (${fineStepCount}/${totalFineSteps})"
+                message = context.getString(R.string.brisque_refining_progress, "${w}x${h}", fineStepCount, totalFineSteps)
             ))
             val resized = resizeBitmap(bitmap, w, h)
             try {
@@ -206,7 +208,7 @@ class BRISQUEDescaler(
             currentStep = 90,
             totalSteps = 100,
             currentSize = "",
-            message = "Analyzing..."
+            message = context.getString(R.string.brisque_analyzing)
         ))
 
         val brisqueScores = fineResults.map { it.brisqueScore }

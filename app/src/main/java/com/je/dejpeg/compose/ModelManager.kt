@@ -96,81 +96,81 @@ class ModelManager(
             }
         }
 
-        private val MODEL_INFO = mapOf(
+        private val MODEL_INFO_RES_IDS = mapOf(
             // starter models
-            "1x-RGB-max-Denoise-fp16.onnx" to "Fast, noise and compression, mostly for animation. Or can turn photos into cartoons.",
-            "1x-span-anime-pretrain-fp16.onnx" to "Fast, general compression, general noise. Good for animation, comics, anime, and some photos.",
+            "1x-RGB-max-Denoise-fp16.onnx" to R.string.model_info_1x_rgb_max_denoise_fp16,
+            "1x-span-anime-pretrain-fp16.onnx" to R.string.model_info_1x_span_anime_pretrain_fp16,
 
             // fbcnn (jpeg model)
-            "fbcnn_color_fp16.onnx" to "Best at general JPEG compression, minor noise, any kind of color images",
-            "fbcnn_gray_fp16.onnx" to "General compression and noise, only grayscale images",
-            "fbcnn_gray_double_fp16.onnx" to "Strongest at general compression and noise, only grayscale images",
+            "fbcnn_color_fp16.onnx" to R.string.model_info_fbcnn_color_fp16,
+            "fbcnn_gray_fp16.onnx" to R.string.model_info_fbcnn_gray_fp16,
+            "fbcnn_gray_double_fp16.onnx" to R.string.model_info_fbcnn_gray_double_fp16,
 
             // scunet (noise model)
-            "scunet_color_real_gan_fp16.onnx" to "Moderate noise, GAN architecture, color images, better details",
-            "scunet_color_real_psnr_fp16.onnx" to "General noise, PSNR architecture, color images, less details",
-            "scunet_color_15_fp16.onnx" to "Minor noise, color images",
-            "scunet_color_25_fp16.onnx" to "Minor noise, color images, stronger",
-            "scunet_color_50_fp16.onnx" to "Minor noise, color images, strongest",
-            "scunet_gray_15_fp16.onnx" to "General noise, grayscale images",
-            "scunet_gray_25_fp16.onnx" to "General noise, grayscale images, stronger",
-            "scunet_gray_50_fp16.onnx" to "Heavy general noise, grayscale images, strongest",
+            "scunet_color_real_gan_fp16.onnx" to R.string.model_info_scunet_color_real_gan_fp16,
+            "scunet_color_real_psnr_fp16.onnx" to R.string.model_info_scunet_color_real_psnr_fp16,
+            "scunet_color_15_fp16.onnx" to R.string.model_info_scunet_color_15_fp16,
+            "scunet_color_25_fp16.onnx" to R.string.model_info_scunet_color_25_fp16,
+            "scunet_color_50_fp16.onnx" to R.string.model_info_scunet_color_50_fp16,
+            "scunet_gray_15_fp16.onnx" to R.string.model_info_scunet_gray_15_fp16,
+            "scunet_gray_25_fp16.onnx" to R.string.model_info_scunet_gray_25_fp16,
+            "scunet_gray_50_fp16.onnx" to R.string.model_info_scunet_gray_50_fp16,
 
-            "deblurring_nafnet_2025may.onnx" to "Deblurring, restoration, denoising. General purpose but best on photos",
+            "deblurring_nafnet_2025may.onnx" to R.string.model_info_deblurring_nafnet_2025may,
 
             // small models (for low-end devices)
-            "1x-AnimeUndeint-Compact-fp16.onnx" to "Compression, jagged lines",
-            "1x-BroadcastToStudio_Compact-fp16.onnx" to "Cartoons, broadcast compression",
-            "1x-WB-Denoise-fp16.onnx" to "Colorless cartoon noise",
-            "1xBook-Compact-fp16.onnx" to "Book scanning",
-            "1xOverExposureCorrection_compact-fp16.onnx" to "Exposure correction",
+            "1x-AnimeUndeint-Compact-fp16.onnx" to R.string.model_info_1x_anime_undeint_compact_fp16,
+            "1x-BroadcastToStudio_Compact-fp16.onnx" to R.string.model_info_1x_broadcast_to_studio_compact_fp16,
+            "1x-WB-Denoise-fp16.onnx" to R.string.model_info_1x_wb_denoise_fp16,
+            "1xBook-Compact-fp16.onnx" to R.string.model_info_1x_book_compact_fp16,
+            "1xOverExposureCorrection_compact-fp16.onnx" to R.string.model_info_1x_over_exposure_correction_compact_fp16,
 
             // other compression
-            "1x_JPEGDestroyerV2_96000G-fp16.onnx" to "General JPEG compression",
-            "1x-NMKD-Jaywreck3-Lite-fp16.onnx" to "General compression",
-            "1x_NMKD-h264Texturize-fp16.onnx" to "Texturization, h264 compression",
-            "VHS-Sharpen-1x_46000_G-fp16.onnx" to "VHS compression",
-            "1x_BCGone_Smooth_110000_G-fp16.onnx" to "BC1 compression",
-            "1x-cinepak-fp16.onnx" to "Cinepak, msvideo1, roq compression",
-            "1x_BCGone-DetailedV2_40-60_115000_G-fp16.onnx" to "BC1 compression with detail",
-            "1x-DeBink-v4.onnx" to "Bink compression, better geometry",
-            "1x-DeBink-v5.onnx" to "Bink compression, stronger",
-            "1x-DeBink-v6.onnx" to "Bink compression, soft with detail",
+            "1x_JPEGDestroyerV2_96000G-fp16.onnx" to R.string.model_info_1x_jpeg_destroyer_v2_96000g_fp16,
+            "1x-NMKD-Jaywreck3-Lite-fp16.onnx" to R.string.model_info_1x_nmkd_jaywreck3_lite_fp16,
+            "1x_NMKD-h264Texturize-fp16.onnx" to R.string.model_info_1x_nmkd_h264_texturize_fp16,
+            "VHS-Sharpen-1x_46000_G-fp16.onnx" to R.string.model_info_vhs_sharpen_1x_46000_g_fp16,
+            "1x_BCGone_Smooth_110000_G-fp16.onnx" to R.string.model_info_1x_bc_gone_smooth_110000_g_fp16,
+            "1x-cinepak-fp16.onnx" to R.string.model_info_1x_cinepak_fp16,
+            "1x_BCGone-DetailedV2_40-60_115000_G-fp16.onnx" to R.string.model_info_1x_bc_gone_detailed_v2_40_60_115000_g_fp16,
+            "1x-DeBink-v4.onnx" to R.string.model_info_1x_de_bink_v4,
+            "1x-DeBink-v5.onnx" to R.string.model_info_1x_de_bink_v5,
+            "1x-DeBink-v6.onnx" to R.string.model_info_1x_de_bink_v6,
 
             // JPEG quality range models
-            "1x_JPEG_00-20-fp16.ort" to "JPEG compression (quality 0-20)",
-            "1x_JPEG_20-40-fp16.ort" to "JPEG compression (quality 20-40)",
-            "1x_JPEG_40-60-fp16.ort" to "JPEG compression (quality 40-60)",
-            "1x_JPEG_60-80-fp16.ort" to "JPEG compression (quality 60-80)",
-            "1x_JPEG_80-100-fp16.ort" to "JPEG compression (quality 80-100)",
-            "1x_artifacts_jpg_00_20_alsa-fp16.onnx" to "JPEG artifacts (quality 0-20)",
-            "1x_artifacts_jpg_20_40_alsa-fp16.onnx" to "JPEG artifacts (quality 20-40)",
-            "1x_artifacts_jpg_40_60_alsa-fp16.onnx" to "JPEG artifacts (quality 40-60)",
-            "1x_artifacts_jpg_60_800_alsa-fp16.onnx" to "JPEG artifacts (quality 60-80)",
-            "1x_artifacts_jpg_80_100_alsa-fp16.onnx" to "JPEG artifacts (quality 80-100)",
+            "1x_JPEG_00-20-fp16.ort" to R.string.model_info_1x_jpeg_00_20_fp16,
+            "1x_JPEG_20-40-fp16.ort" to R.string.model_info_1x_jpeg_20_40_fp16,
+            "1x_JPEG_40-60-fp16.ort" to R.string.model_info_1x_jpeg_40_60_fp16,
+            "1x_JPEG_60-80-fp16.ort" to R.string.model_info_1x_jpeg_60_80_fp16,
+            "1x_JPEG_80-100-fp16.ort" to R.string.model_info_1x_jpeg_80_100_fp16,
+            "1x_artifacts_jpg_00_20_alsa-fp16.onnx" to R.string.model_info_1x_artifacts_jpg_00_20_alsa_fp16,
+            "1x_artifacts_jpg_20_40_alsa-fp16.onnx" to R.string.model_info_1x_artifacts_jpg_20_40_alsa_fp16,
+            "1x_artifacts_jpg_40_60_alsa-fp16.onnx" to R.string.model_info_1x_artifacts_jpg_40_60_alsa_fp16,
+            "1x_artifacts_jpg_60_800_alsa-fp16.onnx" to R.string.model_info_1x_artifacts_jpg_60_800_alsa_fp16,
+            "1x_artifacts_jpg_80_100_alsa-fp16.onnx" to R.string.model_info_1x_artifacts_jpg_80_100_alsa_fp16,
 
             // miscellaneous models
-            "1x-Anti-Aliasing-fp16.onnx" to "Anti-aliasing",
-            "1x-KDM003-scans-fp16.onnx" to "Scanned art, drawings, moire removal",
-            "1x-SpongeColor-Lite-fp16.onnx" to "Colorization for cartoons",
-            "1x_Bandage-Smooth-fp16.onnx" to "Color banding removal",
-            "1x_Bendel_Halftone-fp32.onnx" to "Halftone removal",
-            "1x_ColorizerV2_22000G-fp16.onnx" to "General colorization",
-            "1x_DeEdge-fp16.onnx" to "Edge removal",
-            "1x_DeSharpen-fp16.onnx" to "Removes oversharpening",
-            "1x_DitherDeleterV3-Smooth-fp16.onnx" to "Dither removal",
-            "1x_GainresV4-fp16.onnx" to "Anti-aliasing, general artifacts, CGI",
-            "1x-Debandurh-FS-Ultra-lite-fp16.onnx" to "Debanding",
-            "1x_NMKD-BrightenRedux_200k-fp16.onnx" to "Brightness reduction",
-            "1x_NMKDDetoon_97500_G-fp16.onnx" to "Detoning",
-            "1x_NoiseToner-Poisson-Detailed_108000_G-fp16.onnx" to "Poisson noise toning (detailed)",
-            "1x_NoiseToner-Poisson-Soft_101000_G-fp16.onnx" to "Poisson noise toning (soft)",
-            "1x_NoiseToner-Uniform-Detailed_100000_G-fp16.onnx" to "Uniform noise toning (detailed)",
-            "1x_NoiseToner-Uniform-Soft_100000_G-fp16.onnx" to "Uniform noise toning (soft)",
-            "1x_ReDetail_v2_126000_G-fp16.onnx" to "Detail \"enhancement\"",
-            "1x_Repainter_20000_G-fp16.onnx" to "Repainting(?)",
-            "1x_artifacts_dithering_alsa-fp16.onnx" to "Dithering artifacts",
-            "1x_nmkdbrighten_10000_G-fp16.onnx" to "Brightening",
+            "1x-Anti-Aliasing-fp16.onnx" to R.string.model_info_1x_anti_aliasing_fp16,
+            "1x-KDM003-scans-fp16.onnx" to R.string.model_info_1x_kdm003_scans_fp16,
+            "1x-SpongeColor-Lite-fp16.onnx" to R.string.model_info_1x_sponge_color_lite_fp16,
+            "1x_Bandage-Smooth-fp16.onnx" to R.string.model_info_1x_bandage_smooth_fp16,
+            "1x_Bendel_Halftone-fp32.onnx" to R.string.model_info_1x_bendel_halftone_fp32,
+            "1x_ColorizerV2_22000G-fp16.onnx" to R.string.model_info_1x_colorizer_v2_22000g_fp16,
+            "1x_DeEdge-fp16.onnx" to R.string.model_info_1x_de_edge_fp16,
+            "1x_DeSharpen-fp16.onnx" to R.string.model_info_1x_de_sharpen_fp16,
+            "1x_DitherDeleterV3-Smooth-fp16.onnx" to R.string.model_info_1x_dither_deleter_v3_smooth_fp16,
+            "1x_GainresV4-fp16.onnx" to R.string.model_info_1x_gainres_v4_fp16,
+            "1x-Debandurh-FS-Ultra-lite-fp16.onnx" to R.string.model_info_1x_debandurh_fs_ultra_lite_fp16,
+            "1x_NMKD-BrightenRedux_200k-fp16.onnx" to R.string.model_info_1x_nmkd_brighten_redux_200k_fp16,
+            "1x_NMKDDetoon_97500_G-fp16.onnx" to R.string.model_info_1x_nmkd_detoon_97500_g_fp16,
+            "1x_NoiseToner-Poisson-Detailed_108000_G-fp16.onnx" to R.string.model_info_1x_noise_toner_poisson_detailed_108000_g_fp16,
+            "1x_NoiseToner-Poisson-Soft_101000_G-fp16.onnx" to R.string.model_info_1x_noise_toner_poisson_soft_101000_g_fp16,
+            "1x_NoiseToner-Uniform-Detailed_100000_G-fp16.onnx" to R.string.model_info_1x_noise_toner_uniform_detailed_100000_g_fp16,
+            "1x_NoiseToner-Uniform-Soft_100000_G-fp16.onnx" to R.string.model_info_1x_noise_toner_uniform_soft_100000_g_fp16,
+            "1x_ReDetail_v2_126000_G-fp16.onnx" to R.string.model_info_1x_re_detail_v2_126000_g_fp16,
+            "1x_Repainter_20000_G-fp16.onnx" to R.string.model_info_1x_repainter_20000_g_fp16,
+            "1x_artifacts_dithering_alsa-fp16.onnx" to R.string.model_info_1x_artifacts_dithering_alsa_fp16,
+            "1x_nmkdbrighten_10000_G-fp16.onnx" to R.string.model_info_1x_nmkd_brighten_10000_g_fp16,
         )
 
         private val MIN_SPATIAL_SIZE_BY_NAME = mapOf(
@@ -445,7 +445,9 @@ class ModelManager(
     }
 
     fun getModelInfo(modelName: String?): String? {
-        return if (modelName != null) MODEL_INFO[modelName] else null
+        if (modelName == null) return null
+        val resId = MODEL_INFO_RES_IDS[modelName] ?: return null
+        return context.getString(resId)
     }
 
     fun initializeStarterModel(): Boolean {

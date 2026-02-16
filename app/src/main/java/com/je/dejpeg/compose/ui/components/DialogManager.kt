@@ -99,7 +99,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
                         ) {
                             Image(
                                 painter = painterResource(R.drawable.dejpeg_logo_rounded),
-                                contentDescription = "App icon",
+                                contentDescription = stringResource(R.string.app_icon),
                                 modifier = Modifier
                                     .size(128.dp)
                                     .clickable(
