@@ -28,10 +28,9 @@ import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.net.Uri
 import android.provider.OpenableColumns
-import android.util.Log
-import androidx.exifinterface.media.ExifInterface
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
+import androidx.exifinterface.media.ExifInterface
 
 object ImageLoadingHelper {
     private const val THUMBNAIL_SIZE = 144
@@ -149,7 +148,11 @@ object ImageLoadingHelper {
 
     fun fastblur(sentBitmap: Bitmap, scale: Float, radius: Int): Bitmap? {
         if (radius < 1) return null
-        val bmp = Bitmap.createScaledBitmap(sentBitmap, (sentBitmap.width * scale).toInt(), (sentBitmap.height * scale).toInt(), false)
+        val bmp = sentBitmap.scale(
+            (sentBitmap.width * scale).toInt(),
+            (sentBitmap.height * scale).toInt(),
+            false
+        )
         val result = bmp.copy(bmp.config ?: Bitmap.Config.ARGB_8888, true) ?: return null
         val w = result.width; val h = result.height; val wm = w - 1; val hm = h - 1; val wh = w * h; val div = radius * 2 + 1
         val pix = IntArray(wh).also { result.getPixels(it, 0, w, 0, 0, w, h) }

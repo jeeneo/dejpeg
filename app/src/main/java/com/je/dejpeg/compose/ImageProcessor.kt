@@ -33,9 +33,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.PorterDuff
-import android.graphics.PorterDuffXfermode
 import android.util.Log
 import androidx.core.graphics.createBitmap
 import com.je.dejpeg.R
@@ -79,16 +76,14 @@ class ImageProcessor(
     suspend fun processImage(
         inputBitmap: Bitmap,
         strength: Float,
-        callback: ProcessCallback,
-        index: Int,
-        total: Int
+        callback: ProcessCallback
     ) = withContext(Dispatchers.Default) {
         isCancelled = false
         try {
             val modelName = modelManager.getActiveModelName()
             val session = modelManager.loadModel()
             val modelInfo = ModelInfo(modelName, strength, session, chunkSize, overlapSize)
-            val result = processBitmap(session, inputBitmap, callback, modelInfo, index, total)
+            val result = processBitmap(session, inputBitmap, callback, modelInfo)
             withContext(Dispatchers.Main) {
                 callback.onComplete(result)
             }
@@ -113,9 +108,7 @@ class ImageProcessor(
         session: OrtSession,
         inputBitmap: Bitmap,
         callback: ProcessCallback,
-        info: ModelInfo,
-        index: Int,
-        total: Int
+        info: ModelInfo
     ): Bitmap {
         val width = inputBitmap.getWidth()
         val height = inputBitmap.getHeight()
@@ -127,7 +120,8 @@ class ImageProcessor(
             info.chunkSize
         }
         val mustTile = width > effectiveMaxChunkSize || height > effectiveMaxChunkSize
-        val processedBitmap = if (mustTile) processTiled(session, inputBitmap, callback, info, processingConfig, hasTransparency, index, total, effectiveMaxChunkSize)
+        val processedBitmap = if (mustTile) processTiled(session, inputBitmap, callback, info, processingConfig, hasTransparency,
+            effectiveMaxChunkSize)
         else
         {
             val bitmapToProcess = if (inputBitmap.config != processingConfig) inputBitmap.copy(processingConfig, true)
@@ -139,8 +133,7 @@ class ImageProcessor(
             val result = processChunk(session, bitmapToProcess, processingConfig, hasTransparency, info)
             result
         }
-        val finalResult = processedBitmap
-        return finalResult
+        return processedBitmap
     }
 
     private suspend fun processTiled(
@@ -150,8 +143,6 @@ class ImageProcessor(
         info: ModelInfo,
         config: Bitmap.Config,
         hasTransparency: Boolean,
-        index: Int,
-        total: Int,
         maxChunkSize: Int
     ): Bitmap {
         val width = inputBitmap.width
@@ -251,7 +242,7 @@ class ImageProcessor(
                 val loadedProcessed = withContext(Dispatchers.IO) {
                     BitmapFactory.decodeFile(chunkInfo.processedFile.absolutePath)
                 } ?: throw Exception("Failed to load processed chunk ${chunkInfo.index}")
-                mergeChunkWithBlending(result, loadedProcessed, chunkInfo, cols, rows, overlap)
+                mergeChunkWithBlending(result, loadedProcessed, chunkInfo, overlap)
                 loadedProcessed.recycle()
             }
             CacheManager.clearChunks(context)
@@ -460,8 +451,6 @@ class ImageProcessor(
         result: Bitmap,
         processedChunk: Bitmap,
         chunkInfo: ChunkInfo,
-        cols: Int,
-        rows: Int,
         overlap: Int
     ) {
         val width = processedChunk.width
@@ -478,7 +467,7 @@ class ImageProcessor(
         val existingPixels = IntArray(width * height)
         try {
             result.getPixels(existingPixels, 0, width, x, y, width, height)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             val canvas = Canvas(result)
             canvas.drawBitmap(processedChunk, x.toFloat(), y.toFloat(), null)
             return
@@ -566,13 +555,12 @@ class ImageProcessor(
     }
 
     private class ModelInfo(
-        modelName: String?,
+        val modelName: String?,
         val strength: Float,
         session: OrtSession,
         chunkSize: Int?,
         overlapSize: Int?
     ) {
-        val modelName: String? = modelName
         val env: OrtEnvironment?
         val inputName: String
         val inputInfoMap: Map<String, NodeInfo>

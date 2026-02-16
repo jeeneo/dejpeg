@@ -74,5 +74,5 @@ object ModelMigrationHelper {
             dst.exists() -> src.delete()
             !src.renameTo(dst) -> { src.copyTo(dst, true); src.delete() }
         }; true
-    } catch (e: Exception) { false }
+    } catch (_: Exception) { false }
 }

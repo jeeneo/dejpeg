@@ -22,18 +22,23 @@
 
 package com.je.dejpeg.compose.ui.components
 
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.unit.IntSize
 import kotlin.random.Random
 
@@ -59,9 +64,9 @@ fun RainingLogoEffect(
     spawnTrigger: Long = 0
 ) {
     var logos by remember { mutableStateOf<List<FallingLogo>>(emptyList()) }
-    var nextId by remember { mutableStateOf(0) }
+    var nextId by remember { mutableIntStateOf(0) }
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
-    var frameTime by remember { mutableStateOf(0L) }
+    var frameTime by remember { mutableLongStateOf(0L) }
     LaunchedEffect(Unit) {
         while (true) {
             withFrameNanos { nanos ->
@@ -100,8 +105,7 @@ fun RainingLogoEffect(
                     )
                 )
             } else {
-                val spawnCount = particleCount
-                (0 until spawnCount).map {
+                (0 until particleCount).map {
                     val startX = Random.nextFloat() * canvasSize.width
                     val startY = 0f
                     val velocityX = (Random.nextFloat() - 0.5f) * 2f

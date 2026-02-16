@@ -64,10 +64,8 @@ class ProcessingService : Service() {
         const val PID_EXTRA_VALUE = "extra_pid"
     }
 
-    inner class LocalBinder : Binder() {
-        fun getService(): ProcessingService = this@ProcessingService
-    }
-    
+    class LocalBinder : Binder()
+
     private val binder = LocalBinder()
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -193,7 +191,7 @@ class ProcessingService : Service() {
                                 )
                                 notifyProgressChange()
                             }
-                        }, 0, 1)
+                        })
                     } catch (e: Exception) {
                         val msg = if (e is CancellationException) "Cancelled" else "${e.message}"
                         broadcast(ERROR_ACTION, ERROR_EXTRA_MESSAGE to msg, imageId = imageId)

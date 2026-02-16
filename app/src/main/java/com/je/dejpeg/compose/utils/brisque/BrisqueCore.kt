@@ -174,17 +174,17 @@ object BrisqueCore {
         }
         val g = 7.0
         val coefficients = doubleArrayOf( // Lanczos coefficients for g=7, n=9
-            0.99999999999980993,
+            0.9999999999998099,
             676.5203681218851,
             -1259.1392167224028,
-            771.32342877765313,
-            -176.61502916214059,
+            771.3234287776531,
+            -176.6150291621406,
             12.507343278686905,
             -0.13857109526572012,
-            9.9843695780195716e-6,
+            9.984369578019572E-6,
             1.5056327351493116e-7
         )
-        var z = x - 1.0
+        val z = x - 1.0
         var ag = coefficients[0]
         for (i in 1 until coefficients.size) {
             ag += coefficients[i] / (z + i)

@@ -20,7 +20,7 @@
 * If you use this code in your own project, please give credit
 */
 
-package com.je.dejpeg.ui
+package com.je.dejpeg.compose.ui
 
 import android.net.Uri
 import android.widget.Toast

@@ -22,10 +22,8 @@
 
 package com.je.dejpeg.compose.ui.screens
 
-import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.widget.Toast
-import java.util.Locale
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -97,7 +95,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.je.dejpeg.compose.ui.components.ConfirmAlertDialog
-import com.je.dejpeg.compose.ui.components.DialogDefaults
 import com.je.dejpeg.compose.ui.components.StyledAlertDialog
 import com.je.dejpeg.compose.ui.viewmodel.BrisqueViewModel
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
@@ -107,6 +104,7 @@ import com.je.dejpeg.data.BrisqueSettings
 import me.saket.telephoto.zoomable.ZoomSpec
 import me.saket.telephoto.zoomable.rememberZoomableState
 import me.saket.telephoto.zoomable.zoomable
+import java.util.Locale
 import kotlin.math.roundToInt
 
 // note: do not add to strings.xml yet
@@ -193,10 +191,10 @@ fun BRISQUEScreen(
                     val sharpness = brisqueState?.sharpnessScore
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         val qualityInfo = getScoreInfo(score, isBRISQUE = true)
-                        ScoreCard("BRISQUE", String.format(java.util.Locale.US, "%.1f", score), qualityInfo.label, qualityInfo.color, Modifier.weight(1f))
+                        ScoreCard("BRISQUE", String.format(Locale.US, "%.1f", score), qualityInfo.label, qualityInfo.color, Modifier.weight(1f))
                         if (sharpness != null) {
                             val sharpnessInfo = getScoreInfo(sharpness, isBRISQUE = false)
-                            ScoreCard("Sharpness", String.format(java.util.Locale.US, "%.2f", sharpness), sharpnessInfo.label, sharpnessInfo.color, Modifier.weight(1f))
+                            ScoreCard("Sharpness", String.format(Locale.US, "%.2f", sharpness), sharpnessInfo.label, sharpnessInfo.color, Modifier.weight(1f))
                         }
                     }
                 }
@@ -401,9 +399,9 @@ private fun BRISQUESettings(
     var coarseStep by remember { mutableFloatStateOf(settings.coarseStep.toFloat()) }
     var fineStep by remember { mutableFloatStateOf(settings.fineStep.toFloat()) }
     var fineRange by remember { mutableFloatStateOf(settings.fineRange.toFloat()) }
-    var minWidthRatio by remember { mutableStateOf(settings.minWidthRatio) }
-    var brisqueWeight by remember { mutableStateOf(settings.brisqueWeight) }
-    var sharpnessWeight by remember { mutableStateOf(settings.sharpnessWeight) }
+    var minWidthRatio by remember { mutableFloatStateOf(settings.minWidthRatio) }
+    var brisqueWeight by remember { mutableFloatStateOf(settings.brisqueWeight) }
+    var sharpnessWeight by remember { mutableFloatStateOf(settings.sharpnessWeight) }
     var expandedInfo by remember { mutableStateOf<String?>(null) }
     fun Float.clamp(min: Float, max: Float) = coerceIn(min, max)
 

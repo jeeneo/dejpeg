@@ -26,13 +26,28 @@ import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,7 +70,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.get
 import com.je.dejpeg.R
-import com.je.dejpeg.compose.utils.HapticFeedbackPerformer
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
 import com.je.dejpeg.data.AppPreferences
 import me.saket.telephoto.zoomable.OverzoomEffect
@@ -111,7 +125,7 @@ fun BeforeAfterSlider(
             label = if (showLabels) beforeLabel else null,
             labelAlignment = Alignment.TopStart,
             labelPadding = labelPadding,
-            zoomableModifier = if (zoomableState != null) Modifier.zoomable(zoomableState) else Modifier
+            modifier = if (zoomableState != null) Modifier.zoomable(zoomableState) else Modifier
         )
         
         ImageHalf(
@@ -120,7 +134,7 @@ fun BeforeAfterSlider(
             label = if (showLabels) afterLabel else null,
             labelAlignment = Alignment.TopEnd,
             labelPadding = labelPadding,
-            zoomableModifier = if (zoomableState != null) Modifier.zoomable(zoomableState) else Modifier
+            modifier = if (zoomableState != null) Modifier.zoomable(zoomableState) else Modifier
         )
         
         if (containerSize.width > 0) {
@@ -172,34 +186,13 @@ fun BeforeAfterSlider(
 }
 
 @Composable
-fun CompactBeforeAfterSlider(
-    beforeBitmap: Bitmap,
-    afterBitmap: Bitmap,
-    modifier: Modifier = Modifier,
-    showLabels: Boolean = true,
-    enableZoom: Boolean = true
-) {
-    BeforeAfterSlider(
-        beforeBitmap = beforeBitmap,
-        afterBitmap = afterBitmap,
-        modifier = modifier,
-        showLabels = showLabels,
-        enableZoom = enableZoom,
-        sliderHandleSize = 36.dp,
-        sliderLineWidth = 2.dp,
-        labelPadding = 8.dp,
-        maxZoomFactor = 10f
-    )
-}
-
-@Composable
 private fun ImageHalf(
     bitmap: Bitmap,
     clipRange: Pair<Float, Float>,
     label: String?,
     labelAlignment: Alignment,
     labelPadding: Dp,
-    zoomableModifier: Modifier
+    modifier: Modifier
 ) {
     Box(
         Modifier
@@ -218,7 +211,7 @@ private fun ImageHalf(
         Box(
             Modifier
                 .fillMaxSize()
-                .then(zoomableModifier),
+                .then(modifier),
             Alignment.Center
         ) {
             Image(

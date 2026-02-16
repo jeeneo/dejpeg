@@ -22,7 +22,6 @@
 
 package com.je.dejpeg.compose.ui.components
 
-import android.annotation.SuppressLint
 import android.content.res.ColorStateList
 import android.view.LayoutInflater
 import android.widget.LinearLayout
@@ -34,6 +33,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.viewinterop.AndroidView
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.je.dejpeg.R
+
 /*
  * helper composables to use Material XML Switches in Jetpack Compose cause XML switches give a better UX (ur finger go brrr)
  */

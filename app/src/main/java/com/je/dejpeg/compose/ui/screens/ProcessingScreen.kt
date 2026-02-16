@@ -166,7 +166,6 @@ fun ProcessingScreen(
     }
 
     var headerHeightPx by remember { mutableIntStateOf(0) }
-    val density = LocalDensity.current
 
     val handleImageRemoval: (String) -> Unit = { imageId ->
         images.firstOrNull { it.id == imageId }?.let { image ->
@@ -276,7 +275,7 @@ fun ProcessingScreen(
         }
 
         if (images.isEmpty()) {
-            Box(Modifier.fillMaxSize().weight(1f).offset(y = -(headerHeightPx / 2 / density.density).dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.fillMaxSize().weight(1f).offset { IntOffset(0, -(headerHeightPx / 2)) }, contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                     Spacer(Modifier.height(48.dp))
                     Box(
@@ -486,7 +485,7 @@ fun SwipeToDismissWrapper(swipeState: MutableState<Float>, isProcessing: Boolean
         }
         if (animatedOffset < 0f && allowLeftSwipe) Box(Modifier.fillMaxWidth().height(96.dp), contentAlignment = Alignment.CenterEnd) {
             Box(Modifier.width((-animatedOffset / density).dp).height(96.dp).clip(RoundedCornerShape(16.dp)).background(if (swapActions) Color(0xFFEF5350) else Color(0xFF4CAF50)), Alignment.Center) {
-                Icon(if (swapActions) (if (isProcessing) Icons.Filled.Close else Icons.Filled.Delete) else (if (hasOutput) Icons.Filled.Save else Icons.Filled.PlayArrow), if (swapActions) (if (isProcessing) "Cancel" else "Delete") else (if (hasOutput) "Save" else "Process"), Modifier.size(28.dp), tint = Color.White)
+                Icon(if (swapActions) (Icons.Filled.Delete) else (if (hasOutput) Icons.Filled.Save else Icons.Filled.PlayArrow), if (swapActions) ("Delete") else (if (hasOutput) "Save" else "Process"), Modifier.size(28.dp), tint = Color.White)
             }
         }
         Box(Modifier.fillMaxWidth().height(96.dp).offset { IntOffset(animatedOffset.roundToInt(), 0) }.pointerInput(widthPx, allowLeftSwipe) {

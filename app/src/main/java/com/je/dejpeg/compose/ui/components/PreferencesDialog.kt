@@ -45,7 +45,6 @@ import com.je.dejpeg.R
 import com.je.dejpeg.compose.ModelManager
 import com.je.dejpeg.compose.utils.HapticFeedback
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
-import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.data.PreferenceKeys
 import com.je.dejpeg.data.dataStore
 import kotlinx.coroutines.launch
@@ -158,7 +157,6 @@ fun PreferencesDialog(
                     title = stringResource(R.string.starter_model_title),
                     subtitle = stringResource(R.string.extract_starter_model),
                     hasValue = true,
-                    actionLabel = stringResource(R.string.extract),
                     onAction = {
                         haptic.light()
                         scope.launch {
@@ -211,7 +209,6 @@ private fun CompactActionPreference(
     subtitle: String,
     hasValue: Boolean,
     onClear: (() -> Unit)? = null,
-    actionLabel: String? = null,
     onAction: (() -> Unit)? = null
 ) {
     Surface(

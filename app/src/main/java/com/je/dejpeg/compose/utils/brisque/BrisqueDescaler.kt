@@ -30,8 +30,7 @@ import kotlin.math.sqrt
 import androidx.core.graphics.scale
 
 class BRISQUEDescaler(
-    private val brisqueAssessor: BRISQUEAssessor,
-    private val context: Context
+    private val brisqueAssessor: BRISQUEAssessor
 ) {
     companion object {
         private const val TAG = "BRISQUEDescaler"

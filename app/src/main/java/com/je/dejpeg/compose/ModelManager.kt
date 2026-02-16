@@ -29,20 +29,17 @@ import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Log
-import com.je.dejpeg.data.AppPreferences
-import com.je.dejpeg.compose.utils.helpers.ModelMigrationHelper
-import com.je.dejpeg.compose.utils.ZipExtractor
-import com.je.dejpeg.compose.utils.HashUtils
 import com.je.dejpeg.R
+import com.je.dejpeg.compose.utils.HashUtils
+import com.je.dejpeg.compose.utils.ZipExtractor
+import com.je.dejpeg.compose.utils.helpers.ModelMigrationHelper
+import com.je.dejpeg.data.AppPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.io.FileOutputStream
-import kotlin.collections.iterator
 
 class ModelManager(
     private val context: Context,

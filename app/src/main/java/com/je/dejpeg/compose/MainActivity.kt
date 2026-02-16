@@ -20,12 +20,12 @@
 * If you use this code in your own project, please give credit
 */
 
-package com.je.dejpeg
+package com.je.dejpeg.compose
 
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -47,14 +47,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import com.je.dejpeg.compose.utils.CacheManager
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
-import com.je.dejpeg.compose.ModelManager
 import com.je.dejpeg.compose.ui.components.StarterModelDialog
-import com.je.dejpeg.ui.MainScreen
+import com.je.dejpeg.compose.ui.MainScreen
 import com.je.dejpeg.ui.theme.DeJPEGTheme
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 
 class MainActivity : ComponentActivity() {
     private val viewModel: ProcessingViewModel by viewModels()
@@ -91,8 +87,8 @@ class MainActivity : ComponentActivity() {
             SideEffect {
                 if (!isDarkTheme) {
                     val lightTransparentStyle = SystemBarStyle.light(
-                        scrim = android.graphics.Color.TRANSPARENT,
-                        darkScrim = android.graphics.Color.TRANSPARENT
+                        scrim = Color.TRANSPARENT,
+                        darkScrim = Color.TRANSPARENT
                     )
                     enableEdgeToEdge(
                         statusBarStyle = lightTransparentStyle,
@@ -100,7 +96,7 @@ class MainActivity : ComponentActivity() {
                     )
                 } else {
                     val darkTransparentStyle = SystemBarStyle.dark(
-                        scrim = android.graphics.Color.TRANSPARENT
+                        scrim = Color.TRANSPARENT
                     )
                     enableEdgeToEdge(
                         statusBarStyle = darkTransparentStyle,
@@ -144,7 +140,7 @@ class MainActivity : ComponentActivity() {
                 } else {
                     intent.getParcelableExtra(Intent.EXTRA_STREAM)
                 }
-                uri?.let { addSharedUri(it, intent.flags) }
+                uri?.let { addSharedUri(it) }
             }
             Intent.ACTION_SEND_MULTIPLE -> {
                 val uris: List<Uri> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -152,14 +148,13 @@ class MainActivity : ComponentActivity() {
                 } else {
                     intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM) ?: emptyList()
                 }
-                uris.forEach { addSharedUri(it, intent.flags) }
+                uris.forEach { addSharedUri(it) }
             }
         }
     }
 
-    private fun addSharedUri(uri: Uri, flags: Int) {
+    private fun addSharedUri(uri: Uri) {
         try {
-            val takeFlags = flags and (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
             contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION and Intent.FLAG_GRANT_READ_URI_PERMISSION)
         } catch (_: Exception) { /* o */ }
         viewModel.addSharedUri(uri)

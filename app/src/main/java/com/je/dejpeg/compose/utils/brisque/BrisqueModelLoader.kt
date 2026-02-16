@@ -155,9 +155,4 @@ object BrisqueModelLoader {
         }
     }
 
-    fun clearCache() {
-        synchronized(this) {
-            cachedModel = null
-        }
-    }
 }

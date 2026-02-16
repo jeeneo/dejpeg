@@ -22,6 +22,7 @@
 
 package com.je.dejpeg.compose.utils
 
+import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -29,18 +30,17 @@ import android.media.MediaScannerConnection
 import android.os.Environment
 import android.widget.Toast
 import androidx.core.content.FileProvider
-import java.io.File
-import java.io.FileOutputStream
-import java.text.SimpleDateFormat
-import java.util.*
+import com.je.dejpeg.R
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import android.content.ClipData
-import android.util.Log
-import com.je.dejpeg.R
+import java.io.File
+import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 object ImageActions {
     fun checkFileExists(filename: String): Boolean {

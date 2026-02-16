@@ -34,11 +34,10 @@ import com.je.dejpeg.compose.utils.brisque.BRISQUEDescaler
 import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.data.BrisqueSettings
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.Job
-import java.io.File
 import java.io.IOException
 
 data class BrisqueImageState(
@@ -105,7 +104,7 @@ class BrisqueViewModel : ViewModel() {
 
     private fun checkDescaleInit(context: Context): BRISQUEDescaler {
         BRISQUEDescaler.initialize(context.applicationContext)
-        return brisqueDescaler ?: BRISQUEDescaler(brisqueAssessor, context.applicationContext).also {
+        return brisqueDescaler ?: BRISQUEDescaler(brisqueAssessor).also {
             brisqueDescaler = it
         }
     }
@@ -282,14 +281,6 @@ class BrisqueViewModel : ViewModel() {
                 withContext(Dispatchers.Main) { onError(e.message ?: "Failed to save image") }
             }
         }
-    }
-
-    fun clearDescaleError() {
-        imageState.value = imageState.value?.copy(descaleError = null)
-    }
-
-    fun clearAssessError() {
-        imageState.value = imageState.value?.copy(assessError = null)
     }
 
     override fun onCleared() {

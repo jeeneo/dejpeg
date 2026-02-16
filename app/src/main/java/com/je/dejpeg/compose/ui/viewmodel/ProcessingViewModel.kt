@@ -192,7 +192,7 @@ class ProcessingViewModel : ViewModel() {
 
     fun addSharedUri(uri: Uri) {
         if (sharedUris.value.any { it == uri }) return
-        sharedUris.value = sharedUris.value + uri
+        sharedUris.value += uri
     }
 
     fun addImagesFromUris(context: Context, uris: List<Uri>) {

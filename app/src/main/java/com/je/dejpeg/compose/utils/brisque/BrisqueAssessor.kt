@@ -23,71 +23,20 @@
 package com.je.dejpeg.compose.utils.brisque
 
 import android.content.Context
-import android.graphics.BitmapFactory
 import android.util.Log
-import java.io.File
+import java.lang.ref.WeakReference
 
 class BRISQUEAssessor {
     companion object {
         private const val TAG = "BRISQUEAssessor"
-        private var contextRef: Context? = null
+        private var contextRef: WeakReference<Context>? = null
         fun initialize(context: Context) {
-            contextRef = context.applicationContext
+            contextRef = WeakReference(context.applicationContext)
         }
         private fun getModel(): BrisqueSVMModel? {
-            val ctx = contextRef ?: return null
+            val ctx = contextRef?.get() ?: return null
             return BrisqueModelLoader.loadFromAssets(ctx)
         }
-    }
-
-    fun assessImageQuality(imagePath: String, modelPath: String, rangePath: String): Float {
-        return assessImageQuality(imagePath)
-    }
-
-    fun assessImageQuality(imagePath: String): Float {
-        if (!File(imagePath).exists()) {
-            Log.e(TAG, "Image file does not exist: $imagePath")
-            return -1.0f
-        }
-        
-        return try {
-            val model = getModel()
-            if (model == null) {
-                Log.e(TAG, "Failed to load BRISQUE model - call initialize(context) first")
-                return -2.0f
-            }
-            val bitmap = BitmapFactory.decodeFile(imagePath)
-            if (bitmap == null) {
-                Log.e(TAG, "Failed to decode image: $imagePath")
-                return -1.0f
-            }
-            try {
-                Log.d(TAG, "Computing BRISQUE score for image: $imagePath (${bitmap.width}x${bitmap.height})")
-                when (val result = BrisqueCore.computeScore(bitmap, model)) {
-                    is BrisqueResult.Success -> {
-                        Log.d(TAG, "BRISQUE score computed: ${result.score}")
-                        result.score
-                    }
-                    is BrisqueResult.Error -> {
-                        Log.e(TAG, "BRISQUE computation error: ${result.message}")
-                        -1.0f
-                    }
-                }
-            } finally {
-                bitmap.recycle()
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error computing BRISQUE score: ${e.message}", e)
-            -1.0f
-        }
-    }
-    
-    fun assessImageQualityFromBitmap(
-        bitmap: android.graphics.Bitmap, 
-        modelPath: String, 
-        rangePath: String
-    ): Float {
-        return assessImageQualityFromBitmap(bitmap)
     }
 
     fun assessImageQualityFromBitmap(bitmap: android.graphics.Bitmap): Float {

@@ -46,7 +46,19 @@ android {
             versionNameSuffix = "-debug"
         }
     }
-    splits.abi { isEnable = true; reset(); include(project.findProperty("targetAbi")?.toString() ?: "arm64-v8a"); isUniversalApk = false }
+    val abiTargets = project.findProperty("targetAbi")
+        ?.toString()
+        ?.split(',')
+        ?.map { it.trim() }
+        ?.filter { it.isNotEmpty() }
+        ?.toTypedArray()
+        ?: arrayOf("arm64-v8a", "x86", "x86_64")
+    splits.abi {
+        isEnable = true
+        reset()
+        include(*abiTargets)
+        isUniversalApk = false
+    }
     applicationVariants.all { outputs.all {
         val abiFilter = filters.find { it.filterType == "ABI" }?.identifier
         val debugSuffix = if (name.contains("debug", true)) "-debug" else ""

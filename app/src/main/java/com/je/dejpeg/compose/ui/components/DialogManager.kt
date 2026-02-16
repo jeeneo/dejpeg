@@ -31,7 +31,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -76,7 +75,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
     val versionName = try {
         context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "Unknown"
     } catch (_: Exception) { "Unknown" }
-    var spawnTrigger by remember { mutableStateOf(0L) }
+    var spawnTrigger by remember { androidx.compose.runtime.mutableLongStateOf(0L) }
     
     Dialog(onDismissRequest = onDismiss) {
         Card(
