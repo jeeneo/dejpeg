@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="close">Close</string>
+    <string name="image">Image</string>
+    <string name="save">Save</string>
+    <string name="before">Before</string>
+    <string name="after">After</string>
+    <string name="save_image">Save image</string>
+    <string name="overwrite_image">Overwrite image?</string>
+    <string name="already_exists">That image already exists. Overwrite?</string>
+    <string name="filename">Filename</string>
+    <string name="save_all">Save all</string>
+    <string name="dont_show_dialog">Don\'t show this dialog</string>
+    <string name="cancel">Cancel</string>
+    <string name="back_exit_confirm">Press back again to exit</string>
+    <string name="remove_image_title">Remove image?</string>
+    <string name="remove_image_question">You haven\'t saved %1$s yet, do you want to remove it?</string>
+    <string name="remove">Remove</string>
+    <string name="stop_processing_title">Stop processing?</string>
+    <string name="stop_processing_question">Are you sure you want to stop processing %1$s?</string>
+    <string name="stop_processing_all_question">Are you sure you want to stop processing all images?</string>
+    <string name="nope">Nope</string>
+    <string name="yes_stop">Yes, stop</string>
+    <string name="error_saving_image_title">Error saving image</string>
+    <string name="error_saving_image">Error saving image: %1$s</string>
+    <string name="image_saved_to_gallery">Image saved to gallery</string>
+    <string name="share_image">Share image</string>
+    <string name="error_sharing_image">Error sharing image: %1$s</string>
+    <plurals name="all_images_saved_to_gallery">
+        <item quantity="one">%1$d image saved to gallery</item>
+        <item quantity="other">All %1$d images saved to gallery</item>
+    </plurals>
+    <string name="error_saving_images">Error saving images: %1$s</string>
+    <string name="select_image_source">Select image source</string>
+    <string name="set_as_default_desc">Remember this choice</string>
+    <string name="gallery">Gallery</string>
+    <string name="gallery_picker_title">Gallery picker</string>
+    <string name="gallery_picker_desc">Uses your device\'s or 3rd-party gallery app to select images. This method is recommended and works on most devices and supports filenames.</string>
+    <string name="internal_picker">Photo picker</string>
+    <string name="internal_picker_title">Internal photo picker</string>
+    <string name="internal_picker_desc">Uses Android\'s built-in photo picker, more privacy aware but restricts filenames.</string>
+    <string name="documents">Documents</string>
+    <string name="documents_picker_title">Documents provider</string>
+    <string name="documents_picker_desc">Opens the standard SAF picker. Useful for accessing images in folders or other locations/providers.</string>
+    <string name="camera">Camera</string>
+    <string name="camera_title">Camera</string>
+    <string name="camera_desc">Opens your device\'s camera, photos taken will be imported automatically.</string>
+    <string name="set_as_default">Set as default</string>
+    <string name="help">Help</string>
+    <string name="ok">OK</string>
+    <string name="images">Images (%1$d)</string>
+</resources>
