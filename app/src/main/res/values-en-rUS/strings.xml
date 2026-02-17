@@ -118,7 +118,7 @@
     <string name="expand">Expand</string>
     <string name="collapse">Collapse</string>
     <string name="model_warning_outdated_title">Outdated model</string>
-    <string name="model_warning_outdated_message">This is an older f32 model. A newer/faster fp16 version is available, check model management\'s download button</string>
+    <string name="model_warning_outdated_message">This is an older fp32 model. A newer/faster fp16 version is available, check model management\'s download button</string>
     <string name="model_warning_unrecognized_title">Unrecognized model</string>
     <string name="model_warning_unrecognized_message">This model is not officially supported and may not work correctly</string>
     <string name="error_processing_cancelled">Processing cancelled</string>
