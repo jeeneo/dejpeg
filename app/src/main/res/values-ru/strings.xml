@@ -148,7 +148,7 @@
     <string name="expand">Развернуть</string>
     <string name="collapse">Свернуть</string>
     <string name="model_warning_outdated_title">Устаревшая модель</string>
-    <string name="model_warning_outdated_message">Это старая модель f32. Доступна более новая/быстрая версия fp16, проверьте кнопку загрузки в разделе управления моделями</string>
+    <string name="model_warning_outdated_message">Это старая модель fp32. Доступна более новая/быстрая версия fp16, проверьте кнопку загрузки в разделе управления моделями</string>
     <string name="model_warning_unrecognized_title">Неопознанная модель</string>
     <string name="model_warning_unrecognized_message">Данная модель официально не поддерживается и может работать некорректно</string>
     <string name="error_processing_cancelled">Обработка отменена</string>
