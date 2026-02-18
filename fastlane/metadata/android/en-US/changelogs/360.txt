@@ -1,0 +1,6 @@
+added:
+- russian translation
+
+fixed:
+- processing tile logic
+- issue with scunet models
