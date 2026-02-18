@@ -176,6 +176,10 @@ class ModelManager(
         private val MIN_SPATIAL_SIZE_BY_NAME = mapOf(
             "nafnet" to 512 // nafnet deblurring, set to 512
         )
+
+        private val MIN_OVERLAP_SIZE_BY_NAME = mapOf(
+            "scunet" to 128 // scunet models need large
+        )
     }
 
     fun getMinSpatialSize(modelName: String?): Int {
@@ -186,6 +190,16 @@ class ModelManager(
             }
         }
         return 256
+    }
+
+    fun getMinOverlapSize(modelName: String?): Int {
+        val normalized = modelName?.lowercase() ?: return 0
+        for ((pattern, size) in MIN_OVERLAP_SIZE_BY_NAME) {
+            if (normalized.contains(pattern)) {
+                return size
+            }
+        }
+        return 0
     }
 
     data class ModelWarning(

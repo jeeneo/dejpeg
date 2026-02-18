@@ -23,8 +23,8 @@ android {
         applicationId = "com.je.dejpeg"
         minSdk = 24
         targetSdk = 36
-        versionCode = 352
-        versionName = "3.5.2"
+        versionCode = 360
+        versionName = "3.6.0"
     }
     signingConfigs{
         if (signRelease) create("release") {
