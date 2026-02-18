@@ -1,5 +1,5 @@
 added:
-- russian translation
+- Russian translation
 
 fixed:
 - processing tile logic
