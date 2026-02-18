@@ -217,7 +217,7 @@ class SCUNet(nn.Module):
         # drop path rate for each layer
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, sum(config))]
 
-        # Use in_nc for input channels (for greyscale, in_nc=1)
+        # Use in_nc for input channels (for grayscale, in_nc=1)
         self.m_head = [nn.Conv2d(in_nc, dim, 3, 1, 1, bias=False)]
 
         begin = 0

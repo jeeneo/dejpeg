@@ -1,5 +1,5 @@
 <div align="center">
-<img src="fastlane/appassets/logo/dejpeg_logo_rounded.svg" height="140" alt="A grey mountain rotated 45 degrees clockwise with a lowercase letter j rotated 90 degrees clockwise">
+<img src="fastlane/appassets/logo/dejpeg_logo_rounded.svg" height="140" alt="A gray mountain rotated 45 degrees clockwise with a lowercase letter j rotated 90 degrees clockwise">
 <br>An app for removing compression and noise from photos<h2></h2>
 <table>
 <tr>

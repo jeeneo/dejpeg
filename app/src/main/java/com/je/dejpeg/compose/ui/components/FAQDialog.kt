@@ -184,61 +184,33 @@ fun MarkdownText(
 
 fun loadFAQSections(context: android.content.Context): List<FAQSectionData> {
     val sections = mutableListOf<FAQSectionData>()
-    try {
-        val locale = context.resources.configuration.locales[0]
-        val language = locale.language
-        val localizedDir = "faq-$language"
-        val faqDir = when {
-            context.assets.list("")?.contains(localizedDir) == true -> localizedDir
-            context.assets.list("")?.contains("faq-en") == true -> "faq-en"
-            else -> throw IllegalStateException("no faqs found")
-        }
-        context.assets.list(faqDir)?.filter { it.endsWith(".md") }?.forEach { fileName ->
-            val lines = context.assets.open("$faqDir/$fileName").bufferedReader().readText().lines()
-            var title: String? = null
-            var content = StringBuilder()
-            var subSections = mutableListOf<Pair<String, String>>()
-            var subTitle: String? = null
-            var subContent = StringBuilder()
-            lines.forEach { line ->
-                when {
-                    line.startsWith("## ") -> {
-                        title?.let {
-                            sections.add(
-                                FAQSectionData(
-                                    it,
-                                    content.toString().trim().ifEmpty { null },
-                                    subSections.ifEmpty { null }
-                                )
-                            )
-                        }
-                        title = line.removePrefix("## ").trim()
-                        content = StringBuilder()
-                        subSections = mutableListOf()
-                        subTitle = null
-                        subContent = StringBuilder()
-                    }
-                    line.startsWith("### ") -> {
-                        subTitle?.let { subSections.add(it to subContent.toString().trim()) }
-                        subTitle = line.removePrefix("### ").trim()
-                        subContent = StringBuilder()
-                    }
-                    else -> if (subTitle != null) subContent.appendLine(line) else content.appendLine(line)
-                }
-            }
-            title?.let { mainTitle ->
-                subTitle?.let { subT -> subSections.add(subT to subContent.toString().trim()) }
-                sections.add(
-                    FAQSectionData(
-                        mainTitle,
-                        content.toString().trim().ifEmpty { null },
-                        subSections.ifEmpty { null }
-                    )
+    
+    // What is this app for?
+    sections.add(
+        FAQSectionData(
+            title = context.getString(R.string.faq_what_is_this_title),
+            content = context.getString(R.string.faq_what_is_this_content),
+            subSections = null
+        )
+    )
+    
+    // Which models to use?
+    sections.add(
+        FAQSectionData(
+            title = context.getString(R.string.faq_which_models_title),
+            content = null,
+            subSections = listOf(
+                Pair(
+                    context.getString(R.string.faq_fbcnn_title),
+                    context.getString(R.string.faq_fbcnn_content)
+                ),
+                Pair(
+                    context.getString(R.string.faq_scunet_title),
+                    context.getString(R.string.faq_scunet_content)
                 )
-            }
-        }
-    } catch (e: Exception) {
-        e.printStackTrace()
-    }
+            )
+        )
+    )
+    
     return sections
 }

@@ -75,7 +75,7 @@ if __name__ == '__main__':
     # output_path = os.path.join('model_zoo', 'scunet_color_real_psnr_mobile.onnx')
     # in_nc = 3
 
-    # uncomment below for greyscale models
+    # uncomment below for grayscale models
     # model_path = os.path.join('model_zoo', 'scunet_gray_15.pth')
     # output_path = os.path.join('model_zoo', 'scunet_gray_15_mobile.onnx')
     # in_nc = 1
