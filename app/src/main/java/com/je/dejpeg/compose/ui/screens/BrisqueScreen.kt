@@ -13,7 +13,6 @@
 *
 * You should have received a copy of the GNU General Public License
 * along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*
 */
 
 /*
@@ -95,7 +94,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.je.dejpeg.compose.ui.components.ConfirmAlertDialog
+import com.je.dejpeg.compose.ui.components.SimpleAlertDialog
 import com.je.dejpeg.compose.ui.components.StyledAlertDialog
 import com.je.dejpeg.compose.ui.viewmodel.BrisqueViewModel
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
@@ -266,16 +265,13 @@ private fun InfoRow(label: String, value: String, isSmall: Boolean = false, colo
 
 @Composable
 private fun ConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
-    val haptic = rememberHapticFeedback()
-    ConfirmAlertDialog(
+    SimpleAlertDialog(
         title = stringResource(R.string.brisque_descale_again_title),
         message = stringResource(R.string.brisque_descale_again_message),
-        onConfirm = onConfirm,
         onDismiss = onDismiss,
+        onConfirm = onConfirm,
         confirmButtonText = stringResource(R.string.yes),
-        dismissButtonText = stringResource(R.string.cancel),
-        confirmHaptic = { haptic.medium() },
-        dismissHaptic = { haptic.light() }
+        dismissButtonText = stringResource(R.string.cancel)
     )
 }
 
@@ -314,21 +310,11 @@ private fun getScoreInfo(value: Float, isBRISQUE: Boolean = true, context: andro
 
 @Composable
 private fun InfoDialog(onDismiss: () -> Unit) {
-    val haptic = rememberHapticFeedback()
-    StyledAlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.brisque_about_title)) },
-        text = {
-            Text(
-                stringResource(R.string.brisque_about_message),
-                style = MaterialTheme.typography.bodyMedium
-            )
-        },
-        confirmButton = {
-            Button(onClick = { haptic.light(); onDismiss() }) {
-                Text(stringResource(R.string.ok))
-            }
-        }
+    SimpleAlertDialog(
+        title = stringResource(R.string.brisque_about_title),
+        message = stringResource(R.string.brisque_about_message),
+        onDismiss = onDismiss,
+        confirmButtonText = stringResource(R.string.ok)
     )
 }
 

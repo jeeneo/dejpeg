@@ -13,7 +13,6 @@
 *
 * You should have received a copy of the GNU General Public License
 * along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*
 */
 
 /*
@@ -342,7 +341,6 @@ fun DeprecatedModelWarningDialog(
     onContinue: () -> Unit,
     onGoToSettings: () -> Unit
 ) {
-    val haptic = rememberHapticFeedback()
     BaseDialog(
         title = stringResource(warning.titleResId),
         content = {
@@ -361,9 +359,7 @@ fun DeprecatedModelWarningDialog(
         confirmButtonText = stringResource(R.string.ok),
         onConfirm = onContinue,
         dismissButtonText = stringResource(R.string.go_to_settings),
-        onDismissButton = onGoToSettings,
-        onConfirmHaptic = { haptic.medium() },
-        onDismissHaptic = { haptic.light() }
+        onDismissButton = onGoToSettings
     )
 }
 

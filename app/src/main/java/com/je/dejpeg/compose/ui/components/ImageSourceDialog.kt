@@ -13,7 +13,6 @@
 *
 * You should have received a copy of the GNU General Public License
 * along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*
 */
 
 /*
@@ -61,6 +60,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.je.dejpeg.R
 import com.je.dejpeg.data.AppPreferences
 import kotlinx.coroutines.launch
@@ -94,12 +94,13 @@ fun ImageSourceDialog(
     }
 
     Dialog(
-        onDismissRequest = onDismiss
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         ElevatedCard(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+                .fillMaxWidth(0.9f)
+                .padding(horizontal = 8.dp),
             shape = DialogDefaults.Shape,
             elevation = CardDefaults.elevatedCardElevation(defaultElevation = 6.dp),
             colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
@@ -255,7 +256,7 @@ private fun ImageSource(
 
 @Composable
 fun HelpDialog(title: String, text: String, onDismiss: () -> Unit) {
-    InfoAlertDialog(
+    SimpleAlertDialog(
         title = title,
         message = text,
         onDismiss = onDismiss,

@@ -13,7 +13,6 @@
 *
 * You should have received a copy of the GNU General Public License
 * along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*
 */
 
 /*
@@ -56,17 +55,17 @@ data class FAQSectionData(
 fun FAQDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
     val faqSections = remember { loadFAQSections(context) }
-    StyledAlertDialog(
-        onDismiss = onDismiss,
+    SimpleAlertDialog(
         title = stringResource(R.string.faqs),
-        text = {
+        onDismiss = onDismiss,
+        confirmButtonText = stringResource(R.string.close),
+        content = {
             LazyColumn(modifier = Modifier.fillMaxWidth()) {
                 items(faqSections.size) {
                     FAQSection(faqSections[it].title, faqSections[it].content, faqSections[it].subSections)
                 }
             }
-        },
-        confirmText = stringResource(R.string.close)
+        }
     )
 }
 

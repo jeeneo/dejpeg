@@ -13,7 +13,6 @@
 *
 * You should have received a copy of the GNU General Public License
 * along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*
 */
 
 /*
@@ -92,7 +91,7 @@ class BRISQUEDescaler(
         Log.d(TAG, "Starting: ${origW}x${origH}")
         Log.d(TAG, "Min width: $minW, Coarse step: $coarseStep, Fine step: $fineStep")
         onProgress?.invoke(ProgressUpdate(
-            phase = "initialization",
+            phase = context.getString(R.string.brisque_phase_initialization),
             currentStep = 0,
             totalSteps = 100,
             currentSize = "${origW}x${origH}",
@@ -102,7 +101,7 @@ class BRISQUEDescaler(
         val originalSharpness = estimateSharpness(bitmap)
         Log.d(TAG, "Original image BRISQUE: %.2f, Sharpness: %.2f".format(originalBrisqueScore, originalSharpness))
         onProgress?.invoke(ProgressUpdate(
-            phase = "initialization",
+            phase = context.getString(R.string.brisque_phase_initialization),
             currentStep = 5,
             totalSteps = 100,
             currentSize = "${origW}x${origH}",
@@ -122,7 +121,7 @@ class BRISQUEDescaler(
             val h = (origH * (w.toFloat() / origW)).toInt()
             coarseStepCount++
             onProgress?.invoke(ProgressUpdate(
-                phase = "coarse scan",
+                phase = context.getString(R.string.brisque_phase_coarse_scan),
                 currentStep = 5 + (coarseStepCount * 45 / totalCoarseSteps),
                 totalSteps = 100,
                 currentSize = "${w}x${h}",
@@ -148,7 +147,7 @@ class BRISQUEDescaler(
         Log.d(TAG, "Coarse best: ${bestCoarseResult.width}x${bestCoarseResult.height} with BRISQUE: %.2f".format(bestCoarseResult.brisqueScore))
         
         onProgress?.invoke(ProgressUpdate(
-            phase = "coarse scan complete",
+            phase = context.getString(R.string.brisque_phase_coarse_complete),
             currentStep = 50,
             totalSteps = 100,
             currentSize = "${bestCoarseResult.width}x${bestCoarseResult.height}",
@@ -169,7 +168,7 @@ class BRISQUEDescaler(
             val h = (origH * (w.toFloat() / origW)).toInt()
             fineStepCount++
             onProgress?.invoke(ProgressUpdate(
-                phase = "fine scan",
+                phase = context.getString(R.string.brisque_phase_fine_scan),
                 currentStep = 50 + (fineStepCount * 40 / totalFineSteps),
                 totalSteps = 100,
                 currentSize = "${w}x${h}",
@@ -204,7 +203,7 @@ class BRISQUEDescaler(
             )
         }
         onProgress?.invoke(ProgressUpdate(
-            phase = "fine scan done",
+            phase = context.getString(R.string.brisque_phase_fine_done),
             currentStep = 90,
             totalSteps = 100,
             currentSize = "",
@@ -239,20 +238,13 @@ class BRISQUEDescaler(
         ))
 
         onProgress?.invoke(ProgressUpdate(
-            phase = "finalizing",
+            phase = context.getString(R.string.brisque_phase_finalizing),
             currentStep = 95,
             totalSteps = 100,
             currentSize = "${bestFineResult.width}x${bestFineResult.height}",
-            message = "Optimal size: ${bestFineResult.width}x${bestFineResult.height} (BRISQUE: %.2f)".format(bestFineResult.brisqueScore)
+            message = context.getString(R.string.brisque_analyzing)
         ))
         val descaled = resizeBitmap(bitmap, bestFineResult.width, bestFineResult.height)
-        onProgress?.invoke(ProgressUpdate(
-            phase = "complete",
-            currentStep = 100,
-            totalSteps = 100,
-            currentSize = "${bestFineResult.width}x${bestFineResult.height}",
-            message = "Descaling done! ${origW}x${origH} → ${bestFineResult.width}x${bestFineResult.height}"
-        ))
 
         return DescaleResult(
             originalWidth = origW,
