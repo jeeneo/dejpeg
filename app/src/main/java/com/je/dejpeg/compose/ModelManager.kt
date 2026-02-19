@@ -13,7 +13,6 @@
 *
 * You should have received a copy of the GNU General Public License
 * along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*
 */
 
 /*
@@ -338,7 +337,7 @@ class ModelManager(
         try {
             val filename = resolveFilename(modelUri)
             if (!filename.lowercase().let { it.endsWith(".onnx") || it.endsWith(".ort") }) {
-                onError("Only .onnx and .ort model files are supported")
+                onError(context.getString(R.string.invalid_file_type))
                 return
             }
             val actualHash = HashUtils.computeSHA256(modelUri, context)
@@ -359,7 +358,7 @@ class ModelManager(
             }
             importModelInternal(modelUri, filename, onProgress, onSuccess, onError)
         } catch (e: Exception) {
-            onError(e.message ?: "Unknown error during import")
+            onError(e.message ?: context.getString(R.string.unknown_error))
         }
     }
 
@@ -408,7 +407,7 @@ class ModelManager(
                 }
             }
         } catch (e: Exception) {
-            onError(e.message ?: "Failed to import model")
+            onError(e.message ?: context.getString(R.string.failed_to_import_model))
         } finally {
             onProgress(100)
             onSuccess(filename)
@@ -498,7 +497,6 @@ class ModelManager(
 
     fun extractStarterModel(
         setAsActive: Boolean = false,
-        defaultModel: String = "1x-span-anime-pretrain-fp16.onnx",
         onSuccess: () -> Unit = {},
         onError: (String) -> Unit = {}
     ): Boolean {
@@ -511,17 +509,17 @@ class ModelManager(
             val extracted = ZipExtractor.extractFromAssets(context, "embedonnx.zip", modelsDir)
             if (extracted) {
                 if (shouldSetAsActive) {
-                    setActiveModel(defaultModel)
+                    setActiveModel("1x-span-anime-pretrain-fp16.onnx")
                 }
                 markStarterModelExtracted()
                 onSuccess()
                 return true
             }
-            onError("Failed to extract starter models")
+            onError(context.getString(R.string.failed_to_extract_starter_models))
             false
         } catch (e: Exception) {
             Log.e("ModelManager", "Error extracting starter models: ${e.message}", e)
-            onError(e.message ?: "Unknown error")
+            onError(e.message ?: context.getString(R.string.unknown_error))
             false
         }
     }

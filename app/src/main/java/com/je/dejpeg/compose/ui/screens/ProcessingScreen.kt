@@ -13,7 +13,6 @@
 *
 * You should have received a copy of the GNU General Public License
 * along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*
 */
 
 /*
@@ -511,15 +510,14 @@ fun SwipeToDismissWrapper(swipeState: MutableState<Float>, isProcessing: Boolean
 
 @Composable
 fun NoModelDialog(onDismiss: () -> Unit, onGoToSettings: () -> Unit) {
-    val haptic = rememberHapticFeedback()
     BaseDialog(
         title = stringResource(R.string.no_model_installed_title),
         message = stringResource(R.string.no_model_installed_desc),
         onDismiss = onDismiss,
         confirmButtonText = stringResource(R.string.go_to_settings),
-        onConfirm = { haptic.medium(); onGoToSettings() },
+        onConfirm = onGoToSettings,
         dismissButtonText = stringResource(R.string.cancel),
-        onDismissButton = { haptic.light(); onDismiss() }
+        onDismissButton = onDismiss
     )
 }
 

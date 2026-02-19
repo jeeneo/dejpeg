@@ -13,7 +13,6 @@
 *
 * You should have received a copy of the GNU General Public License
 * along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*
 */
 
 /*
@@ -23,20 +22,20 @@
 package com.je.dejpeg.compose.ui.components
 
 import android.content.res.ColorStateList
-import android.view.LayoutInflater
-import android.widget.LinearLayout
-import android.widget.TextView
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.google.android.material.materialswitch.MaterialSwitch
-import com.je.dejpeg.R
-
-/*
- * helper composables to use Material XML Switches in Jetpack Compose cause XML switches give a better UX (ur finger go brrr)
- */
 
 @Composable
 fun MaterialSwitchRow(
@@ -49,30 +48,42 @@ fun MaterialSwitchRow(
     val onPrimaryColor = MaterialTheme.colorScheme.onPrimary.toArgb()
     val surfaceVariantColor = MaterialTheme.colorScheme.surfaceVariant.toArgb()
     val outlineColor = MaterialTheme.colorScheme.outline.toArgb()
-    val onSurfaceColor = MaterialTheme.colorScheme.onSurface.toArgb()
 
-    AndroidView(
+    Row(
         modifier = modifier,
-        factory = { context ->
-            LayoutInflater.from(context).inflate(R.layout.dialog_switch_row, android.widget.FrameLayout(context), false) as LinearLayout
-        },
-        update = { view ->
-            val labelView = view.findViewById<TextView>(R.id.switch_label)
-            val switchView = view.findViewById<MaterialSwitch>(R.id.material_switch)
-            
-            labelView.text = label
-            labelView.setTextColor(onSurfaceColor)
-            applySwitchColors(switchView, primaryColor, onPrimaryColor, surfaceVariantColor, outlineColor)
-            
-            switchView.isChecked = checked
-            switchView.setOnCheckedChangeListener { _, isChecked ->
-                onCheckedChange(isChecked)
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        AndroidView(
+            factory = { context ->
+                MaterialSwitch(context).apply {
+                    trackTintList = ColorStateList(
+                        arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf(-android.R.attr.state_checked)),
+                        intArrayOf(primaryColor, surfaceVariantColor)
+                    )
+                    thumbTintList = ColorStateList(
+                        arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf(-android.R.attr.state_checked)),
+                        intArrayOf(onPrimaryColor, outlineColor)
+                    )
+                    trackDecorationTintList = ColorStateList(
+                        arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf(-android.R.attr.state_checked)),
+                        intArrayOf(primaryColor, outlineColor)
+                    )
+                }
+            },
+            update = { switchView ->
+                switchView.isChecked = checked
+                switchView.setOnCheckedChangeListener { _, isChecked ->
+                    onCheckedChange(isChecked)
+                }
             }
-            view.setOnClickListener {
-                switchView.isChecked = !switchView.isChecked
-            }
-        }
-    )
+        )
+    }
 }
 
 @Composable
@@ -88,71 +99,55 @@ fun MaterialSwitchPreference(
     val onPrimaryColor = MaterialTheme.colorScheme.onPrimary.toArgb()
     val surfaceVariantColor = MaterialTheme.colorScheme.surfaceVariant.toArgb()
     val outlineColor = MaterialTheme.colorScheme.outline.toArgb()
-    val onSurfaceColor = MaterialTheme.colorScheme.onSurface.toArgb()
-    val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
-    
-    AndroidView(
-        modifier = modifier,
-        factory = { context ->
-            LayoutInflater.from(context).inflate(R.layout.preference_switch_row, android.widget.FrameLayout(context), false) as LinearLayout
-        },
-        update = { view ->
-            val titleView = view.findViewById<TextView>(R.id.preference_title)
-            val summaryView = view.findViewById<TextView>(R.id.preference_summary)
-            val switchView = view.findViewById<MaterialSwitch>(R.id.preference_switch)
-            
-            titleView.text = title
-            titleView.setTextColor(onSurfaceColor)
-            summaryView.text = summary
-            summaryView.setTextColor(onSurfaceVariantColor)
-            applySwitchColors(switchView, primaryColor, onPrimaryColor, surfaceVariantColor, outlineColor)
-            
-            switchView.isChecked = checked
-            switchView.isEnabled = enabled
-            
-            view.isEnabled = enabled
-            view.alpha = if (enabled) 1f else 0.38f
-            
-            switchView.setOnCheckedChangeListener { _, isChecked ->
-                if (enabled) {
-                    onCheckedChange(isChecked)
-                }
-            }
-            view.setOnClickListener {
-                if (enabled) {
-                    switchView.isChecked = !switchView.isChecked
-                }
-            }
-        }
-    )
-}
 
-private fun applySwitchColors(
-    switchView: MaterialSwitch,
-    primaryColor: Int,
-    onPrimaryColor: Int,
-    surfaceVariantColor: Int,
-    outlineColor: Int
-) {
-    switchView.trackTintList = ColorStateList(
-        arrayOf(
-            intArrayOf(android.R.attr.state_checked),
-            intArrayOf(-android.R.attr.state_checked)
-        ),
-        intArrayOf(primaryColor, surfaceVariantColor)
-    )
-    switchView.thumbTintList = ColorStateList(
-        arrayOf(
-            intArrayOf(android.R.attr.state_checked),
-            intArrayOf(-android.R.attr.state_checked)
-        ),
-        intArrayOf(onPrimaryColor, outlineColor)
-    )
-    switchView.trackDecorationTintList = ColorStateList(
-        arrayOf(
-            intArrayOf(android.R.attr.state_checked),
-            intArrayOf(-android.R.attr.state_checked)
-        ),
-        intArrayOf(primaryColor, outlineColor)
-    )
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            modifier = Modifier.weight(1f).padding(end = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (enabled) MaterialTheme.colorScheme.onSurface
+                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+            )
+            Text(
+                text = summary,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant
+                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+            )
+        }
+        AndroidView(
+            factory = { context ->
+                MaterialSwitch(context).apply {
+                    trackTintList = ColorStateList(
+                        arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf(-android.R.attr.state_checked)),
+                        intArrayOf(primaryColor, surfaceVariantColor)
+                    )
+                    thumbTintList = ColorStateList(
+                        arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf(-android.R.attr.state_checked)),
+                        intArrayOf(onPrimaryColor, outlineColor)
+                    )
+                    trackDecorationTintList = ColorStateList(
+                        arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf(-android.R.attr.state_checked)),
+                        intArrayOf(primaryColor, outlineColor)
+                    )
+                }
+            },
+            update = { switchView ->
+                switchView.isChecked = checked
+                switchView.isEnabled = enabled
+                switchView.setOnCheckedChangeListener { _, isChecked ->
+                    if (enabled) onCheckedChange(isChecked)
+                }
+            }
+        )
+    }
 }

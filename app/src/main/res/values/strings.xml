@@ -238,6 +238,13 @@
     <string name="settings_desc">Settings</string>
     <string name="reset">Reset</string>
     <string name="yes">Yes</string>
+
+    <string name="error">Error</string>
+    <string name="unknown_error">Unknown error</string>
+    <string name="invalid_file_type">Only .onnx and .ort model files are supported</string>
+    <string name="failed_to_import_model">Failed to import model</string>
+    <string name="failed_to_extract_starter_models">Failed to extract starter models</string>
+
     <!-- Processing Service strings -->
     <string name="processing_filename">Processing %1$s…</string>
     <string name="processing_complete_notification">Processing complete</string>
@@ -309,4 +316,11 @@
     <string name="brisque_analyzing">Analyzing…</string>
     <string name="brisque_starting_descale">Starting descale…</string>
     <string name="brisque_descaling_failed">Descaling failed</string>
+    <!-- BRISQUE phase names -->
+    <string name="brisque_phase_initialization">Initialization</string>
+    <string name="brisque_phase_coarse_scan">Coarse scan</string>
+    <string name="brisque_phase_coarse_complete">Coarse scan complete</string>
+    <string name="brisque_phase_fine_scan">Fine scan</string>
+    <string name="brisque_phase_fine_done">Fine scan done</string>
+    <string name="brisque_phase_finalizing">Finalizing</string>
 </resources>

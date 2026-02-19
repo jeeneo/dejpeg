@@ -13,7 +13,6 @@
 *
 * You should have received a copy of the GNU General Public License
 * along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*
 */
 
 /*
@@ -26,7 +25,12 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -34,8 +38,36 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.je.dejpeg.R
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
+
+object DialogDefaults {
+    val Shape = RoundedCornerShape(16.dp)
+}
+
+@Composable
+fun StyledAlertDialog(
+    onDismissRequest: () -> Unit,
+    title: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    text: @Composable (() -> Unit)? = null,
+    confirmButton: @Composable () -> Unit,
+    dismissButton: @Composable (() -> Unit)? = null,
+    icon: ImageVector? = null
+) {
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        modifier = modifier,
+        shape = DialogDefaults.Shape,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        icon = icon?.let { { Icon(it, null, Modifier.size(32.dp), MaterialTheme.colorScheme.primary) } },
+        title = title,
+        text = text,
+        confirmButton = confirmButton,
+        dismissButton = dismissButton
+    )
+}
 
 @Composable
 fun BaseDialog(
@@ -51,8 +83,6 @@ fun BaseDialog(
     isError: Boolean = false,
     context: Context? = null,
     showCopyButton: Boolean = isError,
-    onConfirmHaptic: (() -> Unit)? = null,
-    onDismissHaptic: (() -> Unit)? = null,
     icon: ImageVector? = null,
     customButtons: (@Composable () -> Unit)? = null
 ) {
@@ -71,13 +101,13 @@ fun BaseDialog(
         dismissButton = when {
             customButtons != null -> null
             dismissButtonText != null && onDismissButton != null -> {
-                { TextButton(onClick = { onDismissHaptic?.invoke() ?: haptic.light(); onDismissButton() }) { Text(dismissButtonText) } }
+                { TextButton(onClick = { haptic.light(); onDismissButton() }) { Text(dismissButtonText) } }
             }
             showCopyButton && isError && clipboardManager != null -> {
                 {
                     TextButton(onClick = {
                         haptic.light()
-                        clipboardManager.setPrimaryClip(ClipData.newPlainText("error", textToCopy))
+                        clipboardManager.setPrimaryClip(ClipData.newPlainText(context?.getString(R.string.error) ?: "error", textToCopy))
                         context?.let { Toast.makeText(it, it.getString(R.string.error_copied), Toast.LENGTH_SHORT).show() }
                     }) { Text(stringResource(R.string.copy)) }
                 }
@@ -86,7 +116,7 @@ fun BaseDialog(
         },
         confirmButton = {
             if (customButtons != null) customButtons()
-            else Button(onClick = { onConfirmHaptic?.invoke() ?: haptic.light(); onConfirm() }) {
+            else Button(onClick = { haptic.light(); onConfirm() }) {
                 Text(confirmButtonText)
             }
         }
@@ -99,13 +129,13 @@ fun ErrorAlertDialog(
     errorMessage: String,
     onDismiss: () -> Unit,
     context: Context,
-    confirmButtonText: String = "OK"
+    confirmButtonText: String? = null
 ) {
     BaseDialog(
         title = title,
         message = errorMessage,
         onDismiss = onDismiss,
-        confirmButtonText = confirmButtonText,
+        confirmButtonText = confirmButtonText ?: stringResource(R.string.ok),
         onConfirm = onDismiss,
         isError = true,
         context = context,
@@ -114,22 +144,28 @@ fun ErrorAlertDialog(
 }
 
 @Composable
-fun InfoAlertDialog(
+fun SimpleAlertDialog(
     title: String,
-    message: String,
     onDismiss: () -> Unit,
-    icon: ImageVector,
-    confirmButtonText: String = "OK"
-) = StyledAlertDialog(onDismiss, title, { Text(message) }, confirmButtonText, icon)
-
-@Composable
-fun ConfirmAlertDialog(
-    title: String,
-    message: String,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit,
-    confirmButtonText: String = "OK",
-    dismissButtonText: String = "Cancel",
-    confirmHaptic: (() -> Unit)? = null,
-    dismissHaptic: (() -> Unit)? = null
-) = StyledConfirmDialog(onDismiss, onConfirm, title, { Text(message) }, confirmButtonText, dismissButtonText, confirmHaptic, dismissHaptic)
+    message: String? = null,
+    confirmButtonText: String? = null,
+    onConfirm: () -> Unit = onDismiss,
+    dismissButtonText: String? = null,
+    icon: ImageVector? = null,
+    content: (@Composable () -> Unit)? = null
+) {
+    val haptic = rememberHapticFeedback()
+    val resolvedText = confirmButtonText ?: stringResource(R.string.ok)
+    StyledAlertDialog(
+        onDismissRequest = { haptic.light(); onDismiss() },
+        icon = icon,
+        title = { Text(title) },
+        text = content ?: message?.let { { Text(it) } },
+        dismissButton = dismissButtonText?.let {
+            { TextButton(onClick = { haptic.light(); onDismiss() }) { Text(it) } }
+        },
+        confirmButton = {
+            Button(onClick = { haptic.light(); onConfirm() }) { Text(resolvedText) }
+        }
+    )
+}
