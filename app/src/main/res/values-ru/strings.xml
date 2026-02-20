@@ -285,4 +285,15 @@
     <string name="model_info_1x_re_detail_v2_126000_g_fp16">Улучшение деталей</string>
     <string name="model_info_1x_repainter_20000_g_fp16">Перекрашивание(?)</string>
     <string name="model_info_1x_artifacts_dithering_alsa_fp16">Артефакты шумовой растеризации</string>
+    <string name="error">Ошибка</string>
+    <string name="unknown_error">Неизвестная ошибка</string>
+    <string name="invalid_file_type">Поддерживаются только файлы моделей .onnx и .ort</string>
+    <string name="failed_to_import_model">Не удалось импортировать модель</string>
+    <string name="failed_to_extract_starter_models">Не удалось извлечь базовые модели</string>
+    <string name="brisque_phase_initialization">Инициализация</string>
+    <string name="brisque_phase_coarse_scan">Грубое сканирование</string>
+    <string name="brisque_phase_coarse_complete">Грубое сканирование завершено</string>
+    <string name="brisque_phase_fine_scan">Точное сканирование</string>
+    <string name="brisque_phase_fine_done">Точное сканирование выполнено</string>
+    <string name="brisque_phase_finalizing">Завершение</string>
 </resources>
