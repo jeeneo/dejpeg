@@ -27,6 +27,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.net.Uri
 import android.provider.OpenableColumns
+import java.io.File
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
 import androidx.exifinterface.media.ExifInterface
@@ -47,6 +48,14 @@ object ImageLoadingHelper {
         null
     }
 
+    fun loadBitmapWithRotation(file: File): Bitmap? = try {
+        val bitmap = BitmapFactory.decodeFile(file.absolutePath) ?: return null
+        val exif = ExifInterface(file.absolutePath)
+        applyExifOrientation(bitmap, exif)
+    } catch (_: Exception) {
+        null
+    }
+
     private fun applyExifOrientation(bitmap: Bitmap, exif: ExifInterface): Bitmap {
         return when (exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
             ExifInterface.ORIENTATION_ROTATE_90 -> rotateBitmap(bitmap, 90f)
@@ -62,7 +71,7 @@ object ImageLoadingHelper {
 
     private fun rotateBitmap(bitmap: Bitmap, degrees: Float): Bitmap {
         val matrix = Matrix().apply { postRotate(degrees) }
-        val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+        val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, false)
         if (rotated != bitmap) bitmap.recycle()
         return rotated
     }
@@ -76,7 +85,7 @@ object ImageLoadingHelper {
                 bitmap.height / 2f
             )
         }
-        val flipped = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+        val flipped = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, false)
         if (flipped != bitmap) bitmap.recycle()
         return flipped
     }

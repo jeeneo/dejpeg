@@ -24,7 +24,6 @@ package com.je.dejpeg.compose
 import android.app.Service
 import android.content.Intent
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.os.Binder
 import android.os.Handler
 import android.os.IBinder
@@ -37,7 +36,6 @@ import com.je.dejpeg.data.AppPreferences
 import kotlinx.coroutines.*
 import java.io.File
 import java.io.FileOutputStream
-import androidx.core.net.toUri
 import com.je.dejpeg.R
 
 class ProcessingService : Service() {
@@ -145,15 +143,13 @@ class ProcessingService : Service() {
                 notifyProgressChange()
                 currentJob = serviceScope.launch {
                     try {
-                        val uri = uriString.toUri()
-                        val unprocessedFile = if (!imageId.isNullOrEmpty()) { CacheManager.getUnprocessedImage(applicationContext, imageId) } else { null }
-                        val bitmap = if (unprocessedFile != null && unprocessedFile.exists()) { 
-                            Log.d("ProcessingService", "Loading pre-existing unprocessed file: ${unprocessedFile.name}") // trust, should be a camera import
-                            BitmapFactory.decodeFile(unprocessedFile.absolutePath)
-                        } else {
-                            Log.d("ProcessingService", "Loading from original URI: $uri")
-                            ImageLoadingHelper.loadBitmapWithRotation(applicationContext, uri)
-                        } ?: throw Exception("Failed to decode bitmap")
+                        val unprocessedFile = if (!imageId.isNullOrEmpty()) CacheManager.getUnprocessedImage(applicationContext, imageId) else null
+                        if (unprocessedFile == null || !unprocessedFile.exists()) {
+                            throw Exception("Cached unprocessed image not found for imageId: $imageId")
+                        }
+                        Log.d("ProcessingService", "Loading cached unprocessed file: ${unprocessedFile.name}")
+                        val bitmap = ImageLoadingHelper.loadBitmapWithRotation(unprocessedFile)
+                            ?: throw Exception("Failed to decode bitmap")
                         imageProcessor?.processImage(bitmap, strength, object : ImageProcessor.ProcessCallback {
                             override fun onComplete(result: Bitmap) {
                                 try {

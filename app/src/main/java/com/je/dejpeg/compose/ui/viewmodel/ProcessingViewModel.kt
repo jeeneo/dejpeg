@@ -368,20 +368,19 @@ class ProcessingViewModel : ViewModel() {
         updateImageState(imageId) {
             it.copy(isProcessing = true, progress = statusPreparing, completedChunks = 0, totalChunks = 0)
         }
-        
+
         viewModelScope.launch {
             CacheManager.saveUnprocessedImage(ctx, imageId, uri)
+            serviceHelper?.startProcessing(
+                imageId = imageId,
+                uriString = uriString,
+                filename = image.filename,
+                strength = strength,
+                chunkSize = chunkSize.value,
+                overlapSize = overlapSize.value,
+                modelName = modelManager?.getActiveModelName()
+            )
         }
-        
-        serviceHelper?.startProcessing(
-            imageId = imageId,
-            uriString = uriString,
-            filename = image.filename,
-            strength = strength,
-            chunkSize = chunkSize.value,
-            overlapSize = overlapSize.value,
-            modelName = modelManager?.getActiveModelName()
-        )
     }
 
     fun cancelProcessing() {
