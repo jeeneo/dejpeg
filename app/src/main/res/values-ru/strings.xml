@@ -47,7 +47,7 @@
     <string name="camera">Камера</string>
     <string name="camera_title">Камера устройства</string>
     <string name="camera_desc">Открывает камеру вашего устройства, сделанные фотографии будут импортированы автоматически.</string>
-    <string name="set_as_default">Использовать по умолчанию</string>
+    <string name="set_as_default">Сделать по умолчанию</string>
     <string name="help">Помощь</string>
     <!-- FAQ Content -->
     <string name="faq_what_is_this_title">Для чего предназначено это приложение?</string>
@@ -80,7 +80,7 @@
     <string name="large_chunk_warning">Большие размеры могут вызвать нестабильность.</string>
     <string name="preferences">Предпочтения</string>
     <string name="vibration_on_touch">Вибрация при касании</string>
-    <!-- <string name="haptic_feedback_desc">Включить небольшую вибрацию для действий и жестов</string> -->
+    <!-- <string name="haptic_feedback_desc">Включить небольшую вибрацию для действий</string> -->
     <string name="faqs">ЧаВо</string>
     <string name="processing">Обработка</string>
     <string name="finishing_up">Завершение…</string>
@@ -113,7 +113,7 @@
     <string name="progress_percent">%1$d%%</string>
     <string name="open_source_app_description">Приложение с открытым исходным кодом для удаления шума и сжатия с фотографий</string>
     <string name="source_code">Исходный код</string>
-    <string name="show_save_dialog">Показать диалог сохранения</string>
+    <string name="show_save_dialog">Диалог сохранения</string>
     <!-- <string name="show_save_dialog_desc">Отображать диалоговое окно при сохранении изображений</string> -->
     <string name="swap_swipe_actions">Инвертировать свайпы</string>
     <string name="processing_filename">Обработка %1$s…</string>
