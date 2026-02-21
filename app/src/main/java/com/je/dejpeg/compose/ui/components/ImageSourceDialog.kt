@@ -172,7 +172,7 @@ fun ImageSourceDialog(
                 ) {
                     MaterialSwitchPreference(
                         title = stringResource(R.string.set_as_default),
-                        summary = stringResource(R.string.set_as_default_desc),
+                        // summary = stringResource(R.string.set_as_default_desc),
                         checked = setAsDefault,
                         onCheckedChange = { haptic.light(); setAsDefault = it }
                     )

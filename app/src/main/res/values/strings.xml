@@ -83,7 +83,7 @@
     <string name="large_chunk_warning">Large sizes can cause instability.</string>
     <string name="preferences">Preferences</string>
     <string name="vibration_on_touch">Vibration on touch</string>
-    <string name="haptic_feedback_desc">Enable small vibrations for actions and gestures</string>
+    <!-- <string name="haptic_feedback_desc">Enable small vibrations for actions and gestures</string> -->
     <string name="faqs">FAQs</string>
     <string name="processing">Processing</string>
     <string name="finishing_up">Finishing up…</string>
@@ -117,10 +117,10 @@
     <string name="open_source_app_description">An open source app for removing noise and compression from photos</string>
     <string name="source_code">Source code</string>
     <string name="show_save_dialog">Show save dialog</string>
-    <string name="show_save_dialog_desc">Show dialog when saving images</string>
+    <!-- <string name="show_save_dialog_desc">Show dialog when saving images</string> -->
     <string name="swap_swipe_actions">Swap swipe actions</string>
-    <string name="swap_swipe_actions_desc_default">Swipe right to delete/cancel, left to save/process</string>
-    <string name="swap_swipe_actions_desc_swapped">Swipe right to save/process, left to delete/cancel</string>
+    <!-- <string name="swap_swipe_actions_desc_default">Swipe right to delete/cancel, left to save/process</string>
+    <string name="swap_swipe_actions_desc_swapped">Swipe right to save/process, left to delete/cancel</string> -->
     <string name="default_image_source">Default source</string>
     <string name="none">none</string>
     <string name="photos">Photos</string>

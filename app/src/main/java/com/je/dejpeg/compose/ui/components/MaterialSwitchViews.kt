@@ -89,7 +89,7 @@ fun MaterialSwitchRow(
 @Composable
 fun MaterialSwitchPreference(
     title: String,
-    summary: String,
+    // summary: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -117,12 +117,12 @@ fun MaterialSwitchPreference(
                 color = if (enabled) MaterialTheme.colorScheme.onSurface
                         else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
             )
-            Text(
-                text = summary,
-                style = MaterialTheme.typography.bodySmall,
-                color = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant
-                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
-            )
+            // Text(
+            //     text = summary,
+            //     style = MaterialTheme.typography.bodySmall,
+            //     color = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant
+            //             else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+            // )
         }
         AndroidView(
             factory = { context ->

@@ -86,7 +86,7 @@ fun PreferencesDialog(
                 ) {
                     MaterialSwitchPreference(
                         title = stringResource(R.string.vibration_on_touch),
-                        summary = stringResource(R.string.haptic_feedback_desc),
+                        // summary = stringResource(R.string.haptic_feedback_desc),
                         checked = hapticFeedbackEnabled,
                         onCheckedChange = { enabled ->
                             if (enabled) {
@@ -105,7 +105,7 @@ fun PreferencesDialog(
                 ) {
                     MaterialSwitchPreference(
                         title = stringResource(R.string.show_save_dialog),
-                        summary = stringResource(R.string.show_save_dialog_desc),
+                        // summary = stringResource(R.string.show_save_dialog_desc),
                         checked = !skipSaveDialog,
                         onCheckedChange = { show ->
                             haptic.light()
@@ -122,10 +122,10 @@ fun PreferencesDialog(
                 ) {
                     MaterialSwitchPreference(
                         title = stringResource(R.string.swap_swipe_actions),
-                        summary = stringResource(
-                            if (swapSwipeActions) R.string.swap_swipe_actions_desc_swapped
-                            else R.string.swap_swipe_actions_desc_default
-                        ),
+                        // summary = stringResource(
+                        //     if (swapSwipeActions) R.string.swap_swipe_actions_desc_swapped
+                        //     else R.string.swap_swipe_actions_desc_default
+                        // ),
                         checked = swapSwipeActions,
                         onCheckedChange = { swap ->
                             haptic.light()
