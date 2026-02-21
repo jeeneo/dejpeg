@@ -55,8 +55,10 @@ object NotificationHelper {
 
     private fun baseBuilder(context: Context): NotificationCompat.Builder {
         checkChannel(context)
-        val launchIntent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        val launchIntent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_LAUNCHER)
+            setPackage(context.packageName)
+            setClass(context, MainActivity::class.java)
         }
         val contentPendingIntent = PendingIntent.getActivity(
             context,
