@@ -84,6 +84,14 @@ android {
             enableSplit = true
         }
     }
+    applicationVariants.all {
+        val abis = defaultConfig.ndk.abiFilters
+        val abi = if (abis.size == 1) abis.first() else "universal"
+        outputs.all {
+            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl)
+                .outputFileName = "dejpeg-${abi}.apk"
+        }
+    }
 }
 
 dependencies {
