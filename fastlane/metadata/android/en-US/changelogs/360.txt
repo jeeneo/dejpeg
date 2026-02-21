@@ -4,3 +4,4 @@ added:
 fixed:
 - processing tile logic
 - issue with scunet models
+- fixed image rotation issues
