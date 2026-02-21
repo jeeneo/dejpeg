@@ -1,9 +1,7 @@
 import java.util.Properties
-import java.io.FileInputStream
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
 
@@ -60,7 +58,7 @@ android {
                 signingConfig = signingConfigs.getByName("release")
             }
             isMinifyEnabled = true
-            isShrinkResources = true;
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -85,14 +83,6 @@ android {
             enableSplit = true
         }
     }
-    applicationVariants.all {
-        val abis = defaultConfig.ndk.abiFilters
-        val abi = if (abis.size == 1) abis.first() else "universal"
-        outputs.all {
-            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl)
-                .outputFileName = "dejpeg-${abi}.apk"
-        }
-    }
 }
 
 dependencies {
@@ -114,4 +104,20 @@ dependencies {
     implementation(libs.androidx.exifinterface)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.datastore.preferences)
+}
+
+androidComponents {
+    onVariants { variant ->
+        val abis = android.defaultConfig.ndk.abiFilters
+        val abi = if (abis.size == 1) abis.first() else "universal"
+        val taskName = "assemble${variant.name.replaceFirstChar { it.uppercase() }}"
+        tasks.matching { it.name == taskName }.configureEach {
+            doLast {
+                val outDir = layout.buildDirectory.dir("outputs/apk/${variant.name}").get().asFile
+                outDir.listFiles()
+                    ?.filter { it.extension == "apk" }
+                    ?.forEach { it.renameTo(File(outDir, "dejpeg-${abi}.apk")) }
+            }
+        }
+    }
 }

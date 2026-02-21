@@ -1,6 +1,6 @@
 [versions]
 #noinspection AndroidGradlePluginVersion
-agp = "8.13.2"
+agp = "9.0.1"
 coreSplashscreen = "1.2.0"
 foundation = "1.10.3"
 kotlin = "2.3.10"
@@ -15,6 +15,7 @@ material = "1.13.0"
 material3 = "1.4.0"
 materialIconsExtended = "1.7.8"
 navigationCompose = "2.9.7"
+#noinspection NewerVersionAvailable
 onnxruntimeAndroid = "1.23.2"
 zoomable = "0.18.0"
 exifinterface = "1.4.2"
@@ -46,5 +47,4 @@ androidx-datastore-preferences = { group = "androidx.datastore", name = "datasto
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

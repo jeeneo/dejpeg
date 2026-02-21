@@ -1,7 +1,8 @@
 added:
 - Russian translation
 
-fixed:
+fixes:
+- notification bug
 - processing tile logic
 - issue with scunet models
-- fixed image rotation issues
+- image rotation bug
