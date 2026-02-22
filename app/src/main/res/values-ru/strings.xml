@@ -164,7 +164,12 @@
     <string name="error_processing_title">Ошибка обработки</string>
     <string name="error_native_crash">Служба обработки неожиданно завершила работу. Обычно это указывает на несовместимую модель или недостаточное количество памяти.</string>
     <string name="error_copied">Скопировано в буфер обмена</string>
-    <string name="recover_images_title">Восстановить изображение %1$s?</string>
+    <plurals name="recover_images_title">
+        <item quantity="one">Восстановить %1$d изображение</item>
+        <item quantity="few">Восстановить %1$d изображения</item>
+        <item quantity="many">Восстановить %1$d изображений</item>
+        <item quantity="other">Восстановить %1$d изображений</item>
+    </plurals>
     <string name="recover">Восстановить</string>
     <string name="discard">Отклонить</string>
     <string name="recovered_image_prefix">Восстановлено</string>

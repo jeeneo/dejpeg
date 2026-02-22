@@ -145,7 +145,10 @@
     <string name="error_processing_title">Processing error</string>
     <string name="error_native_crash">The processing service died unexpectedly. This usually indicates an incompatible model or insufficient memory.</string>
     <string name="error_copied">Copied to clipboard</string>
-    <string name="recover_images_title">Recover image%1$s?</string>
+    <plurals name="recover_images_title">
+        <item quantity="one">Recover %1$d image</item>
+        <item quantity="other">Recover %1$d images</item>
+    </plurals>
     <plurals name="recover_images_message">
         <item quantity="one">Found %1$d processed image that was not saved before closing. Would you like to recover it?</item>
         <item quantity="other">Found %1$d processed images that were not saved before closing. Would you like to recover them?</item>

@@ -95,8 +95,6 @@ fun RecoveryDialog(
 
     if (showDialog.value && recoveryImages.value.isNotEmpty()) {
         val count = recoveryImages.value.size
-        val plural = count > 1
-        val pluralSuffix = if (plural) "s" else ""
         val recoveredImagePrefix = stringResource(R.string.recovered_image_prefix)
         val recoverButtonText = stringResource(R.string.recover)
         val discardButtonText = stringResource(R.string.discard)
@@ -113,7 +111,7 @@ fun RecoveryDialog(
         
         StyledAlertDialog(
             onDismissRequest = {},
-            title = { Text(stringResource(R.string.recover_images_title, pluralSuffix)) },
+            title = { Text(pluralStringResource(R.plurals.recover_images_title, count, count)) },
             text = { 
                 Column {
                     Text(pluralStringResource(R.plurals.recover_images_message, count, count))
