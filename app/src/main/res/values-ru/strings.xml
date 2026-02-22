@@ -60,8 +60,8 @@
     <string name="ok">Хорошо</string>
     <string name="images">Изображения (%1$d)</string>
     <string name="strength">Интенсивность: %1$d</string>
-    <string name="input_scale">Масштаб входа: %1$s</string>
-    <string name="input_scale_auto">Авто</string>
+    <string name="input_scale">Входной масштаб: %1$s</string>
+    <string name="text_auto">Авто</string>
     <string name="no_images_yet">Нет изображений</string>
     <string name="tap_to_add_images">Нажмите, чтобы добавить</string>
     <string name="no_model_installed_title">Модель не установлена</string>

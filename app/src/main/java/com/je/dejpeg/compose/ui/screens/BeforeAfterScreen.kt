@@ -1,19 +1,19 @@
 /**
-* Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ * Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 /*
 * If you use this code in your own project, please give credit
@@ -25,13 +25,37 @@ import android.graphics.Bitmap
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.FilterQuality
@@ -42,16 +66,16 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.je.dejpeg.R
 import com.je.dejpeg.compose.ui.components.BeforeAfterSlider
-import com.je.dejpeg.compose.ui.components.SaveImageDialog
 import com.je.dejpeg.compose.ui.components.LoadingDialog
+import com.je.dejpeg.compose.ui.components.SaveImageDialog
+import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.compose.utils.ImageActions
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
-import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.data.AppPreferences
 import kotlinx.coroutines.launch
-import me.saket.telephoto.zoomable.ZoomSpec
-import me.saket.telephoto.zoomable.ZoomLimit
 import me.saket.telephoto.zoomable.OverzoomEffect
+import me.saket.telephoto.zoomable.ZoomLimit
+import me.saket.telephoto.zoomable.ZoomSpec
 import me.saket.telephoto.zoomable.rememberZoomableState
 import me.saket.telephoto.zoomable.zoomable
 
@@ -100,11 +124,14 @@ fun BeforeAfterScreen(
             },
             onError = { errorMsg ->
                 saveErrorMessage = errorMsg
-            }
-        )
+            })
     }
 
-    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+    ) {
         TopAppBar(
             title = { Text(filename, style = MaterialTheme.typography.titleMedium) },
             navigationIcon = {
@@ -133,15 +160,13 @@ fun BeforeAfterScreen(
         }
 
         Surface(
-            color = MaterialTheme.colorScheme.surfaceContainer,
-            modifier = Modifier.fillMaxWidth()
+            color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.fillMaxWidth()
         ) {
             Row(
                 Modifier
                     .fillMaxWidth()
                     .padding(vertical = 16.dp, horizontal = 16.dp)
-                    .navigationBarsPadding(),
-                Arrangement.SpaceEvenly
+                    .navigationBarsPadding(), Arrangement.SpaceEvenly
             ) {
                 IconButton(onClick = {
                     haptic.light()
@@ -160,21 +185,27 @@ fun BeforeAfterScreen(
                                 context = context,
                                 imageId = imageId,
                                 onSuccess = {},
-                                onError = { errorMsg -> saveErrorMessage = errorMsg }
-                            )
+                                onError = { errorMsg -> saveErrorMessage = errorMsg })
                         }
                     } else {
                         showSaveDialog = true
                     }
                 }) {
-                    Icon(Icons.Filled.Save, stringResource(id = R.string.save), modifier = Modifier.size(32.dp))
+                    Icon(
+                        Icons.Filled.Save,
+                        stringResource(id = R.string.save),
+                        modifier = Modifier.size(32.dp)
+                    )
                 }
             }
         }
     }
 
     if (showSaveDialog) {
-        SaveImageDialog(filename, showSaveAllOption, false,
+        SaveImageDialog(
+            filename,
+            showSaveAllOption,
+            false,
             hideOptions = false,
             onDismissRequest = { showSaveDialog = false }) { name, all, skip ->
             if (skip) {
@@ -184,8 +215,7 @@ fun BeforeAfterScreen(
                 viewModel.saveAllImages(
                     context = context,
                     onComplete = {},
-                    onError = { errorMsg -> saveErrorMessage = errorMsg }
-                )
+                    onError = { errorMsg -> saveErrorMessage = errorMsg })
             } else {
                 if (ImageActions.checkFileExists(name)) {
                     overwriteDialogFilename = name
@@ -197,7 +227,8 @@ fun BeforeAfterScreen(
     }
 
     overwriteDialogFilename?.let { fname ->
-        SaveImageDialog(fname,
+        SaveImageDialog(
+            fname,
             showSaveAllOption = false,
             initialSaveAll = false,
             hideOptions = true,
@@ -215,8 +246,7 @@ fun BeforeAfterScreen(
                 TextButton(onClick = { saveErrorMessage = null }) {
                     Text(stringResource(R.string.ok))
                 }
-            }
-        )
+            })
     }
 
     if (isSavingImages) {
@@ -224,8 +254,11 @@ fun BeforeAfterScreen(
         LoadingDialog(
             title = stringResource(R.string.saving_images),
             progress = progress?.let { it.first.toFloat() / it.second.toFloat() },
-            progressText = progress?.let { stringResource(R.string.saving_image_progress, it.first, it.second) }
-        )
+            progressText = progress?.let {
+                stringResource(
+                    R.string.saving_image_progress, it.first, it.second
+                )
+            })
     }
 }
 
@@ -234,15 +267,30 @@ private fun SingleImageView(bitmap: Bitmap) {
     val context = LocalContext.current
     val appPreferences = remember { AppPreferences(context.applicationContext) }
     val isHapticEnabled by appPreferences.hapticFeedbackEnabled.collectAsState(initial = true)
-    
+
     val zoomableState = rememberZoomableState(
         ZoomSpec(
-            maximum = ZoomLimit(factor = 20f, overzoomEffect = if (isHapticEnabled) OverzoomEffect.RubberBanding else OverzoomEffect.Disabled),
-            minimum = ZoomLimit(factor = 1f, overzoomEffect = if (isHapticEnabled) OverzoomEffect.RubberBanding else OverzoomEffect.Disabled)
+            maximum = ZoomLimit(
+                factor = 20f,
+                overzoomEffect = if (isHapticEnabled) OverzoomEffect.RubberBanding else OverzoomEffect.Disabled
+            ), minimum = ZoomLimit(
+                factor = 1f,
+                overzoomEffect = if (isHapticEnabled) OverzoomEffect.RubberBanding else OverzoomEffect.Disabled
+            )
         )
     )
-    
-    Box(Modifier.fillMaxSize().zoomable(zoomableState), Alignment.Center) {
-        Image(bitmap.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit, filterQuality = FilterQuality.None)
+
+    Box(
+        Modifier
+            .fillMaxSize()
+            .zoomable(zoomableState), Alignment.Center
+    ) {
+        Image(
+            bitmap.asImageBitmap(),
+            null,
+            Modifier.fillMaxSize(),
+            contentScale = ContentScale.Fit,
+            filterQuality = FilterQuality.None
+        )
     }
 }

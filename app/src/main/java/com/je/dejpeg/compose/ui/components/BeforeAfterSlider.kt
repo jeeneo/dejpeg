@@ -1,19 +1,19 @@
 /**
-* Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ * Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 /*
 * If you use this code in your own project, please give credit
@@ -22,7 +22,6 @@
 package com.je.dejpeg.compose.ui.components
 
 import android.graphics.Bitmap
-import com.je.dejpeg.R
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -69,6 +68,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.get
+import com.je.dejpeg.R
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
 import com.je.dejpeg.data.AppPreferences
 import me.saket.telephoto.zoomable.OverzoomEffect
@@ -93,16 +93,21 @@ fun BeforeAfterSlider(
     val context = LocalContext.current
     val appPreferences = remember { AppPreferences(context.applicationContext) }
     val isHapticEnabled by appPreferences.hapticFeedbackEnabled.collectAsState(initial = true)
-    
+
     val zoomableState = if (enableZoom) {
         rememberZoomableState(
             ZoomSpec(
-                maximum = ZoomLimit(factor = maxZoomFactor, overzoomEffect = if (isHapticEnabled) OverzoomEffect.RubberBanding else OverzoomEffect.Disabled),
-                minimum = ZoomLimit(factor = 1f, overzoomEffect = if (isHapticEnabled) OverzoomEffect.RubberBanding else OverzoomEffect.Disabled)
+                maximum = ZoomLimit(
+                    factor = maxZoomFactor,
+                    overzoomEffect = if (isHapticEnabled) OverzoomEffect.RubberBanding else OverzoomEffect.Disabled
+                ), minimum = ZoomLimit(
+                    factor = 1f,
+                    overzoomEffect = if (isHapticEnabled) OverzoomEffect.RubberBanding else OverzoomEffect.Disabled
+                )
             )
         )
     } else null
-    
+
     var sliderPosition by remember { mutableFloatStateOf(0.5f) }
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
     val density = LocalDensity.current
@@ -115,8 +120,7 @@ fun BeforeAfterSlider(
     val afterLabel = stringResource(R.string.after)
 
     Box(
-        modifier.onGloballyPositioned { containerSize = it.size },
-        Alignment.Center
+        modifier.onGloballyPositioned { containerSize = it.size }, Alignment.Center
     ) {
         ImageHalf(
             bitmap = beforeBitmap,
@@ -126,7 +130,7 @@ fun BeforeAfterSlider(
             labelPadding = labelPadding,
             modifier = if (zoomableState != null) Modifier.zoomable(zoomableState) else Modifier
         )
-        
+
         ImageHalf(
             bitmap = afterBitmap,
             clipRange = sliderPosition to 1f,
@@ -135,7 +139,7 @@ fun BeforeAfterSlider(
             labelPadding = labelPadding,
             modifier = if (zoomableState != null) Modifier.zoomable(zoomableState) else Modifier
         )
-        
+
         if (containerSize.width > 0) {
             val sliderX = containerSize.width * sliderPosition
             Box(Modifier.fillMaxSize()) {
@@ -156,12 +160,13 @@ fun BeforeAfterSlider(
                                 onDragStart = { haptic.gestureStart() },
                                 onDrag = { change, dragAmount ->
                                     change.consume()
-                                    sliderPosition = (sliderPosition + dragAmount.x / containerSize.width).coerceIn(0f, 1f)
+                                    sliderPosition =
+                                        (sliderPosition + dragAmount.x / containerSize.width).coerceIn(
+                                            0f, 1f
+                                        )
                                 },
-                                onDragEnd = {}
-                            )
-                        }
-                ) {
+                                onDragEnd = {})
+                        }) {
                     Box(
                         Modifier
                             .size(sliderHandleSize)
@@ -198,20 +203,15 @@ private fun ImageHalf(
             .fillMaxSize()
             .drawWithContent {
                 clipRect(
-                    size.width * clipRange.first,
-                    0f,
-                    size.width * clipRange.second,
-                    size.height
+                    size.width * clipRange.first, 0f, size.width * clipRange.second, size.height
                 ) {
                     this@drawWithContent.drawContent()
                 }
-            }
-    ) {
+            }) {
         Box(
             Modifier
                 .fillMaxSize()
-                .then(modifier),
-            Alignment.Center
+                .then(modifier), Alignment.Center
         ) {
             Image(
                 bitmap.asImageBitmap(),
@@ -221,13 +221,12 @@ private fun ImageHalf(
                 filterQuality = FilterQuality.None
             )
         }
-        
+
         if (label != null) {
             Box(
                 Modifier
                     .fillMaxSize()
-                    .padding(labelPadding),
-                contentAlignment = labelAlignment
+                    .padding(labelPadding), contentAlignment = labelAlignment
             ) {
                 Surface(
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
@@ -238,8 +237,7 @@ private fun ImageHalf(
                         label,
                         Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                         style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 0.5.sp
+                            fontWeight = FontWeight.SemiBold, letterSpacing = 0.5.sp
                         ),
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -254,30 +252,31 @@ private fun calculateSliderColors(bitmap: Bitmap): Pair<Color, Color> {
     val cx = bitmap.width / 2
     val cy = bitmap.height / 2
     val sample = 10
-    
+
     for (dy in -sample..sample) {
         for (dx in -sample..sample) {
             val x = (cx + dx).coerceIn(0, bitmap.width - 1)
             val y = (cy + dy).coerceIn(0, bitmap.height - 1)
             val pixel = bitmap[x, y]
-            val luminance = (android.graphics.Color.red(pixel) + 
-                           android.graphics.Color.green(pixel) + 
-                           android.graphics.Color.blue(pixel)) / 3
+            val luminance =
+                (android.graphics.Color.red(pixel) + android.graphics.Color.green(pixel) + android.graphics.Color.blue(
+                    pixel
+                )) / 3
             luminances.add(luminance)
         }
     }
-    
+
     val median = luminances.sorted()[luminances.size / 2]
     val inverted = 255 - median
-    
+
     val sliderColor = if (kotlin.math.abs(inverted - median) < 30) {
         if (median > 127) Color.Black else Color.White
     } else {
         Color(inverted, inverted, inverted)
     }
-    
+
     val sliderLuminance = (sliderColor.red + sliderColor.green + sliderColor.blue) / 3f
     val iconColor = if (sliderLuminance < 0.7f) Color.White else Color.Black
-    
+
     return sliderColor to iconColor
 }

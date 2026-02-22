@@ -1,19 +1,19 @@
 /**
-* Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ * Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 /*
 * If you use this code in your own project, please give credit
@@ -28,15 +28,16 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
 import androidx.activity.result.ActivityResultLauncher
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.je.dejpeg.compose.ModelManager
 import com.je.dejpeg.compose.ProcessingService
 import com.je.dejpeg.compose.utils.CacheManager
 import com.je.dejpeg.compose.utils.ImageActions
-import com.je.dejpeg.compose.utils.helpers.ModelMigrationHelper
 import com.je.dejpeg.compose.utils.helpers.ImageLoadingHelper
 import com.je.dejpeg.compose.utils.helpers.ImagePickerHelper
+import com.je.dejpeg.compose.utils.helpers.ModelMigrationHelper
 import com.je.dejpeg.compose.utils.helpers.ServiceCommunicationHelper
 import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.data.ProcessingMode
@@ -46,7 +47,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
-import androidx.compose.runtime.Immutable
 
 @Immutable
 data class ImageItem(
@@ -65,11 +65,13 @@ data class ImageItem(
     val totalChunks: Int = 0,
     val hasBeenSaved: Boolean = false
 )
+
 sealed class ProcessingUiState {
     object Idle : ProcessingUiState()
     data class Processing(val currentIndex: Int, val total: Int) : ProcessingUiState()
     data class Error(val message: String) : ProcessingUiState()
 }
+
 class ProcessingViewModel : ViewModel() {
     val images = MutableStateFlow<List<ImageItem>>(emptyList())
     val sharedUris = MutableStateFlow<List<Uri>>(emptyList())
@@ -109,10 +111,16 @@ class ProcessingViewModel : ViewModel() {
     private var currentProcessingId: String? = null
     private var isInitialized = false
     private fun status(resId: Int, fallback: String) = appContext?.getString(resId) ?: fallback
-    private val statusPreparing get() = status(com.je.dejpeg.R.string.status_preparing, "Preparing...")
+    private val statusPreparing
+        get() = status(
+            com.je.dejpeg.R.string.status_preparing, "Preparing..."
+        )
     private val statusComplete get() = status(com.je.dejpeg.R.string.status_complete, "Complete")
     private val statusCancelled get() = status(com.je.dejpeg.R.string.status_cancelled, "Cancelled")
-    private val statusCanceling get() = status(com.je.dejpeg.R.string.status_canceling, "Canceling...")
+    private val statusCanceling
+        get() = status(
+            com.je.dejpeg.R.string.status_canceling, "Canceling..."
+        )
     private val statusQueued get() = status(com.je.dejpeg.R.string.status_queued, "queued")
 
     fun initialize(context: Context) {
@@ -123,49 +131,82 @@ class ProcessingViewModel : ViewModel() {
         appPreferences = AppPreferences(appCtx)
         modelManager = ModelManager(context)
         imagePickerHelper = ImagePickerHelper(context)
-        serviceHelper = ServiceCommunicationHelper(appCtx, object : ServiceCommunicationHelper.ServiceCallbacks {
-            override fun onPidReceived(pid: Int) {
-                Log.d("ProcessingViewModel", "Service PID received: $pid")
-            }
-            override fun onProgress(imageId: String, message: String) {
-                updateImageState(imageId) { it.copy(isProcessing = true, progress = message) }
-            }
-            override fun onChunkProgress(imageId: String, completedChunks: Int, totalChunks: Int) {
-                updateImageState(imageId) { item ->
-                    item.copy(
-                        completedChunks = completedChunks,
-                        totalChunks = totalChunks
-                    )
+        serviceHelper = ServiceCommunicationHelper(
+            appCtx, object : ServiceCommunicationHelper.ServiceCallbacks {
+                override fun onPidReceived(pid: Int) {
+                    Log.d("ProcessingViewModel", "Service PID received: $pid")
                 }
-            }
-            override fun onComplete(imageId: String, path: String) {
-                handleProcessingComplete(imageId, path)
-            }
-            override fun onError(imageId: String?, message: String) {
-                handleProcessingError(imageId, message)
-            }
-            override fun onServiceCrash(imageId: String?) {
-                Log.e("ProcessingViewModel", "Service process crashed while processing image: $imageId")
-                handleServiceCrash(imageId)
-            }
-        })
+
+                override fun onProgress(imageId: String, message: String) {
+                    updateImageState(imageId) { it.copy(isProcessing = true, progress = message) }
+                }
+
+                override fun onChunkProgress(
+                    imageId: String, completedChunks: Int, totalChunks: Int
+                ) {
+                    updateImageState(imageId) { item ->
+                        item.copy(
+                            completedChunks = completedChunks, totalChunks = totalChunks
+                        )
+                    }
+                }
+
+                override fun onComplete(imageId: String, path: String) {
+                    handleProcessingComplete(imageId, path)
+                }
+
+                override fun onError(imageId: String?, message: String) {
+                    handleProcessingError(imageId, message)
+                }
+
+                override fun onServiceCrash(imageId: String?) {
+                    Log.e(
+                        "ProcessingViewModel",
+                        "Service process crashed while processing image: $imageId"
+                    )
+                    handleServiceCrash(imageId)
+                }
+            })
         serviceHelper?.register()
         viewModelScope.launch { appPreferences?.chunkSize?.collect { chunkSize.value = it } }
         viewModelScope.launch { appPreferences?.overlapSize?.collect { overlapSize.value = it } }
-        viewModelScope.launch { appPreferences?.globalStrength?.collect { globalStrength.value = it } }
-        viewModelScope.launch { appPreferences?.processingMode?.collect { processingMode.value = it } }
+        viewModelScope.launch {
+            appPreferences?.globalStrength?.collect {
+                globalStrength.value = it
+            }
+        }
+        viewModelScope.launch {
+            appPreferences?.processingMode?.collect {
+                processingMode.value = it
+            }
+        }
         viewModelScope.launch { appPreferences?.oidnHdr?.collect { oidnHdr.value = it } }
         viewModelScope.launch { appPreferences?.oidnSrgb?.collect { oidnSrgb.value = it } }
         viewModelScope.launch { appPreferences?.oidnQuality?.collect { oidnQuality.value = it } }
-        viewModelScope.launch { appPreferences?.oidnMaxMemoryMB?.collect { oidnMaxMemoryMB.value = it } }
-        viewModelScope.launch { appPreferences?.oidnNumThreads?.collect { oidnNumThreads.value = it } }
-        viewModelScope.launch { appPreferences?.oidnInputScale?.collect { oidnInputScale.value = it } }
         viewModelScope.launch {
-            appContext?.let { ctx -> 
+            appPreferences?.oidnMaxMemoryMB?.collect {
+                oidnMaxMemoryMB.value = it
+            }
+        }
+        viewModelScope.launch {
+            appPreferences?.oidnNumThreads?.collect {
+                oidnNumThreads.value = it
+            }
+        }
+        viewModelScope.launch {
+            appPreferences?.oidnInputScale?.collect {
+                oidnInputScale.value = it
+            }
+        }
+        viewModelScope.launch {
+            appContext?.let { ctx ->
                 ModelMigrationHelper.migrateModelsIfNeeded(ctx) // attempt to migrate and set previous model
             }
-            installedModels.value = withContext(Dispatchers.IO) { modelManager?.getInstalledModels() ?: emptyList() }
-            installedOidnModels.value = withContext(Dispatchers.IO) { modelManager?.getInstalledOidnModels() ?: emptyList() }
+            installedModels.value =
+                withContext(Dispatchers.IO) { modelManager?.getInstalledModels() ?: emptyList() }
+            installedOidnModels.value = withContext(Dispatchers.IO) {
+                modelManager?.getInstalledOidnModels() ?: emptyList()
+            }
             hasCheckedModels.value = true
             if (installedModels.value.isEmpty()) {
                 shouldShowNoModelDialog.value = true
@@ -202,6 +243,7 @@ class ProcessingViewModel : ViewModel() {
             uiState.value = ProcessingUiState.Error("Camera error: ${e.message}")
         }
     }
+
     fun getCameraPhotoUri(): Uri? = imagePickerHelper?.getCameraPhotoUri()
     fun clearCameraPhotoUri() = imagePickerHelper?.clearCameraPhotoUri()
     fun addImage(item: ImageItem) {
@@ -227,9 +269,13 @@ class ProcessingViewModel : ViewModel() {
                                 if (filename.startsWith("temp_camera_")) {
                                     val tempFile = File(context.cacheDir, filename)
                                     if (tempFile.exists()) {
-                                        val unprocessedFile = File(context.cacheDir, "${imageId}_unprocessed.jpg")
+                                        val unprocessedFile =
+                                            File(context.cacheDir, "${imageId}_unprocessed.jpg")
                                         if (tempFile.renameTo(unprocessedFile)) {
-                                            Log.d("ProcessingViewModel", "Renamed camera temp file to ${unprocessedFile.name}")
+                                            Log.d(
+                                                "ProcessingViewModel",
+                                                "Renamed camera temp file to ${unprocessedFile.name}"
+                                            )
                                         }
                                     }
                                 }
@@ -283,8 +329,10 @@ class ProcessingViewModel : ViewModel() {
             appContext?.let { ctx ->
                 viewModelScope.launch {
                     Log.d("ProcessingViewModel", "removeImage: Cleaning up cache for imageId: $id")
-                    CacheManager.deleteRecoveryPair(ctx, id, deleteProcessed = true, deleteUnprocessed = true)
-                    }
+                    CacheManager.deleteRecoveryPair(
+                        ctx, id, deleteProcessed = true, deleteUnprocessed = true
+                    )
+                }
             }
         }
     }
@@ -293,10 +341,11 @@ class ProcessingViewModel : ViewModel() {
     private fun updateImageState(id: String, transform: (ImageItem) -> ImageItem) {
         images.value = images.value.map { if (it.id == id) transform(it) else it }
     }
+
     private fun resetChunkProgress(item: ImageItem) = item.copy(
-        completedChunks = 0,
-        totalChunks = 0
+        completedChunks = 0, totalChunks = 0
     )
+
     private fun resetImageProcessingState(
         item: ImageItem,
         isProcessing: Boolean = false,
@@ -309,6 +358,7 @@ class ProcessingViewModel : ViewModel() {
         completedChunks = 0,
         totalChunks = 0
     )
+
     fun processImages() {
         viewModelScope.launch {
             if (cancelInProgress) return@launch
@@ -322,7 +372,9 @@ class ProcessingViewModel : ViewModel() {
 
             imagesToProcess.forEach { image ->
                 updateImageState(image.id) {
-                    resetChunkProgress(it).copy(isProcessing = true, progress = statusQueued, isCancelling = false)
+                    resetChunkProgress(it).copy(
+                        isProcessing = true, progress = statusQueued, isCancelling = false
+                    )
                 }
             }
 
@@ -345,9 +397,12 @@ class ProcessingViewModel : ViewModel() {
                     processingQueue.size + if (currentProcessingId != null) 1 else 0
                 )
                 updateImageState(id) {
-                    resetChunkProgress(it).copy(isProcessing = true, progress = statusQueued, isCancelling = false)
+                    resetChunkProgress(it).copy(
+                        isProcessing = true, progress = statusQueued, isCancelling = false
+                    )
                 }
-                val currentIndex = (activeProcessingTotal - processingQueue.size - 1).coerceAtLeast(0)
+                val currentIndex =
+                    (activeProcessingTotal - processingQueue.size - 1).coerceAtLeast(0)
                 uiState.value = ProcessingUiState.Processing(currentIndex, activeProcessingTotal)
                 return@launch
             }
@@ -368,7 +423,8 @@ class ProcessingViewModel : ViewModel() {
         val imageId = processingQueue.removeAt(0)
         val image = images.value.find { it.id == imageId } ?: return processNextInQueue()
 
-        val total = if (activeProcessingTotal > 0) activeProcessingTotal else images.value.count { it.uri != null }
+        val total =
+            if (activeProcessingTotal > 0) activeProcessingTotal else images.value.count { it.uri != null }
         activeProcessingTotal = total
         val currentIndex = total - processingQueue.size - 1
         uiState.value = ProcessingUiState.Processing(currentIndex, total)
@@ -385,7 +441,12 @@ class ProcessingViewModel : ViewModel() {
         val uriString = uri.toString()
 
         updateImageState(imageId) {
-            it.copy(isProcessing = true, progress = statusPreparing, completedChunks = 0, totalChunks = 0)
+            it.copy(
+                isProcessing = true,
+                progress = statusPreparing,
+                completedChunks = 0,
+                totalChunks = 0
+            )
         }
 
         viewModelScope.launch {
@@ -418,7 +479,11 @@ class ProcessingViewModel : ViewModel() {
         cancelInProgress = true
 
         currentProcessingId?.let {
-            updateImageState(it) { img -> img.copy(isCancelling = true, progress = statusCanceling) }
+            updateImageState(it) { img ->
+                img.copy(
+                    isCancelling = true, progress = statusCanceling
+                )
+            }
             cancelProcessingService(it)
         }
         images.value.filter { it.isProcessing && it.id != currentProcessingId }.forEach { image ->
@@ -440,7 +505,9 @@ class ProcessingViewModel : ViewModel() {
             currentProcessingId = null
         }
         if (targetImageId != null) {
-            stopProcessing(targetImageId, statusCancelled, isCancelled = true, serviceAlreadyDead = wasKilled)
+            stopProcessing(
+                targetImageId, statusCancelled, isCancelled = true, serviceAlreadyDead = wasKilled
+            )
         }
     }
 
@@ -460,10 +527,18 @@ class ProcessingViewModel : ViewModel() {
                         )
                     }
                 } else {
-                    updateImageState(imageId) { resetImageProcessingState(it, progress = "Decode failed") }
+                    updateImageState(imageId) {
+                        resetImageProcessingState(
+                            it, progress = "Decode failed"
+                        )
+                    }
                 }
             } catch (e: Exception) {
-                updateImageState(imageId) { resetImageProcessingState(it, progress = "${e.message}") }
+                updateImageState(imageId) {
+                    resetImageProcessingState(
+                        it, progress = "${e.message}"
+                    )
+                }
             } finally {
                 advanceQueue(imageId)
             }
@@ -477,20 +552,30 @@ class ProcessingViewModel : ViewModel() {
     }
 
     private fun handleServiceCrash(imageId: String?) {
-        val crashMessage = status(com.je.dejpeg.R.string.error_native_crash, "The processing service died unexpectedly. This usually indicates an incompatible model or insufficient memory.")
+        val crashMessage = status(
+            com.je.dejpeg.R.string.error_native_crash,
+            "The processing service died unexpectedly. This usually indicates an incompatible model or insufficient memory."
+        )
         stopProcessing(imageId, crashMessage, isCancelled = false, serviceAlreadyDead = true)
     }
 
-    private fun stopProcessing(imageId: String?, displayMessage: String, isCancelled: Boolean, serviceAlreadyDead: Boolean = false) {
+    private fun stopProcessing(
+        imageId: String?,
+        displayMessage: String,
+        isCancelled: Boolean,
+        serviceAlreadyDead: Boolean = false
+    ) {
         if (!imageId.isNullOrEmpty()) {
             updateImageState(imageId) { resetImageProcessingState(it, progress = displayMessage) }
             processingQueue.remove(imageId)
-            
+
             if (isCancelled) {
                 appContext?.let { ctx ->
                     viewModelScope.launch(Dispatchers.IO) {
                         Log.d("ProcessingViewModel", "Cleaning up cache for imageId: $imageId")
-                        CacheManager.deleteRecoveryPair(ctx, imageId, deleteProcessed = true, deleteUnprocessed = true)
+                        CacheManager.deleteRecoveryPair(
+                            ctx, imageId, deleteProcessed = true, deleteUnprocessed = true
+                        )
                     }
                 }
             }
@@ -543,7 +628,7 @@ class ProcessingViewModel : ViewModel() {
     }
 
     fun isCurrentlyProcessing(imageId: String) = currentProcessingId == imageId
-    
+
     fun cancelProcessingForImage(imageId: String) {
         cancelInProgress = true
         updateImageState(imageId) { it.copy(isCancelling = true, progress = statusCanceling) }
@@ -573,7 +658,8 @@ class ProcessingViewModel : ViewModel() {
 
     fun refreshInstalledModels() {
         viewModelScope.launch {
-            installedModels.value = withContext(Dispatchers.IO) { modelManager?.getInstalledModels() ?: emptyList() }
+            installedModels.value =
+                withContext(Dispatchers.IO) { modelManager?.getInstalledModels() ?: emptyList() }
         }
     }
 
@@ -618,10 +704,10 @@ class ProcessingViewModel : ViewModel() {
     fun setActiveModelByName(name: String) {
         modelManager?.setActiveModel(name) ?: Log.e("ProcessingViewModel", "modelManager is null!")
     }
+
     fun hasActiveModel() = modelManager?.hasActiveModel() ?: false
     fun getActiveModelName() = modelManager?.getActiveModelName()
 
-    // oidn mode methods
     fun setProcessingMode(mode: ProcessingMode) {
         processingMode.value = mode
         viewModelScope.launch { appPreferences?.setProcessingMode(mode) }
@@ -629,7 +715,9 @@ class ProcessingViewModel : ViewModel() {
 
     fun refreshInstalledOidnModels() {
         viewModelScope.launch {
-            installedOidnModels.value = withContext(Dispatchers.IO) { modelManager?.getInstalledOidnModels() ?: emptyList() }
+            installedOidnModels.value = withContext(Dispatchers.IO) {
+                modelManager?.getInstalledOidnModels() ?: emptyList()
+            }
         }
     }
 
@@ -649,8 +737,7 @@ class ProcessingViewModel : ViewModel() {
                         refreshInstalledOidnModels()
                         launch(Dispatchers.Main) { onSuccess(modelName) }
                     },
-                    { launch(Dispatchers.Main) { onError(it) } }
-                )
+                    { launch(Dispatchers.Main) { onError(it) } })
             } catch (e: Exception) {
                 launch(Dispatchers.Main) { onError(e.message ?: "Unknown error") }
             }
@@ -668,8 +755,11 @@ class ProcessingViewModel : ViewModel() {
     }
 
     fun setActiveOidnModelByName(name: String) {
-        modelManager?.setActiveOidnModel(name) ?: Log.e("ProcessingViewModel", "modelManager is null!")
+        modelManager?.setActiveOidnModel(name) ?: Log.e(
+            "ProcessingViewModel", "modelManager is null!"
+        )
     }
+
     fun hasActiveOidnModel() = modelManager?.hasActiveOidnModel() ?: false
     fun getActiveOidnModelName() = modelManager?.getActiveOidnModelName()
 
@@ -698,10 +788,21 @@ class ProcessingViewModel : ViewModel() {
         viewModelScope.launch { appPreferences?.setOidnNumThreads(numThreads) }
     }
 
-    fun showNoModelDialog() { shouldShowNoModelDialog.value = true }
-    fun dismissNoModelDialog() { shouldShowNoModelDialog.value = false }
-    fun dismissDeprecatedModelWarning() { deprecatedModelWarning.value = null }
-    fun dismissProcessingErrorDialog() { processingErrorDialog.value = null }
+    fun showNoModelDialog() {
+        shouldShowNoModelDialog.value = true
+    }
+
+    fun dismissNoModelDialog() {
+        shouldShowNoModelDialog.value = false
+    }
+
+    fun dismissDeprecatedModelWarning() {
+        deprecatedModelWarning.value = null
+    }
+
+    fun dismissProcessingErrorDialog() {
+        processingErrorDialog.value = null
+    }
 
     fun markImageAsSaved(imageId: String) {
         updateImageState(imageId) { it.copy(hasBeenSaved = true) }
@@ -734,9 +835,7 @@ class ProcessingViewModel : ViewModel() {
     }
 
     fun saveAllImages(
-        context: Context,
-        onComplete: () -> Unit = {},
-        onError: (String) -> Unit = {}
+        context: Context, onComplete: () -> Unit = {}, onError: (String) -> Unit = {}
     ) {
         val imagesToSave = images.value.filter { it.outputBitmap != null }
         val imagesData = imagesToSave.map { it.filename to it.outputBitmap!! }
@@ -766,7 +865,6 @@ class ProcessingViewModel : ViewModel() {
                 isSavingImages.value = false
                 savingImagesProgress.value = null
                 onError(errorMsg)
-            }
-        )
+            })
     }
 }

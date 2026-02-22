@@ -178,8 +178,7 @@ fun ModelDialog(
         }
     }, confirmButton = {
         Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -202,15 +201,13 @@ fun ModelDialog(
                             "https://codeberg.org/dryerlint/dejpeg/src/branch/main/models".toUri()
                         )
                         context.startActivity(intent)
-                    },
-                    modifier = Modifier.weight(1f)
+                    }, modifier = Modifier.weight(1f)
                 ) {
                     Text(stringResource(R.string.download))
                 }
             }
             Button(
-                onClick = { haptic.medium(); onImport() },
-                modifier = Modifier.fillMaxWidth()
+                onClick = { haptic.medium(); onImport() }, modifier = Modifier.fillMaxWidth()
             ) {
                 Text(stringResource(R.string.import_text))
             }

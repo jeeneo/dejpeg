@@ -1,19 +1,19 @@
 /**
-* Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ * Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 /*
 * If you use this code in your own project, please give credit
@@ -47,8 +47,7 @@ import java.nio.FloatBuffer
 import kotlin.math.ceil
 
 class ImageProcessor(
-    private val context: Context,
-    private val modelManager: ModelManager
+    private val context: Context, private val modelManager: ModelManager
 ) {
 
     private companion object {
@@ -73,9 +72,7 @@ class ImageProcessor(
     }
 
     suspend fun processImage(
-        inputBitmap: Bitmap,
-        strength: Float,
-        callback: ProcessCallback
+        inputBitmap: Bitmap, strength: Float, callback: ProcessCallback
     ) = withContext(Dispatchers.Default) {
         isCancelled = false
         try {
@@ -85,7 +82,10 @@ class ImageProcessor(
             val baseOverlap = overlapSize ?: AppPreferences.DEFAULT_OVERLAP_SIZE
             val effectiveOverlap = maxOf(baseOverlap, minOverlap)
             if (effectiveOverlap > baseOverlap) {
-                Log.d("ImageProcessor", "Enforcing minimum overlap for $modelName: $baseOverlap -> $effectiveOverlap")
+                Log.d(
+                    "ImageProcessor",
+                    "Enforcing minimum overlap for $modelName: $baseOverlap -> $effectiveOverlap"
+                )
             }
             val modelInfo = ModelInfo(modelName, strength, session, chunkSize, effectiveOverlap)
             val result = processBitmap(session, inputBitmap, callback, modelInfo)
@@ -110,13 +110,10 @@ class ImageProcessor(
     }
 
     private suspend fun processBitmap(
-        session: OrtSession,
-        inputBitmap: Bitmap,
-        callback: ProcessCallback,
-        info: ModelInfo
+        session: OrtSession, inputBitmap: Bitmap, callback: ProcessCallback, info: ModelInfo
     ): Bitmap {
-        val width = inputBitmap.getWidth()
-        val height = inputBitmap.getHeight()
+        val width = inputBitmap.width
+        val height = inputBitmap.height
         val hasTransparency = inputBitmap.hasAlpha()
         val processingConfig = Bitmap.Config.ARGB_8888
         val effectiveMaxChunkSize = if (info.expectedWidth != null && info.expectedHeight != null) {
@@ -125,25 +122,32 @@ class ImageProcessor(
             info.chunkSize
         }
         val mustTile = width > effectiveMaxChunkSize || height > effectiveMaxChunkSize
-        val processedBitmap = if (mustTile) processTiled(session, inputBitmap, callback, info, processingConfig, hasTransparency,
-            effectiveMaxChunkSize)
-        else
-        {
-            val bitmapToProcess = if (inputBitmap.config != processingConfig) inputBitmap.copy(processingConfig, true)
-            else inputBitmap
+        val processedBitmap = if (mustTile) processTiled(
+            session,
+            inputBitmap,
+            callback,
+            info,
+            processingConfig,
+            hasTransparency,
+            effectiveMaxChunkSize
+        )
+        else {
+            val bitmapToProcess =
+                if (inputBitmap.config != processingConfig) inputBitmap.copy(processingConfig, true)
+                else inputBitmap
             val progressMessage = { context.getString(R.string.processing) }
             withContext(Dispatchers.Main) {
                 callback.onProgress(progressMessage())
             }
-            val result = processChunk(session, bitmapToProcess, processingConfig, hasTransparency, info)
+            val result =
+                processChunk(session, bitmapToProcess, processingConfig, hasTransparency, info)
             result
         }
         return processedBitmap
     }
 
     private fun computeEvenTileBoundaries(
-        totalSize: Int,
-        maxTileSize: Int
+        totalSize: Int, maxTileSize: Int
     ): List<Pair<Int, Int>> {
         if (totalSize <= maxTileSize) return listOf(0 to totalSize)
 
@@ -181,7 +185,10 @@ class ImageProcessor(
         val cols = colBounds.size
         val rows = rowBounds.size
 
-        Log.d("ImageProcessor", "Processing tiled: image=${width}x${height}, maxChunkSize=$maxChunkSize, maxTileSize=$maxTileSize, grid=${cols}x${rows}, overlap=$overlap")
+        Log.d(
+            "ImageProcessor",
+            "Processing tiled: image=${width}x${height}, maxChunkSize=$maxChunkSize, maxTileSize=$maxTileSize, grid=${cols}x${rows}, overlap=$overlap"
+        )
         Log.d("ImageProcessor", "  Column bounds: $colBounds")
         Log.d("ImageProcessor", "  Row bounds: $rowBounds")
 
@@ -205,7 +212,8 @@ class ImageProcessor(
                     val extractY = tileY - expandTop
                     val extractW = tileW + expandLeft + expandRight
                     val extractH = tileH + expandTop + expandBottom
-                    val chunk = Bitmap.createBitmap(inputBitmap, extractX, extractY, extractW, extractH)
+                    val chunk =
+                        Bitmap.createBitmap(inputBitmap, extractX, extractY, extractW, extractH)
                     val converted = if (chunk.config != config) {
                         val temp = chunk.copy(config, true)
                         chunk.recycle()
@@ -216,28 +224,32 @@ class ImageProcessor(
                     val inputChunkFile = File(chunksDir, "chunk_${chunkIndex}.png")
                     val processedChunkFile = File(chunksDir, "chunk_${chunkIndex}_processed.png")
                     withContext(Dispatchers.IO) {
-                        FileOutputStream(inputChunkFile).use { 
-                            converted.compress(Bitmap.CompressFormat.PNG, 100, it) 
+                        FileOutputStream(inputChunkFile).use {
+                            converted.compress(Bitmap.CompressFormat.PNG, 100, it)
                         }
                     }
                     converted.recycle()
-                    chunkInfoList.add(ChunkInfo(
-                        index = chunkIndex,
-                        inputFile = inputChunkFile,
-                        processedFile = processedChunkFile,
-                        x = tileX,
-                        y = tileY,
-                        width = tileW,
-                        height = tileH,
-                        col = col,
-                        row = row,
-                        expandLeft = expandLeft,
-                        expandTop = expandTop
-                    ))
+                    chunkInfoList.add(
+                        ChunkInfo(
+                            index = chunkIndex,
+                            inputFile = inputChunkFile,
+                            processedFile = processedChunkFile,
+                            x = tileX,
+                            y = tileY,
+                            width = tileW,
+                            height = tileH,
+                            col = col,
+                            row = row,
+                            expandLeft = expandLeft,
+                            expandTop = expandTop
+                        )
+                    )
                     chunkIndex++
                 }
             }
-            Log.d("ImageProcessor", "Saved ${chunkInfoList.size} chunks to ${chunksDir.absolutePath}")
+            Log.d(
+                "ImageProcessor", "Saved ${chunkInfoList.size} chunks to ${chunksDir.absolutePath}"
+            )
             Log.d("ImageProcessor", "Phase 2: Processing $totalChunks chunks")
             if (totalChunks > 1) {
                 withContext(Dispatchers.Main) {
@@ -247,7 +259,9 @@ class ImageProcessor(
             for (chunkInfo in chunkInfoList) {
                 if (isCancelled) throw Exception(context.getString(R.string.error_processing_cancelled))
                 val progressMessage = if (totalChunks > 1) {
-                    context.getString(R.string.processing_chunk_x_of_y, chunkInfo.index + 1, totalChunks)
+                    context.getString(
+                        R.string.processing_chunk_x_of_y, chunkInfo.index + 1, totalChunks
+                    )
                 } else {
                     context.getString(R.string.processing)
                 }
@@ -259,15 +273,20 @@ class ImageProcessor(
                 } ?: throw Exception("Failed to load chunk ${chunkInfo.index}")
                 val processed = processChunk(session, loadedChunk, config, hasTransparency, info)
                 loadedChunk.recycle()
-                val cropped = if (chunkInfo.expandLeft > 0 || chunkInfo.expandTop > 0 ||
-                    processed.width > chunkInfo.width || processed.height > chunkInfo.height) {
-                    val c = Bitmap.createBitmap(processed, chunkInfo.expandLeft, chunkInfo.expandTop,
-                        chunkInfo.width, chunkInfo.height)
-                    processed.recycle()
-                    c
-                } else {
-                    processed
-                }
+                val cropped =
+                    if (chunkInfo.expandLeft > 0 || chunkInfo.expandTop > 0 || processed.width > chunkInfo.width || processed.height > chunkInfo.height) {
+                        val c = Bitmap.createBitmap(
+                            processed,
+                            chunkInfo.expandLeft,
+                            chunkInfo.expandTop,
+                            chunkInfo.width,
+                            chunkInfo.height
+                        )
+                        processed.recycle()
+                        c
+                    } else {
+                        processed
+                    }
                 withContext(Dispatchers.IO) {
                     FileOutputStream(chunkInfo.processedFile).use {
                         cropped.compress(Bitmap.CompressFormat.PNG, 100, it)
@@ -293,7 +312,9 @@ class ImageProcessor(
                 val loadedProcessed = withContext(Dispatchers.IO) {
                     BitmapFactory.decodeFile(chunkInfo.processedFile.absolutePath)
                 } ?: throw Exception("Failed to load processed chunk ${chunkInfo.index}")
-                resultCanvas.drawBitmap(loadedProcessed, chunkInfo.x.toFloat(), chunkInfo.y.toFloat(), null)
+                resultCanvas.drawBitmap(
+                    loadedProcessed, chunkInfo.x.toFloat(), chunkInfo.y.toFloat(), null
+                )
                 loadedProcessed.recycle()
             }
             CacheManager.clearChunks(context)
@@ -312,7 +333,8 @@ class ImageProcessor(
     ): Bitmap {
         val originalW = chunk.width
         val originalH = chunk.height
-        val minImgSize = modelManager.getMinSpatialSize(info.modelName) // redirected to modelManager
+        val minImgSize =
+            modelManager.getMinSpatialSize(info.modelName) // redirected to modelManager
         val w = if (info.expectedWidth != null && info.expectedWidth > 0) {
             info.expectedWidth
         } else {
@@ -376,7 +398,8 @@ class ImageProcessor(
         val inputs = mutableMapOf<String, OnnxTensor>()
         val inputTensor = if (info.isFp16) {
             val fp16Array = ShortArray(inputArray.size) { i -> floatToFloat16(inputArray[i]) }
-            val byteBuffer = ByteBuffer.allocateDirect(fp16Array.size * 2).order(ByteOrder.nativeOrder())
+            val byteBuffer =
+                ByteBuffer.allocateDirect(fp16Array.size * 2).order(ByteOrder.nativeOrder())
             val shortBuffer = byteBuffer.asShortBuffer()
             shortBuffer.put(fp16Array)
             byteBuffer.rewind()
@@ -401,7 +424,9 @@ class ImageProcessor(
                         byteBuffer.rewind()
                         OnnxTensor.createTensor(env, byteBuffer, shape, OnnxJavaType.FLOAT16)
                     } else {
-                        OnnxTensor.createTensor(env, FloatBuffer.wrap(floatArrayOf(info.strength / 100f)), shape)
+                        OnnxTensor.createTensor(
+                            env, FloatBuffer.wrap(floatArrayOf(info.strength / 100f)), shape
+                        )
                     }
                     inputs[key] = strengthTensor
                 }
@@ -409,12 +434,14 @@ class ImageProcessor(
         }
         val result = try {
             session.run(inputs).use { sessionResult ->
-                val (outputArray, actualOutputChannels) = extractOutputArray(sessionResult[0].value, outputChannels, h, w)
+                val (outputArray, actualOutputChannels) = extractOutputArray(
+                    sessionResult[0].value, outputChannels, h, w
+                )
                 val fullResultBitmap = createBitmap(w, h, config)
                 val outPixels = IntArray(w * h)
                 for (i in 0 until w * h) {
                     val alpha = if (hasAlpha) clamp255(alphaChannel!![i] * 255f) else 255
-                    
+
                     if (actualOutputChannels == 1) {
                         val gray = clamp255(outputArray[i] * 255f)
                         outPixels[i] = Color.argb(alpha, gray, gray, gray)
@@ -448,22 +475,29 @@ class ImageProcessor(
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun extractOutputArray(outputValue: Any, channels: Int, h: Int, w: Int): Pair<FloatArray, Int> {
+    private fun extractOutputArray(
+        outputValue: Any, channels: Int, h: Int, w: Int
+    ): Pair<FloatArray, Int> {
         Log.d("ImageProcessor", "Output type received: ${outputValue.javaClass.name}")
         return when (outputValue) {
             is FloatArray -> {
                 Log.d("ImageProcessor", "Output is FloatArray (FP32 or auto-converted from FP16)")
                 outputValue to channels
             }
+
             is ShortArray -> {
                 Log.d("ImageProcessor", "Output is ShortArray (FP16) - converting to Float32")
                 FloatArray(outputValue.size) { i -> float16ToFloat(outputValue[i]) } to channels
             }
+
             is Array<*> -> {
                 try {
                     val arr = outputValue as Array<Array<Array<FloatArray>>>
                     val actualChannels = arr[0].size
-                    Log.d("ImageProcessor", "Expected channels: $channels, Actual channels: $actualChannels")
+                    Log.d(
+                        "ImageProcessor",
+                        "Expected channels: $channels, Actual channels: $actualChannels"
+                    )
                     val out = FloatArray(channels * h * w)
                     val channelsToProcess = minOf(channels, actualChannels)
                     for (ch in 0 until channelsToProcess) {
@@ -478,7 +512,10 @@ class ImageProcessor(
                     try {
                         val arr = outputValue as Array<Array<Array<ShortArray>>>
                         val actualChannels = arr[0].size
-                        Log.d("ImageProcessor", "Expected channels: $channels, Actual channels: $actualChannels")
+                        Log.d(
+                            "ImageProcessor",
+                            "Expected channels: $channels, Actual channels: $actualChannels"
+                        )
                         val out = FloatArray(channels * h * w)
                         val channelsToProcess = minOf(channels, actualChannels)
                         for (ch in 0 until channelsToProcess) {
@@ -494,6 +531,7 @@ class ImageProcessor(
                     }
                 }
             }
+
             else -> throw RuntimeException("Unexpected ONNX output type: ${outputValue.javaClass}")
         }
     }
@@ -570,8 +608,12 @@ class ImageProcessor(
         val overlap: Int = overlapSize ?: AppPreferences.DEFAULT_OVERLAP_SIZE
         val expectedWidth: Int?
         val expectedHeight: Int?
+
         init {
-            Log.d("ModelInfo", "Initialized with chunkSize: $chunkSize, overlapSize: $overlapSize -> chunkSize: $chunkSize, overlap: $overlap")
+            Log.d(
+                "ModelInfo",
+                "Initialized with chunkSize: $chunkSize, overlapSize: $overlapSize -> chunkSize: $chunkSize, overlap: $overlap"
+            )
             inputInfoMap = session.inputInfo
             env = OrtEnvironment.getEnvironment()
             var foundInputName: String? = null
@@ -601,13 +643,17 @@ class ImageProcessor(
                     break
                 }
             }
-            inputName = foundInputName ?: throw RuntimeException("Could not find valid input tensor")
+            inputName =
+                foundInputName ?: throw RuntimeException("Could not find valid input tensor")
             inputChannels = foundInputChannels
             outputChannels = foundOutputChannels
             isFp16 = foundIsFp16
             expectedWidth = foundExpectedWidth
             expectedHeight = foundExpectedHeight
-            Log.d("ModelInfo", "Model input type: ${if (isFp16) "FP16" else "FP32"}, input channels: $inputChannels, output channels: $outputChannels, expected dimensions: ${expectedWidth ?: "dynamic"}x${expectedHeight ?: "dynamic"}")
+            Log.d(
+                "ModelInfo",
+                "Model input type: ${if (isFp16) "FP16" else "FP32"}, input channels: $inputChannels, output channels: $outputChannels, expected dimensions: ${expectedWidth ?: "dynamic"}x${expectedHeight ?: "dynamic"}"
+            )
         }
     }
 }

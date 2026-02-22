@@ -85,7 +85,15 @@ class OidnProcessor(private val context: Context) {
             withContext(Dispatchers.Main) { callback.onProgress(context.getString(R.string.processing)) }
             val config = Bitmap.Config.ARGB_8888
             val result = processChunk(
-                inputBitmap, weightsPath, numThreads, quality, maxMemoryMB, hdr, srgb, inputScale, config
+                inputBitmap,
+                weightsPath,
+                numThreads,
+                quality,
+                maxMemoryMB,
+                hdr,
+                srgb,
+                inputScale,
+                config
             )
             withContext(Dispatchers.Main) { callback.onComplete(result) }
         } catch (e: Exception) {

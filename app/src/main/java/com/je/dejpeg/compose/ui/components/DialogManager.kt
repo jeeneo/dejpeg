@@ -1,19 +1,19 @@
 /**
-* Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ * Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 /*
 * If you use this code in your own project, please give credit
@@ -63,10 +63,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
+import com.je.dejpeg.BuildConfig
 import com.je.dejpeg.R
 import com.je.dejpeg.compose.utils.CacheManager
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
-import com.je.dejpeg.BuildConfig
 
 @Composable
 fun AboutDialog(onDismiss: () -> Unit) {
@@ -74,9 +74,11 @@ fun AboutDialog(onDismiss: () -> Unit) {
     val haptic = rememberHapticFeedback()
     val versionName = try {
         context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "Unknown"
-    } catch (_: Exception) { "Unknown" }
+    } catch (_: Exception) {
+        "Unknown"
+    }
     var spawnTrigger by remember { androidx.compose.runtime.mutableLongStateOf(0L) }
-    
+
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier
@@ -104,9 +106,9 @@ fun AboutDialog(onDismiss: () -> Unit) {
                                     .size(128.dp)
                                     .clickable(
                                         indication = null,
-                                        interactionSource = remember { MutableInteractionSource() }
-                                    ) { haptic.light(); spawnTrigger = System.currentTimeMillis() }
-                            )
+                                        interactionSource = remember { MutableInteractionSource() }) {
+                                        haptic.light(); spawnTrigger = System.currentTimeMillis()
+                                    })
                         }
                         Spacer(Modifier.height(8.dp))
                         Text(
@@ -124,16 +126,19 @@ fun AboutDialog(onDismiss: () -> Unit) {
                     }
                     Spacer(Modifier.height(8.dp))
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
+                        modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End
                     ) {
                         TextButton(onClick = {
                             haptic.light()
                             try {
                                 context.startActivity(
-                                    Intent(Intent.ACTION_VIEW, "https://codeberg.org/dryerlint/dejpeg".toUri())
+                                    Intent(
+                                        Intent.ACTION_VIEW,
+                                        "https://codeberg.org/dryerlint/dejpeg".toUri()
+                                    )
                                 )
-                            } catch (_: Exception) { }
+                            } catch (_: Exception) {
+                            }
                         }) {
                             Text(stringResource(R.string.source_code))
                         }
@@ -165,21 +170,19 @@ fun ImportProgressDialog(progress: Int) {
         title = { Text(stringResource(R.string.importing_model)) },
         text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                LinearProgressIndicator(progress = { progress / 100f }, modifier = Modifier.fillMaxWidth())
+                LinearProgressIndicator(
+                    progress = { progress / 100f }, modifier = Modifier.fillMaxWidth()
+                )
                 Spacer(Modifier.height(8.dp))
                 Text(stringResource(R.string.progress_percent, progress))
             }
         },
-        confirmButton = {}
-    )
+        confirmButton = {})
 }
 
 @Composable
 fun LoadingDialog(
-    title: String,
-    message: String? = null,
-    progress: Float? = null,
-    progressText: String? = null
+    title: String, message: String? = null, progress: Float? = null, progressText: String? = null
 ) {
     Dialog(
         onDismissRequest = { },
@@ -199,14 +202,32 @@ fun LoadingDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-                message?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                message?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 if (progress != null) {
-                    LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
+                    LinearProgressIndicator(
+                        progress = { progress }, modifier = Modifier.fillMaxWidth()
+                    )
                 } else {
                     CircularProgressIndicator(modifier = Modifier.size(48.dp))
                 }
-                progressText?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                progressText?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
@@ -222,24 +243,47 @@ fun SaveImageDialog(
     onSave: (String, Boolean, Boolean) -> Unit
 ) {
     val fileExt = defaultFilename.substringBeforeLast('.', defaultFilename)
-    var textState by remember { mutableStateOf(TextFieldValue(fileExt, TextRange(0, fileExt.length))) }
+    var textState by remember {
+        mutableStateOf(
+            TextFieldValue(
+                fileExt, TextRange(0, fileExt.length)
+            )
+        )
+    }
     var saveAll by remember { mutableStateOf(initialSaveAll) }
     var skipNext by remember { mutableStateOf(false) }
     val haptic = rememberHapticFeedback()
-    
+
     StyledAlertDialog(
         onDismissRequest = onDismissRequest,
         title = { Text(stringResource(if (hideOptions) R.string.overwrite_image else R.string.save_image)) },
         text = {
             Column {
-                if (hideOptions) Text(stringResource(R.string.already_exists), Modifier.padding(bottom = 12.dp))
-                OutlinedTextField(textState, { textState = it }, Modifier.fillMaxWidth(), singleLine = true, label = { Text(stringResource(R.string.filename)) })
+                if (hideOptions) Text(
+                    stringResource(R.string.already_exists), Modifier.padding(bottom = 12.dp)
+                )
+                OutlinedTextField(
+                    textState,
+                    { textState = it },
+                    Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.filename)) })
                 if (!hideOptions) {
                     Spacer(Modifier.height(12.dp))
                     if (showSaveAllOption) {
-                        MaterialSwitchRow(stringResource(R.string.save_all), saveAll, { haptic.light(); saveAll = it }, Modifier.fillMaxWidth())
+                        MaterialSwitchRow(
+                            stringResource(R.string.save_all),
+                            saveAll,
+                            { haptic.light(); saveAll = it },
+                            Modifier.fillMaxWidth()
+                        )
                     }
-                    MaterialSwitchRow(stringResource(R.string.dont_show_dialog), skipNext, { haptic.light(); skipNext = it }, Modifier.fillMaxWidth())
+                    MaterialSwitchRow(
+                        stringResource(R.string.dont_show_dialog),
+                        skipNext,
+                        { haptic.light(); skipNext = it },
+                        Modifier.fillMaxWidth()
+                    )
                 }
             }
         },
@@ -251,14 +295,14 @@ fun SaveImageDialog(
         confirmButton = {
             Button(onClick = {
                 haptic.light()
-                val sanitizedFilename = textState.text.trim().replace(Regex("[/\\\\:*?\"<>|]"), "_").takeIf { it.isNotBlank() } ?: "image"
+                val sanitizedFilename = textState.text.trim().replace(Regex("[/\\\\:*?\"<>|]"), "_")
+                    .takeIf { it.isNotBlank() } ?: "image"
                 onSave(sanitizedFilename, saveAll, skipNext)
                 onDismissRequest()
             }) {
                 Text(stringResource(R.string.save))
             }
-        }
-    )
+        })
 }
 
 @Composable
@@ -286,15 +330,16 @@ fun RemoveImageDialog(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextButton({ 
+                TextButton({
                     haptic.heavy()
-                    CacheManager.deleteRecoveryPair(context, imageId, deleteProcessed = true, deleteUnprocessed = true)
+                    CacheManager.deleteRecoveryPair(
+                        context, imageId, deleteProcessed = true, deleteUnprocessed = true
+                    )
                     onRemove()
                     onDismissRequest()
                 }) {
                     Text(
-                        stringResource(R.string.remove),
-                        color = MaterialTheme.colorScheme.error
+                        stringResource(R.string.remove), color = MaterialTheme.colorScheme.error
                     )
                 }
                 if (hasOutput) {
@@ -303,12 +348,13 @@ fun RemoveImageDialog(
                     }
                 }
             }
-        }
-    )
+        })
 }
 
 @Composable
-fun CancelProcessingDialog(imageFilename: String? = null, onDismissRequest: () -> Unit, onConfirm: () -> Unit) {
+fun CancelProcessingDialog(
+    imageFilename: String? = null, onDismissRequest: () -> Unit, onConfirm: () -> Unit
+) {
     val haptic = rememberHapticFeedback()
     StyledAlertDialog(
         onDismissRequest = onDismissRequest,
@@ -334,8 +380,7 @@ fun CancelProcessingDialog(imageFilename: String? = null, onDismissRequest: () -
             ) {
                 Text(stringResource(R.string.yes_stop))
             }
-        }
-    )
+        })
 }
 
 @Composable
@@ -383,28 +428,33 @@ fun StarterModelDialog(onDismiss: () -> Unit) {
                 onClick = {
                     haptic.light()
                     onDismiss()
-                }
-            ) {
+                }) {
                 Text(stringResource(R.string.got_it))
             }
-        }
-    )
+        })
 }
 
 @Composable
 fun ModelInfoDialog(modelName: String, infoText: String, onDismiss: () -> Unit) {
     val haptic = rememberHapticFeedback()
-    
-    StyledAlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(modelName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
-        text = {
-            Text(infoText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        },
-        confirmButton = {
-            Button(onClick = { haptic.light(); onDismiss() }) {
-                Text(stringResource(R.string.ok))
-            }
+
+    StyledAlertDialog(onDismissRequest = onDismiss, title = {
+        Text(
+            modelName,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+        )
+    }, text = {
+        Text(
+            infoText,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }, confirmButton = {
+        Button(onClick = { haptic.light(); onDismiss() }) {
+            Text(stringResource(R.string.ok))
         }
-    )
+    })
 }

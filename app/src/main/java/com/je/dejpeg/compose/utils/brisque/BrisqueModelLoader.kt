@@ -1,19 +1,19 @@
 /**
-* Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ * Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 /*
 * If you use this code in your own project, please give credit
@@ -68,7 +68,8 @@ data class BrisqueSVMModel(
 object BrisqueModelLoader {
     private const val TAG = "BrisqueModelLoader"
     private const val MAGIC = "BRSQ"
-    private const val BRISQUE_MDL_HASH = "5e8828abad9dbaefa727de9312371590c6010795fd10f4e2e2a563a2bd988548"
+    private const val BRISQUE_MDL_HASH =
+        "5e8828abad9dbaefa727de9312371590c6010795fd10f4e2e2a563a2bd988548"
 
     @Volatile
     private var cachedModel: BrisqueSVMModel? = null
@@ -89,7 +90,10 @@ object BrisqueModelLoader {
                 }
                 val realHash = HashUtils.computeSHA256(inputFile)
                 if (realHash != BRISQUE_MDL_HASH) {
-                    Log.e(TAG, "BRISQUE model SHA256 verification failed. Expected: $BRISQUE_MDL_HASH, Actual: $realHash")
+                    Log.e(
+                        TAG,
+                        "BRISQUE model SHA256 verification failed. Expected: $BRISQUE_MDL_HASH, Actual: $realHash"
+                    )
                     inputFile.delete()
                     return null
                 }

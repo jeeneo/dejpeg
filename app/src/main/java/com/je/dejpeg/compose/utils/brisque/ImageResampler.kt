@@ -1,19 +1,19 @@
 /**
-* Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ * Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 /*
 * If you use this code in your own project, please give credit
@@ -66,13 +66,13 @@ internal object ImageResampler {
             val sx = floor(fx).toInt()
             val tx = fx - sx
             val base = dx * 4
-            xWeights[base]     = cubicWeight(1.0 + tx)
+            xWeights[base] = cubicWeight(1.0 + tx)
             xWeights[base + 1] = cubicWeight(tx)
             xWeights[base + 2] = cubicWeight(1.0 - tx)
             xWeights[base + 3] = cubicWeight(2.0 - tx)
             for (n in 0..3) xSrcCols[base + n] = reflect101(sx + n - 1, srcWidth)
         }
-    
+
         val yWeights = DoubleArray(dstHeight * 4)
         val ySrcRowOffs = IntArray(dstHeight * 4)
         for (dy in 0 until dstHeight) {
@@ -80,7 +80,7 @@ internal object ImageResampler {
             val sy = floor(fy).toInt()
             val ty = fy - sy
             val base = dy * 4
-            yWeights[base]     = cubicWeight(1.0 + ty)
+            yWeights[base] = cubicWeight(1.0 + ty)
             yWeights[base + 1] = cubicWeight(ty)
             yWeights[base + 2] = cubicWeight(1.0 - ty)
             yWeights[base + 3] = cubicWeight(2.0 - ty)

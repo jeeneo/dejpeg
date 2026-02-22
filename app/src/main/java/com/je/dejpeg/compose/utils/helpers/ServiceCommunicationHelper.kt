@@ -1,19 +1,19 @@
 /**
-* Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ * Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 /*
 * If you use this code in your own project, please give credit
@@ -29,16 +29,15 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.ServiceConnection
 import android.os.Build
-import android.os.IBinder
 import android.os.Handler
+import android.os.IBinder
 import android.os.Looper
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.je.dejpeg.compose.ProcessingService
 
 class ServiceCommunicationHelper(
-    private val context: Context,
-    private val callbacks: ServiceCallbacks
+    private val context: Context, private val callbacks: ServiceCallbacks
 ) {
     interface ServiceCallbacks {
         fun onPidReceived(pid: Int)
@@ -58,7 +57,10 @@ class ServiceCommunicationHelper(
 
     private val deathRecipient = IBinder.DeathRecipient {
         mainHandler.post {
-            Log.e("ServiceCommHelper", "Service process died (DeathRecipient triggered) while processing: $currentProcessingImageId")
+            Log.e(
+                "ServiceCommHelper",
+                "Service process died (DeathRecipient triggered) while processing: $currentProcessingImageId"
+            )
             val imageId = currentProcessingImageId
             cleanupBinding()
             if (imageId != null) {
@@ -79,6 +81,7 @@ class ServiceCommunicationHelper(
                 Log.e("ServiceCommHelper", "Failed to link DeathRecipient: ${e.message}")
             }
         }
+
         override fun onServiceDisconnected(name: ComponentName?) {
             Log.w("ServiceCommHelper", "Service disconnected unexpectedly")
             val imageId = currentProcessingImageId
@@ -129,23 +132,27 @@ class ServiceCommunicationHelper(
             val imageId = intent.getStringExtra(ProcessingService.EXTRA_IMAGE_ID)
             when (action) {
                 ProcessingService.PID_ACTION -> {
-                    intent.getIntExtra(ProcessingService.PID_EXTRA_VALUE, -1)
-                        .takeIf { it != -1 }
+                    intent.getIntExtra(ProcessingService.PID_EXTRA_VALUE, -1).takeIf { it != -1 }
                         ?.let { pid ->
                             serviceProcessPid = pid
                             callbacks.onPidReceived(pid)
                         }
                 }
+
                 ProcessingService.PROGRESS_ACTION -> {
-                    intent.getStringExtra(ProcessingService.PROGRESS_EXTRA_MESSAGE)?.let { message ->
-                        imageId?.let { callbacks.onProgress(it, message) }
-                    }
-                    val completed = intent.getIntExtra(ProcessingService.PROGRESS_EXTRA_COMPLETED_CHUNKS, -1)
-                    val total = intent.getIntExtra(ProcessingService.PROGRESS_EXTRA_TOTAL_CHUNKS, -1)
+                    intent.getStringExtra(ProcessingService.PROGRESS_EXTRA_MESSAGE)
+                        ?.let { message ->
+                            imageId?.let { callbacks.onProgress(it, message) }
+                        }
+                    val completed =
+                        intent.getIntExtra(ProcessingService.PROGRESS_EXTRA_COMPLETED_CHUNKS, -1)
+                    val total =
+                        intent.getIntExtra(ProcessingService.PROGRESS_EXTRA_TOTAL_CHUNKS, -1)
                     if (completed >= 0 && total > 0 && imageId != null) {
                         callbacks.onChunkProgress(imageId, completed, total)
                     }
                 }
+
                 ProcessingService.COMPLETE_ACTION -> {
                     unbindFromService()
                     val path = intent.getStringExtra(ProcessingService.COMPLETE_EXTRA_PATH)
@@ -153,9 +160,11 @@ class ServiceCommunicationHelper(
                         callbacks.onComplete(imageId, path)
                     }
                 }
+
                 ProcessingService.ERROR_ACTION -> {
                     unbindFromService()
-                    val message = intent.getStringExtra(ProcessingService.ERROR_EXTRA_MESSAGE) ?: "Error"
+                    val message =
+                        intent.getStringExtra(ProcessingService.ERROR_EXTRA_MESSAGE) ?: "Error"
                     callbacks.onError(imageId, message)
                 }
             }
@@ -264,7 +273,10 @@ class ServiceCommunicationHelper(
             }
             true
         } catch (e: Exception) {
-            Log.e("ServiceCommunicationHelper", "Failed to start service: ${e.javaClass.simpleName} - ${e.message}")
+            Log.e(
+                "ServiceCommunicationHelper",
+                "Failed to start service: ${e.javaClass.simpleName} - ${e.message}"
+            )
             false
         }
     }

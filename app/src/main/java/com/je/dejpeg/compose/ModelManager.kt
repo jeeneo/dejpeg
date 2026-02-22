@@ -1,19 +1,19 @@
 /**
-* Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ * Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 /*
 * If you use this code in your own project, please give credit
@@ -33,7 +33,6 @@ import com.je.dejpeg.compose.utils.HashUtils
 import com.je.dejpeg.compose.utils.ZipExtractor
 import com.je.dejpeg.compose.utils.helpers.ModelMigrationHelper
 import com.je.dejpeg.data.AppPreferences
-import com.je.dejpeg.data.ProcessingMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -50,7 +49,7 @@ class ModelManager(
     private var currentModelName: String? = null
     private var cachedActiveModel: String? = null
     private val appPreferences = AppPreferences(context)
-    
+
     private fun getModelsDir(): File = ModelMigrationHelper.getOnnxModelsDir(context)
 
     companion object {
@@ -80,19 +79,26 @@ class ModelManager(
         )
 
         private val F32_LEGACY_MODELS = listOf(
-            "fbcnn_color.onnx", "fbcnn_gray.onnx", "fbcnn_gray_double.onnx",
-            "scunet_color_real_gan.onnx", "scunet_color_real_psnr.onnx",
-            "scunet_gray_15.onnx", "scunet_gray_25.onnx", "scunet_gray_50.onnx"
+            "fbcnn_color.onnx",
+            "fbcnn_gray.onnx",
+            "fbcnn_gray_double.onnx",
+            "scunet_color_real_gan.onnx",
+            "scunet_color_real_psnr.onnx",
+            "scunet_gray_15.onnx",
+            "scunet_gray_25.onnx",
+            "scunet_gray_50.onnx"
         )
 
         private val MODEL_WARNINGS = buildMap {
             F32_LEGACY_MODELS.forEach { modelName ->
-                put(modelName, ModelWarning(
-                    R.string.model_warning_outdated_title,
-                    R.string.model_warning_outdated_message,
-                    R.string.use_anyway,
-                    R.string.cancel
-                ))
+                put(
+                    modelName, ModelWarning(
+                        R.string.model_warning_outdated_title,
+                        R.string.model_warning_outdated_message,
+                        R.string.use_anyway,
+                        R.string.cancel
+                    )
+                )
             }
         }
 
@@ -248,7 +254,7 @@ class ModelManager(
     fun getInstalledModels(): List<String> {
         val modelsDir = getModelsDir()
         if (!modelsDir.exists()) return emptyList()
-        val files = modelsDir.listFiles { _, name -> 
+        val files = modelsDir.listFiles { _, name ->
             val lower = name.lowercase()
             lower.endsWith(".onnx") || lower.endsWith(".ort")
         }
@@ -257,7 +263,10 @@ class ModelManager(
 
     fun loadModel(): OrtSession {
         val activeModel = getActiveModelName()
-        Log.d("ModelManager", "loadModel called, activeModel: $activeModel, currentModelName: $currentModelName")
+        Log.d(
+            "ModelManager",
+            "loadModel called, activeModel: $activeModel, currentModelName: $currentModelName"
+        )
         if (activeModel == null) {
             Log.e("ModelManager", "No active model set")
             throw Exception("No active model set")
@@ -294,34 +303,45 @@ class ModelManager(
 
     private fun configureSessionOptions(opts: OrtSession.SessionOptions, modelName: String) {
         val processors = Runtime.getRuntime().availableProcessors()
-        try { opts.setIntraOpNumThreads(if (processors <= 2) 1 else (processors * 3) / 4) } catch (e: OrtException) { Log.e("ModelManager", "Error setting IntraOpNumThreads: ${e.message}") }
-        try { opts.setInterOpNumThreads(4) } catch (e: OrtException) { Log.e("ModelManager", "Error setting InterOpNumThreads: ${e.message}") }
+        try {
+            opts.setIntraOpNumThreads(if (processors <= 2) 1 else (processors * 3) / 4)
+        } catch (e: OrtException) {
+            Log.e("ModelManager", "Error setting IntraOpNumThreads: ${e.message}")
+        }
+        try {
+            opts.setInterOpNumThreads(4)
+        } catch (e: OrtException) {
+            Log.e("ModelManager", "Error setting InterOpNumThreads: ${e.message}")
+        }
         try {
             when {
                 modelName.endsWith(".ort") -> { // prevent double optimizations (.ort models are already optimized)
                     opts.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.NO_OPT)
                 }
+
                 modelName.startsWith("fbcnn_") -> opts.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.EXTENDED_OPT)
                 modelName.startsWith("scunet_") -> opts.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.NO_OPT)
             }
-        } catch (e: OrtException) { Log.e("ModelManager", "Error setting OptimizationLevel: ${e.message}") }
+        } catch (e: OrtException) {
+            Log.e("ModelManager", "Error setting OptimizationLevel: ${e.message}")
+        }
     }
 
     fun unloadModel() {
         Log.d("ModelManager", "unloadModel called, clearing session for: $currentModelName")
-        try { 
-            currentSession?.close() 
+        try {
+            currentSession?.close()
             Log.d("ModelManager", "Session closed successfully")
-        } catch (e: Exception) { 
-            Log.e("ModelManager", "Error closing session: ${e.message}") 
+        } catch (e: Exception) {
+            Log.e("ModelManager", "Error closing session: ${e.message}")
         }
         currentSession = null
         currentModelName = null
-        try { 
-            ortEnv?.close() 
+        try {
+            ortEnv?.close()
             Log.d("ModelManager", "OrtEnvironment closed successfully")
-        } catch (e: Exception) { 
-            Log.e("ModelManager", "Error closing environment: ${e.message}") 
+        } catch (e: Exception) {
+            Log.e("ModelManager", "Error closing environment: ${e.message}")
         }
         ortEnv = null
         System.gc()
@@ -402,7 +422,8 @@ class ModelManager(
             }
             val modelFile = File(getModelsDir(), filename)
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                val size = context.contentResolver.openFileDescriptor(uri, "r")?.use { it.statSize } ?: 0L
+                val size =
+                    context.contentResolver.openFileDescriptor(uri, "r")?.use { it.statSize } ?: 0L
                 FileOutputStream(modelFile).use { outputStream ->
                     copyWithProgress(inputStream, outputStream, size, onProgress)
                 }
@@ -474,9 +495,9 @@ class ModelManager(
                 return false
             }
             val modelsDir = getModelsDir()
-            val hasModels = modelsDir.exists() && modelsDir.listFiles { _, name -> 
-            val lower = name.lowercase()
-            lower.endsWith(".onnx") || lower.endsWith(".ort")
+            val hasModels = modelsDir.exists() && modelsDir.listFiles { _, name ->
+                val lower = name.lowercase()
+                lower.endsWith(".onnx") || lower.endsWith(".ort")
             }?.isNotEmpty() == true
             if (hasModels) {
                 Log.d("ModelManager", "Models already exist, skipping starter model extraction")
@@ -497,16 +518,15 @@ class ModelManager(
     }
 
     fun extractStarterModel(
-        setAsActive: Boolean = false,
-        onSuccess: () -> Unit = {},
-        onError: (String) -> Unit = {}
+        setAsActive: Boolean = false, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}
     ): Boolean {
         return try {
             val modelsDir = getModelsDir()
-            val shouldSetAsActive = setAsActive || !modelsDir.exists() || modelsDir.listFiles { _, name -> 
-            val lower = name.lowercase()
-            lower.endsWith(".onnx") || lower.endsWith(".ort")
-            }?.isEmpty() == true
+            val shouldSetAsActive =
+                setAsActive || !modelsDir.exists() || modelsDir.listFiles { _, name ->
+                    val lower = name.lowercase()
+                    lower.endsWith(".onnx") || lower.endsWith(".ort")
+                }?.isEmpty() == true
             val extracted = ZipExtractor.extractFromAssets(context, "embedonnx.zip", modelsDir)
             if (extracted) {
                 if (shouldSetAsActive) {
@@ -588,7 +608,9 @@ class ModelManager(
             if (!modelsDir.exists()) modelsDir.mkdirs()
             val modelFile = File(modelsDir, filename)
             context.contentResolver.openInputStream(modelUri)?.use { inputStream ->
-                val size = context.contentResolver.openFileDescriptor(modelUri, "r")?.use { it.statSize } ?: 0L
+                val size =
+                    context.contentResolver.openFileDescriptor(modelUri, "r")?.use { it.statSize }
+                        ?: 0L
                 FileOutputStream(modelFile).use { outputStream ->
                     copyWithProgress(inputStream, outputStream, size, onProgress)
                 }
@@ -613,16 +635,6 @@ class ModelManager(
             } else {
                 clearActiveOidnModel()
             }
-        }
-    }
-
-    fun getProcessingMode(): ProcessingMode {
-        return runBlocking { appPreferences.getProcessingModeImmediate() }
-    }
-
-    fun setProcessingMode(mode: ProcessingMode) {
-        coroutineScope.launch {
-            appPreferences.setProcessingMode(mode)
         }
     }
 }

@@ -1,19 +1,19 @@
 /**
-* Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ * Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 /*
 * If you use this code in your own project, please give credit
@@ -23,7 +23,12 @@ package com.je.dejpeg.compose.utils.brisque
 
 import android.graphics.Bitmap
 import android.util.Log
-import kotlin.math.*
+import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.exp
+import kotlin.math.pow
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 /**
  * attempt at a pure Kotlin implementation of BRISQUE
@@ -45,19 +50,19 @@ object BrisqueCore {
     private const val GAUSSIAN_KERNEL_SIZE = 7
     private const val GAUSSIAN_SIGMA = 7.0 / 6.0
     private val gaussianKernel: DoubleArray by lazy {
-        createGKernel(GAUSSIAN_KERNEL_SIZE, GAUSSIAN_SIGMA)
+        createGKernel()
     }
 
-    private fun createGKernel(size: Int, sigma: Double): DoubleArray {
-        val kernel = DoubleArray(size)
-        val half = size / 2
+    private fun createGKernel(): DoubleArray {
+        val kernel = DoubleArray(GAUSSIAN_KERNEL_SIZE)
+        val half = GAUSSIAN_KERNEL_SIZE / 2
         var sum = 0.0
-        for (i in 0 until size) {
+        for (i in 0 until GAUSSIAN_KERNEL_SIZE) {
             val x = i - half
-            kernel[i] = exp(-x * x / (2 * sigma * sigma))
+            kernel[i] = exp(-x * x / (2 * GAUSSIAN_SIGMA * GAUSSIAN_SIGMA))
             sum += kernel[i]
         }
-        for (i in 0 until size) {
+        for (i in 0 until GAUSSIAN_KERNEL_SIZE) {
             kernel[i] = kernel[i] / sum
         }
         return kernel
@@ -99,7 +104,9 @@ object BrisqueCore {
      * on return, [buf1] contains the MSCN output image,
      * [buf2] is left in an undefined state and should not be read after this call
      */
-    fun computeMSCN(image: FloatArray, buf1: FloatArray, buf2: FloatArray, width: Int, height: Int) {
+    fun computeMSCN(
+        image: FloatArray, buf1: FloatArray, buf2: FloatArray, width: Int, height: Int
+    ) {
         val n = width * height
         val kernel = gaussianKernel
         val half = GAUSSIAN_KERNEL_SIZE / 2
@@ -213,6 +220,7 @@ object BrisqueCore {
                 absSum -= dv
             }
         }
+
         fun compute(): Triple<Double, Double, Double> {
             if (totalCount == 0L || posCount == 0L || negCount == 0L) {
                 return Triple(0.0, 0.0, 1.0)
@@ -227,7 +235,8 @@ object BrisqueCore {
             val rightSigma = if (rightSigmaRaw == 0.0) epsilon else rightSigmaRaw
             val gammaHat = leftSigma / rightSigma
             val rHat = (absSum / totalCount).pow(2) / (sumSq / totalCount)
-            val rHatNorm = rHat * (gammaHat.pow(3) + 1) * (gammaHat + 1) / (gammaHat.pow(2) + 1).pow(2)
+            val rHatNorm =
+                rHat * (gammaHat.pow(3) + 1) * (gammaHat + 1) / (gammaHat.pow(2) + 1).pow(2)
             var prevGamma = 0.0
             var prevDiff = 1e10
             val sampling = 0.001
@@ -259,10 +268,7 @@ object BrisqueCore {
         features[0] = gamma.toFloat()
         features[1] = ((leftSigma * leftSigma + rightSigma * rightSigma) / 2).toFloat()
         val shifts = arrayOf(
-            intArrayOf(0, 1),
-            intArrayOf(1, 0),
-            intArrayOf(1, 1),
-            intArrayOf(-1, 1) 
+            intArrayOf(0, 1), intArrayOf(1, 0), intArrayOf(1, 1), intArrayOf(-1, 1)
         )
         val pairProduct = FloatArray(n)
         for (shiftIdx in shifts.indices) {
@@ -297,7 +303,7 @@ object BrisqueCore {
         val features = FloatArray(36)
         val width = bitmap.width
         val height = bitmap.height
-        val n = width * height        
+        val n = width * height
         val gray = bitmapToGrayscaleFloat(bitmap)
         val buf1 = FloatArray(n)
         val buf2 = FloatArray(n)
@@ -316,7 +322,9 @@ object BrisqueCore {
         return features
     }
 
-    fun scaleFeatures(features: FloatArray, rangeMin: FloatArray, rangeMax: FloatArray): FloatArray {
+    fun scaleFeatures(
+        features: FloatArray, rangeMin: FloatArray, rangeMax: FloatArray
+    ): FloatArray {
         val scaled = FloatArray(features.size)
         for (i in features.indices) {
             val min = rangeMin[i]
@@ -352,7 +360,7 @@ object BrisqueCore {
         val rawScore = sum - model.rho
         return rawScore.coerceIn(0.0, 100.0).toFloat()
     }
-    
+
     fun computeScore(bitmap: Bitmap, model: BrisqueSVMModel): BrisqueResult {
         return try {
             val features = calcBrisqueFeatures(bitmap)

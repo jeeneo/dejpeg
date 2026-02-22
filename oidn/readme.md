@@ -21,11 +21,13 @@ git clone https://github.com/uxlfoundation/oneTBB.git && cd ..
 
 choose a patch config and run in the repos root:
 
+(patches the repo with android fixes)
+
 `bash oidn/patch_all.sh`: all models embedded
 
-`bash oidn/patch_min.sh`: patches oidn with only small models
+`bash oidn/patch_min.sh`: only small models embedded
 
-`bash oidn/patch_none.sh`: no models embedded (requires importing `.tza` models available [here](https://github.com/RenderKit/oidn-weights/))
+`bash oidn/patch_none.sh`: no models embedded (requires importing `.tza` models available [here](https://github.com/RenderKit/oidn-weights))
 
 then run the build script `bash oidn/build.sh`
 

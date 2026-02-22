@@ -1,19 +1,19 @@
 /**
-* Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ * Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 /*
 * If you use this code in your own project, please give credit
@@ -59,30 +59,33 @@ fun MaterialSwitchRow(
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface
         )
-        AndroidView(
-            factory = { context ->
-                MaterialSwitch(context).apply {
-                    trackTintList = ColorStateList(
-                        arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf(-android.R.attr.state_checked)),
-                        intArrayOf(primaryColor, surfaceVariantColor)
-                    )
-                    thumbTintList = ColorStateList(
-                        arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf(-android.R.attr.state_checked)),
-                        intArrayOf(onPrimaryColor, outlineColor)
-                    )
-                    trackDecorationTintList = ColorStateList(
-                        arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf(-android.R.attr.state_checked)),
-                        intArrayOf(primaryColor, outlineColor)
-                    )
-                }
-            },
-            update = { switchView ->
-                switchView.isChecked = checked
-                switchView.setOnCheckedChangeListener { _, isChecked ->
-                    onCheckedChange(isChecked)
-                }
+        AndroidView(factory = { context ->
+            MaterialSwitch(context).apply {
+                trackTintList = ColorStateList(
+                    arrayOf(
+                        intArrayOf(android.R.attr.state_checked),
+                        intArrayOf(-android.R.attr.state_checked)
+                    ), intArrayOf(primaryColor, surfaceVariantColor)
+                )
+                thumbTintList = ColorStateList(
+                    arrayOf(
+                        intArrayOf(android.R.attr.state_checked),
+                        intArrayOf(-android.R.attr.state_checked)
+                    ), intArrayOf(onPrimaryColor, outlineColor)
+                )
+                trackDecorationTintList = ColorStateList(
+                    arrayOf(
+                        intArrayOf(android.R.attr.state_checked),
+                        intArrayOf(-android.R.attr.state_checked)
+                    ), intArrayOf(primaryColor, outlineColor)
+                )
             }
-        )
+        }, update = { switchView ->
+            switchView.isChecked = checked
+            switchView.setOnCheckedChangeListener { _, isChecked ->
+                onCheckedChange(isChecked)
+            }
+        })
     }
 }
 
@@ -108,14 +111,16 @@ fun MaterialSwitchPreference(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(
-            modifier = Modifier.weight(1f).padding(end = 16.dp),
+            modifier = Modifier
+                .weight(1f)
+                .padding(end = 16.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
                 color = if (enabled) MaterialTheme.colorScheme.onSurface
-                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
             )
             // Text(
             //     text = summary,
@@ -124,30 +129,33 @@ fun MaterialSwitchPreference(
             //             else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
             // )
         }
-        AndroidView(
-            factory = { context ->
-                MaterialSwitch(context).apply {
-                    trackTintList = ColorStateList(
-                        arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf(-android.R.attr.state_checked)),
-                        intArrayOf(primaryColor, surfaceVariantColor)
-                    )
-                    thumbTintList = ColorStateList(
-                        arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf(-android.R.attr.state_checked)),
-                        intArrayOf(onPrimaryColor, outlineColor)
-                    )
-                    trackDecorationTintList = ColorStateList(
-                        arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf(-android.R.attr.state_checked)),
-                        intArrayOf(primaryColor, outlineColor)
-                    )
-                }
-            },
-            update = { switchView ->
-                switchView.isChecked = checked
-                switchView.isEnabled = enabled
-                switchView.setOnCheckedChangeListener { _, isChecked ->
-                    if (enabled) onCheckedChange(isChecked)
-                }
+        AndroidView(factory = { context ->
+            MaterialSwitch(context).apply {
+                trackTintList = ColorStateList(
+                    arrayOf(
+                        intArrayOf(android.R.attr.state_checked),
+                        intArrayOf(-android.R.attr.state_checked)
+                    ), intArrayOf(primaryColor, surfaceVariantColor)
+                )
+                thumbTintList = ColorStateList(
+                    arrayOf(
+                        intArrayOf(android.R.attr.state_checked),
+                        intArrayOf(-android.R.attr.state_checked)
+                    ), intArrayOf(onPrimaryColor, outlineColor)
+                )
+                trackDecorationTintList = ColorStateList(
+                    arrayOf(
+                        intArrayOf(android.R.attr.state_checked),
+                        intArrayOf(-android.R.attr.state_checked)
+                    ), intArrayOf(primaryColor, outlineColor)
+                )
             }
-        )
+        }, update = { switchView ->
+            switchView.isChecked = checked
+            switchView.isEnabled = enabled
+            switchView.setOnCheckedChangeListener { _, isChecked ->
+                if (enabled) onCheckedChange(isChecked)
+            }
+        })
     }
 }

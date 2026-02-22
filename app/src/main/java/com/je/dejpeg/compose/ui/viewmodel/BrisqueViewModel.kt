@@ -1,19 +1,19 @@
 /**
-* Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ * Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 /*
 * If you use this code in your own project, please give credit
@@ -95,10 +95,9 @@ class BrisqueViewModel : ViewModel() {
                 settings.value = loadedSettings
             }
         }
-        
+
         imageState.value = BrisqueImageState(
-            originalBitmap = bitmap,
-            filename = filename
+            originalBitmap = bitmap, filename = filename
         )
     }
 
@@ -138,8 +137,7 @@ class BrisqueViewModel : ViewModel() {
                 Log.e(TAG, "BRISQUE assessment error", e)
                 withContext(Dispatchers.Main) {
                     imageState.value = imageState.value?.copy(
-                        isAssessing = false,
-                        assessError = "Error: ${e.message}"
+                        isAssessing = false, assessError = "Error: ${e.message}"
                     )
                 }
             }
@@ -174,12 +172,10 @@ class BrisqueViewModel : ViewModel() {
                         viewModelScope.launch(Dispatchers.Main) {
                             val log = imageState.value?.descaleLog ?: emptyList()
                             imageState.value = imageState.value?.copy(
-                                descaleProgress = progress,
-                                descaleLog = log + progress.message
+                                descaleProgress = progress, descaleLog = log + progress.message
                             )
                         }
-                    }
-                )
+                    })
                 val info = DescaleInfo(
                     originalWidth = result.originalWidth,
                     originalHeight = result.originalHeight,
@@ -203,9 +199,7 @@ class BrisqueViewModel : ViewModel() {
                 Log.d(TAG, "Descaling cancelled")
                 withContext(Dispatchers.Main) {
                     imageState.value = imageState.value?.copy(
-                        isDescaling = false,
-                        descaleProgress = null,
-                        descaleLog = emptyList()
+                        isDescaling = false, descaleProgress = null, descaleLog = emptyList()
                     )
                     descaleJob = null
                 }
@@ -245,9 +239,7 @@ class BrisqueViewModel : ViewModel() {
             }
         }
         imageState.value = imageState.value?.copy(
-            isDescaling = false,
-            descaleProgress = null,
-            descaleLog = emptyList()
+            isDescaling = false, descaleProgress = null, descaleLog = emptyList()
         )
     }
 
@@ -267,9 +259,12 @@ class BrisqueViewModel : ViewModel() {
                         put(MediaStore.Images.Media.IS_PENDING, 1)
                     }
                 }
-                val uri = context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+                val uri = context.contentResolver.insert(
+                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values
+                )
                 if (uri != null) {
-                    context.contentResolver.openOutputStream(uri)?.use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                    context.contentResolver.openOutputStream(uri)
+                        ?.use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
                         values.clear()
                         values.put(MediaStore.Images.Media.IS_PENDING, 0)

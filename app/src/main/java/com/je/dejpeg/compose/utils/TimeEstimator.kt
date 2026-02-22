@@ -1,19 +1,19 @@
 /**
-* Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ * Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 /*
 * If you use this code in your own project, please give credit
@@ -24,9 +24,9 @@
 package com.je.dejpeg.compose.utils
 
 import android.content.Context
-import com.je.dejpeg.data.dataStore
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
+import com.je.dejpeg.data.dataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -43,7 +43,7 @@ class TimeEstimator(
     companion object {
         private const val DEFAULT_CHUNK_SIZE = 512
         private const val REFERENCE_CHUNK_SIZE = 512
-        
+
         fun formatTimeRemaining(millis: Long, finishingUpText: String = "Finishing up..."): String {
             if (millis < 0) return ""
             val seconds = (millis / 1000).coerceAtLeast(0)
@@ -59,6 +59,7 @@ class TimeEstimator(
                         if (minutes == 1L) "1m, $remainingSeconds s" else "$minutes m, $remainingSeconds s"
                     }
                 }
+
                 else -> {
                     val hours = seconds / 3600
                     val remainingMinutes = (seconds % 3600) / 60
@@ -71,7 +72,7 @@ class TimeEstimator(
             }
         }
     }
-    
+
     private val avgTimeKey = longPreferencesKey("time_avg_normalized_${modelName}")
     private var chunkStartTime: Long = 0
     private val chunkTimes = mutableListOf<Long>()
@@ -93,7 +94,7 @@ class TimeEstimator(
             }.first().also { cachedStoredAverage = it }
         }
     }
-    
+
     private fun getScaledStoredAverage(): Long? {
         val normalizedAvg = getStoredAverageTime() ?: return null
         return (normalizedAvg * chunkScaleFactor).toLong()
@@ -145,11 +146,12 @@ class TimeEstimator(
         val newChunkTime = chunkTimes.last()
         val normalizedNewTime = (newChunkTime / chunkScaleFactor).toLong()
         val currentNormalizedAverage = getStoredAverageTime()
-        val updatedNormalizedAverage = if (currentNormalizedAverage != null && currentNormalizedAverage > 0) {
-            (currentNormalizedAverage * 0.8 + normalizedNewTime * 0.2).toLong()
-        } else {
-            normalizedNewTime
-        }
+        val updatedNormalizedAverage =
+            if (currentNormalizedAverage != null && currentNormalizedAverage > 0) {
+                (currentNormalizedAverage * 0.8 + normalizedNewTime * 0.2).toLong()
+            } else {
+                normalizedNewTime
+            }
         inMemoryAverage = (updatedNormalizedAverage * chunkScaleFactor).toLong()
         saveAverageTime(updatedNormalizedAverage)
     }
@@ -157,7 +159,7 @@ class TimeEstimator(
     fun getEstimatedTimeRemaining(completedChunks: Int, totalChunks: Int): Long {
         if (totalChunks <= 0 || completedChunks >= totalChunks) return 0
         val remainingChunks = totalChunks - completedChunks
-        
+
         val perChunkMs: Double = if (chunkTimes.isNotEmpty()) {
             val recentTimes = chunkTimes.takeLast(3)
             recentTimes.average()
@@ -167,7 +169,7 @@ class TimeEstimator(
             val scaled = getScaledStoredAverage()
             if (scaled != null && scaled > 0) scaled.toDouble() else return -1L
         }
-        
+
         return if (chunkStartTime > 0) {
             val currentChunkElapsed = System.currentTimeMillis() - chunkStartTime
             val currentChunkRemaining = (perChunkMs - currentChunkElapsed).coerceAtLeast(0.0)
@@ -180,13 +182,13 @@ class TimeEstimator(
 
     fun getInitialEstimate(totalChunks: Int): Long {
         if (totalChunks <= 0) return -1L
-        
+
         val perChunkMs: Long = when {
             chunkTimes.isNotEmpty() -> chunkTimes.average().toLong()
             inMemoryAverage > 0 -> inMemoryAverage
             else -> getScaledStoredAverage() ?: return -1L
         }
-        
+
         return perChunkMs * totalChunks
     }
 }

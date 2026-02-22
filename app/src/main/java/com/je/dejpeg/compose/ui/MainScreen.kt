@@ -1,19 +1,19 @@
 /**
-* Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ * Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 /*
 * If you use this code in your own project, please give credit
@@ -78,24 +78,24 @@ fun MainScreen(
     val backExitMessage = stringResource(R.string.back_exit_confirm)
 
     RecoveryDialog(viewModel = viewModel)
-    
+
     var currentScreen by remember { mutableStateOf<AppScreen>(AppScreen.Processing) }
     var screenStack by remember { mutableStateOf(listOf<AppScreen>()) }
     var lastBackPressTime by remember { mutableLongStateOf(0L) }
-    
+
     fun navigateToScreen(screen: AppScreen) {
         screenStack = screenStack + currentScreen
         currentScreen = screen
     }
-    
+
     fun goBack() {
         if (screenStack.isNotEmpty()) {
             currentScreen = screenStack.last()
             screenStack = screenStack.dropLast(1)
         }
     }
-    
-    
+
+
     BackHandler {
         when (currentScreen) {
             AppScreen.Processing -> {
@@ -108,10 +108,11 @@ fun MainScreen(
                     lastBackPressTime = currentTime
                 }
             }
+
             else -> goBack()
         }
     }
-    
+
     Box(Modifier.fillMaxSize()) {
         when (currentScreen) {
             AppScreen.Processing -> {
@@ -119,46 +120,46 @@ fun MainScreen(
                     bottomBar = {
                         NavigationBar {
                             NavigationBarItem(
-                                icon = { 
-                                    Crossfade(
-                                        targetState = true
-                                    ) { isSelected ->
-                                        Icon(
-                                            if (isSelected) Icons.Filled.Image else Icons.Outlined.Image,
-                                            contentDescription = stringResource(R.string.processing)
-                                        )
-                                    }
-                                },
+                                icon = {
+                                Crossfade(
+                                    targetState = true
+                                ) { isSelected ->
+                                    Icon(
+                                        if (isSelected) Icons.Filled.Image else Icons.Outlined.Image,
+                                        contentDescription = stringResource(R.string.processing)
+                                    )
+                                }
+                            },
                                 label = { Text(stringResource(R.string.processing)) },
                                 selected = true,
-                                onClick = { 
+                                onClick = {
                                     haptic.light()
-                                }
-                            )
+                                })
                             NavigationBarItem(
-                                icon = { 
-                                    Crossfade(
-                                        targetState = false,
-                                        animationSpec = tween(1000)
-                                    ) { isSelected ->
-                                        Icon(
-                                            if (isSelected) Icons.Filled.Settings else Icons.Outlined.Settings,
-                                            contentDescription = stringResource(R.string.settings)
-                                        )
-                                    }
-                                },
+                                icon = {
+                                Crossfade(
+                                    targetState = false, animationSpec = tween(1000)
+                                ) { isSelected ->
+                                    Icon(
+                                        if (isSelected) Icons.Filled.Settings else Icons.Outlined.Settings,
+                                        contentDescription = stringResource(R.string.settings)
+                                    )
+                                }
+                            },
                                 label = { Text(stringResource(R.string.settings)) },
                                 selected = false,
-                                onClick = { 
+                                onClick = {
                                     haptic.light()
                                     navigateToScreen(AppScreen.Settings)
-                                }
-                            )
+                                })
                         }
-                    },
-                    modifier = Modifier.fillMaxSize()
+                    }, modifier = Modifier.fillMaxSize()
                 ) { paddingValues ->
-                    Box(Modifier.padding(paddingValues).fillMaxSize()) {
+                    Box(
+                        Modifier
+                            .padding(paddingValues)
+                            .fillMaxSize()
+                    ) {
                         ProcessingScreen(
                             viewModel = viewModel,
                             onNavigateToBeforeAfter = { imageId ->
@@ -171,77 +172,75 @@ fun MainScreen(
                                 navigateToScreen(AppScreen.Settings)
                             },
                             initialSharedUris = sharedUris,
-                            onRemoveSharedUri = { uri -> 
+                            onRemoveSharedUri = { uri ->
                                 (sharedUris as? MutableList<Uri>)?.remove(uri)
-                            }
-                        ) 
+                            })
                     }
                 }
             }
-            
+
             AppScreen.Settings -> {
                 Scaffold(
                     bottomBar = {
                         NavigationBar {
                             NavigationBarItem(
-                                icon = { 
-                                    Crossfade(
-                                        targetState = false
-                                    ) { isSelected ->
-                                        Icon(
-                                            if (isSelected) Icons.Filled.Image else Icons.Outlined.Image,
-                                            contentDescription = stringResource(R.string.processing)
-                                        )
-                                    }
-                                },
+                                icon = {
+                                Crossfade(
+                                    targetState = false
+                                ) { isSelected ->
+                                    Icon(
+                                        if (isSelected) Icons.Filled.Image else Icons.Outlined.Image,
+                                        contentDescription = stringResource(R.string.processing)
+                                    )
+                                }
+                            },
                                 label = { Text(stringResource(R.string.processing)) },
                                 selected = false,
-                                onClick = { 
+                                onClick = {
                                     haptic.light()
                                     goBack()
-                                }
-                            )
+                                })
                             NavigationBarItem(
-                                icon = { 
-                                    Crossfade(
-                                        targetState = true
-                                    ) { isSelected ->
-                                        Icon(
-                                            if (isSelected) Icons.Filled.Settings else Icons.Outlined.Settings,
-                                            contentDescription = stringResource(R.string.settings)
-                                        )
-                                    }
-                                },
+                                icon = {
+                                Crossfade(
+                                    targetState = true
+                                ) { isSelected ->
+                                    Icon(
+                                        if (isSelected) Icons.Filled.Settings else Icons.Outlined.Settings,
+                                        contentDescription = stringResource(R.string.settings)
+                                    )
+                                }
+                            },
                                 label = { Text(stringResource(R.string.settings)) },
                                 selected = true,
-                                onClick = { 
+                                onClick = {
                                     haptic.light()
-                                }
-                            )
+                                })
                         }
-                    },
-                    modifier = Modifier.fillMaxSize()
+                    }, modifier = Modifier.fillMaxSize()
                 ) { paddingValues ->
-                    Box(Modifier.padding(paddingValues).fillMaxSize()) {
-                        SettingsScreen(viewModel) 
+                    Box(
+                        Modifier
+                            .padding(paddingValues)
+                            .fillMaxSize()
+                    ) {
+                        SettingsScreen(viewModel)
                     }
                 }
             }
-            
+
             is AppScreen.BeforeAfter -> {
                 BeforeAfterScreen(
                     viewModel = viewModel,
                     imageId = (currentScreen as AppScreen.BeforeAfter).imageId,
-                    onBack = { goBack() }
-                )
+                    onBack = { goBack() })
             }
-            
+
             is AppScreen.Brisque -> {
                 BRISQUEScreen(
                     processingViewModel = viewModel,
                     imageId = (currentScreen as AppScreen.Brisque).imageId,
-                    onBack = { goBack() }
-                )
+                    onBack = { goBack() })
             }
         }
     }

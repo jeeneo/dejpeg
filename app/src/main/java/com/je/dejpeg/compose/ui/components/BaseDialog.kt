@@ -1,19 +1,19 @@
 /**
-* Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ * Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 /*
 * If you use this code in your own project, please give credit
@@ -61,7 +61,13 @@ fun StyledAlertDialog(
         modifier = modifier,
         shape = DialogDefaults.Shape,
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        icon = icon?.let { { Icon(it, null, Modifier.size(32.dp), MaterialTheme.colorScheme.primary) } },
+        icon = icon?.let {
+            {
+                Icon(
+                    it, null, Modifier.size(32.dp), MaterialTheme.colorScheme.primary
+                )
+            }
+        },
         title = title,
         text = text,
         confirmButton = confirmButton,
@@ -101,17 +107,33 @@ fun BaseDialog(
         dismissButton = when {
             customButtons != null -> null
             dismissButtonText != null && onDismissButton != null -> {
-                { TextButton(onClick = { haptic.light(); onDismissButton() }) { Text(dismissButtonText) } }
+                {
+                    TextButton(onClick = { haptic.light(); onDismissButton() }) {
+                        Text(
+                            dismissButtonText
+                        )
+                    }
+                }
             }
+
             showCopyButton && isError && clipboardManager != null -> {
                 {
                     TextButton(onClick = {
                         haptic.light()
-                        clipboardManager.setPrimaryClip(ClipData.newPlainText(context?.getString(R.string.error) ?: "error", textToCopy))
-                        context?.let { Toast.makeText(it, it.getString(R.string.error_copied), Toast.LENGTH_SHORT).show() }
+                        clipboardManager.setPrimaryClip(
+                            ClipData.newPlainText(
+                                context?.getString(R.string.error) ?: "error", textToCopy
+                            )
+                        )
+                        context?.let {
+                            Toast.makeText(
+                                it, it.getString(R.string.error_copied), Toast.LENGTH_SHORT
+                            ).show()
+                        }
                     }) { Text(stringResource(R.string.copy)) }
                 }
             }
+
             else -> null
         },
         confirmButton = {
@@ -119,8 +141,7 @@ fun BaseDialog(
             else Button(onClick = { haptic.light(); onConfirm() }) {
                 Text(confirmButtonText)
             }
-        }
-    )
+        })
 }
 
 @Composable
@@ -166,6 +187,5 @@ fun SimpleAlertDialog(
         },
         confirmButton = {
             Button(onClick = { haptic.light(); onConfirm() }) { Text(resolvedText) }
-        }
-    )
+        })
 }

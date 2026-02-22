@@ -25,8 +25,7 @@ class PortableFloatMap {
             val h = src.height
             val hasAlpha = src.hasAlpha()
             val bmp = if (src.config != Bitmap.Config.ARGB_8888) src.copy(
-                Bitmap.Config.ARGB_8888,
-                true
+                Bitmap.Config.ARGB_8888, true
             ) else src
 
             val pixInts = IntArray(w * h)

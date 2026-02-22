@@ -1,19 +1,19 @@
 /**
-* Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ * Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 /*
 * If you use this code in your own project, please give credit
@@ -46,14 +46,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
-import com.je.dejpeg.compose.ui.components.StarterModelDialog
 import com.je.dejpeg.compose.ui.MainScreen
+import com.je.dejpeg.compose.ui.components.StarterModelDialog
+import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.theme.DeJPEGTheme
 
 class MainActivity : ComponentActivity() {
     private val viewModel: ProcessingViewModel by viewModels()
-    private val notificationPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
             // granted
@@ -70,8 +71,7 @@ class MainActivity : ComponentActivity() {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.POST_NOTIFICATIONS
+                    this, Manifest.permission.POST_NOTIFICATIONS
                 ) != PackageManager.PERMISSION_GRANTED
             ) {
                 notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -86,8 +86,7 @@ class MainActivity : ComponentActivity() {
             SideEffect {
                 if (!isDarkTheme) {
                     val lightTransparentStyle = SystemBarStyle.light(
-                        scrim = Color.TRANSPARENT,
-                        darkScrim = Color.TRANSPARENT
+                        scrim = Color.TRANSPARENT, darkScrim = Color.TRANSPARENT
                     )
                     enableEdgeToEdge(
                         statusBarStyle = lightTransparentStyle,
@@ -105,8 +104,7 @@ class MainActivity : ComponentActivity() {
             }
             DeJPEGTheme {
                 Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
                 ) {
                     val sharedUris by viewModel.sharedUris.collectAsState()
                     MainScreen(sharedUris = sharedUris)
@@ -116,8 +114,7 @@ class MainActivity : ComponentActivity() {
                         onDismiss = {
                             showStarterModelDialog.value = false
                             viewModel.refreshInstalledModels()
-                        }
-                    )
+                        })
                 }
             }
         }
@@ -141,9 +138,11 @@ class MainActivity : ComponentActivity() {
                 }
                 uri?.let { addSharedUri(it) }
             }
+
             Intent.ACTION_SEND_MULTIPLE -> {
                 val uris: List<Uri> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java) ?: emptyList()
+                    intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java)
+                        ?: emptyList()
                 } else {
                     intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM) ?: emptyList()
                 }
@@ -154,8 +153,11 @@ class MainActivity : ComponentActivity() {
 
     private fun addSharedUri(uri: Uri) {
         try {
-            contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION and Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        } catch (_: Exception) { /* o */ }
+            contentResolver.takePersistableUriPermission(
+                uri, Intent.FLAG_GRANT_READ_URI_PERMISSION and Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+        } catch (_: Exception) { /* o */
+        }
         viewModel.addSharedUri(uri)
     }
 }

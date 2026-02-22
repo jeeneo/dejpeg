@@ -1,19 +1,19 @@
 /**
-* Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ * Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 /*
 * If you use this code in your own project, please give credit
@@ -37,12 +37,10 @@ import kotlinx.coroutines.flow.map
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "app_prefs")
 
 enum class ProcessingMode {
-    ONNX,
-    OIDN;
+    ONNX, OIDN;
 
     companion object {
-        fun fromString(value: String?): ProcessingMode =
-            entries.find { it.name == value } ?: ONNX
+        fun fromString(value: String?): ProcessingMode = entries.find { it.name == value } ?: ONNX
     }
 }
 
@@ -144,10 +142,6 @@ class AppPreferences(private val context: Context) {
         prefs[PreferenceKeys.ACTIVE_MODEL]
     }
 
-    val currentProcessingModel: Flow<String?> = context.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.CURRENT_PROCESSING_MODEL]
-    }
-
     val starterModelExtracted: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[PreferenceKeys.STARTER_MODEL_EXTRACTED] ?: false
     }
@@ -157,9 +151,11 @@ class AppPreferences(private val context: Context) {
             coarseStep = prefs[PreferenceKeys.BRISQUE_COARSE_STEP] ?: DEFAULT_BRISQUE_COARSE_STEP,
             fineStep = prefs[PreferenceKeys.BRISQUE_FINE_STEP] ?: DEFAULT_BRISQUE_FINE_STEP,
             fineRange = prefs[PreferenceKeys.BRISQUE_FINE_RANGE] ?: DEFAULT_BRISQUE_FINE_RANGE,
-            minWidthRatio = prefs[PreferenceKeys.BRISQUE_MIN_WIDTH_RATIO] ?: DEFAULT_BRISQUE_MIN_WIDTH_RATIO,
+            minWidthRatio = prefs[PreferenceKeys.BRISQUE_MIN_WIDTH_RATIO]
+                ?: DEFAULT_BRISQUE_MIN_WIDTH_RATIO,
             brisqueWeight = prefs[PreferenceKeys.BRISQUE_WEIGHT] ?: DEFAULT_BRISQUE_WEIGHT,
-            sharpnessWeight = prefs[PreferenceKeys.BRISQUE_SHARPNESS_WEIGHT] ?: DEFAULT_BRISQUE_SHARPNESS_WEIGHT
+            sharpnessWeight = prefs[PreferenceKeys.BRISQUE_SHARPNESS_WEIGHT]
+                ?: DEFAULT_BRISQUE_SHARPNESS_WEIGHT
         )
     }
 
@@ -191,12 +187,6 @@ class AppPreferences(private val context: Context) {
         }
     }
 
-    suspend fun clearDefaultImageSource() {
-        context.dataStore.edit { prefs ->
-            prefs.remove(PreferenceKeys.DEFAULT_IMAGE_SOURCE)
-        }
-    }
-
     suspend fun setCompatModelCleanup(completed: Boolean) {
         context.dataStore.edit { prefs ->
             prefs[PreferenceKeys.COMPAT_MODEL_CLEANUP] = completed
@@ -204,14 +194,6 @@ class AppPreferences(private val context: Context) {
     }
 
     suspend fun getCompatModelCleanupImmediate(): Boolean = compatModelCleanup.first()
-
-    suspend fun setCompatBrisqueCleanup(completed: Boolean) {
-        context.dataStore.edit { prefs ->
-            prefs[PreferenceKeys.COMPAT_BRISQUE_CLEANUP] = completed
-        }
-    }
-
-    suspend fun getCompatBrisqueCleanupImmediate(): Boolean = compatBrisqueCleanup.first()
 
     suspend fun setChunkSize(size: Int) {
         context.dataStore.edit { prefs ->
@@ -241,9 +223,6 @@ class AppPreferences(private val context: Context) {
             prefs[PreferenceKeys.BRISQUE_SHARPNESS_WEIGHT] = settings.sharpnessWeight
         }
     }
-
-    suspend fun getChunkSizeImmediate(): Int = chunkSize.first()
-    suspend fun getOverlapSizeImmediate(): Int = overlapSize.first()
 
     suspend fun setActiveModel(modelName: String) {
         context.dataStore.edit { prefs ->
@@ -283,8 +262,6 @@ class AppPreferences(private val context: Context) {
             prefs[PreferenceKeys.PROCESSING_MODE] = mode.name
         }
     }
-
-    suspend fun getProcessingModeImmediate(): ProcessingMode = processingMode.first()
 
     // Oidn model
     val activeOidnModel: Flow<String?> = context.dataStore.data.map { prefs ->

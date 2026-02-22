@@ -78,8 +78,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
             )
         }
     }
@@ -93,8 +92,7 @@ android {
     }
     packaging {
         resources.excludes += listOf(
-            "DebugProbesKt.bin",
-            "kotlin-tooling-metadata.json"
+            "DebugProbesKt.bin", "kotlin-tooling-metadata.json"
         )
     }
     bundle {
@@ -133,8 +131,7 @@ androidComponents {
         tasks.matching { it.name == taskName }.configureEach {
             doLast {
                 val outDir = layout.buildDirectory.dir("outputs/apk/${variant.name}").get().asFile
-                outDir.listFiles()
-                    ?.filter { it.extension == "apk" }
+                outDir.listFiles()?.filter { it.extension == "apk" }
                     ?.forEach { it.renameTo(File(outDir, "dejpeg-${abi}.apk")) }
             }
         }

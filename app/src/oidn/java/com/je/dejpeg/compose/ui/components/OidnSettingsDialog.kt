@@ -1,19 +1,19 @@
 /**
-* Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ * Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 /*
 * If you use this code in your own project, please give credit
@@ -47,6 +47,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.je.dejpeg.R
+import com.je.dejpeg.compose.utils.rememberHapticFeedback
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,8 +65,12 @@ fun OidnSettingsDialog(
     onNumThreadsChange: (Int) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val haptic = rememberHapticFeedback()
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {
+            haptic.light()
+            onDismiss()
+        },
         shape = RoundedCornerShape(28.dp),
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         title = {
@@ -77,11 +82,8 @@ fun OidnSettingsDialog(
         },
         text = {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
+                modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
             ) {
-                // HDR toggle
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -98,12 +100,13 @@ fun OidnSettingsDialog(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Switch(checked = hdr, onCheckedChange = onHdrChange)
+                    Switch(
+                        checked = hdr, onCheckedChange = { newValue ->
+                            haptic.light()
+                            onHdrChange(newValue)
+                        })
                 }
-
                 Spacer(modifier = Modifier.height(16.dp))
-
-                // sRGB toggle
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -120,7 +123,11 @@ fun OidnSettingsDialog(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Switch(checked = srgb, onCheckedChange = onSrgbChange)
+                    Switch(
+                        checked = srgb, onCheckedChange = { newValue ->
+                            haptic.light()
+                            onSrgbChange(newValue)
+                        })
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
@@ -141,11 +148,14 @@ fun OidnSettingsDialog(
                     ) {
                         rowOptions.forEachIndexed { index, (value, label) ->
                             SegmentedButton(
-                                selected = quality == value,
-                                onClick = { onQualityChange(value) },
-                                shape = SegmentedButtonDefaults.itemShape(index = index, count = rowOptions.size)
+                                selected = quality == value, onClick = {
+                                    haptic.light()
+                                    onQualityChange(value)
+                                }, shape = SegmentedButtonDefaults.itemShape(
+                                    index = index, count = rowOptions.size
+                                )
                             ) {
-                                Text(label, style = MaterialTheme.typography.labelSmall)
+                                Text(label)
                             }
                         }
                     }
@@ -155,33 +165,6 @@ fun OidnSettingsDialog(
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-
-                // Max memory slider (0-4096)
-                Text(
-                    stringResource(R.string.oidn_max_memory),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    stringResource(R.string.oidn_max_memory_desc),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Slider(
-                    value = maxMemoryMB.toFloat(),
-                    onValueChange = { onMaxMemoryChange((it / 256).roundToInt() * 256) },
-                    valueRange = 0f..4096f,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Text(
-                    if (maxMemoryMB == 0) "unlimited" else "${maxMemoryMB} MB",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.align(Alignment.End)
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Threads slider (0-16)
                 Text(
                     stringResource(R.string.oidn_num_threads),
                     style = MaterialTheme.typography.bodyLarge,
@@ -193,23 +176,24 @@ fun OidnSettingsDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Slider(
-                    value = numThreads.toFloat(),
-                    onValueChange = { onNumThreadsChange(it.roundToInt()) },
-                    valueRange = 0f..16f,
-                    steps = 15,
-                    modifier = Modifier.fillMaxWidth()
+                    value = numThreads.toFloat(), onValueChange = { newValue ->
+                        haptic.light()
+                        onNumThreadsChange(newValue.roundToInt())
+                    }, valueRange = 0f..16f, steps = 15, modifier = Modifier.fillMaxWidth()
                 )
                 Text(
-                    if (numThreads == 0) "auto" else "$numThreads",
+                    if (numThreads == 0) stringResource(R.string.text_auto) else "$numThreads",
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.align(Alignment.End)
                 )
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = {
+                haptic.light()
+                onDismiss()
+            }) {
                 Text(stringResource(R.string.ok))
             }
-        }
-    )
+        })
 }

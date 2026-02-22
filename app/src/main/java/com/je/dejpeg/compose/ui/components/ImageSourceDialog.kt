@@ -1,19 +1,19 @@
 /**
-* Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ * Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 /*
 * If you use this code in your own project, please give credit
@@ -31,9 +31,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.*
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.outlined.CameraAlt
+import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Photo
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
@@ -72,10 +74,10 @@ private const val HELP_TYPE_CAMERA = 3
 
 @Composable
 fun ImageSourceDialog(
-    onDismiss: () -> Unit, 
-    onGallerySelected: () -> Unit, 
-    onInternalSelected: () -> Unit, 
-    onDocumentsSelected: () -> Unit, 
+    onDismiss: () -> Unit,
+    onGallerySelected: () -> Unit,
+    onInternalSelected: () -> Unit,
+    onDocumentsSelected: () -> Unit,
     onCameraSelected: () -> Unit
 ) {
     val context = LocalContext.current
@@ -84,7 +86,7 @@ fun ImageSourceDialog(
     var helpInfo by remember { mutableIntStateOf(-1) }
     var setAsDefault by remember { mutableStateOf(false) }
     val haptic = com.je.dejpeg.compose.utils.rememberHapticFeedback()
-    
+
     val handleSelection: suspend (String, () -> Unit) -> Unit = { key, action ->
         if (setAsDefault) {
             appPreferences.setDefaultImageSource(key)
@@ -94,8 +96,7 @@ fun ImageSourceDialog(
     }
 
     Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         ElevatedCard(
             modifier = Modifier
@@ -130,8 +131,7 @@ fun ImageSourceDialog(
                         haptic.medium()
                         scope.launch { handleSelection("gallery", onGallerySelected) }
                     },
-                    onHelpClick = { haptic.light(); helpInfo = HELP_TYPE_GALLERY }
-                )
+                    onHelpClick = { haptic.light(); helpInfo = HELP_TYPE_GALLERY })
                 ImageSource(
                     icon = Icons.Outlined.Photo,
                     title = stringResource(R.string.internal_picker),
@@ -140,8 +140,7 @@ fun ImageSourceDialog(
                         haptic.medium()
                         scope.launch { handleSelection("internal", onInternalSelected) }
                     },
-                    onHelpClick = { haptic.light(); helpInfo = HELP_TYPE_INTERNAL }
-                )
+                    onHelpClick = { haptic.light(); helpInfo = HELP_TYPE_INTERNAL })
                 ImageSource(
                     icon = Icons.Outlined.Folder,
                     title = stringResource(R.string.documents),
@@ -150,8 +149,7 @@ fun ImageSourceDialog(
                         haptic.medium()
                         scope.launch { handleSelection("documents", onDocumentsSelected) }
                     },
-                    onHelpClick = { haptic.light(); helpInfo = HELP_TYPE_DOCUMENTS }
-                )
+                    onHelpClick = { haptic.light(); helpInfo = HELP_TYPE_DOCUMENTS })
                 ImageSource(
                     icon = Icons.Outlined.CameraAlt,
                     title = stringResource(R.string.camera),
@@ -160,8 +158,7 @@ fun ImageSourceDialog(
                         haptic.medium()
                         scope.launch { handleSelection("camera", onCameraSelected) }
                     },
-                    onHelpClick = { haptic.light(); helpInfo = HELP_TYPE_CAMERA }
-                )
+                    onHelpClick = { haptic.light(); helpInfo = HELP_TYPE_CAMERA })
                 Spacer(Modifier.height(4.dp))
                 Surface(
                     modifier = Modifier
@@ -174,16 +171,13 @@ fun ImageSourceDialog(
                         title = stringResource(R.string.set_as_default),
                         // summary = stringResource(R.string.set_as_default_desc),
                         checked = setAsDefault,
-                        onCheckedChange = { haptic.light(); setAsDefault = it }
-                    )
+                        onCheckedChange = { haptic.light(); setAsDefault = it })
                 }
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                    modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(
-                        onClick = { haptic.light(); onDismiss() }
-                    ) {
+                        onClick = { haptic.light(); onDismiss() }) {
                         Text(stringResource(R.string.cancel))
                     }
                 }
@@ -199,19 +193,14 @@ fun ImageSourceDialog(
             else -> R.string.gallery_picker_title to R.string.gallery_picker_desc
         }
         HelpDialog(
-            title = stringResource(titleRes),
-            text = stringResource(descRes)
+            title = stringResource(titleRes), text = stringResource(descRes)
         ) { helpInfo = -1 }
     }
 }
 
 @Composable
 private fun ImageSource(
-    icon: Any,
-    title: String,
-    description: String,
-    onClick: () -> Unit,
-    onHelpClick: () -> Unit
+    icon: Any, title: String, description: String, onClick: () -> Unit, onHelpClick: () -> Unit
 ) {
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
@@ -221,7 +210,9 @@ private fun ImageSource(
         elevation = CardDefaults.elevatedCardElevation(1.dp, 3.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -237,18 +228,42 @@ private fun ImageSource(
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         when (icon) {
-                            is ImageVector -> Icon(icon, contentDescription = null, modifier = Modifier.size(22.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                            is Painter -> Icon(icon, contentDescription = null, modifier = Modifier.size(22.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            is ImageVector -> Icon(
+                                icon,
+                                contentDescription = null,
+                                modifier = Modifier.size(22.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            is Painter -> Icon(
+                                icon,
+                                contentDescription = null,
+                                modifier = Modifier.size(22.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                    Text(text = title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
-                    Text(text = description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
             IconButton(onClick = onHelpClick, modifier = Modifier.size(36.dp)) {
-                Icon(imageVector = Icons.Default.Info, contentDescription = stringResource(R.string.help), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = stringResource(R.string.help),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -257,9 +272,6 @@ private fun ImageSource(
 @Composable
 fun HelpDialog(title: String, text: String, onDismiss: () -> Unit) {
     SimpleAlertDialog(
-        title = title,
-        message = text,
-        onDismiss = onDismiss,
-        icon = Icons.Default.Info
+        title = title, message = text, onDismiss = onDismiss, icon = Icons.Default.Info
     )
 }

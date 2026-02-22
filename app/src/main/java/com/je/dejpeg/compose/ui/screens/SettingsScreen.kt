@@ -284,16 +284,23 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
                         SingleChoiceSegmentedButtonRow(
                             modifier = Modifier.fillMaxWidth()
                         ) {
+                            val haptic = rememberHapticFeedback()
                             SegmentedButton(
                                 selected = processingMode == ProcessingMode.ONNX,
-                                onClick = { viewModel.setProcessingMode(ProcessingMode.ONNX) },
+                                onClick = {
+                                    haptic.light()
+                                    viewModel.setProcessingMode(ProcessingMode.ONNX)
+                                },
                                 shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
                             ) {
                                 Text(stringResource(R.string.mode_onnx))
                             }
                             SegmentedButton(
                                 selected = processingMode == ProcessingMode.OIDN,
-                                onClick = { viewModel.setProcessingMode(ProcessingMode.OIDN) },
+                                onClick = {
+                                    haptic.light()
+                                    viewModel.setProcessingMode(ProcessingMode.OIDN)
+                                },
                                 shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
                             ) {
                                 Text(stringResource(R.string.mode_oidn))

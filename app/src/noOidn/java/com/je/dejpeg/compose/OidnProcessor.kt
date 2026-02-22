@@ -13,7 +13,8 @@ class OidnProcessor(private val context: Context) {
         fun onProgress(message: String)
     }
 
-    fun cancelProcessing() { /* meow */ }
+    fun cancelProcessing() { /* meow */
+    }
 
     suspend fun processImage(
         inputBitmap: Bitmap,
