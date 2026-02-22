@@ -1,6 +1,6 @@
 an experimental version of Intel® Open Image Denoise for Android
 
-intended to process raster images (non-HDR for now)
+intended to process raster images
 
 this guide assumes your build system is linux-based and you have the Android NDK installed
 
