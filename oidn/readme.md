@@ -19,15 +19,13 @@ then clone oneTBB
 git clone https://github.com/uxlfoundation/oneTBB.git && cd ..
 ```
 
-run these scripts as follows under dejpeg's root:
+choose a patch config and run in the repos root:
 
-choose and run a variant which patch the oidn repo:
-
-`bash oidn/patch_all.sh` : all models embedded
+`bash oidn/patch_all.sh`: all models embedded
 
 `bash oidn/patch_min.sh`: patches oidn with only small models
 
-`bash oidn/patch_none.sh`: no models embedded (requires importing `.tza` models and will return null if no models are imported)
+`bash oidn/patch_none.sh`: no models embedded (requires importing `.tza` models available [here](https://github.com/RenderKit/oidn-weights/))
 
 then run the build script `bash oidn/build.sh`
 
