@@ -29,4 +29,4 @@ choose and run a variant which patch the odin repo:
 
 then run the build script `build.sh`
 
-and finally run gradlew `./gradlew clean assembleDebug`
+and finally run gradlew `./gradlew clean assembleDebug -PbuildOdin=true`
