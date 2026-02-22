@@ -108,7 +108,7 @@
     <string name="show_frequently_asked_questions">Show frequently asked questions</string>
     <string name="imported_model">Imported %1$s</string>
     <string name="deleted_model">Deleted %1$s</string>
-    <string name="warning_emoji">⚠</string>
+    <string name="warning_emoji" translatable="false">⚠</string>
     <string name="import_anyway">Import anyway</string>
     <string name="use_anyway">Use anyway</string>
     <string name="import_text">Import</string>
@@ -328,8 +328,8 @@
     <string name="odin_description">with Odin</string>
     <string name="invalid_tza_file_type">Only .tza model files are supported in Odin mode</string>
     <string name="processing_mode">Processing mode</string>
-    <string name="mode_onnx">ONNX</string>
-    <string name="mode_odin">Odin</string>
+    <string name="mode_onnx" translatable="false">ONNX</string>
+    <string name="mode_odin" translatable="false">Odin</string>
     <string name="mode_onnx_desc">Uses ONNX Runtime for pretrained models (.onnx/.ort)</string>
     <string name="mode_odin_desc">Uses Intel® Open Image Denoise with trained weights (.tza)</string>
     <string name="odin_settings">Odin settings</string>

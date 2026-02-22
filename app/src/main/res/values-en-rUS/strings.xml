@@ -47,7 +47,6 @@
     <string name="camera_desc">Opens your device\'s camera, photos taken will be imported automatically.</string>
     <string name="set_as_default">Set as default</string>
     <string name="help">Help</string>
-    <!-- FAQ Content -->
     <string name="faq_what_is_this_title">What is this app for?</string>
     <string name="faq_what_is_this_content">This app is designed to remove image compression, noise, or other unpleasant artifacts\n\nNote: this isn\'t \"AI\" or image upscaling, your images stay the same resolution.\nIt\'s meant to provide a cleaner image, which can produce better results if you do use \"AI enhancers\".</string>
     <string name="faq_which_models_title">Which models to use?</string>
@@ -78,7 +77,6 @@
     <string name="large_chunk_warning">Large sizes can cause instability.</string>
     <string name="preferences">Preferences</string>
     <string name="vibration_on_touch">Vibration on touch</string>
-    <!-- <string name="haptic_feedback_desc">Enable small vibrations for actions and gestures</string> -->
     <string name="faqs">FAQs</string>
     <string name="processing">Processing</string>
     <string name="finishing_up">Finishing up…</string>
@@ -103,7 +101,6 @@
     <string name="show_frequently_asked_questions">Show frequently asked questions</string>
     <string name="imported_model">Imported %1$s</string>
     <string name="deleted_model">Deleted %1$s</string>
-    <string name="warning_emoji">⚠</string>
     <string name="import_anyway">Import anyway</string>
     <string name="use_anyway">Use anyway</string>
     <string name="import_text">Import</string>
@@ -112,10 +109,7 @@
     <string name="open_source_app_description">An open source app for removing noise and compression from photos</string>
     <string name="source_code">Source code</string>
     <string name="show_save_dialog">Show save dialog</string>
-    <!-- <string name="show_save_dialog_desc">Show dialog when saving images</string> -->
     <string name="swap_swipe_actions">Swap swipe actions</string>
-    <!-- <string name="swap_swipe_actions_desc_default">Swipe right to delete/cancel, left to save/process</string> -->
-    <!-- <string name="swap_swipe_actions_desc_swapped">Swipe right to save/process, left to delete/cancel</string> -->
     <string name="default_image_source">Default source</string>
     <string name="none">none</string>
     <string name="photos">Photos</string>
@@ -220,6 +214,11 @@
     <string name="settings_desc">Settings</string>
     <string name="reset">Reset</string>
     <string name="yes">Yes</string>
+    <string name="error">Error</string>
+    <string name="unknown_error">Unknown error</string>
+    <string name="invalid_file_type">Only .onnx and .ort model files are supported</string>
+    <string name="failed_to_import_model">Failed to import model</string>
+    <string name="failed_to_extract_starter_models">Failed to extract starter models</string>
     <string name="processing_filename">Processing %1$s…</string>
     <string name="processing_complete_notification">Processing complete</string>
     <string name="notification_channel_name">Image processing</string>
@@ -281,11 +280,6 @@
     <string name="brisque_analyzing">Analyzing…</string>
     <string name="brisque_starting_descale">Starting descale…</string>
     <string name="brisque_descaling_failed">Descaling failed</string>
-    <string name="error">Error</string>
-    <string name="unknown_error">Unknown error</string>
-    <string name="invalid_file_type">Only .onnx and .ort model files are supported</string>
-    <string name="failed_to_import_model">Failed to import model</string>
-    <string name="failed_to_extract_starter_models">Failed to extract starter models</string>
     <string name="brisque_phase_initialization">Initialization</string>
     <string name="brisque_phase_coarse_scan">Coarse scan</string>
     <string name="brisque_phase_coarse_complete">Coarse scan complete</string>
@@ -295,8 +289,6 @@
     <string name="odin_description">with Odin</string>
     <string name="invalid_tza_file_type">Only .tza model files are supported in Odin mode</string>
     <string name="processing_mode">Processing mode</string>
-    <string name="mode_onnx">ONNX</string>
-    <string name="mode_odin">Odin</string>
     <string name="mode_onnx_desc">Uses ONNX Runtime for pretrained models (.onnx/.ort)</string>
     <string name="mode_odin_desc">Uses Intel® Open Image Denoise with trained weights (.tza)</string>
     <string name="odin_settings">Odin settings</string>
