@@ -47,18 +47,14 @@
     <string name="camera_desc">Opens your device\'s camera, photos taken will be imported automatically.</string>
     <string name="set_as_default">Set as default</string>
     <string name="help">Help</string>
-    
     <!-- FAQ Content -->
     <string name="faq_what_is_this_title">What is this app for?</string>
     <string name="faq_what_is_this_content">This app is designed to remove image compression, noise, or other unpleasant artifacts\n\nNote: this isn\'t \"AI\" or image upscaling, your images stay the same resolution.\nIt\'s meant to provide a cleaner image, which can produce better results if you do use \"AI enhancers\".</string>
-    
     <string name="faq_which_models_title">Which models to use?</string>
     <string name="faq_fbcnn_title">FBCNN</string>
     <string name="faq_fbcnn_content">Use for images that have JPEG compression (e.g. low-res images from Google, Pinterest, Instagram, that random forum, etc).\n\nThe slider is available for FBCNN models only, and affects how much strength goes into removing compression, values around 30/50 for minor compression, and 70+ for heavy removal, afterward it begins to get noticeably smoother.\n\nThe base model is `color`, the `gray` FBCNN models are for black and white images, `gray double` is for images saved and re-saved as JPEG. (edited/resized twice both saving as JPEG).</string>
-    
     <string name="faq_scunet_title">SCUNet</string>
     <string name="faq_scunet_content">`SCUNet` is more adept at removing noise (e.g. ISO noise, grainy looking or speckled).\n\nIt can also remove compression and GIF artifacts, to some degree.\n\nThe `gray` `15/25/50` SCUNet models are only for grayscale images as well, with different levels of noise removal.\n\nHigher the number, the more noise is removed.\n\nThe `PSNR` variant tries to pixel-match the original image as closely as possible, so it looks mathematically correct but may appear overly smooth.\n\n`GAN` sacrifices pixel-perfect accuracy to add realistic textures or details, which can look more natural. As with most cases, try both and see which one suits your image better.</string>
-
     <string name="ok">OK</string>
     <string name="images">Images (%1$d)</string>
     <string name="strength">Strength: %1$d</string>
@@ -285,4 +281,43 @@
     <string name="brisque_analyzing">Analyzing…</string>
     <string name="brisque_starting_descale">Starting descale…</string>
     <string name="brisque_descaling_failed">Descaling failed</string>
+    <string name="error">Error</string>
+    <string name="unknown_error">Unknown error</string>
+    <string name="invalid_file_type">Only .onnx and .ort model files are supported</string>
+    <string name="failed_to_import_model">Failed to import model</string>
+    <string name="failed_to_extract_starter_models">Failed to extract starter models</string>
+    <string name="brisque_phase_initialization">Initialization</string>
+    <string name="brisque_phase_coarse_scan">Coarse scan</string>
+    <string name="brisque_phase_coarse_complete">Coarse scan complete</string>
+    <string name="brisque_phase_fine_scan">Fine scan</string>
+    <string name="brisque_phase_fine_done">Fine scan done</string>
+    <string name="brisque_phase_finalizing">Finalizing</string>
+    <string name="odin_description">with Odin</string>
+    <string name="invalid_tza_file_type">Only .tza model files are supported in Odin mode</string>
+    <string name="processing_mode">Processing mode</string>
+    <string name="mode_onnx">ONNX</string>
+    <string name="mode_odin">Odin</string>
+    <string name="mode_onnx_desc">Uses ONNX Runtime for pretrained models (.onnx/.ort)</string>
+    <string name="mode_odin_desc">Uses Intel® Open Image Denoise with trained weights (.tza)</string>
+    <string name="odin_settings">Odin settings</string>
+    <string name="odin_model_management">Odin model management</string>
+    <string name="odin_no_model_loaded">No .tza model loaded</string>
+    <string name="odin_hdr">HDR input</string>
+    <string name="odin_hdr_desc">Enable if the input image is HDR</string>
+    <string name="odin_srgb">sRGB input</string>
+    <string name="odin_srgb_desc">Enable if the input uses sRGB/2.2 gamma curve</string>
+    <string name="odin_quality">Quality</string>
+    <string name="odin_quality_default">Default</string>
+    <string name="odin_quality_fast">Fast</string>
+    <string name="odin_quality_balanced">Balanced</string>
+    <string name="odin_quality_high">High</string>
+    <string name="odin_max_memory">Max memory (MB)</string>
+    <string name="odin_max_memory_desc">0 = unlimited</string>
+    <string name="odin_num_threads">Threads</string>
+    <string name="odin_num_threads_desc">0 = auto</string>
+    <string name="odin_settings_desc">HDR, sRGB, quality, memory, threads</string>
+    <string name="import_tza_model">Import .tza model</string>
+    <string name="no_odin_models_installed">No .tza models found. Import a model to get started.</string>
+    <string name="odin_incompatible_model_title">Incompatible model</string>
+    <string name="odin_incompatible_model_message">This model appears to be designed for 3D rendering pipelines (it expects auxiliary albedo and/or normal buffers). It will not work correctly for denoising raster images like photographs.\n\nUse a color-only model (e.g. rt_ldr.tza or rt_ldr_small.tza) instead.</string>
 </resources>
