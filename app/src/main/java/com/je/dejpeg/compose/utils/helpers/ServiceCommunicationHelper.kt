@@ -203,7 +203,14 @@ class ServiceCommunicationHelper(
         strength: Float,
         chunkSize: Int,
         overlapSize: Int,
-        modelName: String?
+        modelName: String?,
+        processingMode: String = "ONNX",
+        odinWeightsPath: String? = null,
+        odinHdr: Boolean = false,
+        odinSrgb: Boolean = false,
+        odinQuality: Int = 0,
+        odinMaxMemoryMB: Int = 0,
+        odinNumThreads: Int = 0
     ) {
         currentProcessingImageId = imageId
         bindToService()
@@ -214,7 +221,14 @@ class ServiceCommunicationHelper(
             putExtra(ProcessingService.EXTRA_STRENGTH, strength)
             putExtra(ProcessingService.EXTRA_CHUNK_SIZE, chunkSize)
             putExtra(ProcessingService.EXTRA_OVERLAP_SIZE, overlapSize)
+            putExtra(ProcessingService.EXTRA_PROCESSING_MODE, processingMode)
             modelName?.let { putExtra(ProcessingService.EXTRA_MODEL_NAME, it) }
+            odinWeightsPath?.let { putExtra(ProcessingService.EXTRA_ODIN_WEIGHTS_PATH, it) }
+            putExtra(ProcessingService.EXTRA_ODIN_HDR, odinHdr)
+            putExtra(ProcessingService.EXTRA_ODIN_SRGB, odinSrgb)
+            putExtra(ProcessingService.EXTRA_ODIN_QUALITY, odinQuality)
+            putExtra(ProcessingService.EXTRA_ODIN_MAX_MEMORY_MB, odinMaxMemoryMB)
+            putExtra(ProcessingService.EXTRA_ODIN_NUM_THREADS, odinNumThreads)
         }
     }
 

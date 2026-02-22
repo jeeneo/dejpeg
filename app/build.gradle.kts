@@ -17,6 +17,8 @@ val hasReleaseSigning = listOf(
     releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword
 ).all { !it.isNullOrBlank() }
 
+val buildOdin = project.findProperty("buildOdin")?.toString()?.toBoolean() ?: false
+
 android {
     namespace = "com.je.dejpeg"
     compileSdk {
@@ -33,6 +35,22 @@ android {
         versionName = "3.6.0"
         ndk {
             abiFilters += "arm64-v8a"
+        }
+        buildConfigField("boolean", "ODIN_ENABLED", buildOdin.toString())
+    }
+
+    if (buildOdin) {
+        externalNativeBuild {
+            cmake {
+                path = file("src/main/cpp/CMakeLists.txt")
+                version = "3.22.1"
+            }
+        }
+    }
+
+    sourceSets {
+        getByName("main") {
+            kotlin.srcDir(if (buildOdin) "src/odin/java" else "src/noOdin/java")
         }
     }
 
@@ -71,6 +89,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     packaging {
         resources.excludes += listOf(

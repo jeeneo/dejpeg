@@ -33,6 +33,7 @@ import com.je.dejpeg.compose.utils.HashUtils
 import com.je.dejpeg.compose.utils.ZipExtractor
 import com.je.dejpeg.compose.utils.helpers.ModelMigrationHelper
 import com.je.dejpeg.data.AppPreferences
+import com.je.dejpeg.data.ProcessingMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -521,6 +522,126 @@ class ModelManager(
             Log.e("ModelManager", "Error extracting starter models: ${e.message}", e)
             onError(e.message ?: context.getString(R.string.unknown_error))
             false
+        }
+    }
+
+    // ---- TZA / Odin model management ----
+
+    private fun getTzaModelsDir(): File = ModelMigrationHelper.getTzaModelsDir(context)
+
+    private var cachedActiveOdinModel: String? = null
+
+    fun getInstalledOdinModels(): List<String> {
+        val modelsDir = getTzaModelsDir()
+        if (!modelsDir.exists()) return emptyList()
+        val files = modelsDir.listFiles { _, name ->
+            name.lowercase().endsWith(".tza")
+        }
+        return files?.map { it.name } ?: emptyList()
+    }
+
+    fun hasActiveOdinModel(): Boolean {
+        val activeModel = getActiveOdinModelName()
+        return activeModel != null && File(getTzaModelsDir(), activeModel).exists()
+    }
+
+    fun getActiveOdinModelName(): String? {
+        cachedActiveOdinModel?.let { return it }
+        return runBlocking {
+            appPreferences.getActiveOdinModel().also { cachedActiveOdinModel = it }
+        }
+    }
+
+    fun setActiveOdinModel(modelName: String) {
+        Log.d("ModelManager", "setActiveOdinModel called with: $modelName")
+        cachedActiveOdinModel = modelName
+        coroutineScope.launch {
+            appPreferences.setActiveOdinModel(modelName)
+            Log.d("ModelManager", "Active Odin model saved to DataStore: $modelName")
+        }
+    }
+
+    private fun clearActiveOdinModel() {
+        cachedActiveOdinModel = null
+        coroutineScope.launch {
+            appPreferences.clearActiveOdinModel()
+        }
+    }
+
+    fun getActiveOdinModelPath(): String? {
+        val modelName = getActiveOdinModelName() ?: return null
+        val modelFile = File(getTzaModelsDir(), modelName)
+        return if (modelFile.exists()) modelFile.absolutePath else null
+    }
+
+    fun isIncompatibleTzaModel(filename: String): Boolean {
+        val lower = filename.lowercase()
+        return lower.contains("_alb") || lower.contains("_nrm")
+    }
+
+    fun importOdinModel(
+        modelUri: Uri,
+        force: Boolean = false,
+        onProgress: (Int) -> Unit = {},
+        onSuccess: (String) -> Unit = {},
+        onError: (String) -> Unit = {},
+        onWarning: ((String, ModelWarning) -> Unit)? = null
+    ) {
+        try {
+            val filename = resolveFilename(modelUri)
+            if (!filename.lowercase().endsWith(".tza")) {
+                onError(context.getString(R.string.invalid_tza_file_type))
+                return
+            }
+            if (!force && isIncompatibleTzaModel(filename)) {
+                val warning = ModelWarning(
+                    titleResId = R.string.odin_incompatible_model_title,
+                    messageResId = R.string.odin_incompatible_model_message,
+                    positiveButtonTextResId = R.string.import_anyway,
+                    negativeButtonTextResId = R.string.cancel
+                )
+                onWarning?.invoke(filename, warning)
+                return
+            }
+            val modelsDir = getTzaModelsDir()
+            if (!modelsDir.exists()) modelsDir.mkdirs()
+            val modelFile = File(modelsDir, filename)
+            context.contentResolver.openInputStream(modelUri)?.use { inputStream ->
+                val size = context.contentResolver.openFileDescriptor(modelUri, "r")?.use { it.statSize } ?: 0L
+                FileOutputStream(modelFile).use { outputStream ->
+                    copyWithProgress(inputStream, outputStream, size, onProgress)
+                }
+            }
+            onProgress(100)
+            onSuccess(filename)
+        } catch (e: Exception) {
+            onError(e.message ?: context.getString(R.string.failed_to_import_model))
+        }
+    }
+
+    fun deleteOdinModel(modelName: String, onDeleted: (String) -> Unit = {}) {
+        val modelFile = File(getTzaModelsDir(), modelName)
+        if (modelFile.exists()) {
+            modelFile.delete()
+            onDeleted(modelName)
+        }
+        if (modelName == getActiveOdinModelName()) {
+            val remaining = getInstalledOdinModels()
+            if (remaining.isNotEmpty()) {
+                setActiveOdinModel(remaining.first())
+            } else {
+                clearActiveOdinModel()
+            }
+        }
+    }
+
+    fun getProcessingMode(): ProcessingMode {
+        return runBlocking { appPreferences.getProcessingModeImmediate() }
+    }
+
+    fun setProcessingMode(mode: ProcessingMode) {
+        coroutineScope.launch {
+            appPreferences.setProcessingMode(mode)
         }
     }
 }

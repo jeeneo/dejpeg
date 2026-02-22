@@ -66,6 +66,7 @@ import androidx.core.net.toUri
 import com.je.dejpeg.R
 import com.je.dejpeg.compose.utils.CacheManager
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
+import com.je.dejpeg.BuildConfig
 
 @Composable
 fun AboutDialog(onDismiss: () -> Unit) {
@@ -113,6 +114,9 @@ fun AboutDialog(onDismiss: () -> Unit) {
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
+                        if (BuildConfig.ODIN_ENABLED) {
+                            Text(stringResource(R.string.odin_description))
+                        }
                     }
                     Spacer(Modifier.height(16.dp))
                     Column {

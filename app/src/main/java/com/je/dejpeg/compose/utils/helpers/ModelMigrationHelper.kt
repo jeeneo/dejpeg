@@ -31,6 +31,7 @@ import java.io.File
 object ModelMigrationHelper {
     private const val TAG = "ModelMigrationHelper"
     fun getOnnxModelsDir(context: Context): File = File(context.filesDir, "models/onnx")
+    fun getTzaModelsDir(context: Context): File = File(context.filesDir, "models/tza")
     fun getBrisqueModelsDir(context: Context): File = File(context.filesDir, "models/brisque")
 
     suspend fun migrateModelsIfNeeded(context: Context): Boolean = withContext(Dispatchers.IO) {

@@ -46,10 +46,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.GridOn
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.QuestionAnswer
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -57,6 +59,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -90,8 +95,11 @@ import com.je.dejpeg.compose.ui.components.FAQDialog
 import com.je.dejpeg.compose.ui.components.ImportProgressDialog
 import com.je.dejpeg.compose.ui.components.ModelDialog
 import com.je.dejpeg.compose.ui.components.ModelInfoDialog
+import com.je.dejpeg.compose.ui.components.OdinSettingsDialog
 import com.je.dejpeg.compose.ui.components.PreferencesDialog
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
+import com.je.dejpeg.data.ProcessingMode
+import com.je.dejpeg.BuildConfig
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -124,6 +132,17 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
     val swapSwipeActions by appPreferences.swapSwipeActions.collectAsState(initial = false)
     var modelInfoDialog by remember { mutableStateOf<Pair<String, String>?>(null) }
 
+    val processingMode by viewModel.processingMode.collectAsState()
+    val installedOdinModels by viewModel.installedOdinModels.collectAsState()
+    val odinHdr by viewModel.odinHdr.collectAsState()
+    val odinSrgb by viewModel.odinSrgb.collectAsState()
+    val odinQuality by viewModel.odinQuality.collectAsState()
+    val odinMaxMemoryMB by viewModel.odinMaxMemoryMB.collectAsState()
+    val odinNumThreads by viewModel.odinNumThreads.collectAsState()
+    var activeOdinModelName by remember {
+        mutableStateOf(runBlocking { viewModel.getActiveOdinModelName() })
+    }
+
     DisposableEffect(Unit) {
         onDispose {
             dialogState = DialogState.None
@@ -135,6 +154,10 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
 
     LaunchedEffect(installedModels) {
         activeModelName = withContext(Dispatchers.IO) { viewModel.getActiveModelName() }
+    }
+
+    LaunchedEffect(installedOdinModels) {
+        activeOdinModelName = withContext(Dispatchers.IO) { viewModel.getActiveOdinModelName() }
     }
 
     val modelPickerLauncher = rememberLauncherForActivityResult(
@@ -169,16 +192,61 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
         }
     }
 
+    var pendingOdinImportUri by remember { mutableStateOf<Uri?>(null) }
+
+    val odinModelPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { selectedUri ->
+            pendingOdinImportUri = selectedUri
+            dialogState = DialogState.ImportProgress
+            importProgress = 0
+            viewModel.importOdinModel(
+                selectedUri,
+                onProgress = { importProgress = it },
+                onSuccess = { name ->
+                    dialogState = DialogState.None
+                    pendingOdinImportUri = null
+                    Toast.makeText(
+                        context,
+                        importedModelMessage.format(name),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                },
+                onError = { err ->
+                    dialogState = DialogState.None
+                    pendingOdinImportUri = null
+                    warningState = ModelWarningState.Error(err)
+                },
+                onWarning = { modelName, warning ->
+                    dialogState = DialogState.None
+                    warningState = ModelWarningState.OdinModelWarning(modelName, warning)
+                }
+            )
+        }
+    }
+
     Scaffold(
         floatingActionButton = {
             val haptic = rememberHapticFeedback()
             ExtendedFloatingActionButton(
                 onClick = {
                     haptic.light()
-                    modelPickerLauncher.launch("*/*")
+                    if (BuildConfig.ODIN_ENABLED && processingMode == ProcessingMode.ODIN) {
+                        odinModelPickerLauncher.launch("*/*")
+                    } else {
+                        modelPickerLauncher.launch("*/*")
+                    }
                 },
                 icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = { Text(stringResource(R.string.import_model_text)) },
+                text = {
+                    Text(
+                        if (BuildConfig.ODIN_ENABLED && processingMode == ProcessingMode.ODIN)
+                            stringResource(R.string.import_tza_model)
+                        else
+                            stringResource(R.string.import_model_text)
+                    )
+                },
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 expanded = true
@@ -196,27 +264,101 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
         ) {
             PreferenceGroupHeading(stringResource(R.string.processing))
 
-            PreferenceGroupCard {
-                PreferenceItemWithDivider(
-                    icon = painterResource(id = R.drawable.ic_model),
-                    iconBackgroundColor = MaterialTheme.colorScheme.surfaceVariant,
-                    iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    title = stringResource(R.string.model_management, ""),
-                    subtitle = activeModelName ?: stringResource(R.string.no_model_loaded),
-                    ellipsizeSubtitle = true,
-                    showDivider = true,
-                    onClick = { dialogState = DialogState.Model }
-                )
+            if (BuildConfig.ODIN_ENABLED) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = MaterialTheme.shapes.large,
+                    tonalElevation = 1.dp,
+                    color = MaterialTheme.colorScheme.surface
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            stringResource(R.string.processing_mode),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            if (processingMode == ProcessingMode.ODIN)
+                                stringResource(R.string.mode_odin_desc)
+                            else
+                                stringResource(R.string.mode_onnx_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        SingleChoiceSegmentedButtonRow(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            SegmentedButton(
+                                selected = processingMode == ProcessingMode.ONNX,
+                                onClick = { viewModel.setProcessingMode(ProcessingMode.ONNX) },
+                                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                            ) {
+                                Text(stringResource(R.string.mode_onnx))
+                            }
+                            SegmentedButton(
+                                selected = processingMode == ProcessingMode.ODIN,
+                                onClick = { viewModel.setProcessingMode(ProcessingMode.ODIN) },
+                                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                            ) {
+                                Text(stringResource(R.string.mode_odin))
+                            }
+                        }
+                    }
+                }
 
-                PreferenceItem(
-                    icon = Icons.Filled.GridOn,
-                    iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
-                    iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    title = stringResource(R.string.chunk_settings),
-                    subtitle = stringResource(R.string.chunk_size_px, chunkSize) + " • " + 
-                              stringResource(R.string.overlap_size_px, overlapSize),
-                    onClick = { dialogState = DialogState.Chunk }
-                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            if (processingMode == ProcessingMode.ONNX || !BuildConfig.ODIN_ENABLED) {
+                PreferenceGroupCard {
+                    PreferenceItemWithDivider(
+                        icon = painterResource(id = R.drawable.ic_model),
+                        iconBackgroundColor = MaterialTheme.colorScheme.surfaceVariant,
+                        iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        title = stringResource(R.string.model_management, ""),
+                        subtitle = activeModelName ?: stringResource(R.string.no_model_loaded),
+                        ellipsizeSubtitle = true,
+                        showDivider = true,
+                        onClick = { dialogState = DialogState.Model }
+                    )
+
+                    PreferenceItem(
+                        icon = Icons.Filled.GridOn,
+                        iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
+                        iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        title = stringResource(R.string.chunk_settings),
+                        subtitle = stringResource(R.string.chunk_size_px, chunkSize) + " • " + 
+                                  stringResource(R.string.overlap_size_px, overlapSize),
+                        onClick = { dialogState = DialogState.Chunk }
+                    )
+                }
+            } else {
+                PreferenceGroupCard {
+                    PreferenceItemWithDivider(
+                        icon = painterResource(id = R.drawable.ic_model),
+                        iconBackgroundColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        iconTint = MaterialTheme.colorScheme.onTertiaryContainer,
+                        title = stringResource(R.string.odin_model_management),
+                        subtitle = activeOdinModelName ?: stringResource(R.string.odin_no_model_loaded),
+                        ellipsizeSubtitle = true,
+                        showDivider = true,
+                        onClick = { dialogState = DialogState.OdinModel }
+                    )
+
+                    PreferenceItem(
+                        icon = Icons.Filled.Tune,
+                        iconBackgroundColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        iconTint = MaterialTheme.colorScheme.onTertiaryContainer,
+                        title = stringResource(R.string.odin_settings),
+                        subtitle = stringResource(R.string.odin_settings_desc),
+                        onClick = { dialogState = DialogState.OdinSettings }
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -234,15 +376,17 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
                     onClick = { dialogState = DialogState.Preferences }
                 )
 
-                PreferenceItemWithDivider(
-                    icon = Icons.Filled.QuestionAnswer,
-                    iconBackgroundColor = MaterialTheme.colorScheme.primaryContainer,
-                    iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    title = stringResource(R.string.faqs),
-                    subtitle = stringResource(R.string.show_frequently_asked_questions),
-                    showDivider = true,
-                    onClick = { dialogState = DialogState.FAQ }
-                )
+                if (processingMode == ProcessingMode.ONNX || !BuildConfig.ODIN_ENABLED) {
+                    PreferenceItemWithDivider(
+                        icon = Icons.Filled.QuestionAnswer,
+                        iconBackgroundColor = MaterialTheme.colorScheme.primaryContainer,
+                        iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        title = stringResource(R.string.faqs),
+                        subtitle = stringResource(R.string.show_frequently_asked_questions),
+                        showDivider = true,
+                        onClick = { dialogState = DialogState.FAQ }
+                    )
+                }
 
                 PreferenceItem(
                     icon = Icons.Filled.Info,
@@ -342,6 +486,44 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
                 onDismiss = { dialogState = DialogState.None }
             )
         }
+        DialogState.OdinModel -> OdinModelDialog(
+            installedOdinModels,
+            activeOdinModelName,
+            onSelect = { modelName ->
+                viewModel.setActiveOdinModelByName(modelName)
+                activeOdinModelName = modelName
+            },
+            onImport = { odinModelPickerLauncher.launch("*/*") },
+            onDelete = { dialogState = DialogState.OdinDelete },
+            onDismiss = { dialogState = DialogState.None }
+        )
+        DialogState.OdinDelete -> DeleteDialog(
+            installedOdinModels,
+            onConfirm = { selected ->
+                dialogState = DialogState.None
+                viewModel.deleteOdinModels(selected) {
+                    Toast.makeText(
+                        context,
+                        deletedModelMessage.format(it),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            },
+            onDismiss = { dialogState = DialogState.OdinModel }
+        )
+        DialogState.OdinSettings -> OdinSettingsDialog(
+            hdr = odinHdr,
+            srgb = odinSrgb,
+            quality = odinQuality,
+            maxMemoryMB = odinMaxMemoryMB,
+            numThreads = odinNumThreads,
+            onHdrChange = { viewModel.setOdinHdrPref(it) },
+            onSrgbChange = { viewModel.setOdinSrgbPref(it) },
+            onQualityChange = { viewModel.setOdinQualityPref(it) },
+            onMaxMemoryChange = { viewModel.setOdinMaxMemoryMBPref(it) },
+            onNumThreadsChange = { viewModel.setOdinNumThreadsPref(it) },
+            onDismiss = { dialogState = DialogState.None }
+        )
         DialogState.None -> {}
     }
 
@@ -422,6 +604,53 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
                 )
             }
 
+            is ModelWarningState.OdinModelWarning -> {
+                BaseDialog(
+                    title = stringResource(state.warning.titleResId),
+                    content = {
+                        Column {
+                            Text(
+                                "Model: ${state.modelName}",
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 2,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(stringResource(state.warning.messageResId))
+                        }
+                    },
+                    onDismiss = { warningState = null; pendingOdinImportUri = null },
+                    confirmButtonText = stringResource(state.warning.positiveButtonTextResId),
+                    onConfirm = {
+                        pendingOdinImportUri?.let { uri ->
+                            dialogState = DialogState.ImportProgress
+                            viewModel.importOdinModel(
+                                uri,
+                                force = true,
+                                onProgress = { importProgress = it },
+                                onSuccess = { name ->
+                                    dialogState = DialogState.None
+                                    warningState = null
+                                    pendingOdinImportUri = null
+                                    Toast.makeText(
+                                        context,
+                                        importedModelMessage.format(name),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                },
+                                onError = { err ->
+                                    dialogState = DialogState.None
+                                    pendingOdinImportUri = null
+                                    warningState = ModelWarningState.Error(err)
+                                }
+                            )
+                        }
+                    },
+                    dismissButtonText = stringResource(state.warning.negativeButtonTextResId),
+                    onDismissButton = { warningState = null; pendingOdinImportUri = null }
+                )
+            }
+
             is ModelWarningState.Error -> {
                 BaseDialog(
                     title = stringResource(R.string.import_error),
@@ -444,6 +673,9 @@ sealed class DialogState {
     object About : DialogState()
     object FAQ : DialogState()
     object Preferences : DialogState()
+    object OdinModel : DialogState()
+    object OdinDelete : DialogState()
+    object OdinSettings : DialogState()
     data class ModelInfo(val modelName: String, val infoText: String) : DialogState()
 }
 
@@ -452,6 +684,10 @@ sealed class ModelWarningState {
         val modelName: String,
         val warning: ModelManager.ModelWarning,
         val isImport: Boolean
+    ) : ModelWarningState()
+    data class OdinModelWarning(
+        val modelName: String,
+        val warning: ModelManager.ModelWarning
     ) : ModelWarningState()
     data class Error(val message: String) : ModelWarningState()
 }

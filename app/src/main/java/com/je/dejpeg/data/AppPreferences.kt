@@ -36,6 +36,16 @@ import kotlinx.coroutines.flow.map
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "app_prefs")
 
+enum class ProcessingMode {
+    ONNX,
+    ODIN;
+
+    companion object {
+        fun fromString(value: String?): ProcessingMode =
+            entries.find { it.name == value } ?: ONNX
+    }
+}
+
 object PreferenceKeys {
     val SKIP_SAVE_DIALOG = booleanPreferencesKey("skipSaveDialog")
     val DEFAULT_IMAGE_SOURCE = stringPreferencesKey("defaultImageSource")
@@ -55,6 +65,14 @@ object PreferenceKeys {
     val BRISQUE_MIN_WIDTH_RATIO = floatPreferencesKey("brisque_min_width_ratio")
     val BRISQUE_WEIGHT = floatPreferencesKey("brisque_weight")
     val BRISQUE_SHARPNESS_WEIGHT = floatPreferencesKey("brisque_sharpness_weight")
+
+    val PROCESSING_MODE = stringPreferencesKey("processing_mode")
+    val ACTIVE_ODIN_MODEL = stringPreferencesKey("activeOdinModel")
+    val ODIN_HDR = booleanPreferencesKey("odin_hdr")
+    val ODIN_SRGB = booleanPreferencesKey("odin_srgb")
+    val ODIN_QUALITY = intPreferencesKey("odin_quality")
+    val ODIN_MAX_MEMORY_MB = intPreferencesKey("odin_max_memory_mb")
+    val ODIN_NUM_THREADS = intPreferencesKey("odin_num_threads")
 }
 
 data class BrisqueSettings(
@@ -79,6 +97,9 @@ class AppPreferences(private val context: Context) {
         const val DEFAULT_CHUNK_SIZE = 512
         const val DEFAULT_OVERLAP_SIZE = 16
         const val DEFAULT_GLOBAL_STRENGTH = 50f
+        const val DEFAULT_ODIN_QUALITY = 0
+        const val DEFAULT_ODIN_MAX_MEMORY_MB = 0
+        const val DEFAULT_ODIN_NUM_THREADS = 0
     }
 
     val skipSaveDialog: Flow<Boolean> = context.dataStore.data.map { prefs ->
@@ -249,4 +270,77 @@ class AppPreferences(private val context: Context) {
     }
 
     suspend fun getStarterModelExtractedImmediate(): Boolean = starterModelExtracted.first()
+
+    // Processing mode
+    val processingMode: Flow<ProcessingMode> = context.dataStore.data.map { prefs ->
+        ProcessingMode.fromString(prefs[PreferenceKeys.PROCESSING_MODE])
+    }
+
+    suspend fun setProcessingMode(mode: ProcessingMode) {
+        context.dataStore.edit { prefs ->
+            prefs[PreferenceKeys.PROCESSING_MODE] = mode.name
+        }
+    }
+
+    suspend fun getProcessingModeImmediate(): ProcessingMode = processingMode.first()
+
+    // Odin model
+    val activeOdinModel: Flow<String?> = context.dataStore.data.map { prefs ->
+        prefs[PreferenceKeys.ACTIVE_ODIN_MODEL]
+    }
+
+    suspend fun setActiveOdinModel(modelName: String) {
+        context.dataStore.edit { prefs ->
+            prefs[PreferenceKeys.ACTIVE_ODIN_MODEL] = modelName
+        }
+    }
+
+    suspend fun clearActiveOdinModel() {
+        context.dataStore.edit { prefs ->
+            prefs.remove(PreferenceKeys.ACTIVE_ODIN_MODEL)
+        }
+    }
+
+    suspend fun getActiveOdinModel(): String? = activeOdinModel.first()
+
+    // Odin settings
+    val odinHdr: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[PreferenceKeys.ODIN_HDR] ?: false
+    }
+
+    val odinSrgb: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[PreferenceKeys.ODIN_SRGB] ?: false
+    }
+
+    val odinQuality: Flow<Int> = context.dataStore.data.map { prefs ->
+        prefs[PreferenceKeys.ODIN_QUALITY] ?: DEFAULT_ODIN_QUALITY
+    }
+
+    val odinMaxMemoryMB: Flow<Int> = context.dataStore.data.map { prefs ->
+        prefs[PreferenceKeys.ODIN_MAX_MEMORY_MB] ?: DEFAULT_ODIN_MAX_MEMORY_MB
+    }
+
+    val odinNumThreads: Flow<Int> = context.dataStore.data.map { prefs ->
+        prefs[PreferenceKeys.ODIN_NUM_THREADS] ?: DEFAULT_ODIN_NUM_THREADS
+    }
+
+    suspend fun setOdinHdr(hdr: Boolean) {
+        context.dataStore.edit { prefs -> prefs[PreferenceKeys.ODIN_HDR] = hdr }
+    }
+
+    suspend fun setOdinSrgb(srgb: Boolean) {
+        context.dataStore.edit { prefs -> prefs[PreferenceKeys.ODIN_SRGB] = srgb }
+    }
+
+    suspend fun setOdinQuality(quality: Int) {
+        context.dataStore.edit { prefs -> prefs[PreferenceKeys.ODIN_QUALITY] = quality }
+    }
+
+    suspend fun setOdinMaxMemoryMB(maxMemoryMB: Int) {
+        context.dataStore.edit { prefs -> prefs[PreferenceKeys.ODIN_MAX_MEMORY_MB] = maxMemoryMB }
+    }
+
+    suspend fun setOdinNumThreads(numThreads: Int) {
+        context.dataStore.edit { prefs -> prefs[PreferenceKeys.ODIN_NUM_THREADS] = numThreads }
+    }
 }

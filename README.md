@@ -42,6 +42,8 @@ For FBCNN, which chaiNNer does support but in a limited fashion, install [this c
 
 standard gradle build process
 
+for building with [Intel® Odin Denoising](https://www.openimagedenoise.org/), see [odin/readme.md](odin/readme.md)
+
 </details>
 
 <details>

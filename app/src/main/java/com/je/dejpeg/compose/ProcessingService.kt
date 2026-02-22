@@ -33,6 +33,7 @@ import android.util.Log
 import com.je.dejpeg.compose.utils.CacheManager
 import com.je.dejpeg.compose.utils.helpers.ImageLoadingHelper
 import com.je.dejpeg.data.AppPreferences
+import com.je.dejpeg.data.ProcessingMode
 import kotlinx.coroutines.*
 import java.io.File
 import java.io.FileOutputStream
@@ -49,6 +50,13 @@ class ProcessingService : Service() {
         const val EXTRA_CHUNK_SIZE = "extra_chunk_size"
         const val EXTRA_OVERLAP_SIZE = "extra_overlap_size"
         const val EXTRA_MODEL_NAME = "extra_model_name"
+        const val EXTRA_PROCESSING_MODE = "extra_processing_mode"
+        const val EXTRA_ODIN_WEIGHTS_PATH = "extra_odin_weights_path"
+        const val EXTRA_ODIN_HDR = "extra_odin_hdr"
+        const val EXTRA_ODIN_SRGB = "extra_odin_srgb"
+        const val EXTRA_ODIN_QUALITY = "extra_odin_quality"
+        const val EXTRA_ODIN_MAX_MEMORY_MB = "extra_odin_max_memory_mb"
+        const val EXTRA_ODIN_NUM_THREADS = "extra_odin_num_threads"
         const val PROGRESS_ACTION = "com.je.dejpeg.action.PROGRESS"
         const val PROGRESS_EXTRA_MESSAGE = "extra_message"
         const val PROGRESS_EXTRA_COMPLETED_CHUNKS = "extra_completed_chunks"
@@ -70,6 +78,7 @@ class ProcessingService : Service() {
     private var currentImageId: String? = null
     private var modelManager: ModelManager? = null
     private var imageProcessor: ImageProcessor? = null
+    private var oidnProcessor: OidnProcessor? = null
     private var chunkProgressTotal: Int = 0
     private var chunkProgressCompleted: Int = 0
     private var currentProgressMessage: String = "Processing..."
@@ -95,6 +104,7 @@ class ProcessingService : Service() {
         Log.d("ProcessingService", "Service started with PID: $pid")
         modelManager = ModelManager(applicationContext)
         imageProcessor = ImageProcessor(applicationContext, modelManager!!)
+        oidnProcessor = OidnProcessor(applicationContext)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -113,12 +123,15 @@ class ProcessingService : Service() {
                 val imageId = intent.getStringExtra(EXTRA_IMAGE_ID)
                 val strength = intent.getFloatExtra(EXTRA_STRENGTH, 50f)
                 val modelName = intent.getStringExtra(EXTRA_MODEL_NAME)
+                val processingMode = ProcessingMode.fromString(intent.getStringExtra(EXTRA_PROCESSING_MODE))
                 currentImageId = imageId
-                if (modelName != null) {
-                    Log.d("ProcessingService", "Using model from Intent: $modelName")
-                    modelManager?.setActiveModel(modelName)
-                } else {
-                    Log.w("ProcessingService", "No model name in Intent, using DataStore")
+                if (processingMode == ProcessingMode.ONNX) {
+                    if (modelName != null) {
+                        Log.d("ProcessingService", "Using ONNX model from Intent: $modelName")
+                        modelManager?.setActiveModel(modelName)
+                    } else {
+                        Log.w("ProcessingService", "No model name in Intent, using DataStore")
+                    }
                 }
                 if (uriString == null) {
                     broadcast(ERROR_ACTION, ERROR_EXTRA_MESSAGE to "Missing uri", imageId = imageId)
@@ -129,7 +142,7 @@ class ProcessingService : Service() {
                     broadcast(ERROR_ACTION, ERROR_EXTRA_MESSAGE to "Already processing", imageId = imageId)
                     return START_NOT_STICKY
                 }
-                Log.d("ProcessingService", "Processing $filename")
+                Log.d("ProcessingService", "Processing $filename (mode: ${processingMode.name})")
                 val chunkSize = intent.getIntExtra(EXTRA_CHUNK_SIZE, AppPreferences.DEFAULT_CHUNK_SIZE)
                 val overlapSize = intent.getIntExtra(EXTRA_OVERLAP_SIZE, AppPreferences.DEFAULT_OVERLAP_SIZE)
                 imageProcessor?.also {
@@ -150,43 +163,87 @@ class ProcessingService : Service() {
                         Log.d("ProcessingService", "Loading cached unprocessed file: ${unprocessedFile.name}")
                         val bitmap = ImageLoadingHelper.loadBitmapWithRotation(unprocessedFile)
                             ?: throw Exception("Failed to decode bitmap")
-                        imageProcessor?.processImage(bitmap, strength, object : ImageProcessor.ProcessCallback {
-                            override fun onComplete(result: Bitmap) {
-                                try {
-                                    NotificationHelper.show(this@ProcessingService, getString(R.string.processing_complete_notification))
-                                    val safeName = if (!imageId.isNullOrEmpty()) imageId else filename
-                                    val outFile = File(cacheDir, "${safeName}_processed.png")
-                                    FileOutputStream(outFile).use { result.compress(Bitmap.CompressFormat.PNG, 95, it) }
-                                    broadcast(COMPLETE_ACTION, COMPLETE_EXTRA_PATH to outFile.absolutePath, imageId = imageId)
-                                } catch (e: Exception) {
-                                    broadcast(ERROR_ACTION, ERROR_EXTRA_MESSAGE to "Save error: ${e.message}", imageId = imageId)
-                                } finally {
-                                    Log.d("ProcessingService", "processing complete, scheduling auto-stop")
+
+                        if (processingMode == ProcessingMode.ODIN) {
+                            val weightsPath = intent.getStringExtra(EXTRA_ODIN_WEIGHTS_PATH)
+                            val odinHdr = intent.getBooleanExtra(EXTRA_ODIN_HDR, false)
+                            val odinSrgb = intent.getBooleanExtra(EXTRA_ODIN_SRGB, false)
+                            val odinQuality = intent.getIntExtra(EXTRA_ODIN_QUALITY, 0)
+                            val odinMaxMemoryMB = intent.getIntExtra(EXTRA_ODIN_MAX_MEMORY_MB, 0)
+                            val odinNumThreads = intent.getIntExtra(EXTRA_ODIN_NUM_THREADS, 0)
+                            Log.d("ProcessingService", "Odin mode: weightsPath=$weightsPath, hdr=$odinHdr, srgb=$odinSrgb, quality=$odinQuality")
+                            oidnProcessor?.processImage(
+                                inputBitmap = bitmap,
+                                weightsPath = weightsPath,
+                                numThreads = odinNumThreads,
+                                quality = odinQuality,
+                                maxMemoryMB = odinMaxMemoryMB,
+                                hdr = odinHdr,
+                                srgb = odinSrgb,
+                                callback = object : OidnProcessor.ProcessCallback {
+                                    override fun onComplete(result: Bitmap) {
+                                        try {
+                                            NotificationHelper.show(this@ProcessingService, getString(R.string.processing_complete_notification))
+                                            val safeName = if (!imageId.isNullOrEmpty()) imageId else filename
+                                            val outFile = File(cacheDir, "${safeName}_processed.png")
+                                            FileOutputStream(outFile).use { result.compress(Bitmap.CompressFormat.PNG, 95, it) }
+                                            broadcast(COMPLETE_ACTION, COMPLETE_EXTRA_PATH to outFile.absolutePath, imageId = imageId)
+                                        } catch (e: Exception) {
+                                            broadcast(ERROR_ACTION, ERROR_EXTRA_MESSAGE to "Save error: ${e.message}", imageId = imageId)
+                                        } finally {
+                                            scheduleAutoStop()
+                                        }
+                                    }
+                                    override fun onError(error: String) {
+                                        broadcast(ERROR_ACTION, ERROR_EXTRA_MESSAGE to error, imageId = imageId)
+                                        scheduleAutoStop()
+                                    }
+                                    override fun onProgress(message: String) {
+                                        currentProgressMessage = message
+                                        broadcast(PROGRESS_ACTION, PROGRESS_EXTRA_MESSAGE to message, imageId = imageId)
+                                        notifyProgressChange()
+                                    }
+                                }
+                            )
+                        } else {
+                            imageProcessor?.processImage(bitmap, strength, object : ImageProcessor.ProcessCallback {
+                                override fun onComplete(result: Bitmap) {
+                                    try {
+                                        NotificationHelper.show(this@ProcessingService, getString(R.string.processing_complete_notification))
+                                        val safeName = if (!imageId.isNullOrEmpty()) imageId else filename
+                                        val outFile = File(cacheDir, "${safeName}_processed.png")
+                                        FileOutputStream(outFile).use { result.compress(Bitmap.CompressFormat.PNG, 95, it) }
+                                        broadcast(COMPLETE_ACTION, COMPLETE_EXTRA_PATH to outFile.absolutePath, imageId = imageId)
+                                    } catch (e: Exception) {
+                                        broadcast(ERROR_ACTION, ERROR_EXTRA_MESSAGE to "Save error: ${e.message}", imageId = imageId)
+                                    } finally {
+                                        Log.d("ProcessingService", "processing complete, scheduling auto-stop")
+                                        scheduleAutoStop()
+                                    }
+                                }
+                                override fun onError(error: String) {
+                                    broadcast(ERROR_ACTION, ERROR_EXTRA_MESSAGE to error, imageId = imageId)
+                                    Log.d("ProcessingService", "processing error: $error")
                                     scheduleAutoStop()
                                 }
-                            }
-                            override fun onError(error: String) {
-                                broadcast(ERROR_ACTION, ERROR_EXTRA_MESSAGE to error, imageId = imageId)
-                                Log.d("ProcessingService", "processing error: $error")
-                                scheduleAutoStop()
-                            }
-                            override fun onProgress(message: String) {
-                                currentProgressMessage = message
-                                broadcast(PROGRESS_ACTION, PROGRESS_EXTRA_MESSAGE to message, imageId = imageId)
-                                notifyProgressChange()
-                            }
-                            override fun onChunkProgress(currentChunkIndex: Int, totalChunks: Int) {
-                                chunkProgressCompleted = currentChunkIndex
-                                chunkProgressTotal = totalChunks
-                                broadcast(
-                                    PROGRESS_ACTION,
-                                    PROGRESS_EXTRA_COMPLETED_CHUNKS to currentChunkIndex,
-                                    PROGRESS_EXTRA_TOTAL_CHUNKS to totalChunks,
-                                    imageId = imageId
-                                )
-                                notifyProgressChange()
-                            }
-                        })
+                                override fun onProgress(message: String) {
+                                    currentProgressMessage = message
+                                    broadcast(PROGRESS_ACTION, PROGRESS_EXTRA_MESSAGE to message, imageId = imageId)
+                                    notifyProgressChange()
+                                }
+                                override fun onChunkProgress(currentChunkIndex: Int, totalChunks: Int) {
+                                    chunkProgressCompleted = currentChunkIndex
+                                    chunkProgressTotal = totalChunks
+                                    broadcast(
+                                        PROGRESS_ACTION,
+                                        PROGRESS_EXTRA_COMPLETED_CHUNKS to currentChunkIndex,
+                                        PROGRESS_EXTRA_TOTAL_CHUNKS to totalChunks,
+                                        imageId = imageId
+                                    )
+                                    notifyProgressChange()
+                                }
+                            })
+                        }
                     } catch (e: Exception) {
                         val msg = if (e is CancellationException) "Cancelled" else "${e.message}"
                         broadcast(ERROR_ACTION, ERROR_EXTRA_MESSAGE to msg, imageId = imageId)
@@ -203,6 +260,7 @@ class ProcessingService : Service() {
                 val wasRunning = currentJob != null
                 NotificationHelper.show(this, getString(R.string.status_canceling))
                 runCatching { imageProcessor?.cancelProcessing() }
+                runCatching { oidnProcessor?.cancelProcessing() }
                 runCatching { currentJob?.cancel() }
                 currentJob = null
                 currentImageId = null
@@ -258,6 +316,7 @@ class ProcessingService : Service() {
     private fun cancelAndCleanupResources() {
         runCatching {
             imageProcessor?.cancelProcessing()
+            oidnProcessor?.cancelProcessing()
             currentJob?.cancel()
         }
         currentJob = null
@@ -275,6 +334,7 @@ class ProcessingService : Service() {
         serviceScope.cancel()
         modelManager = null
         imageProcessor = null
+        oidnProcessor = null
     }
 
     override fun onBind(intent: Intent?): IBinder = binder
