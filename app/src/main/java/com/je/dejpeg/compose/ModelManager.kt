@@ -525,8 +525,6 @@ class ModelManager(
         }
     }
 
-    // ---- TZA / Odin model management ----
-
     private fun getTzaModelsDir(): File = ModelMigrationHelper.getTzaModelsDir(context)
 
     private var cachedActiveOdinModel: String? = null
@@ -576,7 +574,7 @@ class ModelManager(
 
     fun isIncompatibleTzaModel(filename: String): Boolean {
         val lower = filename.lowercase()
-        return lower.contains("_alb") || lower.contains("_nrm")
+        return lower.contains("_alb") && lower.contains("_nrm")
     }
 
     fun importOdinModel(
