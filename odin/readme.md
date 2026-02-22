@@ -23,13 +23,11 @@ run these scripts as follows under dejpeg's root:
 
 choose and run a variant which patch the odin repo:
 
-```
 `bash odin/patch_all.sh` : all models embedded
 
 `bash odin/patch_min.sh`: patches odin with only small models
 
 `bash odin/patch_none.sh`: no models embedded (requires importing `.tza` models and will return null if no models are imported)
-```
 
 then run the build script `bash odin/build.sh`
 
