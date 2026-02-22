@@ -37,6 +37,10 @@ Check out [examples](examples/) to get an idea of what DeJPEG can be used for
 
 For FBCNN, which chaiNNer does support but in a limited fashion, install [this custom node](chainner/) and use the [original PyTorch models](https://github.com/jiaxi-jiang/FBCNN/releases/latest), not the mobile onnx.
 
+## Contributing
+
+You can translate DeJPEG your language on [Codeberg Translate](https://translate.codeberg.org/projects/dejpeg) (hosted weblate)
+
 <details>
 <summary><h3>building</h3></summary>
 
