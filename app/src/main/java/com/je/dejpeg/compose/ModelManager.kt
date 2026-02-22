@@ -572,33 +572,16 @@ class ModelManager(
         return if (modelFile.exists()) modelFile.absolutePath else null
     }
 
-    fun isIncompatibleTzaModel(filename: String): Boolean {
-        val lower = filename.lowercase()
-        return lower.contains("_alb") && lower.contains("_nrm")
-    }
-
     fun importOidnModel(
         modelUri: Uri,
-        force: Boolean = false,
         onProgress: (Int) -> Unit = {},
         onSuccess: (String) -> Unit = {},
-        onError: (String) -> Unit = {},
-        onWarning: ((String, ModelWarning) -> Unit)? = null
+        onError: (String) -> Unit = {}
     ) {
         try {
             val filename = resolveFilename(modelUri)
             if (!filename.lowercase().endsWith(".tza")) {
                 onError(context.getString(R.string.invalid_tza_file_type))
-                return
-            }
-            if (!force && isIncompatibleTzaModel(filename)) {
-                val warning = ModelWarning(
-                    titleResId = R.string.oidn_incompatible_model_title,
-                    messageResId = R.string.oidn_incompatible_model_message,
-                    positiveButtonTextResId = R.string.import_anyway,
-                    negativeButtonTextResId = R.string.cancel
-                )
-                onWarning?.invoke(filename, warning)
                 return
             }
             val modelsDir = getTzaModelsDir()

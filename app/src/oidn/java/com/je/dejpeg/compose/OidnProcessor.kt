@@ -106,21 +106,25 @@ class OidnProcessor(private val context: Context) {
         inputScale: Float,
         config: Bitmap.Config
     ): Bitmap {
-        val (pfm, alphaBuf) = PortableFloatMap.fromBitmap(src)
+        return try {
+            val (pfm, alphaBuf) = PortableFloatMap.fromBitmap(src)
 
-        val denoised = nativeDenoise(
-            pfm.pixels,
-            pfm.width,
-            pfm.height,
-            weightsPath,
-            numThreads,
-            quality,
-            maxMemoryMB,
-            hdr,
-            srgb,
-            inputScale
-        ) ?: throw RuntimeException("OIDN native denoise returned null")
+            val denoised = nativeDenoise(
+                pfm.pixels,
+                pfm.width,
+                pfm.height,
+                weightsPath,
+                numThreads,
+                quality,
+                maxMemoryMB,
+                hdr,
+                srgb,
+                inputScale
+            ) ?: throw RuntimeException("Oidn native denoise failed (is a model loaded?)")
 
-        return PortableFloatMap.toBitmap(denoised, pfm.width, pfm.height, alphaBuf, config)
+            PortableFloatMap.toBitmap(denoised, pfm.width, pfm.height, alphaBuf, config)
+        } catch (e: Exception) {
+            throw RuntimeException("Error: ${e.message}", e)
+        }
     }
 }

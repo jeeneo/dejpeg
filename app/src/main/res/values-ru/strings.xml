@@ -322,7 +322,5 @@
     <string name="oidn_settings_desc">HDR, sRGB, качество, память, потоки</string>
     <string name="import_tza_model">Импорт весов</string>
     <string name="no_oidn_models_installed">Файлы весов (.tza) не найдены. Импортируйте веса, чтобы начать.</string>
-    <string name="oidn_incompatible_model_title">Несовместимые веса</string>
-    <string name="oidn_incompatible_model_message">Эти веса, по-видимому, предназначены для конвейеров 3D-рендеринга (они предполагают наличие вспомогательных буферов альбедо и/или нормалей). Они не будет работать корректно для шумоподавления растровых изображений, таких как фотографии.\n\nВместо этого используйте веса только для цвета (например, rt_ldr.tza или rt_ldr_small.tza).</string>
     <string name="oidn_description">с поддержкой OIDN</string>
 </resources>

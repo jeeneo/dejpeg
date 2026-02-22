@@ -315,6 +315,4 @@
     <string name="oidn_settings_desc">HDR, sRGB, quality, memory, threads</string>
     <string name="import_tza_model">Import .tza model</string>
     <string name="no_oidn_models_installed">No .tza models found. Import a model to get started.</string>
-    <string name="oidn_incompatible_model_title">Incompatible model</string>
-    <string name="oidn_incompatible_model_message">This model appears to be designed for 3D rendering pipelines (it expects auxiliary albedo and/or normal buffers). It will not work correctly for denoising raster images like photographs.\n\nUse a color-only model (e.g. rt_ldr.tza or rt_ldr_small.tza) instead.</string>
 </resources>

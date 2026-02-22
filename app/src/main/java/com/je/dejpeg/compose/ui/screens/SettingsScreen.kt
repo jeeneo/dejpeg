@@ -192,13 +192,10 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
         }
     }
 
-    var pendingOidnImportUri by remember { mutableStateOf<Uri?>(null) }
-
     val oidnModelPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let { selectedUri ->
-            pendingOidnImportUri = selectedUri
             dialogState = DialogState.ImportProgress
             importProgress = 0
             viewModel.importOidnModel(
@@ -206,7 +203,6 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
                 onProgress = { importProgress = it },
                 onSuccess = { name ->
                     dialogState = DialogState.None
-                    pendingOidnImportUri = null
                     Toast.makeText(
                         context,
                         importedModelMessage.format(name),
@@ -215,12 +211,7 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
                 },
                 onError = { err ->
                     dialogState = DialogState.None
-                    pendingOidnImportUri = null
                     warningState = ModelWarningState.Error(err)
-                },
-                onWarning = { modelName, warning ->
-                    dialogState = DialogState.None
-                    warningState = ModelWarningState.OidnModelWarning(modelName, warning)
                 }
             )
         }
@@ -604,53 +595,6 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
                 )
             }
 
-            is ModelWarningState.OidnModelWarning -> {
-                BaseDialog(
-                    title = stringResource(state.warning.titleResId),
-                    content = {
-                        Column {
-                            Text(
-                                "Model: ${state.modelName}",
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 2,
-                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(stringResource(state.warning.messageResId))
-                        }
-                    },
-                    onDismiss = { warningState = null; pendingOidnImportUri = null },
-                    confirmButtonText = stringResource(state.warning.positiveButtonTextResId),
-                    onConfirm = {
-                        pendingOidnImportUri?.let { uri ->
-                            dialogState = DialogState.ImportProgress
-                            viewModel.importOidnModel(
-                                uri,
-                                force = true,
-                                onProgress = { importProgress = it },
-                                onSuccess = { name ->
-                                    dialogState = DialogState.None
-                                    warningState = null
-                                    pendingOidnImportUri = null
-                                    Toast.makeText(
-                                        context,
-                                        importedModelMessage.format(name),
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                },
-                                onError = { err ->
-                                    dialogState = DialogState.None
-                                    pendingOidnImportUri = null
-                                    warningState = ModelWarningState.Error(err)
-                                }
-                            )
-                        }
-                    },
-                    dismissButtonText = stringResource(state.warning.negativeButtonTextResId),
-                    onDismissButton = { warningState = null; pendingOidnImportUri = null }
-                )
-            }
-
             is ModelWarningState.Error -> {
                 BaseDialog(
                     title = stringResource(R.string.import_error),
@@ -684,10 +628,6 @@ sealed class ModelWarningState {
         val modelName: String,
         val warning: ModelManager.ModelWarning,
         val isImport: Boolean
-    ) : ModelWarningState()
-    data class OidnModelWarning(
-        val modelName: String,
-        val warning: ModelManager.ModelWarning
     ) : ModelWarningState()
     data class Error(val message: String) : ModelWarningState()
 }

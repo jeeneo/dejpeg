@@ -635,29 +635,21 @@ class ProcessingViewModel : ViewModel() {
 
     fun importOidnModel(
         uri: Uri,
-        force: Boolean = false,
         onProgress: (Int) -> Unit = {},
         onSuccess: (String) -> Unit = {},
-        onError: (String) -> Unit = {},
-        onWarning: ((String, ModelManager.ModelWarning) -> Unit)? = null
+        onError: (String) -> Unit = {}
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 modelManager?.importOidnModel(
                     uri,
-                    force,
                     { launch(Dispatchers.Main) { onProgress(it) } },
                     { modelName ->
                         modelManager?.setActiveOidnModel(modelName)
                         refreshInstalledOidnModels()
                         launch(Dispatchers.Main) { onSuccess(modelName) }
                     },
-                    { launch(Dispatchers.Main) { onError(it) } },
-                    onWarning?.let { cb ->
-                        { modelName, warning ->
-                            launch(Dispatchers.Main) { cb(modelName, warning) }
-                        }
-                    }
+                    { launch(Dispatchers.Main) { onError(it) } }
                 )
             } catch (e: Exception) {
                 launch(Dispatchers.Main) { onError(e.message ?: "Unknown error") }
