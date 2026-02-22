@@ -120,6 +120,7 @@ import com.je.dejpeg.compose.utils.rememberHapticFeedback
 import com.je.dejpeg.data.AppPreferences
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import com.je.dejpeg.data.ProcessingMode
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -139,7 +140,7 @@ fun ProcessingScreen(
     val images by viewModel.images.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     val globalStrength by viewModel.globalStrength.collectAsState()
-    val supportsStrength = viewModel.getActiveModelName()?.contains("fbcnn", ignoreCase = true) == true
+    val supportsStrength = viewModel.getActiveModelName()?.contains("fbcnn", ignoreCase = true) == true && viewModel.processingMode.value == ProcessingMode.ONNX
     val shouldShowNoModelDialog by viewModel.shouldShowNoModelDialog.collectAsState()
     val haptic = rememberHapticFeedback()
     val deprecatedModelWarning by viewModel.deprecatedModelWarning.collectAsState()
