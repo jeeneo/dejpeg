@@ -299,4 +299,30 @@
     <string name="brisque_phase_fine_scan">Точное сканирование</string>
     <string name="brisque_phase_fine_done">Точное сканирование выполнено</string>
     <string name="brisque_phase_finalizing">Завершение</string>
+    <string name="invalid_tza_file_type">В режиме Oidn поддерживаются только файлы моделей .tza</string>
+    <string name="processing_mode">Режим обработки</string>
+    <string name="mode_onnx_desc">Использует ONNX Runtime для предобученных моделей (.onnx/.ort)</string>
+    <string name="mode_oidn_desc">Использует Intel® Open Image Denoise с обученными весами (.tza)</string>
+    <string name="oidn_settings">Параметры Oidn</string>
+    <string name="oidn_model_management">Управление весами</string>
+    <string name="oidn_no_model_loaded">Нет загруженных весов</string>
+    <string name="oidn_hdr">HDR-вход</string>
+    <string name="oidn_hdr_desc">Включить, если входное изображение в формате HDR</string>
+    <string name="oidn_srgb">sRGB‑вход</string>
+    <string name="oidn_srgb_desc">Включить, если на входе используется гамма-кривая sRGB/2.2</string>
+    <string name="oidn_quality">Качество</string>
+    <string name="oidn_quality_default">По умолчанию</string>
+    <string name="oidn_quality_fast">Быстро</string>
+    <string name="oidn_quality_balanced">Баланс</string>
+    <string name="oidn_quality_high">Высокое</string>
+    <string name="oidn_max_memory">Макс. память (МБ)</string>
+    <string name="oidn_max_memory_desc">0 = неограниченно</string>
+    <string name="oidn_num_threads">Потоки</string>
+    <string name="oidn_num_threads_desc">0 = автоматически</string>
+    <string name="oidn_settings_desc">HDR, sRGB, качество, память, потоки</string>
+    <string name="import_tza_model">Импорт весов</string>
+    <string name="no_oidn_models_installed">Файлы весов (.tza) не найдены. Импортируйте веса, чтобы начать.</string>
+    <string name="oidn_incompatible_model_title">Несовместимые веса</string>
+    <string name="oidn_incompatible_model_message">Эти веса, по-видимому, предназначены для конвейеров 3D-рендеринга (они предполагают наличие вспомогательных буферов альбедо и/или нормалей). Они не будет работать корректно для шумоподавления растровых изображений, таких как фотографии.\n\nВместо этого используйте веса только для цвета (например, rt_ldr.tza или rt_ldr_small.tza).</string>
+    <string name="oidn_description">с поддержкой OIDN</string>
 </resources>
