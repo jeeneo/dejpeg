@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoidng="utf-8"?>
 <resources>
     <string name="close">Закрыть</string>
     <string name="image">Изображение</string>
@@ -60,6 +60,7 @@
     <string name="ok">Хорошо</string>
     <string name="images">Изображения (%1$d)</string>
     <string name="strength">Интенсивность: %1$d</string>
+    <string name="input_scale">Масштаб входа: %1$d</string>
     <string name="no_images_yet">Нет изображений</string>
     <string name="tap_to_add_images">Нажмите, чтобы добавить</string>
     <string name="no_model_installed_title">Модель не установлена</string>

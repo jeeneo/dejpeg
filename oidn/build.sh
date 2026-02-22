@@ -1,11 +1,11 @@
 set -euo pipefail
 
 NDK_ROOT="$(realpath "${ANDROID_NDK_ROOT:-${ANDROID_HOME}/ndk/29.0.14206865}")"
-ISPC="$(realpath "${ISPC_EXECUTABLE:-./odinroot/ispc/ispc-v1.30.0-linux/bin/ispc}")"
-TBB_SRC="$(realpath "${TBB_SOURCE_DIR:-./odinroot/oneTBB}")"
-OIDN_SRC="$(realpath "${OIDN_SOURCE_DIR:-./odinroot/odin}")"
-BUILD="$(mkdir -p "${1:-./odinroot/build/build-android-static}" && realpath "${1:-./odinroot/build/build-android-static}")"
-INSTALL="$(mkdir -p "${2:-./odinroot/build/oidn-android-arm64-static}" && realpath "${2:-./odinroot/build/oidn-android-arm64-static}")"
+ISPC="$(realpath "${ISPC_EXECUTABLE:-./oidnroot/ispc/ispc-v1.30.0-linux/bin/ispc}")"
+TBB_SRC="$(realpath "${TBB_SOURCE_DIR:-./oidnroot/oneTBB}")"
+OIDN_SRC="$(realpath "${OIDN_SOURCE_DIR:-./oidnroot/oidn}")"
+BUILD="$(mkdir -p "${1:-./oidnroot/build/build-android-static}" && realpath "${1:-./oidnroot/build/build-android-static}")"
+INSTALL="$(mkdir -p "${2:-./oidnroot/build/oidn-android-arm64-static}" && realpath "${2:-./oidnroot/build/oidn-android-arm64-static}")"
 TOOLCHAIN="$NDK_ROOT/build/cmake/android.toolchain.cmake"
 
 for path in "$NDK_ROOT" "$ISPC" "$TBB_SRC" "$OIDN_SRC" "$TOOLCHAIN"; do

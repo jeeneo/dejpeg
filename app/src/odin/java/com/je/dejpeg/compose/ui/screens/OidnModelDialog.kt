@@ -50,7 +50,7 @@ import com.je.dejpeg.R
 import com.je.dejpeg.compose.ui.components.StyledAlertDialog
 
 @Composable
-fun OdinModelDialog(
+fun OidnModelDialog(
     models: List<String>,
     active: String?,
     onSelect: (String) -> Unit,
@@ -63,12 +63,12 @@ fun OdinModelDialog(
     StyledAlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(stringResource(R.string.odin_model_management))
+            Text(stringResource(R.string.oidn_model_management))
         },
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 if (models.isEmpty()) {
-                    Text(stringResource(R.string.no_odin_models_installed))
+                    Text(stringResource(R.string.no_oidn_models_installed))
                 } else {
                     models.forEach { name ->
                         Row(

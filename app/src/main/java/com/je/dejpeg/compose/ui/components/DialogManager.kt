@@ -114,8 +114,8 @@ fun AboutDialog(onDismiss: () -> Unit) {
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
-                        if (BuildConfig.ODIN_ENABLED) {
-                            Text(stringResource(R.string.odin_description))
+                        if (BuildConfig.OIDN_ENABLED) {
+                            Text(stringResource(R.string.oidn_description))
                         }
                     }
                     Spacer(Modifier.height(16.dp))

@@ -51,12 +51,13 @@ class ProcessingService : Service() {
         const val EXTRA_OVERLAP_SIZE = "extra_overlap_size"
         const val EXTRA_MODEL_NAME = "extra_model_name"
         const val EXTRA_PROCESSING_MODE = "extra_processing_mode"
-        const val EXTRA_ODIN_WEIGHTS_PATH = "extra_odin_weights_path"
-        const val EXTRA_ODIN_HDR = "extra_odin_hdr"
-        const val EXTRA_ODIN_SRGB = "extra_odin_srgb"
-        const val EXTRA_ODIN_QUALITY = "extra_odin_quality"
-        const val EXTRA_ODIN_MAX_MEMORY_MB = "extra_odin_max_memory_mb"
-        const val EXTRA_ODIN_NUM_THREADS = "extra_odin_num_threads"
+        const val EXTRA_OIDN_WEIGHTS_PATH = "extra_oidn_weights_path"
+        const val EXTRA_OIDN_HDR = "extra_oidn_hdr"
+        const val EXTRA_OIDN_SRGB = "extra_oidn_srgb"
+        const val EXTRA_OIDN_QUALITY = "extra_oidn_quality"
+        const val EXTRA_OIDN_MAX_MEMORY_MB = "extra_oidn_max_memory_mb"
+        const val EXTRA_OIDN_NUM_THREADS = "extra_oidn_num_threads"
+        const val EXTRA_OIDN_INPUT_SCALE = "extra_oidn_input_scale"
         const val PROGRESS_ACTION = "com.je.dejpeg.action.PROGRESS"
         const val PROGRESS_EXTRA_MESSAGE = "extra_message"
         const val PROGRESS_EXTRA_COMPLETED_CHUNKS = "extra_completed_chunks"
@@ -164,22 +165,24 @@ class ProcessingService : Service() {
                         val bitmap = ImageLoadingHelper.loadBitmapWithRotation(unprocessedFile)
                             ?: throw Exception("Failed to decode bitmap")
 
-                        if (processingMode == ProcessingMode.ODIN) {
-                            val weightsPath = intent.getStringExtra(EXTRA_ODIN_WEIGHTS_PATH)
-                            val odinHdr = intent.getBooleanExtra(EXTRA_ODIN_HDR, false)
-                            val odinSrgb = intent.getBooleanExtra(EXTRA_ODIN_SRGB, false)
-                            val odinQuality = intent.getIntExtra(EXTRA_ODIN_QUALITY, 0)
-                            val odinMaxMemoryMB = intent.getIntExtra(EXTRA_ODIN_MAX_MEMORY_MB, 0)
-                            val odinNumThreads = intent.getIntExtra(EXTRA_ODIN_NUM_THREADS, 0)
-                            Log.d("ProcessingService", "Odin mode: weightsPath=$weightsPath, hdr=$odinHdr, srgb=$odinSrgb, quality=$odinQuality")
+                        if (processingMode == ProcessingMode.OIDN) {
+                            val weightsPath = intent.getStringExtra(EXTRA_OIDN_WEIGHTS_PATH)
+                            val oidnHdr = intent.getBooleanExtra(EXTRA_OIDN_HDR, false)
+                            val oidnSrgb = intent.getBooleanExtra(EXTRA_OIDN_SRGB, false)
+                            val oidnQuality = intent.getIntExtra(EXTRA_OIDN_QUALITY, 0)
+                            val oidnMaxMemoryMB = intent.getIntExtra(EXTRA_OIDN_MAX_MEMORY_MB, 0)
+                            val oidnNumThreads = intent.getIntExtra(EXTRA_OIDN_NUM_THREADS, 0)
+                            val oidnInputScale = intent.getFloatExtra(EXTRA_OIDN_INPUT_SCALE, 0f)
+                            Log.d("ProcessingService", "Oidn mode: weightsPath=$weightsPath, hdr=$oidnHdr, srgb=$oidnSrgb, quality=$oidnQuality, inputScale=$oidnInputScale")
                             oidnProcessor?.processImage(
                                 inputBitmap = bitmap,
                                 weightsPath = weightsPath,
-                                numThreads = odinNumThreads,
-                                quality = odinQuality,
-                                maxMemoryMB = odinMaxMemoryMB,
-                                hdr = odinHdr,
-                                srgb = odinSrgb,
+                                numThreads = oidnNumThreads,
+                                quality = oidnQuality,
+                                maxMemoryMB = oidnMaxMemoryMB,
+                                hdr = oidnHdr,
+                                srgb = oidnSrgb,
+                                inputScale = oidnInputScale,
                                 callback = object : OidnProcessor.ProcessCallback {
                                     override fun onComplete(result: Bitmap) {
                                         try {

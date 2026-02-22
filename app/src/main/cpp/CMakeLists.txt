@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.22.1)
 project("oidn_jni")
 
 set(PROJECT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../..")
-set(OIDN_INSTALL_DIR "${PROJECT_ROOT}/odinroot/build/oidn-android-arm64-static")
+set(OIDN_INSTALL_DIR "${PROJECT_ROOT}/oidnroot/build/oidn-android-arm64-static")
 set(OIDN_STATIC_LIBS_DIR "${OIDN_INSTALL_DIR}/lib")
 set(OIDN_INCLUDE_DIR     "${OIDN_INSTALL_DIR}/include")
 

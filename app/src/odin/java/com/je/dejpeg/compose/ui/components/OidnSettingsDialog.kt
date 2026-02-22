@@ -51,7 +51,7 @@ import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OdinSettingsDialog(
+fun OidnSettingsDialog(
     hdr: Boolean,
     srgb: Boolean,
     quality: Int,
@@ -70,7 +70,7 @@ fun OdinSettingsDialog(
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         title = {
             Text(
-                stringResource(R.string.odin_settings),
+                stringResource(R.string.oidn_settings),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
@@ -88,12 +88,12 @@ fun OdinSettingsDialog(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            stringResource(R.string.odin_hdr),
+                            stringResource(R.string.oidn_hdr),
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            stringResource(R.string.odin_hdr_desc),
+                            stringResource(R.string.oidn_hdr_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -110,12 +110,12 @@ fun OdinSettingsDialog(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            stringResource(R.string.odin_srgb),
+                            stringResource(R.string.oidn_srgb),
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            stringResource(R.string.odin_srgb_desc),
+                            stringResource(R.string.oidn_srgb_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -124,16 +124,16 @@ fun OdinSettingsDialog(
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    stringResource(R.string.odin_quality),
+                    stringResource(R.string.oidn_quality),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 val qualityOptions = listOf(
-                    0 to stringResource(R.string.odin_quality_default),
-                    4 to stringResource(R.string.odin_quality_fast),
-                    5 to stringResource(R.string.odin_quality_balanced),
-                    6 to stringResource(R.string.odin_quality_high)
+                    0 to stringResource(R.string.oidn_quality_default),
+                    4 to stringResource(R.string.oidn_quality_fast),
+                    5 to stringResource(R.string.oidn_quality_balanced),
+                    6 to stringResource(R.string.oidn_quality_high)
                 )
                 qualityOptions.chunked(2).forEach { rowOptions ->
                     SingleChoiceSegmentedButtonRow(
@@ -158,12 +158,12 @@ fun OdinSettingsDialog(
 
                 // Max memory slider (0-4096)
                 Text(
-                    stringResource(R.string.odin_max_memory),
+                    stringResource(R.string.oidn_max_memory),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    stringResource(R.string.odin_max_memory_desc),
+                    stringResource(R.string.oidn_max_memory_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -183,12 +183,12 @@ fun OdinSettingsDialog(
 
                 // Threads slider (0-16)
                 Text(
-                    stringResource(R.string.odin_num_threads),
+                    stringResource(R.string.oidn_num_threads),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    stringResource(R.string.odin_num_threads_desc),
+                    stringResource(R.string.oidn_num_threads_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

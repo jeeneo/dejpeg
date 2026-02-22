@@ -17,7 +17,7 @@ val hasReleaseSigning = listOf(
     releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword
 ).all { !it.isNullOrBlank() }
 
-val buildOdin = project.findProperty("buildOdin")?.toString()?.toBoolean() ?: false
+val buildOidn = project.findProperty("buildOidn")?.toString()?.toBoolean() ?: false
 
 android {
     namespace = "com.je.dejpeg"
@@ -36,10 +36,10 @@ android {
         ndk {
             abiFilters += "arm64-v8a"
         }
-        buildConfigField("boolean", "ODIN_ENABLED", buildOdin.toString())
+        buildConfigField("boolean", "OIDN_ENABLED", buildOidn.toString())
     }
 
-    if (buildOdin) {
+    if (buildOidn) {
         externalNativeBuild {
             cmake {
                 path = file("src/main/cpp/CMakeLists.txt")
@@ -50,7 +50,7 @@ android {
 
     sourceSets {
         getByName("main") {
-            kotlin.srcDir(if (buildOdin) "src/odin/java" else "src/noOdin/java")
+            kotlin.srcDir(if (buildOidn) "src/oidn/java" else "src/noOidn/java")
         }
     }
 

@@ -3,7 +3,7 @@ package com.je.dejpeg.compose.ui.screens
 import androidx.compose.runtime.Composable
 
 @Composable
-fun OdinModelDialog(
+fun OidnModelDialog(
     models: List<String>,
     active: String?,
     onSelect: (String) -> Unit,

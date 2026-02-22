@@ -87,14 +87,15 @@ class ProcessingViewModel : ViewModel() {
     val savingImagesProgress = MutableStateFlow<Pair<Int, Int>?>(null)
     val processingErrorDialog = MutableStateFlow<String?>(null)
 
-    // Odin mode state
+    // Oidn mode state
     val processingMode = MutableStateFlow(ProcessingMode.ONNX)
-    val installedOdinModels = MutableStateFlow<List<String>>(emptyList())
-    val odinHdr = MutableStateFlow(false)
-    val odinSrgb = MutableStateFlow(false)
-    val odinQuality = MutableStateFlow(AppPreferences.DEFAULT_ODIN_QUALITY)
-    val odinMaxMemoryMB = MutableStateFlow(AppPreferences.DEFAULT_ODIN_MAX_MEMORY_MB)
-    val odinNumThreads = MutableStateFlow(AppPreferences.DEFAULT_ODIN_NUM_THREADS)
+    val installedOidnModels = MutableStateFlow<List<String>>(emptyList())
+    val oidnHdr = MutableStateFlow(false)
+    val oidnSrgb = MutableStateFlow(false)
+    val oidnQuality = MutableStateFlow(AppPreferences.DEFAULT_OIDN_QUALITY)
+    val oidnMaxMemoryMB = MutableStateFlow(AppPreferences.DEFAULT_OIDN_MAX_MEMORY_MB)
+    val oidnNumThreads = MutableStateFlow(AppPreferences.DEFAULT_OIDN_NUM_THREADS)
+    val oidnInputScale = MutableStateFlow(AppPreferences.DEFAULT_OIDN_INPUT_SCALE)
 
     private var appContext: Context? = null
     private var appPreferences: AppPreferences? = null
@@ -153,17 +154,18 @@ class ProcessingViewModel : ViewModel() {
         viewModelScope.launch { appPreferences?.overlapSize?.collect { overlapSize.value = it } }
         viewModelScope.launch { appPreferences?.globalStrength?.collect { globalStrength.value = it } }
         viewModelScope.launch { appPreferences?.processingMode?.collect { processingMode.value = it } }
-        viewModelScope.launch { appPreferences?.odinHdr?.collect { odinHdr.value = it } }
-        viewModelScope.launch { appPreferences?.odinSrgb?.collect { odinSrgb.value = it } }
-        viewModelScope.launch { appPreferences?.odinQuality?.collect { odinQuality.value = it } }
-        viewModelScope.launch { appPreferences?.odinMaxMemoryMB?.collect { odinMaxMemoryMB.value = it } }
-        viewModelScope.launch { appPreferences?.odinNumThreads?.collect { odinNumThreads.value = it } }
+        viewModelScope.launch { appPreferences?.oidnHdr?.collect { oidnHdr.value = it } }
+        viewModelScope.launch { appPreferences?.oidnSrgb?.collect { oidnSrgb.value = it } }
+        viewModelScope.launch { appPreferences?.oidnQuality?.collect { oidnQuality.value = it } }
+        viewModelScope.launch { appPreferences?.oidnMaxMemoryMB?.collect { oidnMaxMemoryMB.value = it } }
+        viewModelScope.launch { appPreferences?.oidnNumThreads?.collect { oidnNumThreads.value = it } }
+        viewModelScope.launch { appPreferences?.oidnInputScale?.collect { oidnInputScale.value = it } }
         viewModelScope.launch {
             appContext?.let { ctx -> 
                 ModelMigrationHelper.migrateModelsIfNeeded(ctx) // attempt to migrate and set previous model
             }
             installedModels.value = withContext(Dispatchers.IO) { modelManager?.getInstalledModels() ?: emptyList() }
-            installedOdinModels.value = withContext(Dispatchers.IO) { modelManager?.getInstalledOdinModels() ?: emptyList() }
+            installedOidnModels.value = withContext(Dispatchers.IO) { modelManager?.getInstalledOidnModels() ?: emptyList() }
             hasCheckedModels.value = true
             if (installedModels.value.isEmpty()) {
                 shouldShowNoModelDialog.value = true
@@ -398,12 +400,13 @@ class ProcessingViewModel : ViewModel() {
                 overlapSize = overlapSize.value,
                 modelName = modelManager?.getActiveModelName(),
                 processingMode = mode.name,
-                odinWeightsPath = if (mode == ProcessingMode.ODIN) modelManager?.getActiveOdinModelPath() else null,
-                odinHdr = odinHdr.value,
-                odinSrgb = odinSrgb.value,
-                odinQuality = odinQuality.value,
-                odinMaxMemoryMB = odinMaxMemoryMB.value,
-                odinNumThreads = odinNumThreads.value
+                oidnWeightsPath = if (mode == ProcessingMode.OIDN) modelManager?.getActiveOidnModelPath() else null,
+                oidnHdr = oidnHdr.value,
+                oidnSrgb = oidnSrgb.value,
+                oidnQuality = oidnQuality.value,
+                oidnMaxMemoryMB = oidnMaxMemoryMB.value,
+                oidnNumThreads = oidnNumThreads.value,
+                oidnInputScale = oidnInputScale.value
             )
         }
     }
@@ -553,6 +556,11 @@ class ProcessingViewModel : ViewModel() {
         viewModelScope.launch { appPreferences?.setGlobalStrength(strength) }
     }
 
+    fun setOidnInputScale(scale: Float) {
+        oidnInputScale.value = scale
+        viewModelScope.launch { appPreferences?.setOidnInputScale(scale) }
+    }
+
     fun setChunkSize(size: Int) {
         chunkSize.value = size
         viewModelScope.launch { appPreferences?.setChunkSize(size) }
@@ -613,19 +621,19 @@ class ProcessingViewModel : ViewModel() {
     fun hasActiveModel() = modelManager?.hasActiveModel() ?: false
     fun getActiveModelName() = modelManager?.getActiveModelName()
 
-    // odin mode methods
+    // oidn mode methods
     fun setProcessingMode(mode: ProcessingMode) {
         processingMode.value = mode
         viewModelScope.launch { appPreferences?.setProcessingMode(mode) }
     }
 
-    fun refreshInstalledOdinModels() {
+    fun refreshInstalledOidnModels() {
         viewModelScope.launch {
-            installedOdinModels.value = withContext(Dispatchers.IO) { modelManager?.getInstalledOdinModels() ?: emptyList() }
+            installedOidnModels.value = withContext(Dispatchers.IO) { modelManager?.getInstalledOidnModels() ?: emptyList() }
         }
     }
 
-    fun importOdinModel(
+    fun importOidnModel(
         uri: Uri,
         force: Boolean = false,
         onProgress: (Int) -> Unit = {},
@@ -635,13 +643,13 @@ class ProcessingViewModel : ViewModel() {
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                modelManager?.importOdinModel(
+                modelManager?.importOidnModel(
                     uri,
                     force,
                     { launch(Dispatchers.Main) { onProgress(it) } },
                     { modelName ->
-                        modelManager?.setActiveOdinModel(modelName)
-                        refreshInstalledOdinModels()
+                        modelManager?.setActiveOidnModel(modelName)
+                        refreshInstalledOidnModels()
                         launch(Dispatchers.Main) { onSuccess(modelName) }
                     },
                     { launch(Dispatchers.Main) { onError(it) } },
@@ -657,45 +665,45 @@ class ProcessingViewModel : ViewModel() {
         }
     }
 
-    fun deleteOdinModels(models: List<String>, onDeleted: (String) -> Unit = {}) {
+    fun deleteOidnModels(models: List<String>, onDeleted: (String) -> Unit = {}) {
         viewModelScope.launch(Dispatchers.IO) {
             models.forEach { name ->
-                modelManager?.deleteOdinModel(name)
+                modelManager?.deleteOidnModel(name)
                 withContext(Dispatchers.Main) { onDeleted(name) }
             }
-            refreshInstalledOdinModels()
+            refreshInstalledOidnModels()
         }
     }
 
-    fun setActiveOdinModelByName(name: String) {
-        modelManager?.setActiveOdinModel(name) ?: Log.e("ProcessingViewModel", "modelManager is null!")
+    fun setActiveOidnModelByName(name: String) {
+        modelManager?.setActiveOidnModel(name) ?: Log.e("ProcessingViewModel", "modelManager is null!")
     }
-    fun hasActiveOdinModel() = modelManager?.hasActiveOdinModel() ?: false
-    fun getActiveOdinModelName() = modelManager?.getActiveOdinModelName()
+    fun hasActiveOidnModel() = modelManager?.hasActiveOidnModel() ?: false
+    fun getActiveOidnModelName() = modelManager?.getActiveOidnModelName()
 
-    fun setOdinHdrPref(hdr: Boolean) {
-        odinHdr.value = hdr
-        viewModelScope.launch { appPreferences?.setOdinHdr(hdr) }
-    }
-
-    fun setOdinSrgbPref(srgb: Boolean) {
-        odinSrgb.value = srgb
-        viewModelScope.launch { appPreferences?.setOdinSrgb(srgb) }
+    fun setOidnHdrPref(hdr: Boolean) {
+        oidnHdr.value = hdr
+        viewModelScope.launch { appPreferences?.setOidnHdr(hdr) }
     }
 
-    fun setOdinQualityPref(quality: Int) {
-        odinQuality.value = quality
-        viewModelScope.launch { appPreferences?.setOdinQuality(quality) }
+    fun setOidnSrgbPref(srgb: Boolean) {
+        oidnSrgb.value = srgb
+        viewModelScope.launch { appPreferences?.setOidnSrgb(srgb) }
     }
 
-    fun setOdinMaxMemoryMBPref(maxMemoryMB: Int) {
-        odinMaxMemoryMB.value = maxMemoryMB
-        viewModelScope.launch { appPreferences?.setOdinMaxMemoryMB(maxMemoryMB) }
+    fun setOidnQualityPref(quality: Int) {
+        oidnQuality.value = quality
+        viewModelScope.launch { appPreferences?.setOidnQuality(quality) }
     }
 
-    fun setOdinNumThreadsPref(numThreads: Int) {
-        odinNumThreads.value = numThreads
-        viewModelScope.launch { appPreferences?.setOdinNumThreads(numThreads) }
+    fun setOidnMaxMemoryMBPref(maxMemoryMB: Int) {
+        oidnMaxMemoryMB.value = maxMemoryMB
+        viewModelScope.launch { appPreferences?.setOidnMaxMemoryMB(maxMemoryMB) }
+    }
+
+    fun setOidnNumThreadsPref(numThreads: Int) {
+        oidnNumThreads.value = numThreads
+        viewModelScope.launch { appPreferences?.setOidnNumThreads(numThreads) }
     }
 
     fun showNoModelDialog() { shouldShowNoModelDialog.value = true }

@@ -527,9 +527,9 @@ class ModelManager(
 
     private fun getTzaModelsDir(): File = ModelMigrationHelper.getTzaModelsDir(context)
 
-    private var cachedActiveOdinModel: String? = null
+    private var cachedActiveOidnModel: String? = null
 
-    fun getInstalledOdinModels(): List<String> {
+    fun getInstalledOidnModels(): List<String> {
         val modelsDir = getTzaModelsDir()
         if (!modelsDir.exists()) return emptyList()
         val files = modelsDir.listFiles { _, name ->
@@ -538,36 +538,36 @@ class ModelManager(
         return files?.map { it.name } ?: emptyList()
     }
 
-    fun hasActiveOdinModel(): Boolean {
-        val activeModel = getActiveOdinModelName()
+    fun hasActiveOidnModel(): Boolean {
+        val activeModel = getActiveOidnModelName()
         return activeModel != null && File(getTzaModelsDir(), activeModel).exists()
     }
 
-    fun getActiveOdinModelName(): String? {
-        cachedActiveOdinModel?.let { return it }
+    fun getActiveOidnModelName(): String? {
+        cachedActiveOidnModel?.let { return it }
         return runBlocking {
-            appPreferences.getActiveOdinModel().also { cachedActiveOdinModel = it }
+            appPreferences.getActiveOidnModel().also { cachedActiveOidnModel = it }
         }
     }
 
-    fun setActiveOdinModel(modelName: String) {
-        Log.d("ModelManager", "setActiveOdinModel called with: $modelName")
-        cachedActiveOdinModel = modelName
+    fun setActiveOidnModel(modelName: String) {
+        Log.d("ModelManager", "setActiveOidnModel called with: $modelName")
+        cachedActiveOidnModel = modelName
         coroutineScope.launch {
-            appPreferences.setActiveOdinModel(modelName)
-            Log.d("ModelManager", "Active Odin model saved to DataStore: $modelName")
+            appPreferences.setActiveOidnModel(modelName)
+            Log.d("ModelManager", "Active Oidn model saved to DataStore: $modelName")
         }
     }
 
-    private fun clearActiveOdinModel() {
-        cachedActiveOdinModel = null
+    private fun clearActiveOidnModel() {
+        cachedActiveOidnModel = null
         coroutineScope.launch {
-            appPreferences.clearActiveOdinModel()
+            appPreferences.clearActiveOidnModel()
         }
     }
 
-    fun getActiveOdinModelPath(): String? {
-        val modelName = getActiveOdinModelName() ?: return null
+    fun getActiveOidnModelPath(): String? {
+        val modelName = getActiveOidnModelName() ?: return null
         val modelFile = File(getTzaModelsDir(), modelName)
         return if (modelFile.exists()) modelFile.absolutePath else null
     }
@@ -577,7 +577,7 @@ class ModelManager(
         return lower.contains("_alb") && lower.contains("_nrm")
     }
 
-    fun importOdinModel(
+    fun importOidnModel(
         modelUri: Uri,
         force: Boolean = false,
         onProgress: (Int) -> Unit = {},
@@ -593,8 +593,8 @@ class ModelManager(
             }
             if (!force && isIncompatibleTzaModel(filename)) {
                 val warning = ModelWarning(
-                    titleResId = R.string.odin_incompatible_model_title,
-                    messageResId = R.string.odin_incompatible_model_message,
+                    titleResId = R.string.oidn_incompatible_model_title,
+                    messageResId = R.string.oidn_incompatible_model_message,
                     positiveButtonTextResId = R.string.import_anyway,
                     negativeButtonTextResId = R.string.cancel
                 )
@@ -617,18 +617,18 @@ class ModelManager(
         }
     }
 
-    fun deleteOdinModel(modelName: String, onDeleted: (String) -> Unit = {}) {
+    fun deleteOidnModel(modelName: String, onDeleted: (String) -> Unit = {}) {
         val modelFile = File(getTzaModelsDir(), modelName)
         if (modelFile.exists()) {
             modelFile.delete()
             onDeleted(modelName)
         }
-        if (modelName == getActiveOdinModelName()) {
-            val remaining = getInstalledOdinModels()
+        if (modelName == getActiveOidnModelName()) {
+            val remaining = getInstalledOidnModels()
             if (remaining.isNotEmpty()) {
-                setActiveOdinModel(remaining.first())
+                setActiveOidnModel(remaining.first())
             } else {
-                clearActiveOdinModel()
+                clearActiveOidnModel()
             }
         }
     }

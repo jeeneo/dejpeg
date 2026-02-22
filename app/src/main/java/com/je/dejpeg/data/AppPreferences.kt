@@ -38,7 +38,7 @@ val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "ap
 
 enum class ProcessingMode {
     ONNX,
-    ODIN;
+    OIDN;
 
     companion object {
         fun fromString(value: String?): ProcessingMode =
@@ -67,12 +67,13 @@ object PreferenceKeys {
     val BRISQUE_SHARPNESS_WEIGHT = floatPreferencesKey("brisque_sharpness_weight")
 
     val PROCESSING_MODE = stringPreferencesKey("processing_mode")
-    val ACTIVE_ODIN_MODEL = stringPreferencesKey("activeOdinModel")
-    val ODIN_HDR = booleanPreferencesKey("odin_hdr")
-    val ODIN_SRGB = booleanPreferencesKey("odin_srgb")
-    val ODIN_QUALITY = intPreferencesKey("odin_quality")
-    val ODIN_MAX_MEMORY_MB = intPreferencesKey("odin_max_memory_mb")
-    val ODIN_NUM_THREADS = intPreferencesKey("odin_num_threads")
+    val ACTIVE_OIDN_MODEL = stringPreferencesKey("activeOidnModel")
+    val OIDN_HDR = booleanPreferencesKey("oidn_hdr")
+    val OIDN_SRGB = booleanPreferencesKey("oidn_srgb")
+    val OIDN_QUALITY = intPreferencesKey("oidn_quality")
+    val OIDN_MAX_MEMORY_MB = intPreferencesKey("oidn_max_memory_mb")
+    val OIDN_NUM_THREADS = intPreferencesKey("oidn_num_threads")
+    val OIDN_INPUT_SCALE = floatPreferencesKey("oidn_input_scale")
 }
 
 data class BrisqueSettings(
@@ -97,9 +98,10 @@ class AppPreferences(private val context: Context) {
         const val DEFAULT_CHUNK_SIZE = 512
         const val DEFAULT_OVERLAP_SIZE = 16
         const val DEFAULT_GLOBAL_STRENGTH = 50f
-        const val DEFAULT_ODIN_QUALITY = 0
-        const val DEFAULT_ODIN_MAX_MEMORY_MB = 0
-        const val DEFAULT_ODIN_NUM_THREADS = 0
+        const val DEFAULT_OIDN_QUALITY = 0
+        const val DEFAULT_OIDN_MAX_MEMORY_MB = 0
+        const val DEFAULT_OIDN_NUM_THREADS = 0
+        const val DEFAULT_OIDN_INPUT_SCALE = 0f
     }
 
     val skipSaveDialog: Flow<Boolean> = context.dataStore.data.map { prefs ->
@@ -284,63 +286,71 @@ class AppPreferences(private val context: Context) {
 
     suspend fun getProcessingModeImmediate(): ProcessingMode = processingMode.first()
 
-    // Odin model
-    val activeOdinModel: Flow<String?> = context.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.ACTIVE_ODIN_MODEL]
+    // Oidn model
+    val activeOidnModel: Flow<String?> = context.dataStore.data.map { prefs ->
+        prefs[PreferenceKeys.ACTIVE_OIDN_MODEL]
     }
 
-    suspend fun setActiveOdinModel(modelName: String) {
+    suspend fun setActiveOidnModel(modelName: String) {
         context.dataStore.edit { prefs ->
-            prefs[PreferenceKeys.ACTIVE_ODIN_MODEL] = modelName
+            prefs[PreferenceKeys.ACTIVE_OIDN_MODEL] = modelName
         }
     }
 
-    suspend fun clearActiveOdinModel() {
+    suspend fun clearActiveOidnModel() {
         context.dataStore.edit { prefs ->
-            prefs.remove(PreferenceKeys.ACTIVE_ODIN_MODEL)
+            prefs.remove(PreferenceKeys.ACTIVE_OIDN_MODEL)
         }
     }
 
-    suspend fun getActiveOdinModel(): String? = activeOdinModel.first()
+    suspend fun getActiveOidnModel(): String? = activeOidnModel.first()
 
-    // Odin settings
-    val odinHdr: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.ODIN_HDR] ?: false
+    // Oidn settings
+    val oidnHdr: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[PreferenceKeys.OIDN_HDR] ?: false
     }
 
-    val odinSrgb: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.ODIN_SRGB] ?: false
+    val oidnSrgb: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[PreferenceKeys.OIDN_SRGB] ?: false
     }
 
-    val odinQuality: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.ODIN_QUALITY] ?: DEFAULT_ODIN_QUALITY
+    val oidnQuality: Flow<Int> = context.dataStore.data.map { prefs ->
+        prefs[PreferenceKeys.OIDN_QUALITY] ?: DEFAULT_OIDN_QUALITY
     }
 
-    val odinMaxMemoryMB: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.ODIN_MAX_MEMORY_MB] ?: DEFAULT_ODIN_MAX_MEMORY_MB
+    val oidnMaxMemoryMB: Flow<Int> = context.dataStore.data.map { prefs ->
+        prefs[PreferenceKeys.OIDN_MAX_MEMORY_MB] ?: DEFAULT_OIDN_MAX_MEMORY_MB
     }
 
-    val odinNumThreads: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.ODIN_NUM_THREADS] ?: DEFAULT_ODIN_NUM_THREADS
+    val oidnNumThreads: Flow<Int> = context.dataStore.data.map { prefs ->
+        prefs[PreferenceKeys.OIDN_NUM_THREADS] ?: DEFAULT_OIDN_NUM_THREADS
     }
 
-    suspend fun setOdinHdr(hdr: Boolean) {
-        context.dataStore.edit { prefs -> prefs[PreferenceKeys.ODIN_HDR] = hdr }
+    val oidnInputScale: Flow<Float> = context.dataStore.data.map { prefs ->
+        prefs[PreferenceKeys.OIDN_INPUT_SCALE] ?: DEFAULT_OIDN_INPUT_SCALE
     }
 
-    suspend fun setOdinSrgb(srgb: Boolean) {
-        context.dataStore.edit { prefs -> prefs[PreferenceKeys.ODIN_SRGB] = srgb }
+    suspend fun setOidnHdr(hdr: Boolean) {
+        context.dataStore.edit { prefs -> prefs[PreferenceKeys.OIDN_HDR] = hdr }
     }
 
-    suspend fun setOdinQuality(quality: Int) {
-        context.dataStore.edit { prefs -> prefs[PreferenceKeys.ODIN_QUALITY] = quality }
+    suspend fun setOidnSrgb(srgb: Boolean) {
+        context.dataStore.edit { prefs -> prefs[PreferenceKeys.OIDN_SRGB] = srgb }
     }
 
-    suspend fun setOdinMaxMemoryMB(maxMemoryMB: Int) {
-        context.dataStore.edit { prefs -> prefs[PreferenceKeys.ODIN_MAX_MEMORY_MB] = maxMemoryMB }
+    suspend fun setOidnQuality(quality: Int) {
+        context.dataStore.edit { prefs -> prefs[PreferenceKeys.OIDN_QUALITY] = quality }
     }
 
-    suspend fun setOdinNumThreads(numThreads: Int) {
-        context.dataStore.edit { prefs -> prefs[PreferenceKeys.ODIN_NUM_THREADS] = numThreads }
+    suspend fun setOidnMaxMemoryMB(maxMemoryMB: Int) {
+        context.dataStore.edit { prefs -> prefs[PreferenceKeys.OIDN_MAX_MEMORY_MB] = maxMemoryMB }
+    }
+
+    suspend fun setOidnNumThreads(numThreads: Int) {
+        context.dataStore.edit { prefs -> prefs[PreferenceKeys.OIDN_NUM_THREADS] = numThreads }
+    }
+
+    suspend fun setOidnInputScale(inputScale: Float) {
+        context.dataStore.edit { prefs -> prefs[PreferenceKeys.OIDN_INPUT_SCALE] = inputScale }
     }
 }

@@ -140,7 +140,10 @@ fun ProcessingScreen(
     val images by viewModel.images.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     val globalStrength by viewModel.globalStrength.collectAsState()
-    val supportsStrength = viewModel.getActiveModelName()?.contains("fbcnn", ignoreCase = true) == true && viewModel.processingMode.value == ProcessingMode.ONNX
+    val processingMode by viewModel.processingMode.collectAsState()
+    val oidnInputScale by viewModel.oidnInputScale.collectAsState()
+    val isOidnMode = processingMode == ProcessingMode.OIDN
+    val supportsStrength = if (isOidnMode) true else viewModel.getActiveModelName()?.contains("fbcnn", ignoreCase = true) == true && processingMode == ProcessingMode.ONNX
     val shouldShowNoModelDialog by viewModel.shouldShowNoModelDialog.collectAsState()
     val haptic = rememberHapticFeedback()
     val deprecatedModelWarning by viewModel.deprecatedModelWarning.collectAsState()
@@ -266,10 +269,18 @@ fun ProcessingScreen(
         if (images.isNotEmpty() && supportsStrength) {
             Card(Modifier.fillMaxWidth().padding(bottom = 16.dp), colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceContainer), shape = RoundedCornerShape(16.dp)) {
                 Column(Modifier.padding(12.dp)) {
-                    Text(stringResource(R.string.strength, globalStrength.toInt()), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                    Spacer(Modifier.height(8.dp))
-                    var prevStrength by remember { mutableFloatStateOf(globalStrength) }
-                    Slider(value = globalStrength, onValueChange = { val v = (it / 5).roundToInt() * 5f; if (v != prevStrength) { haptic.light(); prevStrength = v }; viewModel.setGlobalStrength(v) }, valueRange = 0f..100f, steps = 19, modifier = Modifier.fillMaxWidth().height(24.dp))
+                    if (isOidnMode) {
+                        val displayValue = (oidnInputScale * 100).roundToInt()
+                        Text(stringResource(R.string.input_scale, displayValue), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                        Spacer(Modifier.height(8.dp))
+                        var prevScale by remember { mutableFloatStateOf(oidnInputScale) }
+                        Slider(value = oidnInputScale * 100f, onValueChange = { val v = (it / 5).roundToInt() * 5f; val scaled = v / 100f; if (scaled != prevScale) { haptic.light(); prevScale = scaled }; viewModel.setOidnInputScale(scaled) }, valueRange = 0f..100f, steps = 19, modifier = Modifier.fillMaxWidth().height(24.dp))
+                    } else {
+                        Text(stringResource(R.string.strength, globalStrength.toInt()), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                        Spacer(Modifier.height(8.dp))
+                        var prevStrength by remember { mutableFloatStateOf(globalStrength) }
+                        Slider(value = globalStrength, onValueChange = { val v = (it / 5).roundToInt() * 5f; if (v != prevStrength) { haptic.light(); prevStrength = v }; viewModel.setGlobalStrength(v) }, valueRange = 0f..100f, steps = 19, modifier = Modifier.fillMaxWidth().height(24.dp))
+                    }
                 }
             }
         }

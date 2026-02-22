@@ -3,7 +3,7 @@ package com.je.dejpeg.compose.ui.components
 import androidx.compose.runtime.Composable
 
 @Composable
-fun OdinSettingsDialog(
+fun OidnSettingsDialog(
     hdr: Boolean,
     srgb: Boolean,
     quality: Int,

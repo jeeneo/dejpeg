@@ -1,16 +1,16 @@
 #!/bin/bash
 
-cd odinroot/odin
+cd oidnroot/oidn
 
 git checkout -f e050ac80deca5c2f76633f0054b73c6cb7d2d251
 git reset --hard e050ac80deca5c2f76633f0054b73c6cb7d2d251
 
 git apply << 'EOF'
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index d11e3b6..733fd9d 100644
+index d11e3b6..2cd9b1a 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -53,29 +53,31 @@ mark_as_advanced(OIDN_WARN_AS_ERRORS)
+@@ -53,29 +53,39 @@ mark_as_advanced(OIDN_WARN_AS_ERRORS)
  set(OIDN_WEIGHTS)
  
  if(OIDN_FILTER_RT)
@@ -37,7 +37,15 @@ index d11e3b6..733fd9d 100644
 -    weights/rt_nrm.tza
 -    weights/rt_nrm_large.tza
 -  )
-+  if(NOT ANDROID)
++  if(ANDROID)
++    # small weights
++    list(APPEND OIDN_WEIGHTS
++      weights/rt_hdr.tza
++      weights/rt_hdr_small.tza
++      weights/rt_ldr.tza
++      weights/rt_ldr_small.tza
++    )
++  else()
 +    list(APPEND OIDN_WEIGHTS
 +      weights/rt_alb.tza
 +      weights/rt_alb_large.tza
@@ -81,27 +89,85 @@ index 9caeec9..16a55e9 100644
 +endif()
 \ No newline at end of file
 diff --git a/core/rt_filter.cpp b/core/rt_filter.cpp
-index 72ffb2d..5492b01 100644
+index 72ffb2d..106494d 100644
 --- a/core/rt_filter.cpp
 +++ b/core/rt_filter.cpp
-@@ -4,7 +4,7 @@
- #include "rt_filter.h"
- 
- // Default weights
--#if defined(OIDN_FILTER_RT)
-+#if defined(OIDN_FILTER_RT) && !defined(__ANDROID__)
+@@ -7,25 +7,27 @@
+ #if defined(OIDN_FILTER_RT)
    #include "weights/rt_hdr.h"
    #include "weights/rt_hdr_small.h"
-   #include "weights/rt_hdr_alb.h"
-@@ -33,7 +33,7 @@ OIDN_NAMESPACE_BEGIN
-   RTFilter::RTFilter(const Ref<Device>& device)
+-  #include "weights/rt_hdr_alb.h"
+-  #include "weights/rt_hdr_alb_small.h"
+-  #include "weights/rt_hdr_alb_nrm.h"
+-  #include "weights/rt_hdr_alb_nrm_small.h"
+-  #include "weights/rt_hdr_calb_cnrm.h"
+-  #include "weights/rt_hdr_calb_cnrm_small.h"
+-  #include "weights/rt_hdr_calb_cnrm_large.h"
+   #include "weights/rt_ldr.h"
+   #include "weights/rt_ldr_small.h"
+-  #include "weights/rt_ldr_alb.h"
+-  #include "weights/rt_ldr_alb_small.h"
+-  #include "weights/rt_ldr_alb_nrm.h"
+-  #include "weights/rt_ldr_alb_nrm_small.h"
+-  #include "weights/rt_ldr_calb_cnrm.h"
+-  #include "weights/rt_ldr_calb_cnrm_small.h"
+-  #include "weights/rt_alb.h"
+-  #include "weights/rt_alb_large.h"
+-  #include "weights/rt_nrm.h"
+-  #include "weights/rt_nrm_large.h"
++  #if !defined(__ANDROID__)
++    #include "weights/rt_hdr_alb.h"
++    #include "weights/rt_hdr_alb_small.h"
++    #include "weights/rt_hdr_alb_nrm.h"
++    #include "weights/rt_hdr_alb_nrm_small.h"
++    #include "weights/rt_hdr_calb_cnrm.h"
++    #include "weights/rt_hdr_calb_cnrm_small.h"
++    #include "weights/rt_hdr_calb_cnrm_large.h"
++    #include "weights/rt_ldr_alb.h"
++    #include "weights/rt_ldr_alb_small.h"
++    #include "weights/rt_ldr_alb_nrm.h"
++    #include "weights/rt_ldr_alb_nrm_small.h"
++    #include "weights/rt_ldr_calb_cnrm.h"
++    #include "weights/rt_ldr_calb_cnrm_small.h"
++    #include "weights/rt_alb.h"
++    #include "weights/rt_alb_large.h"
++    #include "weights/rt_nrm.h"
++    #include "weights/rt_nrm_large.h"
++  #endif
+ #endif
+ 
+ OIDN_NAMESPACE_BEGIN
+@@ -34,8 +36,11 @@ OIDN_NAMESPACE_BEGIN
      : UNetFilter(device)
    {
--  #if defined(OIDN_FILTER_RT)
-+  #if defined(OIDN_FILTER_RT) && !defined(__ANDROID__)
-     models.hdr           = {blobs::weights::rt_hdr,
-                             blobs::weights::rt_hdr_small};
+   #if defined(OIDN_FILTER_RT)
+-    models.hdr           = {blobs::weights::rt_hdr,
+-                            blobs::weights::rt_hdr_small};
++    models.hdr = {blobs::weights::rt_hdr,
++                  blobs::weights::rt_hdr_small};
++    models.ldr = {blobs::weights::rt_ldr,
++                  blobs::weights::rt_ldr_small};
++    #if !defined(__ANDROID__)
      models.hdr_alb       = {blobs::weights::rt_hdr_alb,
+                             blobs::weights::rt_hdr_alb_small};
+     models.hdr_alb_nrm   = {blobs::weights::rt_hdr_alb_nrm,
+@@ -43,8 +48,6 @@ OIDN_NAMESPACE_BEGIN
+     models.hdr_calb_cnrm = {blobs::weights::rt_hdr_calb_cnrm,
+                             blobs::weights::rt_hdr_calb_cnrm_small,
+                             blobs::weights::rt_hdr_calb_cnrm_large};
+-    models.ldr           = {blobs::weights::rt_ldr,
+-                            blobs::weights::rt_ldr_small};
+     models.ldr_alb       = {blobs::weights::rt_ldr_alb,
+                             blobs::weights::rt_ldr_alb_small};
+     models.ldr_alb_nrm   = {blobs::weights::rt_ldr_alb_nrm,
+@@ -57,6 +60,7 @@ OIDN_NAMESPACE_BEGIN
+     models.nrm           = {blobs::weights::rt_nrm,
+                             nullptr,
+                             blobs::weights::rt_nrm_large};
++    #endif
+   #endif
+   }
+ 
 diff --git a/core/thread.cpp b/core/thread.cpp
 index 70abe42..a7886a4 100644
 --- a/core/thread.cpp
@@ -233,6 +299,6 @@ index 8963307..1cfcf42 100644
 +      #endif
      }
    }
- 
 
+ 
 EOF

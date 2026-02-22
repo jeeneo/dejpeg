@@ -10,5 +10,4 @@ opencv
 *.yml
 brsq.py
 *.bin
-opencv*
-odinroot
+oidnroot
