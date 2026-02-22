@@ -270,11 +270,11 @@ fun ProcessingScreen(
             Card(Modifier.fillMaxWidth().padding(bottom = 16.dp), colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceContainer), shape = RoundedCornerShape(16.dp)) {
                 Column(Modifier.padding(12.dp)) {
                     if (isOidnMode) {
-                        val displayValue = (oidnInputScale * 100).roundToInt()
+                        val displayValue = if (oidnInputScale == 0f) stringResource(R.string.input_scale_auto) else String.format("%.1f", oidnInputScale)
                         Text(stringResource(R.string.input_scale, displayValue), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                         Spacer(Modifier.height(8.dp))
                         var prevScale by remember { mutableFloatStateOf(oidnInputScale) }
-                        Slider(value = oidnInputScale * 100f, onValueChange = { val v = (it / 5).roundToInt() * 5f; val scaled = v / 100f; if (scaled != prevScale) { haptic.light(); prevScale = scaled }; viewModel.setOidnInputScale(scaled) }, valueRange = 0f..100f, steps = 19, modifier = Modifier.fillMaxWidth().height(24.dp))
+                        Slider(value = oidnInputScale, onValueChange = { val v = (it * 2).roundToInt() / 2f; if (v != prevScale) { haptic.light(); prevScale = v }; viewModel.setOidnInputScale(v) }, valueRange = 0f..10f, steps = 19, modifier = Modifier.fillMaxWidth().height(24.dp))
                     } else {
                         Text(stringResource(R.string.strength, globalStrength.toInt()), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                         Spacer(Modifier.height(8.dp))

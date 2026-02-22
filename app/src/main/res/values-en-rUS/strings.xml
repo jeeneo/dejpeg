@@ -57,7 +57,8 @@
     <string name="ok">OK</string>
     <string name="images">Images (%1$d)</string>
     <string name="strength">Strength: %1$d</string>
-    <string name="input_scale">Input Scale: %1$d</string>
+    <string name="input_scale">Input Scale: %1$s</string>
+    <string name="input_scale_auto">Auto</string>
     <string name="no_images_yet">No images yet</string>
     <string name="tap_to_add_images">Tap to add images</string>
     <string name="no_model_installed_title">No model installed</string>
