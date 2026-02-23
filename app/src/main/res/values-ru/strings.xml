@@ -315,11 +315,11 @@
     <string name="oidn_quality_fast">Быстро</string>
     <string name="oidn_quality_balanced">Баланс</string>
     <string name="oidn_quality_high">Высокое</string>
-    <string name="oidn_max_memory">Макс. память (МБ)</string>
-    <string name="oidn_max_memory_desc">0 = неограниченно</string>
+    <!-- <string name="oidn_max_memory">Макс. память (МБ)</string>
+    <string name="oidn_max_memory_desc">0 = неограниченно</string> -->
     <string name="oidn_num_threads">Потоки</string>
     <string name="oidn_num_threads_desc">0 = автоматически</string>
-    <string name="oidn_settings_desc">HDR, sRGB, качество, память, потоки</string>
+    <string name="oidn_settings_desc">HDR, sRGB, качество, потоки</string>
     <string name="import_tza_model">Импорт весов</string>
     <string name="no_oidn_models_installed">Файлы весов (.tza) не найдены. Импортируйте веса, чтобы начать.</string>
     <string name="oidn_description">с поддержкой OIDN</string>

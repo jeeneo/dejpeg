@@ -349,11 +349,11 @@
     <string name="oidn_quality_fast">Fast</string>
     <string name="oidn_quality_balanced">Balanced</string>
     <string name="oidn_quality_high">High</string>
-    <string name="oidn_max_memory">Max memory (MB)</string>
-    <string name="oidn_max_memory_desc">0 = unlimited</string>
+    <!-- <string name="oidn_max_memory">Max memory (MB)</string>
+    <string name="oidn_max_memory_desc">0 = unlimited</string> -->
     <string name="oidn_num_threads">Threads</string>
     <string name="oidn_num_threads_desc">0 = auto</string>
-    <string name="oidn_settings_desc">HDR, sRGB, quality, memory, threads</string>
+    <string name="oidn_settings_desc">HDR, sRGB, quality, threads</string>
     <string name="import_tza_model">Import .tza model</string>
     <string name="no_oidn_models_installed">No .tza models found. Import a model to get started.</string>
 </resources>
