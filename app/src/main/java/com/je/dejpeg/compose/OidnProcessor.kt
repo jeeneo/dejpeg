@@ -15,16 +15,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/*
-* If you use this code in your own project, please give credit
-*/
-
 package com.je.dejpeg.compose
 
 import android.content.Context
 import android.graphics.Bitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.je.dejpeg.BuildConfig
 import com.je.dejpeg.R
 
 class OidnProcessor(private val context: Context) {
@@ -33,7 +30,9 @@ class OidnProcessor(private val context: Context) {
         private const val TAG = "OidnProcessor"
 
         init {
-            System.loadLibrary("oidn_jni")
+            if (BuildConfig.OIDN_ENABLED) {
+                System.loadLibrary("oidn_jni")
+            }
         }
 
         @JvmStatic

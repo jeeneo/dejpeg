@@ -15,10 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/*
-* If you use this code in your own project, please give credit
-*/
-
 package com.je.dejpeg.compose.utils.helpers
 
 import android.content.Context
@@ -169,7 +165,6 @@ object ImageLoadingHelper {
      * the following line:
      * Stack Blur Algorithm by Mario Klingemann <mario@quasimondo.com>
      */
-
     fun fastblur(sentBitmap: Bitmap, scale: Float, radius: Int): Bitmap? {
         if (radius < 1) return null
         val bmp = sentBitmap.scale(

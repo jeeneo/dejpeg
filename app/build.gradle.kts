@@ -48,12 +48,6 @@ android {
         }
     }
 
-    sourceSets {
-        getByName("main") {
-            kotlin.srcDir(if (buildOidn) "src/oidn/java" else "src/noOidn/java")
-        }
-    }
-
     signingConfigs {
         if (hasReleaseSigning) {
             create("release") {

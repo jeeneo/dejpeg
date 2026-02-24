@@ -6,7 +6,6 @@
  *
  * Adapted for Android/Kotlin use.
  */
-
 package com.je.dejpeg.compose
 
 import android.graphics.Bitmap

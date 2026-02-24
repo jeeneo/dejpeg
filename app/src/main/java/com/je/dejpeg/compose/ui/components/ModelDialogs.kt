@@ -16,10 +16,6 @@
  *
  */
 
-/*
-* If you use this code in your own project, please give credit
-*/
-
 package com.je.dejpeg.compose.ui.components
 
 import androidx.compose.foundation.background

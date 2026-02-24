@@ -15,10 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/*
-* If you use this code in your own project, please give credit
-*/
-
 package com.je.dejpeg.compose
 
 import android.app.Notification
