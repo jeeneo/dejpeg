@@ -59,14 +59,11 @@ fun OidnSettingsDialog(
     onQualityChange: (Int) -> Unit,
     onMaxMemoryChange: (Int) -> Unit,
     onNumThreadsChange: (Int) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     val haptic = rememberHapticFeedback()
     AlertDialog(
-        onDismissRequest = {
-            haptic.light()
-            onDismiss()
-        },
+        onDismissRequest = onDismiss,
         shape = RoundedCornerShape(28.dp),
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         title = {

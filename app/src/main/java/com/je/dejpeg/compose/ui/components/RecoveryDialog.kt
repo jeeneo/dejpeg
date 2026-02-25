@@ -53,17 +53,17 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import com.je.dejpeg.R
 import com.je.dejpeg.compose.ui.viewmodel.ImageItem
-import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.compose.utils.CacheManager
 import com.je.dejpeg.compose.utils.helpers.ImageLoadingHelper
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
+import com.je.dejpeg.data.ImageRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Composable
 fun RecoveryDialog(
-    viewModel: ProcessingViewModel
+    imageRepository: ImageRepository
 ) {
     data class RecoveryImage(
         val imageId: String,
@@ -215,7 +215,7 @@ fun RecoveryDialog(
                                 context, "${context.packageName}.provider", it
                             )
                         }
-                        viewModel.addImage(
+                        imageRepository.addImage(
                             ImageItem(
                                 id = img.imageId,
                                 uri = uri,

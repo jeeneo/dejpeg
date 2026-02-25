@@ -44,11 +44,13 @@ import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.je.dejpeg.compose.ui.MainScreen
 import com.je.dejpeg.compose.ui.components.StarterModelDialog
-import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
+import com.je.dejpeg.compose.ui.viewmodel.SettingsViewModel
+import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.ui.theme.DeJPEGTheme
 
 class MainActivity : ComponentActivity() {
-    private val viewModel: ProcessingViewModel by viewModels()
+    private val settingsViewModel: SettingsViewModel by viewModels()
+    private val imageRepository by lazy { ImageRepository.getInstance(this) }
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -102,14 +104,14 @@ class MainActivity : ComponentActivity() {
                 Surface(
                     modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
                 ) {
-                    val sharedUris by viewModel.sharedUris.collectAsState()
+                    val sharedUris by imageRepository.sharedUris.collectAsState()
                     MainScreen(sharedUris = sharedUris)
                 }
                 if (showStarterModelDialog.value) {
                     StarterModelDialog(
                         onDismiss = {
                             showStarterModelDialog.value = false
-                            viewModel.refreshInstalledModels()
+                            settingsViewModel.refreshInstalledModels()
                         })
                 }
             }
@@ -154,6 +156,6 @@ class MainActivity : ComponentActivity() {
             )
         } catch (_: Exception) { /* o */
         }
-        viewModel.addSharedUri(uri)
+        imageRepository.addSharedUri(uri)
     }
 }

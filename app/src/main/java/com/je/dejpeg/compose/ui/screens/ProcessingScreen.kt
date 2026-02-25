@@ -99,6 +99,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.je.dejpeg.R
+import com.je.dejpeg.compose.ModelType
 import com.je.dejpeg.compose.ui.components.BaseDialog
 import com.je.dejpeg.compose.ui.components.CancelProcessingDialog
 import com.je.dejpeg.compose.ui.components.DeprecatedModelWarningDialog
@@ -110,10 +111,12 @@ import com.je.dejpeg.compose.ui.components.SaveImageDialog
 import com.je.dejpeg.compose.ui.viewmodel.ImageItem
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingUiState
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
+import com.je.dejpeg.compose.ui.viewmodel.SettingsViewModel
 import com.je.dejpeg.compose.utils.HapticFeedbackPerformer
 import com.je.dejpeg.compose.utils.ImageActions
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
 import com.je.dejpeg.data.AppPreferences
+import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.data.ProcessingMode
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -122,6 +125,8 @@ import kotlin.math.roundToInt
 @Composable
 fun ProcessingScreen(
     viewModel: ProcessingViewModel,
+    settingsViewModel: SettingsViewModel,
+    imageRepository: ImageRepository,
     onNavigateToBeforeAfter: (String) -> Unit = {},
     onNavigateToBrisque: (String) -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
@@ -133,19 +138,20 @@ fun ProcessingScreen(
     val defaultImageSource by appPreferences.defaultImageSource.collectAsState(initial = null)
     val swapSwipeActions by appPreferences.swapSwipeActions.collectAsState(initial = false)
 
-    val images by viewModel.images.collectAsState()
+    val images by imageRepository.images.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
-    val globalStrength by viewModel.globalStrength.collectAsState()
-    val processingMode by viewModel.processingMode.collectAsState()
-    val oidnInputScale by viewModel.oidnInputScale.collectAsState()
+    val globalStrength by settingsViewModel.globalStrength.collectAsState()
+    val processingMode by settingsViewModel.processingMode.collectAsState()
+    val oidnInputScale by settingsViewModel.oidnInputScale.collectAsState()
     val isOidnMode = processingMode == ProcessingMode.OIDN
-    val supportsStrength = if (isOidnMode) true else viewModel.getActiveModelName()
+    val activeModelType = if (isOidnMode) ModelType.OIDN else ModelType.ONNX
+    val supportsStrength = if (isOidnMode) true else settingsViewModel.getActiveModelName()
         ?.contains("fbcnn", ignoreCase = true) == true && processingMode == ProcessingMode.ONNX
-    val shouldShowNoModelDialog by viewModel.shouldShowNoModelDialog.collectAsState()
+    val shouldShowNoModelDialog by settingsViewModel.shouldShowNoModelDialog.collectAsState()
     val haptic = rememberHapticFeedback()
-    val deprecatedModelWarning by viewModel.deprecatedModelWarning.collectAsState()
-    val isLoadingImages by viewModel.isLoadingImages.collectAsState()
-    val loadingImagesProgress by viewModel.loadingImagesProgress.collectAsState()
+    val deprecatedModelWarning by settingsViewModel.deprecatedModelWarning.collectAsState()
+    val isLoadingImages by imageRepository.isLoadingImages.collectAsState()
+    val loadingImagesProgress by imageRepository.loadingImagesProgress.collectAsState()
     val processingErrorDialog by viewModel.processingErrorDialog.collectAsState()
     var imageIdToRemove by remember { mutableStateOf<String?>(null) }
     var imageIdToCancel by remember { mutableStateOf<String?>(null) }
@@ -235,7 +241,7 @@ fun ProcessingScreen(
             val toAdd =
                 initialSharedUris.filter { uri -> uri.toString() !in existing && uri.toString() !in processedShareUris.value }
             if (toAdd.isNotEmpty()) {
-                viewModel.addImagesFromUris(context, toAdd)
+                imageRepository.addImagesFromUris(context, toAdd, settingsViewModel.globalStrength.value / 100f)
                 processedShareUris.value += toAdd.map { it.toString() }
             }
         }
@@ -255,7 +261,7 @@ fun ProcessingScreen(
                     uris.add(it)
                     viewModel.clearCameraPhotoUri()
                 }
-                viewModel.addImagesFromUris(context, uris)
+                imageRepository.addImagesFromUris(context, uris, settingsViewModel.globalStrength.value / 100f)
             }
         }
     LaunchedEffect(Unit) { viewModel.setImagePickerLauncher(imagePickerLauncher) }
@@ -323,7 +329,7 @@ fun ProcessingScreen(
                             onValueChange = {
                                 val v = (it * 2).roundToInt() / 2f; if (v != prevScale) {
                                 haptic.light(); prevScale = v
-                            }; viewModel.setOidnInputScale(v)
+                            }; settingsViewModel.setOidnInputScale(v)
                             },
                             valueRange = 0f..10f,
                             steps = 19,
@@ -344,7 +350,7 @@ fun ProcessingScreen(
                             onValueChange = {
                                 val v = (it / 5).roundToInt() * 5f; if (v != prevStrength) {
                                 haptic.light(); prevStrength = v
-                            }; viewModel.setGlobalStrength(v)
+                            }; settingsViewModel.setGlobalStrength(v)
                             },
                             valueRange = 0f..100f,
                             steps = 19,
@@ -422,7 +428,7 @@ fun ProcessingScreen(
                         val onRightSwipe = remember(image.id) { { handleImageRemoval(image.id) } }
                         val onProcess = remember(image.id) {
                             {
-                                if (!viewModel.hasActiveModel()) viewModel.showNoModelDialog() else viewModel.processImage(
+                                if (!settingsViewModel.hasActiveModel(activeModelType)) settingsViewModel.showNoModelDialog() else viewModel.processImage(
                                     image.id
                                 )
                             }
@@ -435,7 +441,7 @@ fun ProcessingScreen(
                                 if (hasOutput) {
                                     if (ImageActions.checkFileExists(image.filename)) overwriteDialogState =
                                         Pair(image.id, image.filename)
-                                    else viewModel.saveImage(
+                                    else imageRepository.saveImage(
                                         context,
                                         image.id,
                                         onSuccess = { performRemoval(image.id) },
@@ -473,7 +479,7 @@ fun ProcessingScreen(
                     if (uiState is ProcessingUiState.Processing) {
                         haptic.heavy(); showCancelAllDialog = true
                     } else {
-                        if (!viewModel.hasActiveModel()) viewModel.showNoModelDialog() else {
+                        if (!settingsViewModel.hasActiveModel(activeModelType)) settingsViewModel.showNoModelDialog() else {
                             haptic.medium(); viewModel.processImages()
                         }
                     }
@@ -510,7 +516,7 @@ fun ProcessingScreen(
                         imageIdToRemove = null
                         overwriteDialogState = Pair(targetId, image.filename)
                     } else {
-                        viewModel.saveImage(
+                        imageRepository.saveImage(
                             context = context,
                             imageId = targetId,
                             onSuccess = { performRemoval(targetId) },
@@ -555,22 +561,22 @@ fun ProcessingScreen(
     }
 
     if (shouldShowNoModelDialog) {
-        NoModelDialog(onDismiss = { viewModel.dismissNoModelDialog() }, onGoToSettings = {
+        NoModelDialog(onDismiss = { settingsViewModel.dismissNoModelDialog() }, onGoToSettings = {
             haptic.medium()
-            viewModel.dismissNoModelDialog()
+            settingsViewModel.dismissNoModelDialog()
             onNavigateToSettings()
         })
     }
 
     deprecatedModelWarning?.let { warning ->
-        val activeModelName = viewModel.getActiveModelName() ?: ""
+        val activeModelName = settingsViewModel.getActiveModelName() ?: ""
         DeprecatedModelWarningDialog(
             modelName = activeModelName,
             warning = warning,
-            onContinue = { viewModel.dismissDeprecatedModelWarning() },
+            onContinue = { settingsViewModel.dismissDeprecatedModelWarning() },
             onGoToSettings = {
                 haptic.medium()
-                viewModel.dismissDeprecatedModelWarning()
+                settingsViewModel.dismissDeprecatedModelWarning()
                 onNavigateToSettings()
             })
     }
@@ -592,7 +598,7 @@ fun ProcessingScreen(
             hideOptions = true,
             onDismissRequest = { overwriteDialogState = null },
             onSave = { name, _, _ ->
-                viewModel.saveImage(
+                imageRepository.saveImage(
                     context,
                     id,
                     name,

@@ -93,10 +93,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.je.dejpeg.R
 import com.je.dejpeg.compose.ui.components.SimpleAlertDialog
 import com.je.dejpeg.compose.ui.viewmodel.BrisqueViewModel
-import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.compose.utils.brisque.BRISQUEDescaler
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
 import com.je.dejpeg.data.BrisqueSettings
+import com.je.dejpeg.data.ImageRepository
 import me.saket.telephoto.zoomable.ZoomSpec
 import me.saket.telephoto.zoomable.rememberZoomableState
 import me.saket.telephoto.zoomable.zoomable
@@ -106,13 +106,13 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BRISQUEScreen(
-    processingViewModel: ProcessingViewModel, imageId: String, onBack: () -> Unit = {}
+    imageRepository: ImageRepository, imageId: String, onBack: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val haptic = rememberHapticFeedback()
     val successSaveMsg = stringResource(R.string.brisque_image_saved)
     val failureSaveMsg = stringResource(R.string.brisque_failed_to_save)
-    val images by processingViewModel.images.collectAsState()
+    val images by imageRepository.images.collectAsState()
     val image =
         images.firstOrNull { it.id == imageId } ?: run { LaunchedEffect(Unit) { onBack() }; return }
     val brisqueViewModel: BrisqueViewModel = viewModel()

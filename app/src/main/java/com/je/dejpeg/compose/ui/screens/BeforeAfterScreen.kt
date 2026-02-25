@@ -64,10 +64,10 @@ import com.je.dejpeg.R
 import com.je.dejpeg.compose.ui.components.BeforeAfterSlider
 import com.je.dejpeg.compose.ui.components.LoadingDialog
 import com.je.dejpeg.compose.ui.components.SaveImageDialog
-import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.compose.utils.ImageActions
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
 import com.je.dejpeg.data.AppPreferences
+import com.je.dejpeg.data.ImageRepository
 import kotlinx.coroutines.launch
 import me.saket.telephoto.zoomable.OverzoomEffect
 import me.saket.telephoto.zoomable.ZoomLimit
@@ -78,7 +78,7 @@ import me.saket.telephoto.zoomable.zoomable
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BeforeAfterScreen(
-    viewModel: ProcessingViewModel,
+    imageRepository: ImageRepository,
     imageId: String,
     onBack: () -> Unit = {},
     showAfter: Boolean = true
@@ -89,13 +89,13 @@ fun BeforeAfterScreen(
     val appPreferences = remember { AppPreferences(context.applicationContext) }
     val skipSaveDialog by appPreferences.skipSaveDialog.collectAsState(initial = false)
 
-    val images by viewModel.images.collectAsState()
+    val images by imageRepository.images.collectAsState()
     val image = images.firstOrNull { it.id == imageId }
     var showSaveDialog by remember { mutableStateOf(false) }
     var overwriteDialogFilename by remember { mutableStateOf<String?>(null) }
     var saveErrorMessage by remember { mutableStateOf<String?>(null) }
-    val isSavingImages by viewModel.isSavingImages.collectAsState()
-    val savingImagesProgress by viewModel.savingImagesProgress.collectAsState()
+    val isSavingImages by imageRepository.isSavingImages.collectAsState()
+    val savingImagesProgress by imageRepository.savingImagesProgress.collectAsState()
 
     BackHandler(onBack = onBack)
 
@@ -116,7 +116,7 @@ fun BeforeAfterScreen(
             filename = name,
             imageId = imageId,
             onSuccess = {
-                viewModel.markImageAsSaved(imageId)
+                imageRepository.markImageAsSaved(imageId)
             },
             onError = { errorMsg ->
                 saveErrorMessage = errorMsg
@@ -177,7 +177,7 @@ fun BeforeAfterScreen(
                         if (ImageActions.checkFileExists(filename)) {
                             overwriteDialogFilename = filename
                         } else {
-                            viewModel.saveImage(
+                            imageRepository.saveImage(
                                 context = context,
                                 imageId = imageId,
                                 onSuccess = {},
@@ -208,7 +208,7 @@ fun BeforeAfterScreen(
                 scope.launch { appPreferences.setSkipSaveDialog(true) }
             }
             if (all) {
-                viewModel.saveAllImages(
+                imageRepository.saveAllImages(
                     context = context,
                     onComplete = {},
                     onError = { errorMsg -> saveErrorMessage = errorMsg })

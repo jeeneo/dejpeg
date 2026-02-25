@@ -17,7 +17,7 @@ val hasReleaseSigning = listOf(
     releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword
 ).all { !it.isNullOrBlank() }
 
-val buildOidn = project.findProperty("buildOidn")?.toString()?.toBoolean() ?: false
+val buildOidn = gradle.startParameter.taskNames.any { "oidn" in it.lowercase() }
 
 android {
     namespace = "com.je.dejpeg"
@@ -31,12 +31,12 @@ android {
         applicationId = "com.je.dejpeg"
         minSdk = 24
         targetSdk = 36
-        versionCode = 360
-        versionName = "3.6.0"
+        versionCode = 361
+        versionName = "3.6.1"
         ndk {
             abiFilters += "arm64-v8a"
         }
-        buildConfigField("boolean", "OIDN_ENABLED", buildOidn.toString())
+        buildConfigField("boolean", "OIDN_ENABLED", "false")
     }
 
     if (buildOidn) {
@@ -74,6 +74,14 @@ android {
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
             )
+        }
+        create("oidnDebug") {
+            initWith(getByName("debug"))
+            buildConfigField("boolean", "OIDN_ENABLED", "true")
+        }
+        create("oidnRelease") {
+            initWith(getByName("release"))
+            buildConfigField("boolean", "OIDN_ENABLED", "true")
         }
     }
     compileOptions {

@@ -26,7 +26,6 @@ import android.provider.OpenableColumns
 import android.util.Log
 import com.je.dejpeg.R
 import com.je.dejpeg.compose.utils.HashUtils
-import com.je.dejpeg.compose.utils.ZipExtractor
 import com.je.dejpeg.compose.utils.helpers.ModelMigrationHelper
 import com.je.dejpeg.data.AppPreferences
 import kotlinx.coroutines.CoroutineScope
@@ -36,6 +35,16 @@ import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.io.FileOutputStream
 
+enum class ModelType(val extensions: List<String>, val invalidFileTypeResId: Int) {
+    ONNX(listOf(".onnx", ".ort"), R.string.invalid_file_type),
+    OIDN(listOf(".tza"), R.string.invalid_tza_file_type);
+
+    fun matches(filename: String): Boolean {
+        val lower = filename.lowercase()
+        return extensions.any { lower.endsWith(it) }
+    }
+}
+
 class ModelManager(
     private val context: Context,
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
@@ -43,24 +52,18 @@ class ModelManager(
     private var currentSession: OrtSession? = null
     private var ortEnv: OrtEnvironment? = null
     private var currentModelName: String? = null
-    private var cachedActiveModel: String? = null
+    private val cachedActiveModels = mutableMapOf<ModelType, String?>()
     private val appPreferences = AppPreferences(context)
 
-    private fun getModelsDir(): File = ModelMigrationHelper.getOnnxModelsDir(context)
+    private fun getModelsDir(type: ModelType = ModelType.ONNX): File = when (type) {
+        ModelType.ONNX -> ModelMigrationHelper.getOnnxModelsDir(context)
+        ModelType.OIDN -> ModelMigrationHelper.getTzaModelsDir(context)
+    }
 
     companion object {
-        private val MODEL_HASHES = mapOf(
-            // older fp32 models (legacy, download links removed)
-            "fbcnn_color.onnx" to "3bb0ff3060c217d3b3af95615157fca8a65506455cf4e3d88479e09efffec97f",
-            "fbcnn_gray.onnx" to "041b360fc681ae4b134e7ec98da1ae4c7ea57435e5abe701530d5a995a7a27b3",
-            "fbcnn_gray_double.onnx" to "83aca9febba0da828dbb5cc6e23e328f60f5ad07fa3de617ab1030f0a24d4f67",
-            "scunet_color_real_gan.onnx" to "5eb9a8015cf24477980d3a4eec2e35107c470703b98d257f7560cd3cf3f02922",
-            "scunet_color_real_psnr.onnx" to "341eb061ed4d7834dbe6cdab3fb509c887f82aa29be8819c7d09b3d9bfa4892d",
-            "scunet_gray_15.onnx" to "10d33552b5754ab9df018cb119e20e1f2b18546eff8e28954529a51e5a6ae255",
-            "scunet_gray_25.onnx" to "01b5838a85822ae21880062106a80078f06e7a82aa2ffc8847e32f4462b4c928",
-            "scunet_gray_50.onnx" to "a8d9cbbbb2696ac116a87a5055496291939ed873fe28d7f560373675bb970833",
+        private const val STARTER_MODELS_ASSET_DIR = "embedonnx"
 
-            // fp16 models (current)
+        private val MODEL_HASHES = mapOf(
             "fbcnn_color_fp16.onnx" to "1a678ff4f721b557fd8a7e560b99cb94ba92f201545c7181c703e7808b93e922",
             "fbcnn_gray_fp16.onnx" to "e220b9637a9f2c34a36c98b275b2c9d2b9c2c029e365be82111072376afbec54",
             "fbcnn_gray_double_fp16.onnx" to "17feadd8970772f5ff85596cb9fb152ae3c2b82bca4deb52a7c8b3ecb2f7ac14",
@@ -180,7 +183,7 @@ class ModelManager(
         )
 
         private val MIN_OVERLAP_SIZE_BY_NAME = mapOf(
-            "scunet" to 128 // scunet models need large
+            "scunet" to 128 // scunet models need large overlap(?) needs more testing
         )
     }
 
@@ -211,33 +214,42 @@ class ModelManager(
         val negativeButtonTextResId: Int
     )
 
-    fun hasActiveModel(): Boolean {
-        val activeModel = getActiveModelName()
-        return activeModel != null && File(getModelsDir(), activeModel).exists()
+    fun hasActiveModel(type: ModelType = ModelType.ONNX): Boolean {
+        val activeModel = getActiveModelName(type)
+        return activeModel != null && File(getModelsDir(type), activeModel).exists()
     }
 
-    fun getActiveModelName(): String? {
-        cachedActiveModel?.let { return it }
+    fun getActiveModelName(type: ModelType = ModelType.ONNX): String? {
+        cachedActiveModels[type]?.let { return it }
         return runBlocking {
-            appPreferences.getActiveModel().also { cachedActiveModel = it }
+            val name = when (type) {
+                ModelType.ONNX -> appPreferences.getActiveModel()
+                ModelType.OIDN -> appPreferences.getActiveOidnModel()
+            }
+            name.also { cachedActiveModels[type] = it }
         }
     }
 
-    fun setActiveModel(modelName: String) {
-        Log.d("ModelManager", "setActiveModel called with: $modelName")
-        unloadModel()
-        cachedActiveModel = modelName
+    fun setActiveModel(modelName: String, type: ModelType = ModelType.ONNX) {
+        Log.d("ModelManager", "setActiveModel($type) called with: $modelName")
+        if (type == ModelType.ONNX) unloadModel()
+        cachedActiveModels[type] = modelName
         coroutineScope.launch {
-            appPreferences.setActiveModel(modelName)
-            Log.d("ModelManager", "Active model saved to DataStore: $modelName")
+            when (type) {
+                ModelType.ONNX -> appPreferences.setActiveModel(modelName)
+                ModelType.OIDN -> appPreferences.setActiveOidnModel(modelName)
+            }
+            Log.d("ModelManager", "Active $type model saved to DataStore: $modelName")
         }
-        Log.d("ModelManager", "Active model set to: $modelName")
     }
 
-    private fun clearActiveModel() {
-        cachedActiveModel = null
+    private fun clearActiveModel(type: ModelType = ModelType.ONNX) {
+        cachedActiveModels.remove(type)
         coroutineScope.launch {
-            appPreferences.clearActiveModel()
+            when (type) {
+                ModelType.ONNX -> appPreferences.clearActiveModel()
+                ModelType.OIDN -> appPreferences.clearActiveOidnModel()
+            }
         }
     }
 
@@ -247,18 +259,21 @@ class ModelManager(
         }
     }
 
-    fun getInstalledModels(): List<String> {
-        val modelsDir = getModelsDir()
+    fun getInstalledModels(type: ModelType = ModelType.ONNX): List<String> {
+        val modelsDir = getModelsDir(type)
         if (!modelsDir.exists()) return emptyList()
-        val files = modelsDir.listFiles { _, name ->
-            val lower = name.lowercase()
-            lower.endsWith(".onnx") || lower.endsWith(".ort")
-        }
+        val files = modelsDir.listFiles { _, name -> type.matches(name) }
         return files?.map { it.name } ?: emptyList()
     }
 
+    fun getActiveModelPath(type: ModelType = ModelType.OIDN): String? {
+        val modelName = getActiveModelName(type) ?: return null
+        val modelFile = File(getModelsDir(type), modelName)
+        return if (modelFile.exists()) modelFile.absolutePath else null
+    }
+
     fun loadModel(): OrtSession {
-        val activeModel = getActiveModelName()
+        val activeModel = getActiveModelName(ModelType.ONNX)
         Log.d(
             "ModelManager",
             "loadModel called, activeModel: $activeModel, currentModelName: $currentModelName"
@@ -273,7 +288,7 @@ class ModelManager(
         }
         Log.d("ModelManager", "Loading new model: $activeModel (previous: $currentModelName)")
         unloadModel()
-        val modelFile = File(getModelsDir(), activeModel)
+        val modelFile = File(getModelsDir(ModelType.ONNX), activeModel)
         if (!modelFile.exists()) {
             Log.e("ModelManager", "Model file does not exist: ${modelFile.absolutePath}")
             throw Exception("Model file does not exist: ${modelFile.absolutePath}")
@@ -345,6 +360,7 @@ class ModelManager(
 
     fun importModel(
         modelUri: Uri,
+        type: ModelType = ModelType.ONNX,
         onProgress: (Int) -> Unit = {},
         onSuccess: (String) -> Unit = {},
         onError: (String) -> Unit = {},
@@ -353,27 +369,30 @@ class ModelManager(
     ) {
         try {
             val filename = resolveFilename(modelUri)
-            if (!filename.lowercase().let { it.endsWith(".onnx") || it.endsWith(".ort") }) {
-                onError(context.getString(R.string.invalid_file_type))
+            if (!type.matches(filename)) {
+                onError(context.getString(type.invalidFileTypeResId))
                 return
             }
-            val actualHash = HashUtils.computeSHA256(modelUri, context)
-            val (matchedModel, modelWarning) = findModelByHash(actualHash)
-            if (modelWarning != null && !force) {
-                onWarning?.invoke(matchedModel ?: "", modelWarning)
-                return
+            // Hash-checking / warning flow only for ONNX models
+            if (type == ModelType.ONNX) {
+                val actualHash = HashUtils.computeSHA256(modelUri, context)
+                val (matchedModel, modelWarning) = findModelByHash(actualHash)
+                if (modelWarning != null && !force) {
+                    onWarning?.invoke(matchedModel ?: "", modelWarning)
+                    return
+                }
+                if (matchedModel == null && !force) {
+                    val unrecognizedWarning = ModelWarning(
+                        R.string.model_warning_unrecognized_title,
+                        R.string.model_warning_unrecognized_message,
+                        R.string.import_anyway,
+                        R.string.cancel
+                    )
+                    onWarning?.invoke(filename, unrecognizedWarning)
+                    return
+                }
             }
-            if (matchedModel == null && !force) {
-                val unrecognizedWarning = ModelWarning(
-                    R.string.model_warning_unrecognized_title,
-                    R.string.model_warning_unrecognized_message,
-                    R.string.import_anyway,
-                    R.string.cancel
-                )
-                onWarning?.invoke(filename, unrecognizedWarning)
-                return
-            }
-            importModelInternal(modelUri, filename, onProgress, onSuccess, onError)
+            importModelInternal(modelUri, filename, type, onProgress, onSuccess, onError)
         } catch (e: Exception) {
             onError(e.message ?: context.getString(R.string.unknown_error))
         }
@@ -407,16 +426,17 @@ class ModelManager(
     private fun importModelInternal(
         uri: Uri,
         filename: String,
+        type: ModelType,
         onProgress: (Int) -> Unit,
         onSuccess: (String) -> Unit,
         onError: (String) -> Unit
     ) {
         try {
-            val modelsDir = getModelsDir()
+            val modelsDir = getModelsDir(type)
             if (!modelsDir.exists()) {
                 modelsDir.mkdirs()
             }
-            val modelFile = File(getModelsDir(), filename)
+            val modelFile = File(modelsDir, filename)
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
                 val size =
                     context.contentResolver.openFileDescriptor(uri, "r")?.use { it.statSize } ?: 0L
@@ -455,18 +475,18 @@ class ModelManager(
         }
     }
 
-    fun deleteModel(modelName: String, onDeleted: (String) -> Unit = {}) {
-        val modelFile = File(getModelsDir(), modelName)
+    fun deleteModel(modelName: String, type: ModelType = ModelType.ONNX, onDeleted: (String) -> Unit = {}) {
+        val modelFile = File(getModelsDir(type), modelName)
         if (modelFile.exists()) {
             modelFile.delete()
             onDeleted(modelName)
         }
-        if (modelName == getActiveModelName()) {
-            val remaining = getInstalledModels()
+        if (modelName == getActiveModelName(type)) {
+            val remaining = getInstalledModels(type)
             if (remaining.isNotEmpty()) {
-                setActiveModel(remaining.first())
+                setActiveModel(remaining.first(), type)
             } else {
-                clearActiveModel()
+                clearActiveModel(type)
             }
         }
     }
@@ -490,10 +510,9 @@ class ModelManager(
                 Log.d("ModelManager", "Starter model already extracted, skipping")
                 return false
             }
-            val modelsDir = getModelsDir()
+            val modelsDir = getModelsDir(ModelType.ONNX)
             val hasModels = modelsDir.exists() && modelsDir.listFiles { _, name ->
-                val lower = name.lowercase()
-                lower.endsWith(".onnx") || lower.endsWith(".ort")
+                ModelType.ONNX.matches(name)
             }?.isNotEmpty() == true
             if (hasModels) {
                 Log.d("ModelManager", "Models already exist, skipping starter model extraction")
@@ -517,16 +536,15 @@ class ModelManager(
         setAsActive: Boolean = false, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}
     ): Boolean {
         return try {
-            val modelsDir = getModelsDir()
+            val modelsDir = getModelsDir(ModelType.ONNX)
             val shouldSetAsActive =
                 setAsActive || !modelsDir.exists() || modelsDir.listFiles { _, name ->
-                    val lower = name.lowercase()
-                    lower.endsWith(".onnx") || lower.endsWith(".ort")
+                    ModelType.ONNX.matches(name)
                 }?.isEmpty() == true
-            val extracted = ZipExtractor.extractFromAssets(context, "embedonnx.zip", modelsDir)
+            val extracted = copyStarterModelsFromAssets(modelsDir)
             if (extracted) {
                 if (shouldSetAsActive) {
-                    setActiveModel("1x-span-anime-pretrain-fp16.onnx")
+                    setActiveModel("1x-span-anime-pretrain-fp16.onnx", ModelType.ONNX)
                 }
                 markStarterModelExtracted()
                 onSuccess()
@@ -541,96 +559,26 @@ class ModelManager(
         }
     }
 
-    private fun getTzaModelsDir(): File = ModelMigrationHelper.getTzaModelsDir(context)
-
-    private var cachedActiveOidnModel: String? = null
-
-    fun getInstalledOidnModels(): List<String> {
-        val modelsDir = getTzaModelsDir()
-        if (!modelsDir.exists()) return emptyList()
-        val files = modelsDir.listFiles { _, name ->
-            name.lowercase().endsWith(".tza")
-        }
-        return files?.map { it.name } ?: emptyList()
-    }
-
-    fun hasActiveOidnModel(): Boolean {
-        val activeModel = getActiveOidnModelName()
-        return activeModel != null && File(getTzaModelsDir(), activeModel).exists()
-    }
-
-    fun getActiveOidnModelName(): String? {
-        cachedActiveOidnModel?.let { return it }
-        return runBlocking {
-            appPreferences.getActiveOidnModel().also { cachedActiveOidnModel = it }
-        }
-    }
-
-    fun setActiveOidnModel(modelName: String) {
-        Log.d("ModelManager", "setActiveOidnModel called with: $modelName")
-        cachedActiveOidnModel = modelName
-        coroutineScope.launch {
-            appPreferences.setActiveOidnModel(modelName)
-            Log.d("ModelManager", "Active Oidn model saved to DataStore: $modelName")
-        }
-    }
-
-    private fun clearActiveOidnModel() {
-        cachedActiveOidnModel = null
-        coroutineScope.launch {
-            appPreferences.clearActiveOidnModel()
-        }
-    }
-
-    fun getActiveOidnModelPath(): String? {
-        val modelName = getActiveOidnModelName() ?: return null
-        val modelFile = File(getTzaModelsDir(), modelName)
-        return if (modelFile.exists()) modelFile.absolutePath else null
-    }
-
-    fun importOidnModel(
-        modelUri: Uri,
-        onProgress: (Int) -> Unit = {},
-        onSuccess: (String) -> Unit = {},
-        onError: (String) -> Unit = {}
-    ) {
-        try {
-            val filename = resolveFilename(modelUri)
-            if (!filename.lowercase().endsWith(".tza")) {
-                onError(context.getString(R.string.invalid_tza_file_type))
-                return
+    private fun copyStarterModelsFromAssets(targetDir: File): Boolean {
+        return try {
+            if (!targetDir.exists()) targetDir.mkdirs()
+            val assetFiles = context.assets.list(STARTER_MODELS_ASSET_DIR) ?: emptyArray()
+            if (assetFiles.isEmpty()) {
+                Log.w("ModelManager", "No starter model files found in assets/$STARTER_MODELS_ASSET_DIR")
+                return false
             }
-            val modelsDir = getTzaModelsDir()
-            if (!modelsDir.exists()) modelsDir.mkdirs()
-            val modelFile = File(modelsDir, filename)
-            context.contentResolver.openInputStream(modelUri)?.use { inputStream ->
-                val size =
-                    context.contentResolver.openFileDescriptor(modelUri, "r")?.use { it.statSize }
-                        ?: 0L
-                FileOutputStream(modelFile).use { outputStream ->
-                    copyWithProgress(inputStream, outputStream, size, onProgress)
+            for (filename in assetFiles) {
+                val outFile = File(targetDir, filename)
+                context.assets.open("$STARTER_MODELS_ASSET_DIR/$filename").use { input ->
+                    FileOutputStream(outFile).use { output -> input.copyTo(output) }
                 }
+                Log.d("ModelManager", "Copied starter model: $filename")
             }
-            onProgress(100)
-            onSuccess(filename)
+            Log.d("ModelManager", "Successfully copied ${assetFiles.size} starter model(s)")
+            true
         } catch (e: Exception) {
-            onError(e.message ?: context.getString(R.string.failed_to_import_model))
-        }
-    }
-
-    fun deleteOidnModel(modelName: String, onDeleted: (String) -> Unit = {}) {
-        val modelFile = File(getTzaModelsDir(), modelName)
-        if (modelFile.exists()) {
-            modelFile.delete()
-            onDeleted(modelName)
-        }
-        if (modelName == getActiveOidnModelName()) {
-            val remaining = getInstalledOidnModels()
-            if (remaining.isNotEmpty()) {
-                setActiveOidnModel(remaining.first())
-            } else {
-                clearActiveOidnModel()
-            }
+            Log.e("ModelManager", "Error copying starter models from assets: ${e.message}", e)
+            false
         }
     }
 }

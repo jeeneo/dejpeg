@@ -54,7 +54,9 @@ import com.je.dejpeg.compose.ui.screens.BeforeAfterScreen
 import com.je.dejpeg.compose.ui.screens.ProcessingScreen
 import com.je.dejpeg.compose.ui.screens.SettingsScreen
 import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
+import com.je.dejpeg.compose.ui.viewmodel.SettingsViewModel
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
+import com.je.dejpeg.data.ImageRepository
 
 sealed class AppScreen {
     object Processing : AppScreen()
@@ -70,10 +72,20 @@ fun MainScreen(
 ) {
     val context = LocalContext.current
     val viewModel: ProcessingViewModel = viewModel()
+    val settingsViewModel: SettingsViewModel = viewModel()
+    val imageRepository = remember { ImageRepository.getInstance(context) }
     val haptic = rememberHapticFeedback()
     val backExitMessage = stringResource(R.string.back_exit_confirm)
 
-    RecoveryDialog(viewModel = viewModel)
+    // Wire dependencies
+    remember {
+        viewModel.imageRepository = imageRepository
+        viewModel.settingsViewModel = settingsViewModel
+        settingsViewModel.initialize(context)
+        true
+    }
+
+    RecoveryDialog(imageRepository = imageRepository)
 
     var currentScreen by remember { mutableStateOf<AppScreen>(AppScreen.Processing) }
     var screenStack by remember { mutableStateOf(listOf<AppScreen>()) }
@@ -158,6 +170,8 @@ fun MainScreen(
                     ) {
                         ProcessingScreen(
                             viewModel = viewModel,
+                            settingsViewModel = settingsViewModel,
+                            imageRepository = imageRepository,
                             onNavigateToBeforeAfter = { imageId ->
                                 navigateToScreen(AppScreen.BeforeAfter(imageId))
                             },
@@ -220,21 +234,21 @@ fun MainScreen(
                             .padding(paddingValues)
                             .fillMaxSize()
                     ) {
-                        SettingsScreen(viewModel)
+                        SettingsScreen(settingsViewModel)
                     }
                 }
             }
 
             is AppScreen.BeforeAfter -> {
                 BeforeAfterScreen(
-                    viewModel = viewModel,
+                    imageRepository = imageRepository,
                     imageId = (currentScreen as AppScreen.BeforeAfter).imageId,
                     onBack = { goBack() })
             }
 
             is AppScreen.Brisque -> {
                 BRISQUEScreen(
-                    processingViewModel = viewModel,
+                    imageRepository = imageRepository,
                     imageId = (currentScreen as AppScreen.Brisque).imageId,
                     onBack = { goBack() })
             }

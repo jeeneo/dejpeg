@@ -84,6 +84,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.je.dejpeg.R
 import com.je.dejpeg.compose.ModelManager
+import com.je.dejpeg.compose.ModelType
 import com.je.dejpeg.compose.ui.components.AboutDialog
 import com.je.dejpeg.compose.ui.components.BaseDialog
 import com.je.dejpeg.compose.ui.components.ChunkDialog
@@ -94,7 +95,7 @@ import com.je.dejpeg.compose.ui.components.ModelDialog
 import com.je.dejpeg.compose.ui.components.ModelInfoDialog
 import com.je.dejpeg.compose.ui.components.OidnSettingsDialog
 import com.je.dejpeg.compose.ui.components.PreferencesDialog
-import com.je.dejpeg.compose.ui.viewmodel.ProcessingViewModel
+import com.je.dejpeg.compose.ui.viewmodel.SettingsViewModel
 import com.je.dejpeg.data.ProcessingMode
 import com.je.dejpeg.BuildConfig
 import com.je.dejpeg.compose.utils.rememberHapticFeedback
@@ -105,7 +106,7 @@ import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(viewModel: ProcessingViewModel) {
+fun SettingsScreen(viewModel: SettingsViewModel) {
     val context = LocalContext.current
     val modelManager = remember { ModelManager(context) }
     val appPreferences = remember { com.je.dejpeg.data.AppPreferences(context) }
@@ -137,7 +138,7 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
     val oidnMaxMemoryMB by viewModel.oidnMaxMemoryMB.collectAsState()
     val oidnNumThreads by viewModel.oidnNumThreads.collectAsState()
     var activeOidnModelName by remember {
-        mutableStateOf(runBlocking { viewModel.getActiveOidnModelName() })
+        mutableStateOf(runBlocking { viewModel.getActiveModelName(ModelType.OIDN) })
     }
 
     DisposableEffect(Unit) {
@@ -154,7 +155,7 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
     }
 
     LaunchedEffect(installedOidnModels) {
-        activeOidnModelName = withContext(Dispatchers.IO) { viewModel.getActiveOidnModelName() }
+        activeOidnModelName = withContext(Dispatchers.IO) { viewModel.getActiveModelName(ModelType.OIDN) }
     }
 
     val modelPickerLauncher = rememberLauncherForActivityResult(
@@ -195,8 +196,9 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
         uri?.let { selectedUri ->
             dialogState = DialogState.ImportProgress
             importProgress = 0
-            viewModel.importOidnModel(
+            viewModel.importModel(
                 selectedUri,
+                type = ModelType.OIDN,
                 onProgress = { importProgress = it },
                 onSuccess = { name ->
                     dialogState = DialogState.None
@@ -311,7 +313,7 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
 
             if (processingMode == ProcessingMode.ONNX || !BuildConfig.OIDN_ENABLED) {
                 PreferenceGroupCard {
-                    PreferenceItemWithDivider(
+                    PreferenceItem(
                         icon = painterResource(id = R.drawable.ic_model),
                         iconBackgroundColor = MaterialTheme.colorScheme.surfaceVariant,
                         iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -334,7 +336,7 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
                 }
             } else {
                 PreferenceGroupCard {
-                    PreferenceItemWithDivider(
+                    PreferenceItem(
                         icon = painterResource(id = R.drawable.ic_model),
                         iconBackgroundColor = MaterialTheme.colorScheme.tertiaryContainer,
                         iconTint = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -361,7 +363,7 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
             PreferenceGroupHeading(stringResource(R.string.app))
 
             PreferenceGroupCard {
-                PreferenceItemWithDivider(
+                PreferenceItem(
                     icon = Icons.Filled.Settings,
                     iconBackgroundColor = MaterialTheme.colorScheme.surfaceVariant,
                     iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -372,7 +374,7 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
                 )
 
                 if (processingMode == ProcessingMode.ONNX || !BuildConfig.OIDN_ENABLED) {
-                    PreferenceItemWithDivider(
+                    PreferenceItem(
                         icon = Icons.Filled.QuestionAnswer,
                         iconBackgroundColor = MaterialTheme.colorScheme.primaryContainer,
                         iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -485,7 +487,7 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
             installedOidnModels,
             activeOidnModelName,
             onSelect = { modelName ->
-                viewModel.setActiveOidnModelByName(modelName)
+                viewModel.setActiveModelByName(modelName, ModelType.OIDN)
                 activeOidnModelName = modelName
             },
             onImport = { oidnModelPickerLauncher.launch("*/*") },
@@ -496,7 +498,7 @@ fun SettingsScreen(viewModel: ProcessingViewModel) {
             installedOidnModels,
             onConfirm = { selected ->
                 dialogState = DialogState.None
-                viewModel.deleteOidnModels(selected) {
+                viewModel.deleteModels(selected, ModelType.OIDN) {
                     Toast.makeText(
                         context,
                         deletedModelMessage.format(it),
@@ -742,7 +744,7 @@ fun PreferenceItem(
 }
 
 @Composable
-fun PreferenceItemWithDivider(
+fun PreferenceItem(
     icon: Any,
     iconBackgroundColor: Color,
     iconTint: Color,
