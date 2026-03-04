@@ -140,7 +140,7 @@ fun ChunkDialog(
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    stringResource(R.string.processing_threads_max, maxThreads),
+                    text = "${stringResource(R.string.processing_threads_desc)} ${stringResource(R.string.processing_threads_max, maxThreads)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

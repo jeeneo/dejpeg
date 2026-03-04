@@ -120,7 +120,8 @@
     <string name="source_code">Source code</string>
     <string name="show_save_dialog">Show save dialog</string>
     <string name="swap_swipe_actions">Swap swipe actions</string>
-    <string name="processing_threads_max">Max threads on this device: %1$d</string>
+    <string name="processing_threads_desc">Sets how many chunks process in parallel.</string>
+    <string name="processing_threads_max">Max available on this device: %1$d</string>
     <string name="thread_value_auto">Auto (%1$d)</string>
     <string name="default_image_source">Default source</string>
     <string name="none">none</string>
