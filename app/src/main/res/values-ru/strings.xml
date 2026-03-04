@@ -75,7 +75,7 @@
     <string name="delete">Удалить</string>
     <string name="delete_models">Удалить модели</string>
     <string name="importing_model">Импорт модели</string>
-    <string name="chunk_settings">Параметры фрагментов</string>
+    <string name="chunk_settings">Параметры ONNX</string>
     <string name="chunk_size">Размер фрагмента</string>
     <string name="overlap_size">Размер перекрытия</string>
     <string name="note_chunk_info">Изображения размером более %1$d px, будут разбиты на фрагменты, а перекрытие предотвратит появление видимых швов.</string>
@@ -315,8 +315,6 @@
     <string name="oidn_quality_fast">Быстро</string>
     <string name="oidn_quality_balanced">Баланс</string>
     <string name="oidn_quality_high">Высокое</string>
-    <!-- <string name="oidn_max_memory">Макс. память (МБ)</string>
-    <string name="oidn_max_memory_desc">0 = неограниченно</string> -->
     <string name="oidn_num_threads">Потоки</string>
     <string name="oidn_num_threads_desc">0 = автоматически</string>
     <string name="oidn_settings_desc">HDR, sRGB, качество, потоки</string>

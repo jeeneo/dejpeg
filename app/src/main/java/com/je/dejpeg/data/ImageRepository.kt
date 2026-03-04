@@ -20,9 +20,9 @@ package com.je.dejpeg.data
 import android.content.Context
 import android.net.Uri
 import android.util.Log
-import com.je.dejpeg.compose.ui.viewmodel.ImageItem
-import com.je.dejpeg.compose.utils.ImageActions
-import com.je.dejpeg.compose.utils.helpers.ImageLoadingHelper
+import com.je.dejpeg.ui.viewmodel.ImageItem
+import com.je.dejpeg.utils.ImageActions
+import com.je.dejpeg.utils.helpers.ImageLoadingHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

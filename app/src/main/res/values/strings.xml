@@ -78,7 +78,7 @@
     <string name="delete">Delete</string>
     <string name="delete_models">Delete models</string>
     <string name="importing_model">Importing model</string>
-    <string name="chunk_settings">Chunk settings</string>
+    <string name="chunk_settings">ONNX settings</string>
     <string name="chunk_size">Chunk size</string>
     <string name="overlap_size">Overlap size</string>
     <string name="note_chunk_info">Images over %1$d px will be tiled and overlap prevents visible seams.</string>
@@ -119,10 +119,9 @@
     <string name="open_source_app_description">An open source app for removing noise and compression from photos</string>
     <string name="source_code">Source code</string>
     <string name="show_save_dialog">Show save dialog</string>
-    <!-- <string name="show_save_dialog_desc">Show dialog when saving images</string> -->
     <string name="swap_swipe_actions">Swap swipe actions</string>
-    <!-- <string name="swap_swipe_actions_desc_default">Swipe right to delete/cancel, left to save/process</string>
-    <string name="swap_swipe_actions_desc_swapped">Swipe right to save/process, left to delete/cancel</string> -->
+    <string name="processing_threads_max">Max threads on this device: %1$d</string>
+    <string name="thread_value_auto">Auto (%1$d)</string>
     <string name="default_image_source">Default source</string>
     <string name="none">none</string>
     <string name="photos">Photos</string>
@@ -349,8 +348,6 @@
     <string name="oidn_quality_fast">Fast</string>
     <string name="oidn_quality_balanced">Balanced</string>
     <string name="oidn_quality_high">High</string>
-    <!-- <string name="oidn_max_memory">Max memory (MB)</string>
-    <string name="oidn_max_memory_desc">0 = unlimited</string> -->
     <string name="oidn_num_threads">Threads</string>
     <string name="oidn_num_threads_desc">0 = auto</string>
     <string name="oidn_settings_desc">HDR, sRGB, quality, threads</string>

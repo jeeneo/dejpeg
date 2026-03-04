@@ -18,7 +18,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.App.Starting">
         <activity
-            android:name=".compose.MainActivity"
+            android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:theme="@style/Theme.App.Starting">
@@ -52,7 +52,7 @@
                 android:resource="@xml/file_paths" />
         </provider>
         <service
-            android:name=".compose.ProcessingService"
+            android:name=".ProcessingService"
             android:exported="false"
             android:foregroundServiceType="dataSync"
             android:process=":processor"

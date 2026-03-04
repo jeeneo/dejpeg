@@ -52,6 +52,7 @@ object PreferenceKeys {
     val CURRENT_PROCESSING_MODEL = stringPreferencesKey("current_processing_model")
     val CHUNK_SIZE = intPreferencesKey("chunk_size")
     val OVERLAP_SIZE = intPreferencesKey("overlap_size")
+    val ONNX_DEVICE_THREADS = intPreferencesKey("onnx_device_threads")
     val GLOBAL_STRENGTH = floatPreferencesKey("global_strength")
     val BRISQUE_COARSE_STEP = intPreferencesKey("brisque_coarse_step")
     val BRISQUE_FINE_STEP = intPreferencesKey("brisque_fine_step")
@@ -91,6 +92,7 @@ class AppPreferences(private val context: Context) {
     companion object {
         const val DEFAULT_CHUNK_SIZE = 512
         const val DEFAULT_OVERLAP_SIZE = 16
+        const val DEFAULT_ONNX_DEVICE_THREADS = 0
         const val DEFAULT_GLOBAL_STRENGTH = 50f
         const val DEFAULT_OIDN_QUALITY = 0
         const val DEFAULT_OIDN_MAX_MEMORY_MB = 0
@@ -128,6 +130,10 @@ class AppPreferences(private val context: Context) {
 
     val overlapSize: Flow<Int> = context.dataStore.data.map { prefs ->
         prefs[PreferenceKeys.OVERLAP_SIZE] ?: DEFAULT_OVERLAP_SIZE
+    }
+
+    val onnxDeviceThreads: Flow<Int> = context.dataStore.data.map { prefs ->
+        prefs[PreferenceKeys.ONNX_DEVICE_THREADS] ?: DEFAULT_ONNX_DEVICE_THREADS
     }
 
     val globalStrength: Flow<Float> = context.dataStore.data.map { prefs ->
@@ -200,6 +206,12 @@ class AppPreferences(private val context: Context) {
     suspend fun setOverlapSize(size: Int) {
         context.dataStore.edit { prefs ->
             prefs[PreferenceKeys.OVERLAP_SIZE] = size
+        }
+    }
+
+    suspend fun setOnnxDeviceThreads(numThreads: Int) {
+        context.dataStore.edit { prefs ->
+            prefs[PreferenceKeys.ONNX_DEVICE_THREADS] = numThreads
         }
     }
 
