@@ -119,6 +119,7 @@ import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.data.ProcessingMode
 import kotlinx.coroutines.launch
+import java.util.Locale
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -315,7 +316,7 @@ fun ProcessingScreen(
                     if (isOidnMode) {
                         val displayValue =
                             if (oidnInputScale == 0f) stringResource(R.string.text_auto) else String.format(
-                                "%.1f", oidnInputScale
+                                Locale.ROOT, "%.1f", oidnInputScale
                             )
                         Text(
                             stringResource(R.string.input_scale, displayValue),

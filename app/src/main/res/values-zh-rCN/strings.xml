@@ -31,7 +31,6 @@
     </plurals>
     <string name="error_saving_images">保存图像%1$s时出错</string>
     <string name="select_image_source">选择图像来源</string>
-    <string name="set_as_default_desc">记住此选择</string>
     <string name="gallery">图库</string>
     <string name="gallery_picker_title">从图库选择</string>
     <string name="gallery_picker_desc">使用设备自带或第三方图库应用来选择图片。推荐使用此方式，它兼容绝大多数设备，并支持保留原始文件名。</string>
@@ -50,7 +49,7 @@
     <string name="faq_what_is_this_content">本应用专为优化画质、消除压缩痕迹和噪点设计。\n\n注意： 这并非“AI”或图像超分辨率处理，您的图片将保持原有的分辨率。\n其作用是让画面变得更纯净，这样您后续使用“AI 增强工具”可以获得更佳效果。</string>
     <string name="faq_which_models_title">使用哪一个模型？</string>
     <string name="faq_fbcnn_title">FBCNN</string>
-    <string name="faq_fbcnn_content">适用于存在 JPEG 压缩痕迹的图像（例如从 Google、Pinterest、Instagram 或论坛下载的低分辨率图片）。\n\n该滑块仅对 FBCNN 模型生效，用于控制去除压缩痕迹的强度，数值在 30-50 左右适用于轻微压缩，70 以上适用于重度消除，之后画面会变得明显平滑。\n\n基础模型为“color”，“gray” FBCNN 模型用于黑白图片，“gray double”则用于二次保存为 JPEG 的图片（即经过两次编辑或缩放且均保存为 JPEG）。</string>
+    <string name="faq_fbcnn_content">适用于存在 JPEG 压缩痕迹的图像（例如从 Google、Pinterest、Instagram 或论坛下载的低分辨率图片）。\n\n该滑块仅对 FBCNN 模型生效，用于控制去除压缩痕迹的强度，数值在 30–50 左右适用于轻微压缩，70 以上适用于重度消除，之后画面会变得明显平滑。\n\n基础模型为“color”，“gray” FBCNN 模型用于黑白图片，“gray double”则用于二次保存为 JPEG 的图片（即经过两次编辑或缩放且均保存为 JPEG）。</string>
     <string name="faq_scunet_title">SCUNet</string>
     <string name="faq_scunet_content">SCUNet 更擅长去除噪点（例如 ISO 噪点、颗粒感或斑点）。\n\n它也能在一定程度上消除压缩痕迹和 GIF 伪影。\n\n“gray” “15/25/50” 系列模型同样仅适用于灰阶图像，降噪程度不同。\n\n数字越大表示降噪力度越强。\n\n“PSNR” 变体倾向于在像素级别尽可能匹配原图，虽然在数学上更精准，但画面可能显得过于平滑。\n\n“GAN” 变体则牺牲了像素级的准确性，转而添加写实的纹理或细节，使观感更自然。通常建议两种都尝试一下，看看哪种更适合你的图像。</string>
     <string name="ok">好</string>
@@ -125,6 +124,9 @@
     <string name="model_warning_unrecognized_message">此模型不受官方支持，可能无法正常工作</string>
     <string name="error_processing_cancelled">处理已取消</string>
     <string name="processing_chunk_x_of_y">正在处理分块 %1$d/%2$d</string>
+    <plurals name="processing_chunk_range_of_y_threads">
+        <item quantity="other">正在处理 %1$d-%2$d/%3$d（%4$d 线程）</item>
+    </plurals>
     <string name="loading_images">加载图像中 ……</string>
     <string name="loading_image_progress">正在加载 %2$d 项中的第 %1$d 项</string>
     <string name="saving_images">保存图像中……</string>
@@ -174,15 +176,15 @@
     <string name="model_info_1x_de_bink_v4">Bink 压缩，更佳的几何结构表现</string>
     <string name="model_info_1x_de_bink_v5">Bink 压缩，强度更高</string>
     <string name="model_info_1x_de_bink_v6">Bink 压缩，柔和且保留细节</string>
-    <string name="model_info_1x_jpeg_00_20_fp16">JPEG 压缩（质量 0-20）</string>
-    <string name="model_info_1x_jpeg_20_40_fp16">JPEG 压缩（质量 20-40）</string>
-    <string name="model_info_1x_jpeg_40_60_fp16">JPEG 压缩（质量 40-60）</string>
-    <string name="model_info_1x_jpeg_60_80_fp16">JPEG 压缩（质量 60-80）</string>
-    <string name="model_info_1x_artifacts_jpg_00_20_alsa_fp16">JPEG 伪影（质量 0-20）</string>
-    <string name="model_info_1x_artifacts_jpg_20_40_alsa_fp16">JPEG 伪影（质量 20-40）</string>
-    <string name="model_info_1x_artifacts_jpg_40_60_alsa_fp16">JPEG 伪影（质量 40-60）</string>
-    <string name="model_info_1x_artifacts_jpg_60_800_alsa_fp16">JPEG 伪影（质量 60-80）</string>
-    <string name="model_info_1x_artifacts_jpg_80_100_alsa_fp16">JPEG 伪影（质量 80-100）</string>
+    <string name="model_info_1x_jpeg_00_20_fp16">JPEG 压缩（质量 0–20）</string>
+    <string name="model_info_1x_jpeg_20_40_fp16">JPEG 压缩（质量 20–40）</string>
+    <string name="model_info_1x_jpeg_40_60_fp16">JPEG 压缩（质量 40–60）</string>
+    <string name="model_info_1x_jpeg_60_80_fp16">JPEG 压缩（质量 60–80）</string>
+    <string name="model_info_1x_artifacts_jpg_00_20_alsa_fp16">JPEG 伪影（质量 0–20）</string>
+    <string name="model_info_1x_artifacts_jpg_20_40_alsa_fp16">JPEG 伪影（质量 20–40）</string>
+    <string name="model_info_1x_artifacts_jpg_40_60_alsa_fp16">JPEG 伪影（质量 40–60）</string>
+    <string name="model_info_1x_artifacts_jpg_60_800_alsa_fp16">JPEG 伪影（质量 60–80）</string>
+    <string name="model_info_1x_artifacts_jpg_80_100_alsa_fp16">JPEG 伪影（质量 80–100）</string>
     <string name="model_info_1x_anti_aliasing_fp16">抗锯齿</string>
     <string name="model_info_1x_kdm003_scans_fp16">扫描艺术品、绘画，消除摩尔纹</string>
     <string name="model_info_1x_sponge_color_lite_fp16">动画上色</string>
@@ -220,12 +222,14 @@
     <string name="invalid_file_type">仅支持 .onnx 和 .ort 格式的模型文件</string>
     <string name="failed_to_import_model">导入模型失败</string>
     <string name="failed_to_extract_starter_models">提取入门模型失败</string>
-    <string name="processing_filename">正在处理 %1$s ……</string>
     <string name="processing_complete_notification">处理完成</string>
     <string name="notification_channel_name">图像处理中</string>
     <string name="notification_channel_description">显示图像处理进度</string>
     <string name="notification_title_processing">处理中</string>
     <string name="notification_chunk_progress">分块 %1$d / %2$d</string>
+    <plurals name="notification_chunk_progress_range_threads">
+        <item quantity="other">分块 %1$d-%2$d / %3$d • %4$d 线程</item>
+    </plurals>
     <string name="brisque_analysis">BRISQUE 分析</string>
     <string name="brisque_save_image_desc">保存图像</string>
     <string name="brisque_image_saved">图像保存成功</string>
@@ -280,7 +284,6 @@
     <string name="brisque_refining_progress">优化 %1$s 中（%2$d/%3$d）</string>
     <string name="brisque_analyzing">分析中……</string>
     <string name="brisque_starting_descale">开始逆缩放……</string>
-    <string name="brisque_descaling_failed">逆缩放失败</string>
     <string name="brisque_phase_initialization">初始化</string>
     <string name="brisque_phase_coarse_scan">粗扫</string>
     <string name="brisque_phase_coarse_complete">粗扫完成</string>
@@ -309,5 +312,5 @@
     <string name="oidn_settings_desc">HDR，sRGB，质量，线程</string>
     <string name="import_tza_model">导入 .tza 模型</string>
     <string name="no_oidn_models_installed">未找到 .tza 模型。导入一个模型以开始。</string>
-    <string name="model_info_1x_jpeg_80_100_fp16">JPEG 压缩（质量 80-100）</string>
+    <string name="model_info_1x_jpeg_80_100_fp16">JPEG 压缩（质量 80–100）</string>
 </resources>

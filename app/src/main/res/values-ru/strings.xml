@@ -34,7 +34,6 @@
     </plurals>
     <string name="error_saving_images">Ошибка сохранения изображений: %1$s</string>
     <string name="select_image_source">Источник изображений</string>
-    <string name="set_as_default_desc">Запомнить выбор</string>
     <string name="gallery">Галерея</string>
     <string name="gallery_picker_title">Выбор галереи</string>
     <string name="gallery_picker_desc">Использует встроенное в ваше устройство или стороннее приложение галереи для выбора изображений. Этот метод рекомендуется и работает на большинстве устройств, поддерживая имена файлов.</string>
@@ -116,12 +115,17 @@
     <string name="source_code">Исходный код</string>
     <string name="show_save_dialog">Диалог сохранения</string>
     <string name="swap_swipe_actions">Инвертировать свайпы</string>
-    <string name="processing_filename">Обработка %1$s…</string>
     <string name="processing_complete_notification">Обработка завершена</string>
     <string name="notification_channel_name">Обработка изображений</string>
     <string name="notification_channel_description">Показывает ход обработки изображения</string>
     <string name="notification_title_processing">Обработка</string>
     <string name="notification_chunk_progress">Фрагмент %1$d / %2$d</string>
+    <plurals name="notification_chunk_progress_range_threads">
+        <item quantity="one">Фрагменты %1$d-%2$d / %3$d • %4$d поток</item>
+        <item quantity="few">Фрагменты %1$d-%2$d / %3$d • %4$d потока</item>
+        <item quantity="many">Фрагменты %1$d-%2$d / %3$d • %4$d потоков</item>
+        <item quantity="other">Фрагменты %1$d-%2$d / %3$d • %4$d потоков</item>
+    </plurals>
     <string name="brisque_analysis">Анализ BRISQUE</string>
     <string name="brisque_save_image_desc">Сохранить изображение</string>
     <string name="brisque_image_saved">Изображение успешно сохранено</string>
@@ -159,6 +163,12 @@
     <string name="model_warning_unrecognized_message">Данная модель официально не поддерживается и может работать некорректно</string>
     <string name="error_processing_cancelled">Обработка отменена</string>
     <string name="processing_chunk_x_of_y">Обработка фрагмента %1$d/%2$d</string>
+    <plurals name="processing_chunk_range_of_y_threads">
+        <item quantity="one">Обработка %1$d-%2$d/%3$d (%4$d поток)</item>
+        <item quantity="few">Обработка %1$d-%2$d/%3$d (%4$d потока)</item>
+        <item quantity="many">Обработка %1$d-%2$d/%3$d (%4$d потоков)</item>
+        <item quantity="other">Обработка %1$d-%2$d/%3$d (%4$d потоков)</item>
+    </plurals>
     <string name="loading_images">Загрузка изображений…</string>
     <string name="loading_image_progress">Загрузка %1$d из %2$d</string>
     <string name="saving_images">Сохранение изображений…</string>
@@ -208,16 +218,16 @@
     <string name="model_info_1x_de_bink_v4">Сжатие Bink, улучшенная геометрия</string>
     <string name="model_info_1x_de_bink_v5">Сжатие Bink, более сильная</string>
     <string name="model_info_1x_de_bink_v6">Сжатие Bink, мягкое с детализацией</string>
-    <string name="model_info_1x_jpeg_00_20_fp16">Сжатие JPEG (качество 0-20)</string>
-    <string name="model_info_1x_jpeg_20_40_fp16">Сжатие JPEG (качество 20-40)</string>
-    <string name="model_info_1x_jpeg_40_60_fp16">Сжатие JPEG (качество 40-60)</string>
-    <string name="model_info_1x_jpeg_60_80_fp16">Сжатие JPEG (качество 60-80)</string>
-    <string name="model_info_1x_jpeg_80_100_fp16">Сжатие JPEG (качество 80-100)</string>
-    <string name="model_info_1x_artifacts_jpg_00_20_alsa_fp16">Артефакты JPEG (качество 0-20)</string>
-    <string name="model_info_1x_artifacts_jpg_20_40_alsa_fp16">Артефакты JPEG (качество 20-40)</string>
-    <string name="model_info_1x_artifacts_jpg_40_60_alsa_fp16">Артефакты JPEG (качество 40-60)</string>
-    <string name="model_info_1x_artifacts_jpg_60_800_alsa_fp16">Артефакты JPEG (качество 60-80)</string>
-    <string name="model_info_1x_artifacts_jpg_80_100_alsa_fp16">Артефакты JPEG (качество 80-100)</string>
+    <string name="model_info_1x_jpeg_00_20_fp16">Сжатие JPEG (качество 0–20)</string>
+    <string name="model_info_1x_jpeg_20_40_fp16">Сжатие JPEG (качество 20–40)</string>
+    <string name="model_info_1x_jpeg_40_60_fp16">Сжатие JPEG (качество 40–60)</string>
+    <string name="model_info_1x_jpeg_60_80_fp16">Сжатие JPEG (качество 60–80)</string>
+    <string name="model_info_1x_jpeg_80_100_fp16">Сжатие JPEG (качество 80–100)</string>
+    <string name="model_info_1x_artifacts_jpg_00_20_alsa_fp16">Артефакты JPEG (качество 0–20)</string>
+    <string name="model_info_1x_artifacts_jpg_20_40_alsa_fp16">Артефакты JPEG (качество 20–40)</string>
+    <string name="model_info_1x_artifacts_jpg_40_60_alsa_fp16">Артефакты JPEG (качество 40–60)</string>
+    <string name="model_info_1x_artifacts_jpg_60_800_alsa_fp16">Артефакты JPEG (качество 60–80)</string>
+    <string name="model_info_1x_artifacts_jpg_80_100_alsa_fp16">Артефакты JPEG (качество 80–100)</string>
     <string name="model_info_1x_anti_aliasing_fp16">Сглаживание</string>
     <string name="model_info_1x_kdm003_scans_fp16">Отсканированное искусство, рисунки, удаление муара</string>
     <string name="model_info_1x_sponge_color_lite_fp16">Колоризация мультфильмов</string>
@@ -284,7 +294,6 @@
     <string name="brisque_refining_progress">Очистка %1$s (%2$d/%3$d)</string>
     <string name="brisque_analyzing">Анализ…</string>
     <string name="brisque_starting_descale">Запуск уменьшения масштаба…</string>
-    <string name="brisque_descaling_failed">Не удалось уменьшить масштаб</string>
     <string name="model_info_1x_re_detail_v2_126000_g_fp16">Улучшение деталей</string>
     <string name="model_info_1x_repainter_20000_g_fp16">Перекрашивание(?)</string>
     <string name="model_info_1x_artifacts_dithering_alsa_fp16">Артефакты шумовой растеризации</string>

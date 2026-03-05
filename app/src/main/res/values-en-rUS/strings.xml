@@ -32,7 +32,6 @@
     </plurals>
     <string name="error_saving_images">Error saving images: %1$s</string>
     <string name="select_image_source">Select image source</string>
-    <string name="set_as_default_desc">Remember this choice</string>
     <string name="gallery">Gallery</string>
     <string name="gallery_picker_title">Gallery picker</string>
     <string name="gallery_picker_desc">Uses your device\'s or 3rd-party gallery app to select images. This method is recommended and works on most devices and supports filenames.</string>
@@ -128,6 +127,10 @@
     <string name="model_warning_unrecognized_message">This model is not officially supported and may not work correctly</string>
     <string name="error_processing_cancelled">Processing cancelled</string>
     <string name="processing_chunk_x_of_y">Processing chunk %1$d/%2$d</string>
+    <plurals name="processing_chunk_range_of_y_threads">
+        <item quantity="one">Processing %1$d-%2$d/%3$d (%4$d thread)</item>
+        <item quantity="other">Processing %1$d-%2$d/%3$d (%4$d threads)</item>
+    </plurals>
     <string name="loading_images">Loading images…</string>
     <string name="loading_image_progress">Loading %1$d of %2$d</string>
     <string name="saving_images">Saving images…</string>
@@ -179,16 +182,16 @@
     <string name="model_info_1x_de_bink_v4">Bink compression, better geometry</string>
     <string name="model_info_1x_de_bink_v5">Bink compression, stronger</string>
     <string name="model_info_1x_de_bink_v6">Bink compression, soft with detail</string>
-    <string name="model_info_1x_jpeg_00_20_fp16">JPEG compression (quality 0-20)</string>
-    <string name="model_info_1x_jpeg_20_40_fp16">JPEG compression (quality 20-40)</string>
-    <string name="model_info_1x_jpeg_40_60_fp16">JPEG compression (quality 40-60)</string>
-    <string name="model_info_1x_jpeg_60_80_fp16">JPEG compression (quality 60-80)</string>
-    <string name="model_info_1x_jpeg_80_100_fp16">JPEG compression (quality 80-100)</string>
-    <string name="model_info_1x_artifacts_jpg_00_20_alsa_fp16">JPEG artifacts (quality 0-20)</string>
-    <string name="model_info_1x_artifacts_jpg_20_40_alsa_fp16">JPEG artifacts (quality 20-40)</string>
-    <string name="model_info_1x_artifacts_jpg_40_60_alsa_fp16">JPEG artifacts (quality 40-60)</string>
-    <string name="model_info_1x_artifacts_jpg_60_800_alsa_fp16">JPEG artifacts (quality 60-80)</string>
-    <string name="model_info_1x_artifacts_jpg_80_100_alsa_fp16">JPEG artifacts (quality 80-100)</string>
+    <string name="model_info_1x_jpeg_00_20_fp16">JPEG compression (quality 0–20)</string>
+    <string name="model_info_1x_jpeg_20_40_fp16">JPEG compression (quality 20–40)</string>
+    <string name="model_info_1x_jpeg_40_60_fp16">JPEG compression (quality 40–60)</string>
+    <string name="model_info_1x_jpeg_60_80_fp16">JPEG compression (quality 60–80)</string>
+    <string name="model_info_1x_jpeg_80_100_fp16">JPEG compression (quality 80–100)</string>
+    <string name="model_info_1x_artifacts_jpg_00_20_alsa_fp16">JPEG artifacts (quality 0–20)</string>
+    <string name="model_info_1x_artifacts_jpg_20_40_alsa_fp16">JPEG artifacts (quality 20–40)</string>
+    <string name="model_info_1x_artifacts_jpg_40_60_alsa_fp16">JPEG artifacts (quality 40–60)</string>
+    <string name="model_info_1x_artifacts_jpg_60_800_alsa_fp16">JPEG artifacts (quality 60–80)</string>
+    <string name="model_info_1x_artifacts_jpg_80_100_alsa_fp16">JPEG artifacts (quality 80–100)</string>
     <string name="model_info_1x_anti_aliasing_fp16">Anti-aliasing</string>
     <string name="model_info_1x_kdm003_scans_fp16">Scanned art, drawings, moire removal</string>
     <string name="model_info_1x_sponge_color_lite_fp16">Colorization for cartoons</string>
@@ -226,12 +229,15 @@
     <string name="invalid_file_type">Only .onnx and .ort model files are supported</string>
     <string name="failed_to_import_model">Failed to import model</string>
     <string name="failed_to_extract_starter_models">Failed to extract starter models</string>
-    <string name="processing_filename">Processing %1$s…</string>
     <string name="processing_complete_notification">Processing complete</string>
     <string name="notification_channel_name">Image processing</string>
     <string name="notification_channel_description">Shows progress of image processing</string>
     <string name="notification_title_processing">Processing</string>
     <string name="notification_chunk_progress">Chunk %1$d / %2$d</string>
+    <plurals name="notification_chunk_progress_range_threads">
+        <item quantity="one">Chunks %1$d-%2$d / %3$d • %4$d thread</item>
+        <item quantity="other">Chunks %1$d-%2$d / %3$d • %4$d threads</item>
+    </plurals>
     <string name="brisque_analysis">BRISQUE analysis</string>
     <string name="brisque_save_image_desc">Save image</string>
     <string name="brisque_image_saved">Image saved successfully</string>
@@ -286,7 +292,6 @@
     <string name="brisque_refining_progress">Refining %1$s (%2$d/%3$d)</string>
     <string name="brisque_analyzing">Analyzing…</string>
     <string name="brisque_starting_descale">Starting descale…</string>
-    <string name="brisque_descaling_failed">Descaling failed</string>
     <string name="brisque_phase_initialization">Initialization</string>
     <string name="brisque_phase_coarse_scan">Coarse scan</string>
     <string name="brisque_phase_coarse_complete">Coarse scan complete</string>

@@ -66,7 +66,7 @@ class ImageProcessor(
         fun onComplete(result: Bitmap)
         fun onError(error: String)
         fun onProgress(message: String)
-        fun onChunkProgress(currentChunkIndex: Int, totalChunks: Int)
+        fun onChunkProgress(currentChunkIndex: Int, totalChunks: Int, parallelWorkers: Int)
     }
 
     fun cancelProcessing() {
@@ -81,7 +81,7 @@ class ImageProcessor(
             val detectedThreads = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
             val configuredThreads = deviceThreadCount ?: AppPreferences.DEFAULT_ONNX_DEVICE_THREADS
             val effectiveDeviceThreads = if (configuredThreads <= 0) {
-                detectedThreads
+                computeAutoParallelThreads(detectedThreads)
             } else {
                 configuredThreads.coerceIn(1, detectedThreads)
             }
@@ -279,7 +279,7 @@ class ImageProcessor(
             )
             if (totalChunks > 1) {
                 withContext(Dispatchers.Main) {
-                    callback.onChunkProgress(0, totalChunks)
+                    callback.onChunkProgress(0, totalChunks, parallelWorkers)
                 }
             }
             val completedChunks = AtomicInteger(0)
@@ -313,15 +313,11 @@ class ImageProcessor(
                 }
                 cropped.recycle()
                 val completed = completedChunks.incrementAndGet()
-                val progressMessage = if (totalChunks > 1) {
-                    context.getString(R.string.processing_chunk_x_of_y, completed, totalChunks)
-                } else {
-                    context.getString(R.string.processing)
-                }
                 withContext(Dispatchers.Main) {
-                    callback.onProgress(progressMessage)
                     if (totalChunks > 1) {
-                        callback.onChunkProgress(completed, totalChunks)
+                        callback.onChunkProgress(completed, totalChunks, parallelWorkers)
+                    } else {
+                        callback.onProgress(context.getString(R.string.processing))
                     }
                 }
             }
@@ -593,6 +589,10 @@ class ImageProcessor(
 
     private fun computeParallelChunkWorkers(deviceThreads: Int, totalChunks: Int): Int {
         return deviceThreads.coerceIn(1, totalChunks.coerceAtLeast(1))
+    }
+
+    private fun computeAutoParallelThreads(detectedThreads: Int): Int {
+        return (detectedThreads - 2).coerceAtLeast(1)
     }
 
     private fun floatToFloat16(value: Float): Short {

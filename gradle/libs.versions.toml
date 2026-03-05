@@ -2,6 +2,7 @@
 #noinspection AndroidGradlePluginVersion
 agp = "9.0.1"
 coreSplashscreen = "1.2.0"
+#noinspection GradleDependency
 foundation = "1.10.3"
 kotlin = "2.3.10"
 coreKtx = "1.17.0"
@@ -10,7 +11,7 @@ coreKtx = "1.17.0"
 #espressoCore = "3.7.0"
 lifecycleRuntimeKtx = "2.10.0"
 activityCompose = "1.12.4"
-composeBom = "2026.02.00"
+composeBom = "2026.02.01"
 material = "1.13.0"
 material3 = "1.4.0"
 materialIconsExtended = "1.7.8"

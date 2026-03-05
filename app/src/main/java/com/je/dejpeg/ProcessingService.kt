@@ -65,6 +65,7 @@ class ProcessingService : Service() {
         const val PROGRESS_EXTRA_MESSAGE = "extra_message"
         const val PROGRESS_EXTRA_COMPLETED_CHUNKS = "extra_completed_chunks"
         const val PROGRESS_EXTRA_TOTAL_CHUNKS = "extra_total_chunks"
+        const val PROGRESS_EXTRA_PARALLEL_CHUNKS = "extra_parallel_chunks"
         const val COMPLETE_ACTION = "com.je.dejpeg.action.COMPLETE"
         const val COMPLETE_EXTRA_PATH = "extra_path"
         const val ERROR_ACTION = "com.je.dejpeg.action.ERROR"
@@ -85,6 +86,7 @@ class ProcessingService : Service() {
     private var oidnProcessor: OidnProcessor? = null
     private var chunkProgressTotal: Int = 0
     private var chunkProgressCompleted: Int = 0
+    private var chunkProgressParallelWorkers: Int = 1
     private var currentProgressMessage: String = "Processing..."
     private val stopHandler = Handler(Looper.getMainLooper())
     private val autoStopRunnable = Runnable {
@@ -176,8 +178,14 @@ class ProcessingService : Service() {
                 }
                 chunkProgressCompleted = 0
                 chunkProgressTotal = 0
-                currentProgressMessage = getString(R.string.processing_filename, filename)
+                chunkProgressParallelWorkers = 1
+                currentProgressMessage = getString(R.string.processing)
                 notifyProgressChange()
+                broadcast(
+                    PROGRESS_ACTION,
+                    PROGRESS_EXTRA_MESSAGE to currentProgressMessage,
+                    imageId = imageId
+                )
                 currentJob = serviceScope.launch {
                     try {
                         val unprocessedFile =
@@ -325,14 +333,24 @@ class ProcessingService : Service() {
                                     }
 
                                     override fun onChunkProgress(
-                                        currentChunkIndex: Int, totalChunks: Int
+                                        currentChunkIndex: Int,
+                                        totalChunks: Int,
+                                        parallelWorkers: Int
                                     ) {
                                         chunkProgressCompleted = currentChunkIndex
                                         chunkProgressTotal = totalChunks
+                                        chunkProgressParallelWorkers = parallelWorkers
+                                        currentProgressMessage = formatChunkProgressMessage(
+                                            completedChunks = currentChunkIndex,
+                                            totalChunks = totalChunks,
+                                            parallelWorkers = parallelWorkers
+                                        )
                                         broadcast(
                                             PROGRESS_ACTION,
+                                            PROGRESS_EXTRA_MESSAGE to currentProgressMessage,
                                             PROGRESS_EXTRA_COMPLETED_CHUNKS to currentChunkIndex,
                                             PROGRESS_EXTRA_TOTAL_CHUNKS to totalChunks,
+                                            PROGRESS_EXTRA_PARALLEL_CHUNKS to parallelWorkers,
                                             imageId = imageId
                                         )
                                         notifyProgressChange()
@@ -373,6 +391,28 @@ class ProcessingService : Service() {
         stopHandler.postDelayed(autoStopRunnable, 3000)
     }
 
+    private fun formatChunkProgressMessage(
+        completedChunks: Int,
+        totalChunks: Int,
+        parallelWorkers: Int
+    ): String {
+        if (totalChunks <= 1) return getString(R.string.processing)
+        if (parallelWorkers > 1) {
+            val rangeStart = (completedChunks + 1).coerceAtMost(totalChunks)
+            val rangeEnd = (completedChunks + parallelWorkers).coerceAtMost(totalChunks)
+            return resources.getQuantityString(
+                R.plurals.processing_chunk_range_of_y_threads,
+                parallelWorkers,
+                rangeStart,
+                rangeEnd,
+                totalChunks,
+                parallelWorkers
+            )
+        }
+        val displayChunk = completedChunks.coerceAtLeast(1).coerceAtMost(totalChunks)
+        return getString(R.string.processing_chunk_x_of_y, displayChunk, totalChunks)
+    }
+
     private fun notifyProgressChange() {
         val determinateChunks = chunkProgressTotal > 1
         NotificationHelper.showProgress(
@@ -380,6 +420,7 @@ class ProcessingService : Service() {
             message = currentProgressMessage,
             currentChunkIndex = if (determinateChunks) chunkProgressCompleted else null,
             totalChunks = if (determinateChunks) chunkProgressTotal else null,
+            parallelWorkers = if (determinateChunks) chunkProgressParallelWorkers else null,
             cancellable = true
         )
     }
@@ -422,6 +463,7 @@ class ProcessingService : Service() {
         currentImageId = null
         chunkProgressCompleted = 0
         chunkProgressTotal = 0
+        chunkProgressParallelWorkers = 1
         CacheManager.clearChunks(applicationContext)
         CacheManager.clearAbandonedImages(applicationContext)
     }

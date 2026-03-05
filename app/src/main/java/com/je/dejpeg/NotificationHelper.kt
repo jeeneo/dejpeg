@@ -83,6 +83,7 @@ object NotificationHelper {
         message: String,
         currentChunkIndex: Int? = null,
         totalChunks: Int? = null,
+        parallelWorkers: Int? = null,
         cancellable: Boolean = true
     ) {
         val builder =
@@ -90,13 +91,25 @@ object NotificationHelper {
                 .setContentText(message)
         val hasChunkInfo = currentChunkIndex != null && totalChunks != null && totalChunks > 1
         if (hasChunkInfo) {
-            val displayChunk = (currentChunkIndex + 1).coerceIn(1, totalChunks)
+            val displayChunk = currentChunkIndex.coerceAtLeast(1).coerceAtMost(totalChunks)
             builder.setProgress(totalChunks, currentChunkIndex, false)
-            builder.setSubText(
+            val subText = if (parallelWorkers != null && parallelWorkers > 1) {
+                val rangeStart = (currentChunkIndex + 1).coerceAtMost(totalChunks)
+                val rangeEnd = (currentChunkIndex + parallelWorkers).coerceAtMost(totalChunks)
+                context.resources.getQuantityString(
+                    R.plurals.notification_chunk_progress_range_threads,
+                    parallelWorkers,
+                    rangeStart,
+                    rangeEnd,
+                    totalChunks,
+                    parallelWorkers
+                )
+            } else {
                 context.getString(
                     R.string.notification_chunk_progress, displayChunk, totalChunks
                 )
-            )
+            }
+            builder.setSubText(subText)
         } else {
             builder.setProgress(0, 0, true)
         }
