@@ -1,6 +1,5 @@
 <div align="center">
 <img src="fastlane/appassets/logo/dejpeg_logo_rounded.svg" height="140" alt="A gray mountain rotated 45 degrees clockwise with a lowercase letter j rotated 90 degrees clockwise">
-<br>Removes JPEG artifacts and noise<h2></h2>
 <table>
 <tr>
 <td><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/01.png" width="240"></td>
@@ -18,8 +17,8 @@ Removes JPEG artifacts and noise, not an upscaler.
 
 uses:
 
-* FBCNN
-* SCUNet
+* [FBCNN](https://github.com/jiaxi-jiang/FBCNN)
+* [SCUNet](https://github.com/cszn/SCUNet)
 
 (and others)
 
