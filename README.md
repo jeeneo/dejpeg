@@ -89,7 +89,7 @@ For building with [Intel® Oidn Denoising](https://www.openimagedenoise.org/), s
 hi if you're reading this youre probably not wondering why i changed the readme.
 
 im tired of seeing apps in FOSS stores have these clearly AI written slop/huge readmes so i made the opposite written by an organic intellegence.
-i do use some generative ais for the complex parts (eg. getting brisque ported to kotlin and diagnosing oidn to an understandable state) but this isnt vibe slop i made over a weekend, it's human slop created by me and shows my little knowledge about android :D and taken me about 8 months to get to make this human slop. (when i moved to codeberg the repos hostory was historically rewritten (my fault really) T^T)
+i do use some generative ais for the complex parts (eg. getting brisque ported to kotlin and diagnosing oidn to an understandable state) but this isnt vibe slop i made over a weekend, it's human slop created by me and shows my little knowledge about android :D and taken me about 8 months to get to make this human slop. (when i moved to codeberg the repos history was rewritten (my fault really) T^T)
 
 anyway, i am by no means a professional developer and only do this in my spare time, the code is not perfect and quite janky
 
@@ -99,5 +99,5 @@ You are welcome to embed parts of this app in your own project as long as it rem
 
   Credits to [@adrianerrea](https://github.com/adrianerrea/fromPytorchtoMobile) for a starting point, [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and [SCUNet](https://github.com/cszn/SCUNet) creators plus all other model owners.
 
-  DeJPEG is not affiliated or related with Topaz `DEJPEG` or any other similarly named software/project. Although I've wondered if the term 'JPEG' is copyrighted/trademarked due to it literally being the acronym for Joint Photographic Experts Group, for this reason I might need to change the app's name if legal issues start to occur.
+  DeJPEG is not affiliated or related with Topaz `DEJPEG` or any other similarly named software/project. Although I've wondered if the term 'JPEG' is copyrighted/trademarked due to it literally being the acronym for Joint Photographic Experts Group, for this reason I might need to change the app's name if legal issues start to occur
 </details>
