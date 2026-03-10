@@ -144,7 +144,7 @@
     <string name="discard">丢弃</string>
     <string name="recovered_image_prefix">已恢复</string>
     <string name="starter_model_title">入门模型</string>
-    <string name="starter_model_message">DeJPEG 现在提供了轻量且快速的通用模型。请不要期待它们能完美处理每一张图像。\n\n您仍可以随时从设置中导入更多模型。\n\n如果您不需要这些模型，可以将其删除，它们将不再显示。您也可以在偏好设置中重新添加。</string>
+    <string name="starter_model_message">DeJPEG 现在提供了轻量且快速的通用模型。请不要期待它们能完美处理每一张图像。\n\n您仍可以随时从设置中导入更多模型。\n\n为获得最佳效果，可通过链接获取更多模型。\n\n如果您不需要这些模型，可以将其删除，它们将不再显示。您也可以在偏好设置中重新添加。</string>
     <string name="got_it">知道了</string>
     <string name="extract_starter_model">提取嵌入的模型</string>
     <string name="model_info_1x_rgb_max_denoise_fp16">快速，针对噪点与压缩，主要用于动画。也可将照片转换为动画效果。</string>

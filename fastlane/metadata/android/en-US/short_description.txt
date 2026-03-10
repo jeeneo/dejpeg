@@ -1,1 +1,1 @@
-Remove compression and noise from photos
+Removes JPEG artifacts and noise, not an upscaler.

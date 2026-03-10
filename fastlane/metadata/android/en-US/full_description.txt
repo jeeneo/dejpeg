@@ -1,17 +1,12 @@
-<p>This is not another "AI upscaler" but a compression artifact remover and denoiser using public models such as FBCNN and SCUNet</p>
-
-<h2>Features:</h2>
+<h2>Stuff:</h2>
 <ul>
-  <li>Remove compression artifacts</li>
+  <li>Artifact removal</li>
   <li>Denoise</li>
-  <li>Before/after view</li>
-  <li>Fully offline</li>
+  <li>Offline</li>
 </ul>
 
-<h2>Limitations:</h2>
+<h2>Limits:</h2>
 <ul>
-  <li>processed locally, a fast device is recommended</li>
-  <li>only standard image formats supported</li>
+  <li>Local processing</li>
+  <li>Standard image formats only and not huge</li>
 </ul>
-
-<p>(note: De<i>JPEG</i> is not affiliated with Topaz DEJPEG or any other similarly named software/project)</p>
