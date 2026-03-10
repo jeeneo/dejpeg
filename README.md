@@ -34,13 +34,13 @@ uses:
 
 ### Models
 
-`models/`
+[models](models/)
 
 ---
 
 ### Examples
 
-`examples/`
+[examples](examples/)
 
 ---
 
