@@ -14,19 +14,18 @@
 <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.je.dejpeg%22%2C%22url%22%3A%22https%3A%2F%2Fcodeberg.org%2Fdryerlint%2Fdejpeg%22%2C%22author%22%3A%22dryerlint%22%2C%22name%22%3A%22DeJPEG%22%2C%22preferredApkIndex%22%3A0%2C%22overrideSource%22%3A%22Codeberg%22%7D"><img src="fastlane/appassets/obtanium.png" width="220" alt="Obtainium config"></a>
 </div>
 
-## DeJPEG
-
 Removes JPEG artifacts and noise, not an upscaler.
 
 uses:
 
 * FBCNN
 * SCUNet
+
 (and others)
 
 ---
 
-## Features
+### Features
 
 * Artifact removal
 * Denoise
@@ -34,26 +33,26 @@ uses:
 
 ---
 
-## Models
+### Models
 
 `models/`
 
 ---
 
-## Examples
+### Examples
 
 `examples/`
 
 ---
 
-## Limits
+### Limits
 
 * Local processing
 * Standard image formats only and not huge
 
 ---
 
-## Desktop
+### Desktop
 
 Can use [chaiNNer](https://chainner.app/)
 
@@ -64,13 +63,13 @@ FBCNN:
 
 ---
 
-## Contributing
+### Contributing
 
 Translate:
 [https://translate.codeberg.org/projects/dejpeg](https://translate.codeberg.org/projects/dejpeg)
 
 
-## Additional details
+### Additional details
 
 For more information please reread
 
