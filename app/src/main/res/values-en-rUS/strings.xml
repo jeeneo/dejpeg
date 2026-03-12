@@ -150,7 +150,7 @@
     <string name="discard">Discard</string>
     <string name="recovered_image_prefix">Recovered</string>
     <string name="starter_model_title">Starter models</string>
-    <string name="starter_model_message">DeJPEG now comes with small fast general purpose models. Don\'t expect them to handle every image perfectly.\n\nYou can still import additional models from settings anytime.\n\nIf you don\'t want these models, you can delete them and they won\'t show up again. They can also be added back from preferences.</string>
+    <string name="starter_model_message">DeJPEG now comes with small fast general purpose models. Don\'t expect them to handle every image perfectly.\n\nYou can still import additional models from settings anytime.\n\nFor best results additional models are available through the links.\n\nIf you don\'t want these models, you can delete them and they won\'t show up again. They can also be added back from preferences.</string>
     <string name="got_it">Got it</string>
     <string name="extract_starter_model">Extract the embedded models</string>
     <string name="model_info_1x_rgb_max_denoise_fp16">Fast, noise and compression, mostly for animation. Or can turn photos into cartoons.</string>
@@ -320,4 +320,5 @@
     <string name="oidn_settings_desc">HDR, sRGB, quality, threads</string>
     <string name="import_tza_model">Import .tza model</string>
     <string name="no_oidn_models_installed">No .tza models found. Import a model to get started.</string>
+    <string name="processing_threads_desc">Sets how many chunks process in parallel.</string>
 </resources>
