@@ -62,6 +62,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -106,7 +107,7 @@ import kotlinx.coroutines.withContext
 @Suppress("AssignedValueIsNeverRead")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(viewModel: SettingsViewModel) {
+fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
     val context = LocalContext.current
     val modelManager = remember { ModelManager(context) }
     val appPreferences = remember { com.je.dejpeg.data.AppPreferences(context) }
@@ -150,6 +151,10 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
         }
     }
 
+    BackHandler {
+        onBack()
+    }
+
     LaunchedEffect(installedModels) {
         activeModelName = withContext(Dispatchers.IO) { viewModel.getActiveModelName() }
     }
@@ -157,6 +162,13 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     LaunchedEffect(installedOidnModels) {
         activeOidnModelName =
             withContext(Dispatchers.IO) { viewModel.getActiveModelName(ModelType.OIDN) }
+    }
+
+    LaunchedEffect(processingMode) {
+        activeOidnModelName =
+            withContext(Dispatchers.IO) { viewModel.getActiveModelName(ModelType.OIDN) }
+        activeModelName =
+            withContext(Dispatchers.IO) { viewModel.getActiveModelName() }
     }
 
     val modelPickerLauncher = rememberLauncherForActivityResult(
@@ -212,11 +224,18 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
             ExtendedFloatingActionButton(
                 onClick = {
                     haptic.light()
+                    if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN) {
+                        oidnModelPickerLauncher.launch("*/*")
+                    } else {
                     modelPickerLauncher.launch("*/*")
+                    }
                 },
                 icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                 text = {
                     Text(
+                        if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN)
+                            stringResource(R.string.import_tza_model)
+                        else
                         stringResource(R.string.import_model_text)
                     )
                 },
@@ -224,7 +243,8 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 expanded = true
             )
-        }, contentWindowInsets = WindowInsets(0, 0, 0, 0)
+        },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         Column(
             modifier = Modifier
@@ -288,25 +308,47 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
             }
 
             PreferenceGroupCard {
-                PreferenceItem(
-                    icon = painterResource(id = R.drawable.ic_model),
-                    iconBackgroundColor = MaterialTheme.colorScheme.surfaceVariant,
-                    iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    title = stringResource(R.string.model_management, ""),
-                    subtitle = activeModelName ?: stringResource(R.string.no_model_loaded),
-                    ellipsizeSubtitle = true,
-                    showDivider = true,
-                    onClick = { dialogState = DialogState.Model })
+                if (processingMode == ProcessingMode.ONNX) {
+                    PreferenceItem(
+                        icon = painterResource(id = R.drawable.ic_model),
+                        iconBackgroundColor = MaterialTheme.colorScheme.surfaceVariant,
+                        iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        title = stringResource(R.string.model_management, ""),
+                        subtitle = activeModelName ?: stringResource(R.string.no_model_loaded),
+                        ellipsizeSubtitle = true,
+                        showDivider = true,
+                        onClick = { dialogState = DialogState.Model })
 
-                PreferenceItem(
-                    icon = Icons.Filled.GridOn,
-                    iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
-                    iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    title = stringResource(R.string.chunk_settings),
-                    subtitle = stringResource(
-                        R.string.chunk_size_px, chunkSize
-                    ) + " • " + stringResource(R.string.overlap_size_px, overlapSize),
-                    onClick = { dialogState = DialogState.Chunk })
+                    PreferenceItem(
+                        icon = Icons.Filled.GridOn,
+                        iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
+                        iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        title = stringResource(R.string.chunk_settings),
+                        subtitle = stringResource(
+                            R.string.chunk_size_px, chunkSize
+                        ) + " • " + stringResource(R.string.overlap_size_px, overlapSize),
+                        onClick = { dialogState = DialogState.Chunk })
+                }
+
+                if (processingMode == ProcessingMode.OIDN) {
+                    PreferenceItem(
+                        icon = painterResource(id = R.drawable.ic_model),
+                        iconBackgroundColor = MaterialTheme.colorScheme.surfaceVariant,
+                        iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        title = stringResource(R.string.oidn_model_management),
+                        subtitle = activeOidnModelName ?: stringResource(R.string.no_model_loaded),
+                        ellipsizeSubtitle = true,
+                        showDivider = true,
+                        onClick = { dialogState = DialogState.OidnModel })
+
+                    PreferenceItem(
+                        icon = Icons.Filled.Settings,
+                        iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
+                        iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        title = stringResource(R.string.oidn_settings),
+                        subtitle = stringResource(R.string.oidn_settings_desc),
+                        onClick = { dialogState = DialogState.OidnSettings })
+                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -323,14 +365,16 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                     showDivider = true,
                     onClick = { dialogState = DialogState.Preferences })
 
-                PreferenceItem(
-                    icon = Icons.Filled.QuestionAnswer,
-                    iconBackgroundColor = MaterialTheme.colorScheme.primaryContainer,
-                    iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    title = stringResource(R.string.faqs),
-                    subtitle = stringResource(R.string.show_frequently_asked_questions),
-                    showDivider = true,
-                    onClick = { dialogState = DialogState.FAQ })
+                if (processingMode == ProcessingMode.ONNX) {
+                    PreferenceItem(
+                        icon = Icons.Filled.QuestionAnswer,
+                        iconBackgroundColor = MaterialTheme.colorScheme.primaryContainer,
+                        iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        title = stringResource(R.string.faqs),
+                        subtitle = stringResource(R.string.show_frequently_asked_questions),
+                        showDivider = true,
+                        onClick = { dialogState = DialogState.FAQ })
+                }
 
                 PreferenceItem(
                     icon = Icons.Filled.Info,

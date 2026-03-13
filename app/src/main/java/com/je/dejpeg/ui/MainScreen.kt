@@ -196,7 +196,7 @@ fun HomeWrapperScreen(
                     initialSharedUris = sharedUris,
                     onRemoveSharedUri = { /* handle removal */ })
             } else {
-                SettingsScreen(settingsViewModel)
+                SettingsScreen(settingsViewModel, onBack = { currentTab = "processing" })
             }
         }
     }
