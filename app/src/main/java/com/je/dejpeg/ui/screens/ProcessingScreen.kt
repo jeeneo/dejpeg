@@ -68,6 +68,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.mutableLongStateOf
+import android.widget.Toast
+import com.je.dejpeg.ExitActivity
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -113,7 +117,7 @@ import com.je.dejpeg.ui.viewmodel.ProcessingUiState
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
 import com.je.dejpeg.utils.HapticFeedbackPerformer
-import com.je.dejpeg.utils.ImageActions
+import com.je.dejpeg.utils.helpers.ImageActions
 import com.je.dejpeg.utils.rememberHapticFeedback
 import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.data.ImageRepository
@@ -122,6 +126,7 @@ import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.roundToInt
 
+@Suppress("AssignedValueIsNeverRead")
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ProcessingScreen(
@@ -135,6 +140,7 @@ fun ProcessingScreen(
     onRemoveSharedUri: (Uri) -> Unit = {},
 ) {
     val context = LocalContext.current
+    val backExitMessage = stringResource(R.string.back_exit_confirm)
     val appPreferences = remember { AppPreferences(context.applicationContext) }
     val defaultImageSource by appPreferences.defaultImageSource.collectAsState(initial = null)
     val swapSwipeActions by appPreferences.swapSwipeActions.collectAsState(initial = false)
@@ -233,6 +239,18 @@ fun ProcessingScreen(
     LaunchedEffect(Unit) {
         viewModel.initialize(context)
         viewModel.serviceHelperRegister()
+    }
+
+    var lastBackPressTime by remember { mutableLongStateOf(0L) }
+    BackHandler {
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastBackPressTime < 2000) {
+            viewModel.cancelProcessing()
+            ExitActivity.exitApplication(context)
+        } else {
+            Toast.makeText(context, backExitMessage, Toast.LENGTH_SHORT).show()
+            lastBackPressTime = currentTime
+        }
     }
 
     val processedShareUris = remember { mutableStateOf(setOf<String>()) }

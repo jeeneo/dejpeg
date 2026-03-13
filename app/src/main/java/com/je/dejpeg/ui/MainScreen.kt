@@ -1,27 +1,10 @@
-/**
- * Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
-
 package com.je.dejpeg.ui
 
 import android.net.Uri
-import android.widget.Toast
-import androidx.activity.compose.BackHandler
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -37,17 +20,24 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.je.dejpeg.ExitActivity
+import androidx.navigation.NavController
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.je.dejpeg.R
+import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.ui.components.RecoveryDialog
 import com.je.dejpeg.ui.screens.BRISQUEScreen
 import com.je.dejpeg.ui.screens.BeforeAfterScreen
@@ -56,16 +46,18 @@ import com.je.dejpeg.ui.screens.SettingsScreen
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
 import com.je.dejpeg.utils.rememberHapticFeedback
-import com.je.dejpeg.data.ImageRepository
 
-sealed class AppScreen {
-    object Processing : AppScreen()
-    object Settings : AppScreen()
-    data class BeforeAfter(val imageId: String) : AppScreen()
-    data class Brisque(val imageId: String) : AppScreen()
+sealed class Screen(val route: String) {
+    object Home : Screen("home")
+    object BeforeAfter : Screen("beforeAfter/{imageId}") {
+        fun createRoute(imageId: String) = "beforeAfter/$imageId"
+    }
+
+    object Brisque : Screen("brisque/{imageId}") {
+        fun createRoute(imageId: String) = "brisque/$imageId"
+    }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
     sharedUris: List<Uri> = emptyList()
@@ -74,183 +66,137 @@ fun MainScreen(
     val viewModel: ProcessingViewModel = viewModel()
     val settingsViewModel: SettingsViewModel = viewModel()
     val imageRepository = remember { ImageRepository.getInstance(context) }
-    val haptic = rememberHapticFeedback()
-    val backExitMessage = stringResource(R.string.back_exit_confirm)
+    val navController = rememberNavController()
 
-    // Wire dependencies
-    remember {
+    LaunchedEffect(Unit) {
         viewModel.imageRepository = imageRepository
         viewModel.settingsViewModel = settingsViewModel
         settingsViewModel.initialize(context)
-        true
     }
 
     RecoveryDialog(imageRepository = imageRepository)
 
-    var currentScreen by remember { mutableStateOf<AppScreen>(AppScreen.Processing) }
-    var screenStack by remember { mutableStateOf(listOf<AppScreen>()) }
-    var lastBackPressTime by remember { mutableLongStateOf(0L) }
+    NavHost(
+        navController = navController,
+        startDestination = Screen.Home.route,
+        modifier = Modifier.fillMaxSize(),
+        enterTransition = {
+            slideIntoContainer(
+                AnimatedContentTransitionScope.SlideDirection.Start, tween(400)
+            ) + fadeIn(tween(400))
+        },
+        exitTransition = {
+            slideOutOfContainer(
+                AnimatedContentTransitionScope.SlideDirection.Start, tween(400)
+            ) + fadeOut(tween(400))
+        },
+        popEnterTransition = {
+            slideIntoContainer(
+                AnimatedContentTransitionScope.SlideDirection.End, tween(400)
+            ) + fadeIn(tween(400))
+        },
+        popExitTransition = {
+            slideOutOfContainer(
+                AnimatedContentTransitionScope.SlideDirection.End, tween(400)
+            ) + fadeOut(tween(400))
+        }) {
+        composable(Screen.Home.route) {
+            HomeWrapperScreen(
+                navController = navController,
+                viewModel = viewModel,
+                settingsViewModel = settingsViewModel,
+                imageRepository = imageRepository,
+                sharedUris = sharedUris
+            )
+        }
 
-    fun navigateToScreen(screen: AppScreen) {
-        screenStack = screenStack + currentScreen
-        currentScreen = screen
-    }
+        composable(
+            route = Screen.BeforeAfter.route,
+            arguments = listOf(navArgument("imageId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val imageId = backStackEntry.arguments?.getString("imageId") ?: ""
+            BeforeAfterScreen(
+                imageRepository = imageRepository,
+                imageId = imageId,
+                onBack = { navController.popBackStack() })
+        }
 
-    fun goBack() {
-        if (screenStack.isNotEmpty()) {
-            currentScreen = screenStack.last()
-            screenStack = screenStack.dropLast(1)
+        composable(
+            route = Screen.Brisque.route,
+            arguments = listOf(navArgument("imageId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val imageId = backStackEntry.arguments?.getString("imageId") ?: ""
+            BRISQUEScreen(
+                imageRepository = imageRepository,
+                imageId = imageId,
+                onBack = { navController.popBackStack() })
         }
     }
+}
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeWrapperScreen(
+    navController: NavController,
+    viewModel: ProcessingViewModel,
+    settingsViewModel: SettingsViewModel,
+    imageRepository: ImageRepository,
+    sharedUris: List<Uri>
+) {
+    val haptic = rememberHapticFeedback()
 
-    BackHandler {
-        when (currentScreen) {
-            AppScreen.Processing -> {
-                val currentTime = System.currentTimeMillis()
-                if (currentTime - lastBackPressTime < 2000) {
-                    viewModel.cancelProcessing()
-                    ExitActivity.exitApplication(context)
-                } else {
-                    Toast.makeText(context, backExitMessage, Toast.LENGTH_SHORT).show()
-                    lastBackPressTime = currentTime
-                }
+    var currentTab by rememberSaveable { mutableStateOf("processing") }
+
+    Scaffold(
+        bottomBar = {
+            NavigationBar {
+                NavigationBarItem(
+                    selected = currentTab == "processing",
+                    onClick = { haptic.light(); currentTab = "processing" },
+                    label = { Text(stringResource(R.string.processing)) },
+                    icon = {
+                        Icon(
+                            if (currentTab == "processing") Icons.Filled.Image else Icons.Outlined.Image,
+                            null
+                        )
+                    })
+                NavigationBarItem(
+                    selected = currentTab == "settings",
+                    onClick = { haptic.light(); currentTab = "settings" },
+                    label = { Text(stringResource(R.string.settings)) },
+                    icon = {
+                        Icon(
+                            if (currentTab == "settings") Icons.Filled.Settings else Icons.Outlined.Settings,
+                            null
+                        )
+                    })
             }
-
-            else -> goBack()
-        }
-    }
-
-    Box(Modifier.fillMaxSize()) {
-        when (currentScreen) {
-            AppScreen.Processing -> {
-                Scaffold(
-                    bottomBar = {
-                        NavigationBar {
-                            NavigationBarItem(
-                                icon = {
-                                Crossfade(
-                                    targetState = true
-                                ) { isSelected ->
-                                    Icon(
-                                        if (isSelected) Icons.Filled.Image else Icons.Outlined.Image,
-                                        contentDescription = stringResource(R.string.processing)
-                                    )
-                                }
-                            },
-                                label = { Text(stringResource(R.string.processing)) },
-                                selected = true,
-                                onClick = {
-                                    haptic.light()
-                                })
-                            NavigationBarItem(
-                                icon = {
-                                Crossfade(
-                                    targetState = false, animationSpec = tween(1000)
-                                ) { isSelected ->
-                                    Icon(
-                                        if (isSelected) Icons.Filled.Settings else Icons.Outlined.Settings,
-                                        contentDescription = stringResource(R.string.settings)
-                                    )
-                                }
-                            },
-                                label = { Text(stringResource(R.string.settings)) },
-                                selected = false,
-                                onClick = {
-                                    haptic.light()
-                                    navigateToScreen(AppScreen.Settings)
-                                })
-                        }
-                    }, modifier = Modifier.fillMaxSize()
-                ) { paddingValues ->
-                    Box(
-                        Modifier
-                            .padding(paddingValues)
-                            .fillMaxSize()
-                    ) {
-                        ProcessingScreen(
-                            viewModel = viewModel,
-                            settingsViewModel = settingsViewModel,
-                            imageRepository = imageRepository,
-                            onNavigateToBeforeAfter = { imageId ->
-                                navigateToScreen(AppScreen.BeforeAfter(imageId))
-                            },
-                            onNavigateToBrisque = { imageId ->
-                                navigateToScreen(AppScreen.Brisque(imageId))
-                            },
-                            onNavigateToSettings = {
-                                navigateToScreen(AppScreen.Settings)
-                            },
-                            initialSharedUris = sharedUris,
-                            onRemoveSharedUri = { uri ->
-                                (sharedUris as? MutableList<Uri>)?.remove(uri)
-                            })
-                    }
-                }
-            }
-
-            AppScreen.Settings -> {
-                Scaffold(
-                    bottomBar = {
-                        NavigationBar {
-                            NavigationBarItem(
-                                icon = {
-                                Crossfade(
-                                    targetState = false
-                                ) { isSelected ->
-                                    Icon(
-                                        if (isSelected) Icons.Filled.Image else Icons.Outlined.Image,
-                                        contentDescription = stringResource(R.string.processing)
-                                    )
-                                }
-                            },
-                                label = { Text(stringResource(R.string.processing)) },
-                                selected = false,
-                                onClick = {
-                                    haptic.light()
-                                    goBack()
-                                })
-                            NavigationBarItem(
-                                icon = {
-                                Crossfade(
-                                    targetState = true
-                                ) { isSelected ->
-                                    Icon(
-                                        if (isSelected) Icons.Filled.Settings else Icons.Outlined.Settings,
-                                        contentDescription = stringResource(R.string.settings)
-                                    )
-                                }
-                            },
-                                label = { Text(stringResource(R.string.settings)) },
-                                selected = true,
-                                onClick = {
-                                    haptic.light()
-                                })
-                        }
-                    }, modifier = Modifier.fillMaxSize()
-                ) { paddingValues ->
-                    Box(
-                        Modifier
-                            .padding(paddingValues)
-                            .fillMaxSize()
-                    ) {
-                        SettingsScreen(settingsViewModel)
-                    }
-                }
-            }
-
-            is AppScreen.BeforeAfter -> {
-                BeforeAfterScreen(
+        }) { paddingValues ->
+        Box(Modifier.padding(paddingValues)) {
+            if (currentTab == "processing") {
+                ProcessingScreen(
+                    viewModel = viewModel,
+                    settingsViewModel = settingsViewModel,
                     imageRepository = imageRepository,
-                    imageId = (currentScreen as AppScreen.BeforeAfter).imageId,
-                    onBack = { goBack() })
-            }
-
-            is AppScreen.Brisque -> {
-                BRISQUEScreen(
-                    imageRepository = imageRepository,
-                    imageId = (currentScreen as AppScreen.Brisque).imageId,
-                    onBack = { goBack() })
+                    onNavigateToBeforeAfter = { id ->
+                        navController.navigate(
+                            Screen.BeforeAfter.createRoute(
+                                id
+                            )
+                        )
+                    },
+                    onNavigateToBrisque = { id ->
+                        navController.navigate(
+                            Screen.Brisque.createRoute(
+                                id
+                            )
+                        )
+                    },
+                    onNavigateToSettings = { currentTab = "settings" },
+                    initialSharedUris = sharedUris,
+                    onRemoveSharedUri = { /* handle removal */ })
+            } else {
+                SettingsScreen(settingsViewModel)
             }
         }
     }

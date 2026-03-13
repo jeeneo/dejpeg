@@ -34,61 +34,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.google.android.material.materialswitch.MaterialSwitch
 
 @Composable
-fun MaterialSwitchRow(
-    label: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val primaryColor = MaterialTheme.colorScheme.primary.toArgb()
-    val onPrimaryColor = MaterialTheme.colorScheme.onPrimary.toArgb()
-    val surfaceVariantColor = MaterialTheme.colorScheme.surfaceVariant.toArgb()
-    val outlineColor = MaterialTheme.colorScheme.outline.toArgb()
-
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        AndroidView(factory = { context ->
-            MaterialSwitch(context).apply {
-                trackTintList = ColorStateList(
-                    arrayOf(
-                        intArrayOf(android.R.attr.state_checked),
-                        intArrayOf(-android.R.attr.state_checked)
-                    ), intArrayOf(primaryColor, surfaceVariantColor)
-                )
-                thumbTintList = ColorStateList(
-                    arrayOf(
-                        intArrayOf(android.R.attr.state_checked),
-                        intArrayOf(-android.R.attr.state_checked)
-                    ), intArrayOf(onPrimaryColor, outlineColor)
-                )
-                trackDecorationTintList = ColorStateList(
-                    arrayOf(
-                        intArrayOf(android.R.attr.state_checked),
-                        intArrayOf(-android.R.attr.state_checked)
-                    ), intArrayOf(primaryColor, outlineColor)
-                )
-            }
-        }, update = { switchView ->
-            switchView.isChecked = checked
-            switchView.setOnCheckedChangeListener { _, isChecked ->
-                onCheckedChange(isChecked)
-            }
-        })
-    }
-}
-
-@Composable
 fun MaterialSwitchPreference(
     title: String,
-    // summary: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -118,12 +65,6 @@ fun MaterialSwitchPreference(
                 color = if (enabled) MaterialTheme.colorScheme.onSurface
                 else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
             )
-            // Text(
-            //     text = summary,
-            //     style = MaterialTheme.typography.bodySmall,
-            //     color = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant
-            //             else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
-            // )
         }
         AndroidView(factory = { context ->
             MaterialSwitch(context).apply {

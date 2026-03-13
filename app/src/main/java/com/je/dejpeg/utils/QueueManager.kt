@@ -84,7 +84,6 @@ class ProcessingQueueManager {
 
     fun isActive(id: String): Boolean = currentProcessingId == id
 
-    /** Compute the current index for UI progress display */
     fun currentIndex(): Int {
         val total = if (activeProcessingTotal > 0) activeProcessingTotal else 0
         return (total - processingQueue.size - 1).coerceAtLeast(0)

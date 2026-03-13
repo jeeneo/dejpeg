@@ -173,13 +173,11 @@ class ImageProcessor(
 
         val count = ceil(totalSize.toFloat() / maxTileSize).toInt().coerceAtLeast(1)
         val baseSize = totalSize / count
-        val remainder = totalSize % count   // how many chunks get +1
+        val remainder = totalSize % count
 
         val result = mutableListOf<Pair<Int, Int>>()
         var offset = 0
         for (i in 0 until count) {
-            // Distribute the extra pixels to the *last* `remainder` chunks so
-            // the smaller tiles come first.
             val size = if (i < count - remainder) baseSize else baseSize + 1
             result.add(offset to size)
             offset += size

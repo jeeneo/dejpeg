@@ -16,6 +16,8 @@
  *
  */
 
+@file:Suppress("AssignedValueIsNeverRead")
+
 package com.je.dejpeg.ui.components
 
 import androidx.compose.foundation.background
@@ -57,8 +59,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
-import com.je.dejpeg.R
 import com.je.dejpeg.ModelManager
+import com.je.dejpeg.R
 
 @Composable
 fun ModelDialog(

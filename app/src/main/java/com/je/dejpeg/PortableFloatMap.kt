@@ -6,6 +6,7 @@
  *
  * Adapted for Android/Kotlin use.
  */
+
 package com.je.dejpeg
 
 import android.graphics.Bitmap
@@ -22,7 +23,6 @@ class PortableFloatMap {
         fun fromBitmap(src: Bitmap): Pair<PortableFloatMap, FloatArray?> {
             val w = src.width
             val h = src.height
-            val hasAlpha = src.hasAlpha()
             val bmp = if (src.config != Bitmap.Config.ARGB_8888) src.copy(
                 Bitmap.Config.ARGB_8888, true
             ) else src
@@ -32,7 +32,6 @@ class PortableFloatMap {
             if (bmp !== src) bmp.recycle()
 
             val pfmPixels = FloatArray(w * h * 3)
-            val alphaBuf = if (hasAlpha) FloatArray(w * h) else null
 
             for (row in 0 until h) {
                 val pfmRow = h - 1 - row
@@ -42,7 +41,7 @@ class PortableFloatMap {
                     pfmPixels[i] = Color.red(px) / 255f
                     pfmPixels[i + 1] = Color.green(px) / 255f
                     pfmPixels[i + 2] = Color.blue(px) / 255f
-                    alphaBuf?.set(row * w + col, Color.alpha(px) / 255f)
+                    null?.set(row * w + col, Color.alpha(px) / 255f)
                 }
             }
 
@@ -51,7 +50,7 @@ class PortableFloatMap {
                 this.height = h
                 pixels = pfmPixels
             }
-            return pfm to alphaBuf
+            return pfm to null
         }
 
         fun toBitmap(

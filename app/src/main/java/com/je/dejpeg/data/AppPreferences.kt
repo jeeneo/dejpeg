@@ -260,7 +260,6 @@ class AppPreferences(private val context: Context) {
 
     suspend fun getStarterModelExtractedImmediate(): Boolean = starterModelExtracted.first()
 
-    // Processing mode
     val processingMode: Flow<ProcessingMode> = context.dataStore.data.map { prefs ->
         ProcessingMode.fromString(prefs[PreferenceKeys.PROCESSING_MODE])
     }
@@ -271,7 +270,6 @@ class AppPreferences(private val context: Context) {
         }
     }
 
-    // Oidn model
     val activeOidnModel: Flow<String?> = context.dataStore.data.map { prefs ->
         prefs[PreferenceKeys.ACTIVE_OIDN_MODEL]
     }
@@ -290,7 +288,6 @@ class AppPreferences(private val context: Context) {
 
     suspend fun getActiveOidnModel(): String? = activeOidnModel.first()
 
-    // Oidn settings
     val oidnHdr: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[PreferenceKeys.OIDN_HDR] ?: false
     }

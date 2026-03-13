@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -54,12 +53,10 @@ fun OidnSettingsDialog(
     hdr: Boolean,
     srgb: Boolean,
     quality: Int,
-    maxMemoryMB: Int,
     numThreads: Int,
     onHdrChange: (Boolean) -> Unit,
     onSrgbChange: (Boolean) -> Unit,
     onQualityChange: (Int) -> Unit,
-    onMaxMemoryChange: (Int) -> Unit,
     onNumThreadsChange: (Int) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -85,7 +82,9 @@ fun OidnSettingsDialog(
         },
         text = {
             Column(
-                modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -184,13 +183,19 @@ fun OidnSettingsDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Slider(
-                    value = clampedThreads.toFloat(), onValueChange = { newValue ->
+                    value = clampedThreads.toFloat(),
+                    onValueChange = { newValue ->
                         haptic.light()
                         onNumThreadsChange(newValue.roundToInt().coerceIn(0, maxThreads))
-                    }, valueRange = 0f..maxThreads.toFloat(), steps = (maxThreads - 1).coerceAtLeast(0), modifier = Modifier.fillMaxWidth()
+                    },
+                    valueRange = 0f..maxThreads.toFloat(),
+                    steps = (maxThreads - 1).coerceAtLeast(0),
+                    modifier = Modifier.fillMaxWidth()
                 )
                 Text(
-                    if (clampedThreads == 0) stringResource(R.string.thread_value_auto, maxThreads) else "$clampedThreads",
+                    if (clampedThreads == 0) stringResource(
+                        R.string.thread_value_auto, maxThreads
+                    ) else "$clampedThreads",
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.align(Alignment.End)
                 )

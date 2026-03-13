@@ -54,6 +54,7 @@ class MainActivity : ComponentActivity() {
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
+        @Suppress("ControlFlowWithEmptyBody")
         if (isGranted) {
             // granted
         } else {
@@ -142,7 +143,7 @@ class MainActivity : ComponentActivity() {
                     intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java)
                         ?: emptyList()
                 } else {
-                    intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM) ?: emptyList()
+                    intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM) ?: emptyList()
                 }
                 uris.forEach { addSharedUri(it) }
             }

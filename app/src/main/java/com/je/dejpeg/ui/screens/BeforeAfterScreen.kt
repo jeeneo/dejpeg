@@ -18,7 +18,6 @@
 package com.je.dejpeg.ui.screens
 
 import android.graphics.Bitmap
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -61,13 +60,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.je.dejpeg.R
+import com.je.dejpeg.data.AppPreferences
+import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.ui.components.BeforeAfterSlider
 import com.je.dejpeg.ui.components.LoadingDialog
 import com.je.dejpeg.ui.components.SaveImageDialog
-import com.je.dejpeg.utils.ImageActions
+import com.je.dejpeg.utils.helpers.ImageActions
 import com.je.dejpeg.utils.rememberHapticFeedback
-import com.je.dejpeg.data.AppPreferences
-import com.je.dejpeg.data.ImageRepository
 import kotlinx.coroutines.launch
 import me.saket.telephoto.zoomable.OverzoomEffect
 import me.saket.telephoto.zoomable.ZoomLimit
@@ -75,6 +74,7 @@ import me.saket.telephoto.zoomable.ZoomSpec
 import me.saket.telephoto.zoomable.rememberZoomableState
 import me.saket.telephoto.zoomable.zoomable
 
+@Suppress("AssignedValueIsNeverRead")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BeforeAfterScreen(
@@ -96,8 +96,6 @@ fun BeforeAfterScreen(
     var saveErrorMessage by remember { mutableStateOf<String?>(null) }
     val isSavingImages by imageRepository.isSavingImages.collectAsState()
     val savingImagesProgress by imageRepository.savingImagesProgress.collectAsState()
-
-    BackHandler(onBack = onBack)
 
     if (image == null) {
         LaunchedEffect(Unit) { onBack() }

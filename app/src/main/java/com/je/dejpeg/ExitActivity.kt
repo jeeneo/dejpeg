@@ -21,12 +21,13 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import kotlin.system.exitProcess
 
 class ExitActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         finishAndRemoveTask()
-        System.exit(0)
+        exitProcess(0)
     }
 
     companion object {

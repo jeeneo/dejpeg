@@ -25,7 +25,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
-import com.je.dejpeg.R
 
 object NotificationHelper {
     const val CHANNEL_ID = "processing_channel"

@@ -26,11 +26,10 @@ import android.os.IBinder
 import android.os.Looper
 import android.os.Process
 import android.util.Log
-import com.je.dejpeg.R
-import com.je.dejpeg.utils.CacheManager
-import com.je.dejpeg.utils.helpers.ImageLoadingHelper
 import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.data.ProcessingMode
+import com.je.dejpeg.utils.CacheManager
+import com.je.dejpeg.utils.helpers.ImageLoadingHelper
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

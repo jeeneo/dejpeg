@@ -26,6 +26,7 @@ import com.je.dejpeg.ModelManager
 import com.je.dejpeg.ModelType
 import com.je.dejpeg.utils.helpers.ModelMigrationHelper
 import com.je.dejpeg.data.AppPreferences
+import com.je.dejpeg.data.Prefs
 import com.je.dejpeg.data.ProcessingMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -34,15 +35,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class SettingsViewModel : ViewModel() {
-
-    // Model management state
     val installedModels = MutableStateFlow<List<String>>(emptyList())
     val installedOidnModels = MutableStateFlow<List<String>>(emptyList())
     val hasCheckedModels = MutableStateFlow(false)
     val shouldShowNoModelDialog = MutableStateFlow(false)
     val deprecatedModelWarning = MutableStateFlow<ModelManager.ModelWarning?>(null)
 
-    // Preference state
     val chunkSize = MutableStateFlow(AppPreferences.DEFAULT_CHUNK_SIZE)
     val overlapSize = MutableStateFlow(AppPreferences.DEFAULT_OVERLAP_SIZE)
     val onnxDeviceThreads = MutableStateFlow(AppPreferences.DEFAULT_ONNX_DEVICE_THREADS)
@@ -60,8 +58,6 @@ class SettingsViewModel : ViewModel() {
         private set
     private var isInitialized = false
 
-    // --- Preference-sync helpers (Step 3) ---
-
     private fun <T> syncPref(flow: MutableStateFlow<T>, prefFlow: Flow<T>) {
         viewModelScope.launch { prefFlow.collect { flow.value = it } }
     }
@@ -71,8 +67,6 @@ class SettingsViewModel : ViewModel() {
         viewModelScope.launch { save(value) }
     }
 
-    // --- Initialization ---
-
     fun initialize(context: Context) {
         if (isInitialized) return
         isInitialized = true
@@ -81,17 +75,23 @@ class SettingsViewModel : ViewModel() {
         modelManager = ModelManager(context)
 
         val prefs = appPreferences!!
-        syncPref(chunkSize, prefs.chunkSize)
-        syncPref(overlapSize, prefs.overlapSize)
-        syncPref(onnxDeviceThreads, prefs.onnxDeviceThreads)
-        syncPref(globalStrength, prefs.globalStrength)
-        syncPref(processingMode, prefs.processingMode)
-        syncPref(oidnHdr, prefs.oidnHdr)
-        syncPref(oidnSrgb, prefs.oidnSrgb)
-        syncPref(oidnQuality, prefs.oidnQuality)
-        syncPref(oidnMaxMemoryMB, prefs.oidnMaxMemoryMB)
-        syncPref(oidnNumThreads, prefs.oidnNumThreads)
-        syncPref(oidnInputScale, prefs.oidnInputScale)
+        val bindings = listOf(
+            chunkSize to Prefs.CHUNK_SIZE,
+            overlapSize to Prefs.OVERLAP_SIZE,
+            onnxDeviceThreads to Prefs.ONNX_DEVICE_THREADS,
+            globalStrength to Prefs.GLOBAL_STRENGTH,
+            processingMode to Prefs.PROCESSING_MODE,
+            oidnHdr to Prefs.OIDN_HDR,
+            oidnSrgb to Prefs.OIDN_SRGB,
+            oidnQuality to Prefs.OIDN_QUALITY,
+            oidnMaxMemoryMB to Prefs.OIDN_MAX_MEMORY_MB,
+            oidnNumThreads to Prefs.OIDN_NUM_THREADS,
+            oidnInputScale to Prefs.OIDN_INPUT_SCALE
+        )
+
+        bindings.forEach { (stateFlow, pref) ->
+            syncPref(stateFlow as MutableStateFlow<Any>, (pref.flow(prefs) as Flow<Any>))
+        }
 
         viewModelScope.launch {
             appCtx.let { ctx ->
@@ -191,7 +191,6 @@ class SettingsViewModel : ViewModel() {
     fun setOidnHdrPref(hdr: Boolean) = persistPref(oidnHdr, hdr) { appPreferences?.setOidnHdr(it) ?: Unit }
     fun setOidnSrgbPref(srgb: Boolean) = persistPref(oidnSrgb, srgb) { appPreferences?.setOidnSrgb(it) ?: Unit }
     fun setOidnQualityPref(quality: Int) = persistPref(oidnQuality, quality) { appPreferences?.setOidnQuality(it) ?: Unit }
-    fun setOidnMaxMemoryMBPref(maxMemoryMB: Int) = persistPref(oidnMaxMemoryMB, maxMemoryMB) { appPreferences?.setOidnMaxMemoryMB(it) ?: Unit }
     fun setOidnNumThreadsPref(numThreads: Int) = persistPref(oidnNumThreads, numThreads) { appPreferences?.setOidnNumThreads(it) ?: Unit }
 
     fun showNoModelDialog() {

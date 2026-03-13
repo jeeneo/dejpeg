@@ -17,9 +17,7 @@
 
 package com.je.dejpeg.ui.screens
 
-import android.graphics.Bitmap
 import android.widget.Toast
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -38,6 +36,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -91,18 +90,16 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.je.dejpeg.R
+import com.je.dejpeg.data.BrisqueSettings
+import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.ui.components.SimpleAlertDialog
 import com.je.dejpeg.ui.viewmodel.BrisqueViewModel
 import com.je.dejpeg.utils.brisque.BRISQUEDescaler
 import com.je.dejpeg.utils.rememberHapticFeedback
-import com.je.dejpeg.data.BrisqueSettings
-import com.je.dejpeg.data.ImageRepository
-import me.saket.telephoto.zoomable.ZoomSpec
-import me.saket.telephoto.zoomable.rememberZoomableState
-import me.saket.telephoto.zoomable.zoomable
 import java.util.Locale
 import kotlin.math.roundToInt
 
+@Suppress("AssignedValueIsNeverRead")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BRISQUEScreen(
@@ -123,7 +120,6 @@ fun BRISQUEScreen(
     var showInfoDialog by remember { mutableStateOf(false) }
     var showBRISQUESettings by remember { mutableStateOf(false) }
 
-    BackHandler { onBack() }
     LaunchedEffect(image.id) {
         brisqueViewModel.initialize(
             context, image.inputBitmap, image.filename
@@ -136,11 +132,11 @@ fun BRISQUEScreen(
     ) {
         TopAppBar(
             title = {
-                Text(
-                    stringResource(R.string.brisque_analysis),
-                    style = MaterialTheme.typography.titleMedium
-                )
-            },
+            Text(
+                stringResource(R.string.brisque_analysis),
+                style = MaterialTheme.typography.titleMedium
+            )
+        },
             navigationIcon = {
                 IconButton(onClick = { haptic.light(); onBack() }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back_desc))
@@ -160,9 +156,7 @@ fun BRISQUEScreen(
                             Toast.makeText(context, successSaveMsg, Toast.LENGTH_SHORT).show()
                         }) { error ->
                             Toast.makeText(
-                                context,
-                                "$failureSaveMsg $error",
-                                Toast.LENGTH_SHORT
+                                context, "$failureSaveMsg $error", Toast.LENGTH_SHORT
                             ).show()
                         }
                     }, enabled = brisqueState != null
@@ -172,6 +166,35 @@ fun BRISQUEScreen(
             },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
         )
+
+        (brisqueState?.descaledBitmap ?: brisqueState?.originalBitmap)?.let { previewBitmap ->
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .clickable {
+                        haptic.medium()
+                        showImageModal = true
+                    }, Alignment.Center
+            ) {
+                Image(
+                    bitmap = previewBitmap.asImageBitmap(),
+                    contentDescription = image.filename,
+                    modifier = Modifier
+                        .widthIn(max = 420.dp)
+                        .heightIn(max = 420.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .border(
+                            1.dp,
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                            RoundedCornerShape(12.dp)
+                        ),
+                    contentScale = ContentScale.Fit,
+                    filterQuality = FilterQuality.Low
+                )
+            }
+        }
+
         LazyColumn(
             Modifier
                 .fillMaxSize()
@@ -179,23 +202,6 @@ fun BRISQUEScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item { Spacer(Modifier.height(8.dp)) }
-            item {
-                (brisqueState?.descaledBitmap ?: brisqueState?.originalBitmap)?.let {
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .height(220.dp)
-                            .clickable { haptic.light(); showImageModal = true }, Alignment.Center
-                    ) {
-                        Image(
-                            bitmap = it.asImageBitmap(),
-                            contentDescription = image.filename,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Fit
-                        )
-                    }
-                }
-            }
             item {
                 brisqueState?.descaleInfo?.let { info ->
                     Card(
@@ -369,10 +375,6 @@ fun BRISQUEScreen(
         context
     ); showConfirm = false
     }, onDismiss = { showConfirm = false })
-    if (showImageModal) (brisqueState?.descaledBitmap ?: brisqueState?.originalBitmap)?.let {
-        ImageViewerModal(
-            bitmap = it, filename = image.filename, onDismiss = { showImageModal = false })
-    }
     if (showInfoDialog) InfoDialog(onDismiss = { showInfoDialog = false })
     if (showBRISQUESettings) BRISQUESettings(
         settings = brisqueSettings,
@@ -380,6 +382,18 @@ fun BRISQUEScreen(
         imageWidth = image.inputBitmap.width,
         imageHeight = image.inputBitmap.height,
         onDismiss = { showBRISQUESettings = false })
+    if (showImageModal) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface)
+        ) {
+            BeforeAfterScreen(
+                imageRepository = imageRepository,
+                imageId = image.id,
+                onBack = { showImageModal = false })
+        }
+    }
     if (brisqueState?.isDescaling == true) brisqueState?.descaleProgress?.let {
         DescaleProgressDialog(
             progress = it,
@@ -468,46 +482,6 @@ private fun ConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
         confirmButtonText = stringResource(R.string.yes),
         dismissButtonText = stringResource(R.string.cancel)
     )
-}
-
-@Composable
-private fun ImageViewerModal(bitmap: Bitmap, filename: String, onDismiss: () -> Unit) {
-    val haptic = rememberHapticFeedback()
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnBackPress = true)
-    ) {
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-        ) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .zoomable(rememberZoomableState(zoomSpec = ZoomSpec(maxZoomFactor = 20f))),
-                Alignment.Center
-            ) {
-                Image(
-                    bitmap = bitmap.asImageBitmap(),
-                    contentDescription = filename,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Fit,
-                    filterQuality = FilterQuality.None
-                )
-            }
-            IconButton(
-                onClick = { haptic.light(); onDismiss() },
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(8.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
-            ) {
-                Icon(Icons.Filled.Close, stringResource(R.string.close_desc), Modifier.size(28.dp))
-            }
-        }
-    }
 }
 
 private data class ScoreInfo(val color: Color, val label: String)
@@ -655,21 +629,22 @@ private fun DescaleProgressDialog(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                    }
-                    else LazyColumn(
-                        Modifier
-                            .fillMaxSize()
-                            .padding(12.dp),
-                        state = logListState,
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        items(logMessages) {
-                            LogEntry(
-                                text = it, isActive = it == logMessages.lastOrNull()
-                            )
+                    } else {
+                        LazyColumn(
+                            state = logListState,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(logMessages) { msg ->
+                                val isActive = msg == logMessages.last()
+                                LogEntry(msg, isActive)
+                            }
                         }
                     }
                 }
+
                 OutlinedButton(
                     onClick = { haptic.heavy(); onCancel() },
                     Modifier.fillMaxWidth(),

@@ -52,11 +52,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import com.je.dejpeg.R
+import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.ui.viewmodel.ImageItem
 import com.je.dejpeg.utils.CacheManager
 import com.je.dejpeg.utils.helpers.ImageLoadingHelper
 import com.je.dejpeg.utils.rememberHapticFeedback
-import com.je.dejpeg.data.ImageRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

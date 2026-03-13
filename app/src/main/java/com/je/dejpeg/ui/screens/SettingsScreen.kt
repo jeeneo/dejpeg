@@ -1,19 +1,19 @@
 /**
-* Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ * Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 
 package com.je.dejpeg.ui.screens
@@ -43,12 +43,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.GridOn
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.QuestionAnswer
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -82,9 +80,11 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.je.dejpeg.R
+import com.je.dejpeg.BuildConfig
 import com.je.dejpeg.ModelManager
 import com.je.dejpeg.ModelType
+import com.je.dejpeg.R
+import com.je.dejpeg.data.ProcessingMode
 import com.je.dejpeg.ui.components.AboutDialog
 import com.je.dejpeg.ui.components.BaseDialog
 import com.je.dejpeg.ui.components.ChunkDialog
@@ -93,18 +93,17 @@ import com.je.dejpeg.ui.components.FAQDialog
 import com.je.dejpeg.ui.components.ImportProgressDialog
 import com.je.dejpeg.ui.components.ModelDialog
 import com.je.dejpeg.ui.components.ModelInfoDialog
+import com.je.dejpeg.ui.components.OidnModelDialog
 import com.je.dejpeg.ui.components.OidnSettingsDialog
 import com.je.dejpeg.ui.components.PreferencesDialog
-import com.je.dejpeg.ui.components.OidnModelDialog
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
-import com.je.dejpeg.data.ProcessingMode
-import com.je.dejpeg.BuildConfig
 import com.je.dejpeg.utils.rememberHapticFeedback
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
+@Suppress("AssignedValueIsNeverRead")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel) {
@@ -121,7 +120,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     val chunkSize by viewModel.chunkSize.collectAsState()
     val overlapSize by viewModel.overlapSize.collectAsState()
     val onnxDeviceThreads by viewModel.onnxDeviceThreads.collectAsState()
-    var activeModelName by remember { 
+    var activeModelName by remember {
         mutableStateOf(runBlocking { viewModel.getActiveModelName() })
     }
     var pendingModelSelection by remember { mutableStateOf<String?>(null) }
@@ -137,7 +136,6 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     val oidnHdr by viewModel.oidnHdr.collectAsState()
     val oidnSrgb by viewModel.oidnSrgb.collectAsState()
     val oidnQuality by viewModel.oidnQuality.collectAsState()
-    val oidnMaxMemoryMB by viewModel.oidnMaxMemoryMB.collectAsState()
     val oidnNumThreads by viewModel.oidnNumThreads.collectAsState()
     var activeOidnModelName by remember {
         mutableStateOf(runBlocking { viewModel.getActiveModelName(ModelType.OIDN) })
@@ -157,7 +155,8 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     }
 
     LaunchedEffect(installedOidnModels) {
-        activeOidnModelName = withContext(Dispatchers.IO) { viewModel.getActiveModelName(ModelType.OIDN) }
+        activeOidnModelName =
+            withContext(Dispatchers.IO) { viewModel.getActiveModelName(ModelType.OIDN) }
     }
 
     val modelPickerLauncher = rememberLauncherForActivityResult(
@@ -167,28 +166,20 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
             pendingImportUri = it
             dialogState = DialogState.ImportProgress
             importProgress = 0
-            viewModel.importModel(
-                it,
-                onProgress = { importProgress = it },
-                onSuccess = { name ->
-                    dialogState = DialogState.None
-                    pendingImportUri = null
-                    Toast.makeText(
-                        context,
-                        importedModelMessage.format(name),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                },
-                onError = { err ->
-                    dialogState = DialogState.None
-                    pendingImportUri = null
-                    warningState = ModelWarningState.Error(err)
-                },
-                onWarning = { modelName, warning ->
-                    dialogState = DialogState.None
-                    warningState = ModelWarningState.ModelWarning(modelName, warning, isImport = true)
-                }
-            )
+            viewModel.importModel(it, onProgress = { importProgress = it }, onSuccess = { name ->
+                dialogState = DialogState.None
+                pendingImportUri = null
+                Toast.makeText(
+                    context, importedModelMessage.format(name), Toast.LENGTH_SHORT
+                ).show()
+            }, onError = { err ->
+                dialogState = DialogState.None
+                pendingImportUri = null
+                warningState = ModelWarningState.Error(err)
+            }, onWarning = { modelName, warning ->
+                dialogState = DialogState.None
+                warningState = ModelWarningState.ModelWarning(modelName, warning, isImport = true)
+            })
         }
     }
 
@@ -205,16 +196,13 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                 onSuccess = { name ->
                     dialogState = DialogState.None
                     Toast.makeText(
-                        context,
-                        importedModelMessage.format(name),
-                        Toast.LENGTH_SHORT
+                        context, importedModelMessage.format(name), Toast.LENGTH_SHORT
                     ).show()
                 },
                 onError = { err ->
                     dialogState = DialogState.None
                     warningState = ModelWarningState.Error(err)
-                }
-            )
+                })
         }
     }
 
@@ -224,27 +212,19 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
             ExtendedFloatingActionButton(
                 onClick = {
                     haptic.light()
-                    if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN) {
-                        oidnModelPickerLauncher.launch("*/*")
-                    } else {
-                        modelPickerLauncher.launch("*/*")
-                    }
+                    modelPickerLauncher.launch("*/*")
                 },
                 icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                 text = {
                     Text(
-                        if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN)
-                            stringResource(R.string.import_tza_model)
-                        else
-                            stringResource(R.string.import_model_text)
+                        stringResource(R.string.import_model_text)
                     )
                 },
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 expanded = true
             )
-        },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0)
+        }, contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         Column(
             modifier = Modifier
@@ -274,10 +254,8 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            if (processingMode == ProcessingMode.OIDN)
-                                stringResource(R.string.mode_oidn_desc)
-                            else
-                                stringResource(R.string.mode_onnx_desc),
+                            if (processingMode == ProcessingMode.OIDN) stringResource(R.string.mode_oidn_desc)
+                            else stringResource(R.string.mode_onnx_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -287,22 +265,18 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                         ) {
                             val haptic = rememberHapticFeedback()
                             SegmentedButton(
-                                selected = processingMode == ProcessingMode.ONNX,
-                                onClick = {
+                                selected = processingMode == ProcessingMode.ONNX, onClick = {
                                     haptic.light()
                                     viewModel.setProcessingMode(ProcessingMode.ONNX)
-                                },
-                                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                                }, shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
                             ) {
                                 Text(stringResource(R.string.mode_onnx))
                             }
                             SegmentedButton(
-                                selected = processingMode == ProcessingMode.OIDN,
-                                onClick = {
+                                selected = processingMode == ProcessingMode.OIDN, onClick = {
                                     haptic.light()
                                     viewModel.setProcessingMode(ProcessingMode.OIDN)
-                                },
-                                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                                }, shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
                             ) {
                                 Text(stringResource(R.string.mode_oidn))
                             }
@@ -313,51 +287,26 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            if (processingMode == ProcessingMode.ONNX || !BuildConfig.OIDN_ENABLED) {
-                PreferenceGroupCard {
-                    PreferenceItem(
-                        icon = painterResource(id = R.drawable.ic_model),
-                        iconBackgroundColor = MaterialTheme.colorScheme.surfaceVariant,
-                        iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        title = stringResource(R.string.model_management, ""),
-                        subtitle = activeModelName ?: stringResource(R.string.no_model_loaded),
-                        ellipsizeSubtitle = true,
-                        showDivider = true,
-                        onClick = { dialogState = DialogState.Model }
-                    )
+            PreferenceGroupCard {
+                PreferenceItem(
+                    icon = painterResource(id = R.drawable.ic_model),
+                    iconBackgroundColor = MaterialTheme.colorScheme.surfaceVariant,
+                    iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    title = stringResource(R.string.model_management, ""),
+                    subtitle = activeModelName ?: stringResource(R.string.no_model_loaded),
+                    ellipsizeSubtitle = true,
+                    showDivider = true,
+                    onClick = { dialogState = DialogState.Model })
 
-                    PreferenceItem(
-                        icon = Icons.Filled.GridOn,
-                        iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
-                        iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
-                        title = stringResource(R.string.chunk_settings),
-                        subtitle = stringResource(R.string.chunk_size_px, chunkSize) + " • " + 
-                                  stringResource(R.string.overlap_size_px, overlapSize),
-                        onClick = { dialogState = DialogState.Chunk }
-                    )
-                }
-            } else {
-                PreferenceGroupCard {
-                    PreferenceItem(
-                        icon = painterResource(id = R.drawable.ic_model),
-                        iconBackgroundColor = MaterialTheme.colorScheme.tertiaryContainer,
-                        iconTint = MaterialTheme.colorScheme.onTertiaryContainer,
-                        title = stringResource(R.string.oidn_model_management),
-                        subtitle = activeOidnModelName ?: stringResource(R.string.oidn_no_model_loaded),
-                        ellipsizeSubtitle = true,
-                        showDivider = true,
-                        onClick = { dialogState = DialogState.OidnModel }
-                    )
-
-                    PreferenceItem(
-                        icon = Icons.Filled.Tune,
-                        iconBackgroundColor = MaterialTheme.colorScheme.tertiaryContainer,
-                        iconTint = MaterialTheme.colorScheme.onTertiaryContainer,
-                        title = stringResource(R.string.oidn_settings),
-                        subtitle = stringResource(R.string.oidn_settings_desc),
-                        onClick = { dialogState = DialogState.OidnSettings }
-                    )
-                }
+                PreferenceItem(
+                    icon = Icons.Filled.GridOn,
+                    iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
+                    iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    title = stringResource(R.string.chunk_settings),
+                    subtitle = stringResource(
+                        R.string.chunk_size_px, chunkSize
+                    ) + " • " + stringResource(R.string.overlap_size_px, overlapSize),
+                    onClick = { dialogState = DialogState.Chunk })
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -372,20 +321,16 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                     title = stringResource(R.string.preferences),
                     subtitle = stringResource(R.string.preferences_desc),
                     showDivider = true,
-                    onClick = { dialogState = DialogState.Preferences }
-                )
+                    onClick = { dialogState = DialogState.Preferences })
 
-                if (processingMode == ProcessingMode.ONNX || !BuildConfig.OIDN_ENABLED) {
-                    PreferenceItem(
-                        icon = Icons.Filled.QuestionAnswer,
-                        iconBackgroundColor = MaterialTheme.colorScheme.primaryContainer,
-                        iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        title = stringResource(R.string.faqs),
-                        subtitle = stringResource(R.string.show_frequently_asked_questions),
-                        showDivider = true,
-                        onClick = { dialogState = DialogState.FAQ }
-                    )
-                }
+                PreferenceItem(
+                    icon = Icons.Filled.QuestionAnswer,
+                    iconBackgroundColor = MaterialTheme.colorScheme.primaryContainer,
+                    iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    title = stringResource(R.string.faqs),
+                    subtitle = stringResource(R.string.show_frequently_asked_questions),
+                    showDivider = true,
+                    onClick = { dialogState = DialogState.FAQ })
 
                 PreferenceItem(
                     icon = Icons.Filled.Info,
@@ -393,8 +338,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                     iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
                     title = stringResource(R.string.about),
                     subtitle = stringResource(R.string.version_info_and_credits),
-                    onClick = { dialogState = DialogState.About }
-                )
+                    onClick = { dialogState = DialogState.About })
             }
 
             Spacer(modifier = Modifier.height(96.dp))
@@ -413,7 +357,8 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                 if (warning != null) {
                     Log.d("SettingsScreen", "Setting pendingModelSelection to: $modelName")
                     pendingModelSelection = modelName
-                    warningState = ModelWarningState.ModelWarning(modelName, warning, isImport = false)
+                    warningState =
+                        ModelWarningState.ModelWarning(modelName, warning, isImport = false)
                 } else {
                     Log.d("SettingsScreen", "No warning, setting active model directly")
                     viewModel.setActiveModelByName(modelName)
@@ -427,22 +372,17 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                 modelManager.getModelInfo(modelName)?.let { info ->
                     modelInfoDialog = modelName to info
                 }
+            })
+
+        DialogState.Delete -> DeleteDialog(installedModels, onConfirm = { selected ->
+            dialogState = DialogState.None
+            viewModel.deleteModels(selected) {
+                Toast.makeText(
+                    context, deletedModelMessage.format(it), Toast.LENGTH_SHORT
+                ).show()
             }
-        )
-        DialogState.Delete -> DeleteDialog(
-            installedModels,
-            onConfirm = { selected ->
-                dialogState = DialogState.None
-                viewModel.deleteModels(selected) {
-                    Toast.makeText(
-                        context,
-                        deletedModelMessage.format(it),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            },
-            onDismiss = { dialogState = DialogState.Model }
-        )
+        }, onDismiss = { dialogState = DialogState.Model })
+
         DialogState.ImportProgress -> ImportProgressDialog(importProgress)
         DialogState.Chunk -> ChunkDialog(
             chunkSize,
@@ -451,8 +391,8 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
             onChunkChange = { viewModel.setChunkSize(it) },
             onOverlapChange = { viewModel.setOverlapSize(it) },
             onThreadsChange = { viewModel.setOnnxDeviceThreads(it) },
-            onDismiss = { dialogState = DialogState.None }
-        )
+            onDismiss = { dialogState = DialogState.None })
+
         DialogState.Preferences -> PreferencesDialog(
             context = context,
             skipSaveDialog = skipSaveDialog,
@@ -472,11 +412,11 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                 scope.launch { appPreferences.setSwapSwipeActions(swap) }
             },
             onDismiss = { dialogState = DialogState.None },
-            onModelExtracted = { 
+            onModelExtracted = {
                 viewModel.refreshInstalledModels()
                 activeModelName = viewModel.getActiveModelName()
-            }
-        )
+            })
+
         DialogState.About -> AboutDialog { dialogState = DialogState.None }
         DialogState.FAQ -> FAQDialog { dialogState = DialogState.None }
         is DialogState.ModelInfo -> {
@@ -484,9 +424,9 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
             ModelInfoDialog(
                 modelName = state.modelName,
                 infoText = state.infoText,
-                onDismiss = { dialogState = DialogState.None }
-            )
+                onDismiss = { dialogState = DialogState.None })
         }
+
         DialogState.OidnModel -> OidnModelDialog(
             installedOidnModels,
             activeOidnModelName,
@@ -496,44 +436,34 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
             },
             onImport = { oidnModelPickerLauncher.launch("*/*") },
             onDelete = { dialogState = DialogState.OidnDelete },
-            onDismiss = { dialogState = DialogState.None }
-        )
-        DialogState.OidnDelete -> DeleteDialog(
-            installedOidnModels,
-            onConfirm = { selected ->
-                dialogState = DialogState.None
-                viewModel.deleteModels(selected, ModelType.OIDN) {
-                    Toast.makeText(
-                        context,
-                        deletedModelMessage.format(it),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            },
-            onDismiss = { dialogState = DialogState.OidnModel }
-        )
+            onDismiss = { dialogState = DialogState.None })
+
+        DialogState.OidnDelete -> DeleteDialog(installedOidnModels, onConfirm = { selected ->
+            dialogState = DialogState.None
+            viewModel.deleteModels(selected, ModelType.OIDN) {
+                Toast.makeText(
+                    context, deletedModelMessage.format(it), Toast.LENGTH_SHORT
+                ).show()
+            }
+        }, onDismiss = { dialogState = DialogState.OidnModel })
+
         DialogState.OidnSettings -> OidnSettingsDialog(
             hdr = oidnHdr,
             srgb = oidnSrgb,
             quality = oidnQuality,
-            maxMemoryMB = oidnMaxMemoryMB,
             numThreads = oidnNumThreads,
             onHdrChange = { viewModel.setOidnHdrPref(it) },
             onSrgbChange = { viewModel.setOidnSrgbPref(it) },
             onQualityChange = { viewModel.setOidnQualityPref(it) },
-            onMaxMemoryChange = { viewModel.setOidnMaxMemoryMBPref(it) },
             onNumThreadsChange = { viewModel.setOidnNumThreadsPref(it) },
-            onDismiss = { dialogState = DialogState.None }
-        )
+            onDismiss = { dialogState = DialogState.None })
+
         DialogState.None -> {}
     }
 
     modelInfoDialog?.let { (modelName, infoText) ->
         ModelInfoDialog(
-            modelName = modelName,
-            infoText = infoText,
-            onDismiss = { modelInfoDialog = null }
-        )
+            modelName = modelName, infoText = infoText, onDismiss = { modelInfoDialog = null })
     }
 
     warningState?.let { state ->
@@ -581,8 +511,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                                         onError = { err ->
                                             dialogState = DialogState.None
                                             warningState = ModelWarningState.Error(err)
-                                        }
-                                    )
+                                        })
                                 }
                             } else {
                                 pendingModelSelection?.let {
@@ -601,8 +530,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                         }) {
                             Text(stringResource(state.warning.negativeButtonTextResId))
                         }
-                    }
-                )
+                    })
             }
 
             is ModelWarningState.Error -> {
@@ -611,8 +539,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                     message = state.message,
                     onDismiss = { warningState = null },
                     confirmButtonText = stringResource(R.string.ok),
-                    onConfirm = { warningState = null }
-                )
+                    onConfirm = { warningState = null })
             }
         }
     }
@@ -635,10 +562,9 @@ sealed class DialogState {
 
 sealed class ModelWarningState {
     data class ModelWarning(
-        val modelName: String,
-        val warning: ModelManager.ModelWarning,
-        val isImport: Boolean
+        val modelName: String, val warning: ModelManager.ModelWarning, val isImport: Boolean
     ) : ModelWarningState()
+
     data class Error(val message: String) : ModelWarningState()
 }
 
@@ -695,8 +621,7 @@ fun PreferenceItem(
                 onClick()
             }
             .padding(horizontal = 16.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+        verticalAlignment = Alignment.CenterVertically) {
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
@@ -710,6 +635,7 @@ fun PreferenceItem(
                     tint = iconTint,
                     modifier = Modifier.size(24.dp)
                 )
+
                 is Painter -> Icon(
                     painter = icon,
                     contentDescription = null,
@@ -720,7 +646,7 @@ fun PreferenceItem(
         }
 
         Spacer(modifier = Modifier.width(16.dp))
-        
+
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 title,
@@ -772,7 +698,9 @@ fun PreferenceItem(
             HorizontalDivider(
                 modifier = Modifier
                     .padding(horizontal = 16.dp)
-                    .fillMaxWidth(), thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant
+                    .fillMaxWidth(),
+                thickness = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant
             )
         }
     }

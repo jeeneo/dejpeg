@@ -22,10 +22,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -43,7 +41,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.je.dejpeg.R
-import com.je.dejpeg.ui.components.StyledAlertDialog
 
 @Composable
 fun OidnModelDialog(
@@ -65,13 +62,17 @@ fun OidnModelDialog(
             } else {
                 models.forEach { name ->
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
-                            .clip(RoundedCornerShape(12.dp)).background(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 2.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
                                 if (name == active) MaterialTheme.colorScheme.primaryContainer.copy(
                                     alpha = 0.3f
                                 )
                                 else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                            ).clickable { haptic.medium(); onSelect(name) }
+                            )
+                            .clickable { haptic.medium(); onSelect(name) }
                             .padding(horizontal = 12.dp, vertical = 8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically) {

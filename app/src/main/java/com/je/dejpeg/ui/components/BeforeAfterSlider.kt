@@ -65,8 +65,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.get
 import com.je.dejpeg.R
-import com.je.dejpeg.utils.rememberHapticFeedback
 import com.je.dejpeg.data.AppPreferences
+import com.je.dejpeg.utils.rememberHapticFeedback
 import me.saket.telephoto.zoomable.OverzoomEffect
 import me.saket.telephoto.zoomable.ZoomLimit
 import me.saket.telephoto.zoomable.ZoomSpec
