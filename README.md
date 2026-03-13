@@ -86,13 +86,6 @@ For building with [Intel® Oidn Denoising](https://www.openimagedenoise.org/), s
 
 ### disclaimer:
 
-hi if you're reading this youre probably not wondering why i changed the readme.
-
-im tired of seeing apps in FOSS stores have these clearly AI written slop/huge readmes so i made the opposite written by an organic intellegence.
-i do use some generative ais for the complex parts (eg. getting brisque ported to kotlin and diagnosing oidn to an understandable state) but this isnt vibe slop i made over a weekend, it's human slop created by me and shows my little knowledge about android :D and taken me about 8 months to get to make this human slop. (when i moved to codeberg the repos history was rewritten (my fault really) T^T)
-
-anyway, i am by no means a professional developer and only do this in my spare time, the code is not perfect and quite janky
-
 This is a GUI for a select amount of `1x` ONNX processing models, used under their respective licenses (Apache 2.0)
 
 You are welcome to embed parts of this app in your own project as long as it remains free as in beer, abides to the GPLv3 license, and credit has been given
