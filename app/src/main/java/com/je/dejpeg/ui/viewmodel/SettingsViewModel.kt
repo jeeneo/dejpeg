@@ -90,6 +90,7 @@ class SettingsViewModel : ViewModel() {
         )
 
         bindings.forEach { (stateFlow, pref) ->
+            @Suppress("UNCHECKED_CAST")
             syncPref(stateFlow as MutableStateFlow<Any>, (pref.flow(prefs) as Flow<Any>))
         }
 
