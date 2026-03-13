@@ -21,6 +21,7 @@ package com.je.dejpeg.ui.screens
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -62,7 +63,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -104,7 +104,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
-@Suppress("AssignedValueIsNeverRead")
+@Suppress("AssignedValueIsNeverRead", "KotlinConstantConditions", "SimplifyBooleanWithConstants")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
@@ -167,8 +167,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
     LaunchedEffect(processingMode) {
         activeOidnModelName =
             withContext(Dispatchers.IO) { viewModel.getActiveModelName(ModelType.OIDN) }
-        activeModelName =
-            withContext(Dispatchers.IO) { viewModel.getActiveModelName() }
+        activeModelName = withContext(Dispatchers.IO) { viewModel.getActiveModelName() }
     }
 
     val modelPickerLauncher = rememberLauncherForActivityResult(
@@ -223,28 +222,27 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
             val haptic = rememberHapticFeedback()
             ExtendedFloatingActionButton(
                 onClick = {
-                    haptic.light()
-                    if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN) {
-                        oidnModelPickerLauncher.launch("*/*")
-                    } else {
+                haptic.light()
+                if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN) {
+                    oidnModelPickerLauncher.launch("*/*")
+                } else {
                     modelPickerLauncher.launch("*/*")
-                    }
-                },
+                }
+            },
                 icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                 text = {
                     Text(
-                        if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN)
-                            stringResource(R.string.import_tza_model)
-                        else
-                        stringResource(R.string.import_model_text)
+                        if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN) stringResource(
+                            R.string.import_tza_model
+                        )
+                        else stringResource(R.string.import_model_text)
                     )
                 },
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 expanded = true
             )
-        },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0)
+        }, contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         Column(
             modifier = Modifier
@@ -308,29 +306,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
             }
 
             PreferenceGroupCard {
-                if (processingMode == ProcessingMode.ONNX) {
-                    PreferenceItem(
-                        icon = painterResource(id = R.drawable.ic_model),
-                        iconBackgroundColor = MaterialTheme.colorScheme.surfaceVariant,
-                        iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        title = stringResource(R.string.model_management, ""),
-                        subtitle = activeModelName ?: stringResource(R.string.no_model_loaded),
-                        ellipsizeSubtitle = true,
-                        showDivider = true,
-                        onClick = { dialogState = DialogState.Model })
-
-                    PreferenceItem(
-                        icon = Icons.Filled.GridOn,
-                        iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
-                        iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
-                        title = stringResource(R.string.chunk_settings),
-                        subtitle = stringResource(
-                            R.string.chunk_size_px, chunkSize
-                        ) + " • " + stringResource(R.string.overlap_size_px, overlapSize),
-                        onClick = { dialogState = DialogState.Chunk })
-                }
-
-                if (processingMode == ProcessingMode.OIDN) {
+                if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN) {
                     PreferenceItem(
                         icon = painterResource(id = R.drawable.ic_model),
                         iconBackgroundColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -348,6 +324,25 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
                         title = stringResource(R.string.oidn_settings),
                         subtitle = stringResource(R.string.oidn_settings_desc),
                         onClick = { dialogState = DialogState.OidnSettings })
+                } else {
+                    PreferenceItem(
+                        icon = painterResource(id = R.drawable.ic_model),
+                        iconBackgroundColor = MaterialTheme.colorScheme.surfaceVariant,
+                        iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        title = stringResource(R.string.model_management, ""),
+                        subtitle = activeModelName ?: stringResource(R.string.no_model_loaded),
+                        ellipsizeSubtitle = true,
+                        showDivider = true,
+                        onClick = { dialogState = DialogState.Model })
+                    PreferenceItem(
+                        icon = Icons.Filled.GridOn,
+                        iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
+                        iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        title = stringResource(R.string.chunk_settings),
+                        subtitle = stringResource(
+                            R.string.chunk_size_px, chunkSize
+                        ) + " • " + stringResource(R.string.overlap_size_px, overlapSize),
+                        onClick = { dialogState = DialogState.Chunk })
                 }
             }
 
@@ -365,7 +360,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
                     showDivider = true,
                     onClick = { dialogState = DialogState.Preferences })
 
-                if (processingMode == ProcessingMode.ONNX) {
+                if (processingMode == ProcessingMode.ONNX || !BuildConfig.OIDN_ENABLED) {
                     PreferenceItem(
                         icon = Icons.Filled.QuestionAnswer,
                         iconBackgroundColor = MaterialTheme.colorScheme.primaryContainer,
@@ -657,14 +652,13 @@ fun PreferenceItem(
     onClick: () -> Unit
 ) {
     val haptic = rememberHapticFeedback()
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable {
-                haptic.light()
-                onClick()
-            }
-            .padding(horizontal = 16.dp, vertical = 16.dp),
+    Row(modifier = Modifier
+        .fillMaxWidth()
+        .clickable {
+            haptic.light()
+            onClick()
+        }
+        .padding(horizontal = 16.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically) {
         Box(
             contentAlignment = Alignment.Center,

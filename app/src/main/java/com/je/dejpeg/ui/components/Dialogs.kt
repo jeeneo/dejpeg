@@ -21,8 +21,6 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.os.Handler
-import android.os.Looper
 import android.widget.Toast
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -49,6 +47,9 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Photo
@@ -111,6 +112,7 @@ import com.je.dejpeg.data.dataStore
 import com.je.dejpeg.utils.CacheManager
 import com.je.dejpeg.utils.HapticFeedback
 import com.je.dejpeg.utils.rememberHapticFeedback
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import kotlin.random.Random
@@ -960,17 +962,23 @@ fun ImageSourceDialog(
                 )
                 ImageSourceList(sources)
                 Spacer(Modifier.height(4.dp))
-                Surface(
+                Row(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp)),
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                    shape = RoundedCornerShape(16.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .clickable {
+                            haptic.light(); setAsDefault = !setAsDefault
+                        }
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    MaterialSwitchPreference(
-                        title = stringResource(R.string.set_as_default),
+                    Checkbox(
                         checked = setAsDefault,
-                        onCheckedChange = { haptic.light(); setAsDefault = it })
+                        onCheckedChange = { haptic.light(); setAsDefault = it },
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.set_as_default))
+                    Spacer(Modifier.width(8.dp))
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End
@@ -1097,6 +1105,14 @@ fun PreferencesDialog(
     val haptic = rememberHapticFeedback()
     val view = LocalView.current
 
+    val imageSourceLabel = when (defaultImageSource) {
+        "gallery" -> stringResource(R.string.gallery)
+        "internal" -> stringResource(R.string.photos)
+        "documents" -> stringResource(R.string.documents)
+        "camera" -> stringResource(R.string.camera)
+        else -> stringResource(R.string.no_default_source)
+    }
+
     StyledAlertDialog(onDismissRequest = onDismiss, title = {
         Text(
             stringResource(R.string.preferences),
@@ -1107,156 +1123,150 @@ fun PreferencesDialog(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .verticalScroll(rememberScrollState())
         ) {
-            CompactSwitchRow(
+            PreferenceItem(
+                icon = Icons.Filled.Vibration,
                 title = stringResource(R.string.vibration_on_touch),
-                checked = hapticFeedbackEnabled,
-                onCheckedChange = { enabled ->
+                trailing = {
+                    Switch(
+                        checked = hapticFeedbackEnabled,
+                        onCheckedChange = null,
+                        modifier = Modifier.scale(0.85f)
+                    )
+                },
+                onClick = {
+                    val enabled = !hapticFeedbackEnabled
                     if (enabled) HapticFeedback.light(view, isEnabled = true)
                     onHapticFeedbackChange(enabled)
-                },
-                showDivider = true
-            )
-            CompactSwitchRow(
+                })
+            PreferenceItem(
+                icon = Icons.Filled.Save,
                 title = stringResource(R.string.show_save_dialog),
-                checked = !skipSaveDialog,
-                onCheckedChange = { show ->
-                    haptic.light()
-                    onSkipSaveDialogChange(!show)
+                trailing = {
+                    Switch(
+                        checked = !skipSaveDialog,
+                        onCheckedChange = null,
+                        modifier = Modifier.scale(0.85f)
+                    )
                 },
-                showDivider = true
-            )
-            CompactSwitchRow(
+                onClick = {
+                    haptic.light()
+                    onSkipSaveDialogChange(!skipSaveDialog)
+                })
+            PreferenceItem(
+                icon = Icons.Filled.SwapHoriz,
                 title = stringResource(R.string.swap_swipe_actions),
-                checked = swapSwipeActions,
-                onCheckedChange = { swap ->
-                    haptic.light()
-                    onSwapSwipeActionsChange(swap)
+                trailing = {
+                    Switch(
+                        checked = swapSwipeActions,
+                        onCheckedChange = null,
+                        modifier = Modifier.scale(0.85f)
+                    )
                 },
-                showDivider = false
-            )
-            CompactActionItem(
+                onClick = {
+                    haptic.light()
+                    onSwapSwipeActionsChange(!swapSwipeActions)
+                })
+            PreferenceItem(
                 icon = Icons.Filled.Image,
                 title = stringResource(R.string.default_image_source),
-                subtitle = defaultImageSource?.let {
-                    when (it) {
-                        "gallery" -> stringResource(R.string.gallery)
-                        "internal" -> stringResource(R.string.photos)
-                        "documents" -> stringResource(R.string.documents)
-                        "camera" -> stringResource(R.string.camera)
-                        else -> stringResource(R.string.none)
+                subtitle = imageSourceLabel,
+                trailing = if (defaultImageSource != null) {
+                    {
+                        IconButton(
+                            onClick = { haptic.light(); onDefaultImageSourceChange(null) },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Filled.Clear,
+                                contentDescription = "jjj",
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
-                } ?: stringResource(R.string.no_default_source),
-                onClear = if (defaultImageSource != null) {
-                    { haptic.light(); onDefaultImageSourceChange(null) }
-                } else null,
-                showDivider = true)
-            CompactActionItem(
+                } else null)
+            PreferenceItem(
                 icon = Icons.Filled.Download,
                 title = stringResource(R.string.starter_model_title),
                 subtitle = stringResource(R.string.extract_starter_model),
                 onClick = {
                     haptic.light()
                     scope.launch {
-                        context.dataStore.edit { prefs -> prefs.remove(PreferenceKeys.STARTER_MODEL_EXTRACTED) }
+                        context.dataStore.edit { prefs ->
+                            prefs.remove(PreferenceKeys.STARTER_MODEL_EXTRACTED)
+                        }
                     }
-                    scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                    scope.launch(Dispatchers.IO) {
                         modelManager.extractStarterModel(setAsActive = false, onSuccess = {
-                            Handler(Looper.getMainLooper()).post {
+                            scope.launch(Dispatchers.Main) {
                                 context.toast("Starter models extracted")
                                 onModelExtracted?.invoke()
                                 onDismiss()
                             }
                         }, onError = { error ->
-                            Handler(Looper.getMainLooper()).post {
+                            scope.launch(Dispatchers.Main) {
                                 context.toast("Failed to extract starter models: $error")
                             }
                         })
                     }
-                })
+                },
+                showDivider = false
+            )
         }
     }, confirmButton = {
-        DialogPrimaryButton(stringResource(R.string.close), { onDismiss() }, { haptic.light() })
+        DialogPrimaryButton(
+            label = stringResource(R.string.ok),
+            onClick = onDismiss,
+            hapticAction = { haptic.light() })
     })
 }
 
 @Composable
-private fun CompactSwitchRow(
-    title: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit, showDivider: Boolean
-) {
-    Column {
-        Row(modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onCheckedChange(!checked) }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = title,
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.bodyLarge
-            )
-            Switch(
-                checked = checked, onCheckedChange = null, modifier = Modifier.scale(0.85f)
-            )
-        }
-        if (showDivider) HorizontalDivider(
-            modifier = Modifier.padding(horizontal = 16.dp),
-            color = MaterialTheme.colorScheme.outlineVariant
-        )
-    }
-}
-
-@Composable
-private fun CompactActionItem(
+private fun PreferenceItem(
     icon: ImageVector,
     title: String,
-    subtitle: String,
+    subtitle: String? = null,
+    trailing: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
-    onClear: (() -> Unit)? = null,
-    showDivider: Boolean = false
+    showDivider: Boolean = true
 ) {
     Column {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(enabled = onClick != null) { onClick?.invoke() }
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically) {
+                .clickable(enabled = onClick != null, onClick = { onClick?.invoke() })
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(22.dp)
             )
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
-                Text(
-                    title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            if (onClear != null) {
-                IconButton(onClick = onClear, modifier = Modifier.size(24.dp)) {
-                    Icon(
-                        Icons.Filled.Clear,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
+                Text(title, style = MaterialTheme.typography.bodyLarge)
+                if (subtitle != null) {
+                    Text(
+                        subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
+            if (trailing != null) {
+                Spacer(Modifier.width(8.dp))
+                trailing()
+            }
         }
-        if (showDivider) HorizontalDivider(
-            modifier = Modifier.padding(horizontal = 16.dp),
-            color = MaterialTheme.colorScheme.outlineVariant
-        )
+        if (showDivider) {
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 8.dp),
+                color = MaterialTheme.colorScheme.outlineVariant
+            )
+        }
     }
 }
 
