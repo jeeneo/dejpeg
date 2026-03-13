@@ -70,7 +70,21 @@ Translate:
 
 ### Additional details
 
-For more information please reread
+I'm sure you've heard about Google's restriction of 3rd party apks. I won't bore you with repetition and and just state the affect this has on this app: it will not, and never, be on the Play Store.
+
+For those of you who are tied to official devices only, I apologize. I will not dox myself to Google for the sake of false "security".
+
+I won't be advising you to fight back, adding warnings in-app, nor suggesting you to root. I have no advice you haven't already seen.
+
+You may stop reading now.
+
+Rant:
+
+This has taken the joy of development out and I don't know for how long I will continue maintaining it. I hardly use my phone for other than calls and messaging.
+
+The app itself is kind of a mess design wise. Plus, native oidn denoise mixed with brisque and then onnx runtime makes it far more complicated than I had intended to be, which means more of a maintenance burden.
+
+In the future, releases may change to just ONNX and others could be deprecated, depending on how things personally unfold for me.
 
 <details>
 <summary><h3>building</h3></summary>
