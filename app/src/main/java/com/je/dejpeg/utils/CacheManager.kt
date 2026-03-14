@@ -166,6 +166,15 @@ object CacheManager {
                 }
             }
         }
+        clearSharedImage(context)
         return result
+    }
+
+    fun clearSharedImage(context: Context) {
+        val file = File(context.cacheDir, "shared_image.png")
+        if (file.exists()) {
+            file.delete()
+            Log.d(TAG, "Deleted shared_image.png")
+        }
     }
 }

@@ -291,10 +291,6 @@ fun AboutDialog(onDismiss: () -> Unit) {
                         stringResource(R.string.source_code),
                         { context.openUrl("https://codeberg.org/dryerlint/dejpeg") },
                         { haptic.light() })
-                    DialogPrimaryButton(
-                        stringResource(R.string.ok),
-                        { onDismiss() },
-                        { haptic.light() })
                 }
             }
 

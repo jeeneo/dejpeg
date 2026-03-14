@@ -425,6 +425,7 @@ object ImageActions {
     fun shareImage(context: Context, bitmap: Bitmap, onError: (String) -> Unit = {}) {
         try {
             val cachePath = File(context.cacheDir, "shared_image.png")
+            if (cachePath.exists()) cachePath.delete()
             FileOutputStream(cachePath).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
             val contentUri =
                 FileProvider.getUriForFile(context, "${context.packageName}.provider", cachePath)
