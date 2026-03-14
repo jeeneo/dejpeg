@@ -362,8 +362,6 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
                         Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                             installedModels.forEach { modelName ->
                                 val isActive = modelName == activeModelName
-                                val warning =
-                                    remember(modelName) { modelManager.getModelWarning(modelName) }
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -375,15 +373,8 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
                                         )
                                         .clickable {
                                             haptic.light()
-                                            if (warning != null) {
-                                                pendingModelSelection = modelName
-                                                warningState = ModelWarningState.ModelWarning(
-                                                    modelName, warning, isImport = false
-                                                )
-                                            } else {
-                                                viewModel.setActiveModelByName(modelName)
-                                                activeModelName = modelName
-                                            }
+                                            viewModel.setActiveModelByName(modelName)
+                                            activeModelName = modelName
                                         }
                                         .padding(horizontal = 8.dp, vertical = 10.dp),
                                     verticalAlignment = Alignment.CenterVertically) {

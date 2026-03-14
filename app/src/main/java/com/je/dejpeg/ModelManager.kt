@@ -437,10 +437,6 @@ class ModelManager(
         }
     }
 
-    fun getModelWarning(modelName: String?): ModelWarning? {
-        return if (modelName != null) MODEL_WARNINGS[modelName] else null
-    }
-
     fun getModelInfo(modelName: String?): String? {
         if (modelName == null) return null
         val resId = MODEL_INFO_RES_IDS[modelName] ?: return null

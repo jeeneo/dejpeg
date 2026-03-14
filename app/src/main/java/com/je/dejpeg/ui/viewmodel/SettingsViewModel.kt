@@ -15,6 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+@file:Suppress("KotlinConstantConditions", "SimplifyBooleanWithConstants")
+
 package com.je.dejpeg.ui.viewmodel
 
 import android.content.Context
@@ -22,20 +24,20 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.je.dejpeg.BuildConfig
 import com.je.dejpeg.ModelManager
 import com.je.dejpeg.ModelType
+import com.je.dejpeg.data.AppPreferences
+import com.je.dejpeg.data.Prefs
+import com.je.dejpeg.data.ProcessingMode
 import com.je.dejpeg.utils.helpers.ModelMigrationHelper
-import com.je.dejpeg.BuildConfig
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import com.je.dejpeg.data.AppPreferences
-import com.je.dejpeg.data.Prefs
-import com.je.dejpeg.data.ProcessingMode
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -51,9 +53,9 @@ class SettingsViewModel : ViewModel() {
     val onnxDeviceThreads = MutableStateFlow(AppPreferences.DEFAULT_ONNX_DEVICE_THREADS)
     val globalStrength = MutableStateFlow(AppPreferences.DEFAULT_GLOBAL_STRENGTH)
     private val _processingMode = MutableStateFlow(ProcessingMode.ONNX)
-    val processingMode: StateFlow<ProcessingMode> = _processingMode
-        .map { saved -> if (!BuildConfig.OIDN_ENABLED && saved == ProcessingMode.OIDN) ProcessingMode.ONNX else saved }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, ProcessingMode.ONNX)
+    val processingMode: StateFlow<ProcessingMode> =
+        _processingMode.map { saved -> if (!BuildConfig.OIDN_ENABLED && saved == ProcessingMode.OIDN) ProcessingMode.ONNX else saved }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, ProcessingMode.ONNX)
     val oidnHdr = MutableStateFlow(false)
     val oidnSrgb = MutableStateFlow(false)
     val oidnQuality = MutableStateFlow(AppPreferences.DEFAULT_OIDN_QUALITY)
@@ -98,28 +100,29 @@ class SettingsViewModel : ViewModel() {
         )
 
         bindings.forEach { (stateFlow, pref) ->
-            @Suppress("UNCHECKED_CAST")
-            syncPref(stateFlow as MutableStateFlow<Any>, (pref.flow(prefs) as Flow<Any>))
+            @Suppress("UNCHECKED_CAST") syncPref(
+                stateFlow as MutableStateFlow<Any>,
+                (pref.flow(prefs) as Flow<Any>)
+            )
         }
 
         viewModelScope.launch {
             appCtx.let { ctx ->
                 ModelMigrationHelper.migrateModelsIfNeeded(ctx)
             }
-            installedModels.value =
-                withContext(Dispatchers.IO) { modelManager?.getInstalledModels(ModelType.ONNX) ?: emptyList() }
+            installedModels.value = withContext(Dispatchers.IO) {
+                modelManager?.getInstalledModels(ModelType.ONNX) ?: emptyList()
+            }
             installedOidnModels.value = withContext(Dispatchers.IO) {
                 modelManager?.getInstalledModels(ModelType.OIDN) ?: emptyList()
             }
             hasCheckedModels.value = true
-            val activeType = if (processingMode.value == ProcessingMode.OIDN) ModelType.OIDN else ModelType.ONNX
-            val activeList = if (activeType == ModelType.OIDN) installedOidnModels.value else installedModels.value
+            val activeType =
+                if (processingMode.value == ProcessingMode.OIDN) ModelType.OIDN else ModelType.ONNX
+            val activeList =
+                if (activeType == ModelType.OIDN) installedOidnModels.value else installedModels.value
             if (activeList.isEmpty()) {
                 shouldShowNoModelDialog.value = true
-            } else {
-                modelManager?.getActiveModelName()?.let { modelName ->
-                    deprecatedModelWarning.value = modelManager?.getModelWarning(modelName)
-                }
             }
         }
     }
@@ -127,8 +130,10 @@ class SettingsViewModel : ViewModel() {
     fun refreshInstalledModels(type: ModelType = ModelType.ONNX) {
         viewModelScope.launch {
             when (type) {
-                ModelType.ONNX -> installedModels.value =
-                    withContext(Dispatchers.IO) { modelManager?.getInstalledModels(ModelType.ONNX) ?: emptyList() }
+                ModelType.ONNX -> installedModels.value = withContext(Dispatchers.IO) {
+                    modelManager?.getInstalledModels(ModelType.ONNX) ?: emptyList()
+                }
+
                 ModelType.OIDN -> installedOidnModels.value = withContext(Dispatchers.IO) {
                     modelManager?.getInstalledModels(ModelType.OIDN) ?: emptyList()
                 }
@@ -157,7 +162,15 @@ class SettingsViewModel : ViewModel() {
                         launch(Dispatchers.Main) { onSuccess(modelName) }
                     },
                     onError = { launch(Dispatchers.Main) { onError(it) } },
-                    onWarning = onWarning?.let { cb -> { n, w -> launch(Dispatchers.Main) { cb(n, w) } } },
+                    onWarning = onWarning?.let { cb ->
+                        { n, w ->
+                            launch(Dispatchers.Main) {
+                                cb(
+                                    n, w
+                                )
+                            }
+                        }
+                    },
                     force = force
                 )
             } catch (e: Exception) {
@@ -166,7 +179,9 @@ class SettingsViewModel : ViewModel() {
         }
     }
 
-    fun deleteModels(models: List<String>, type: ModelType = ModelType.ONNX, onDeleted: (String) -> Unit = {}) {
+    fun deleteModels(
+        models: List<String>, type: ModelType = ModelType.ONNX, onDeleted: (String) -> Unit = {}
+    ) {
         viewModelScope.launch(Dispatchers.IO) {
             models.forEach { name ->
                 modelManager?.deleteModel(name, type)
@@ -177,16 +192,26 @@ class SettingsViewModel : ViewModel() {
     }
 
     fun setActiveModelByName(name: String, type: ModelType = ModelType.ONNX) {
-        modelManager?.setActiveModel(name, type) ?: Log.e("SettingsViewModel", "modelManager is null!")
+        modelManager?.setActiveModel(name, type) ?: Log.e(
+            "SettingsViewModel", "modelManager is null!"
+        )
     }
 
-    fun hasActiveModel(type: ModelType = ModelType.ONNX) = modelManager?.hasActiveModel(type) ?: false
-    fun getActiveModelName(type: ModelType = ModelType.ONNX) = modelManager?.getActiveModelName(type)
+    fun hasActiveModel(type: ModelType = ModelType.ONNX) =
+        modelManager?.hasActiveModel(type) ?: false
 
-    fun setChunkSize(size: Int) = persistPref(chunkSize, size) { appPreferences?.setChunkSize(it) ?: Unit }
-    fun setOverlapSize(size: Int) = persistPref(overlapSize, size) { appPreferences?.setOverlapSize(it) ?: Unit }
-    fun setOnnxDeviceThreads(numThreads: Int) =
-        persistPref(onnxDeviceThreads, numThreads) { appPreferences?.setOnnxDeviceThreads(it) ?: Unit }
+    fun getActiveModelName(type: ModelType = ModelType.ONNX) =
+        modelManager?.getActiveModelName(type)
+
+    fun setChunkSize(size: Int) =
+        persistPref(chunkSize, size) { appPreferences?.setChunkSize(it) ?: Unit }
+
+    fun setOverlapSize(size: Int) =
+        persistPref(overlapSize, size) { appPreferences?.setOverlapSize(it) ?: Unit }
+
+    fun setOnnxDeviceThreads(numThreads: Int) = persistPref(onnxDeviceThreads, numThreads) {
+        appPreferences?.setOnnxDeviceThreads(it) ?: Unit
+    }
 
     fun setGlobalStrength(strength: Float) {
         persistPref(globalStrength, strength) { appPreferences?.setGlobalStrength(it) ?: Unit }
@@ -196,11 +221,20 @@ class SettingsViewModel : ViewModel() {
         persistPref(_processingMode, mode) { appPreferences?.setProcessingMode(it) ?: Unit }
     }
 
-    fun setOidnInputScale(scale: Float) = persistPref(oidnInputScale, scale) { appPreferences?.setOidnInputScale(it) ?: Unit }
-    fun setOidnHdrPref(hdr: Boolean) = persistPref(oidnHdr, hdr) { appPreferences?.setOidnHdr(it) ?: Unit }
-    fun setOidnSrgbPref(srgb: Boolean) = persistPref(oidnSrgb, srgb) { appPreferences?.setOidnSrgb(it) ?: Unit }
-    fun setOidnQualityPref(quality: Int) = persistPref(oidnQuality, quality) { appPreferences?.setOidnQuality(it) ?: Unit }
-    fun setOidnNumThreadsPref(numThreads: Int) = persistPref(oidnNumThreads, numThreads) { appPreferences?.setOidnNumThreads(it) ?: Unit }
+    fun setOidnInputScale(scale: Float) =
+        persistPref(oidnInputScale, scale) { appPreferences?.setOidnInputScale(it) ?: Unit }
+
+    fun setOidnHdrPref(hdr: Boolean) =
+        persistPref(oidnHdr, hdr) { appPreferences?.setOidnHdr(it) ?: Unit }
+
+    fun setOidnSrgbPref(srgb: Boolean) =
+        persistPref(oidnSrgb, srgb) { appPreferences?.setOidnSrgb(it) ?: Unit }
+
+    fun setOidnQualityPref(quality: Int) =
+        persistPref(oidnQuality, quality) { appPreferences?.setOidnQuality(it) ?: Unit }
+
+    fun setOidnNumThreadsPref(numThreads: Int) =
+        persistPref(oidnNumThreads, numThreads) { appPreferences?.setOidnNumThreads(it) ?: Unit }
 
     fun showNoModelDialog() {
         shouldShowNoModelDialog.value = true
