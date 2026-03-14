@@ -242,40 +242,42 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
 
     Scaffold(
         floatingActionButton = {
-            val haptic = rememberHapticFeedback()
-            val fabInteractionSource = remember { MutableInteractionSource() }
-            val isFabPressed by fabInteractionSource.collectIsPressedAsState()
-            val animatedFabCorner by animateFloatAsState(
-                targetValue = if (isFabPressed) 28f else 16f, animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMedium
-                ), label = "fab_corner"
-            )
+            Box(Modifier.padding(bottom = 100.dp)) {
+                val haptic = rememberHapticFeedback()
+                val fabInteractionSource = remember { MutableInteractionSource() }
+                val isFabPressed by fabInteractionSource.collectIsPressedAsState()
+                val animatedFabCorner by animateFloatAsState(
+                    targetValue = if (isFabPressed) 28f else 16f, animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    ), label = "fab_corner"
+                )
 
-            ExtendedFloatingActionButton(
-                onClick = {
-                haptic.light()
-                if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN) {
-                    oidnModelPickerLauncher.launch("*/*")
-                } else {
-                    modelPickerLauncher.launch("*/*")
-                }
-            },
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = {
-                    Text(
-                        if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN) stringResource(
-                            R.string.import_tza_model
-                        )
-                        else stringResource(R.string.import_model_text)
-                    )
+                ExtendedFloatingActionButton(
+                    onClick = {
+                    haptic.light()
+                    if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN) {
+                        oidnModelPickerLauncher.launch("*/*")
+                    } else {
+                        modelPickerLauncher.launch("*/*")
+                    }
                 },
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                shape = RoundedCornerShape(animatedFabCorner.dp),
-                interactionSource = fabInteractionSource,
-                expanded = true
-            )
+                    icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                    text = {
+                        Text(
+                            if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN) stringResource(
+                                R.string.import_tza_model
+                            )
+                            else stringResource(R.string.import_model_text)
+                        )
+                    },
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    shape = RoundedCornerShape(animatedFabCorner.dp),
+                    interactionSource = fabInteractionSource,
+                    expanded = true
+                )
+            }
         }, contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         Column(
@@ -897,7 +899,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
                     onClick = { showAbout = true })
             }
 
-            Spacer(modifier = Modifier.height(96.dp))
+            Spacer(modifier = Modifier.height(100.dp))
         }
     }
 

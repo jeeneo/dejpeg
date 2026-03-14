@@ -145,6 +145,7 @@ fun ProcessingScreen(
     onNavigateToSettings: () -> Unit = {},
     initialSharedUris: List<Uri> = emptyList(),
     onRemoveSharedUri: (Uri) -> Unit = {},
+    lazyListState: androidx.compose.foundation.lazy.LazyListState = androidx.compose.foundation.lazy.rememberLazyListState(),
 ) {
     val context = LocalContext.current
     val backExitMessage = stringResource(R.string.back_exit_confirm)
@@ -153,7 +154,6 @@ fun ProcessingScreen(
     val swapSwipeActions by appPreferences.swapSwipeActions.collectAsState(initial = false)
 
     val images by imageRepository.images.collectAsState()
-    val uiState by viewModel.uiState.collectAsState()
     val globalStrength by settingsViewModel.globalStrength.collectAsState()
     val processingMode by settingsViewModel.processingMode.collectAsState()
     val oidnInputScale by settingsViewModel.oidnInputScale.collectAsState()
@@ -325,20 +325,62 @@ fun ProcessingScreen(
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
-            val interactionSource =
-                remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-            val isPressed by interactionSource.collectIsPressedAsState()
-            val animatedCornerRadius by animateFloatAsState(
-                targetValue = if (isPressed) 28f else 18f, animationSpec = spring()
-            )
-            FloatingActionButton(
-                onClick = { importImage() },
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                shape = RoundedCornerShape(animatedCornerRadius.dp),
-                interactionSource = interactionSource
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Filled.Add, stringResource(R.string.add_images))
+                val uiState by viewModel.uiState.collectAsState()
+                val isProcessing = uiState is ProcessingUiState.Processing
+                val procInteraction =
+                    remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                val isProcPressed by procInteraction.collectIsPressedAsState()
+                val procCorner by animateFloatAsState(
+                    targetValue = if (isProcPressed) 28f else 18f,
+                    animationSpec = spring(),
+                    label = "proc_corner"
+                )
+                FloatingActionButton(
+                    onClick = {
+                        if (isProcessing) {
+                            haptic.heavy(); showCancelAllDialog = true
+                        } else {
+                            if (!settingsViewModel.hasActiveModel(activeModelType)) settingsViewModel.showNoModelDialog()
+                            else {
+                                haptic.medium(); viewModel.processImages()
+                            }
+                        }
+                    },
+                    containerColor = if (isProcessing) MaterialTheme.colorScheme.errorContainer
+                    else MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = if (isProcessing) MaterialTheme.colorScheme.onErrorContainer
+                    else MaterialTheme.colorScheme.onSecondaryContainer,
+                    shape = RoundedCornerShape(procCorner.dp),
+                    interactionSource = procInteraction
+                ) {
+                    androidx.compose.animation.Crossfade(
+                        isProcessing, label = "proc_icon"
+                    ) { processing ->
+                        Icon(if (processing) Icons.Filled.Close else Icons.Filled.PlayArrow, null)
+                    }
+                }
+
+                val addInteraction =
+                    remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                val isAddPressed by addInteraction.collectIsPressedAsState()
+                val addCorner by animateFloatAsState(
+                    targetValue = if (isAddPressed) 28f else 18f,
+                    animationSpec = spring(),
+                    label = "add_corner"
+                )
+                FloatingActionButton(
+                    onClick = { importImage() },
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    shape = RoundedCornerShape(addCorner.dp),
+                    interactionSource = addInteraction
+                ) {
+                    Icon(Icons.Filled.Add, stringResource(R.string.add_images))
+                }
             }
         }
 
@@ -415,7 +457,6 @@ fun ProcessingScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Spacer(Modifier.height(48.dp))
-                    // Hoist interaction source above the box
                     val buttonInteractionSource =
                         remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                     val isButtonAreaPressed by buttonInteractionSource.collectIsPressedAsState()
@@ -487,9 +528,8 @@ fun ProcessingScreen(
         } else {
             CompositionLocalProvider(LocalOverscrollFactory provides null) {
                 LazyColumn(
-                    Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
+                    state = lazyListState,
+                    modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(images, { it.id }) { image ->
@@ -540,41 +580,6 @@ fun ProcessingScreen(
                         }
                     }
                 }
-            }
-        }
-
-        if (images.isNotEmpty()) {
-            val interactionSource =
-                remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-            val isPressed by interactionSource.collectIsPressedAsState()
-            val animatedCornerRadius by animateFloatAsState(
-                targetValue = if (isPressed) 24f else 16f, animationSpec = spring()
-            )
-            Button(
-                onClick = {
-                    if (uiState is ProcessingUiState.Processing) {
-                        haptic.heavy(); showCancelAllDialog = true
-                    } else {
-                        if (!settingsViewModel.hasActiveModel(activeModelType)) settingsViewModel.showNoModelDialog() else {
-                            haptic.medium(); viewModel.processImages()
-                        }
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp)
-                    .height(56.dp),
-                colors = if (uiState is ProcessingUiState.Processing) ButtonDefaults.buttonColors(
-                    MaterialTheme.colorScheme.error
-                ) else ButtonDefaults.buttonColors(MaterialTheme.colorScheme.primary),
-                shape = RoundedCornerShape(animatedCornerRadius.dp),
-                interactionSource = interactionSource
-            ) {
-                Text(
-                    if (uiState is ProcessingUiState.Processing) stringResource(R.string.cancel_processing) else stringResource(
-                        R.string.process_all
-                    ), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium
-                )
             }
         }
     }
@@ -777,37 +782,38 @@ fun SwipeToDismissWrapper(
                 )
             }
         }
-        Box(Modifier
-            .fillMaxWidth()
-            .offset { IntOffset(animatedOffset.roundToInt(), 0) }
-            .pointerInput(widthPx, allowLeftSwipe) {
-                detectHorizontalDragGestures(onDragStart = {
-                    if (!hasStartedDrag) {
-                        haptic.gestureStart(); hasStartedDrag = true
-                    }
-                }, onHorizontalDrag = { _, dragAmount ->
-                    val newValue = swipeState.value + dragAmount
-                    swipeState.value = if (allowLeftSwipe) newValue else maxOf(0f, newValue)
-                    val absOffset = kotlin.math.abs(swipeState.value)
-                    val threshold = widthPx * swipeThreshold
-                    if (widthPx > 0 && absOffset > threshold && !hasReachedThreshold) {
-                        haptic.medium(); hasReachedThreshold = true
-                    } else if (absOffset <= threshold) hasReachedThreshold = false
-                }, onDragEnd = {
-                    val absOffset = kotlin.math.abs(swipeState.value)
-                    val threshold = widthPx * swipeThreshold
-                    if (widthPx > 0 && absOffset > threshold) {
-                        haptic.heavy()
-                        if (swipeState.value > 0) currentOnRightSwipe()
-                        else if (allowLeftSwipe) currentOnLeftSwipe()
-                    }
-                    scope.launch {
-                        swipeState.value = 0f
-                        hasStartedDrag = false
-                        hasReachedThreshold = false
-                    }
-                })
-            }) { content() }
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .offset { IntOffset(animatedOffset.roundToInt(), 0) }
+                .pointerInput(widthPx, allowLeftSwipe) {
+                    detectHorizontalDragGestures(onDragStart = {
+                        if (!hasStartedDrag) {
+                            haptic.gestureStart(); hasStartedDrag = true
+                        }
+                    }, onHorizontalDrag = { _, dragAmount ->
+                        val newValue = swipeState.value + dragAmount
+                        swipeState.value = if (allowLeftSwipe) newValue else maxOf(0f, newValue)
+                        val absOffset = kotlin.math.abs(swipeState.value)
+                        val threshold = widthPx * swipeThreshold
+                        if (widthPx > 0 && absOffset > threshold && !hasReachedThreshold) {
+                            haptic.medium(); hasReachedThreshold = true
+                        } else if (absOffset <= threshold) hasReachedThreshold = false
+                    }, onDragEnd = {
+                        val absOffset = kotlin.math.abs(swipeState.value)
+                        val threshold = widthPx * swipeThreshold
+                        if (widthPx > 0 && absOffset > threshold) {
+                            haptic.heavy()
+                            if (swipeState.value > 0) currentOnRightSwipe()
+                            else if (allowLeftSwipe) currentOnLeftSwipe()
+                        }
+                        scope.launch {
+                            swipeState.value = 0f
+                            hasStartedDrag = false
+                            hasReachedThreshold = false
+                        }
+                    })
+                }) { content() }
     }
 }
 

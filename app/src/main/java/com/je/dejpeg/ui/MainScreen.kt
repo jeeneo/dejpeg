@@ -2,33 +2,56 @@ package com.je.dejpeg.ui
 
 import android.net.Uri
 import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.Image
-import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FloatingToolbarDefaults
+import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavType
@@ -46,6 +69,9 @@ import com.je.dejpeg.ui.screens.SettingsScreen
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
 import com.je.dejpeg.utils.rememberHapticFeedback
+
+private val PillOuter = 50.dp
+private val PillInner = 6.dp
 
 sealed class Screen(val route: String) {
     object Home : Screen("home")
@@ -134,7 +160,7 @@ fun MainScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun HomeWrapperScreen(
     navController: NavController,
@@ -144,59 +170,189 @@ fun HomeWrapperScreen(
     sharedUris: List<Uri>
 ) {
     val haptic = rememberHapticFeedback()
-
     var currentTab by rememberSaveable { mutableStateOf("processing") }
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    selected = currentTab == "processing",
-                    onClick = { haptic.light(); currentTab = "processing" },
-                    label = { Text(stringResource(R.string.processing)) },
-                    icon = {
-                        Icon(
-                            if (currentTab == "processing") Icons.Filled.Image else Icons.Outlined.Image,
-                            null
+    val lazyListState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val isScrollingUp = remember {
+        derivedStateOf {
+            lazyListState.firstVisibleItemIndex == 0 || lazyListState.firstVisibleItemScrollOffset == 0
+        }
+    }
+    val toolbarVisible by remember { derivedStateOf { isScrollingUp.value } }
+
+    Scaffold { paddingValues ->
+        Box(Modifier.fillMaxSize()) {
+            Box(Modifier.padding(paddingValues)) {
+                androidx.compose.animation.AnimatedContent(
+                    targetState = currentTab, transitionSpec = {
+                        val toSettings = targetState == "settings"
+                        (slideInHorizontally(
+                            tween(400)
+                        ) { if (toSettings) it else -it } + fadeIn(tween(400))).togetherWith(
+                            slideOutHorizontally(
+                                tween(400)
+                            ) { if (toSettings) -it else it } + fadeOut(tween(400)))
+                    }, label = "tab_transition"
+                ) { tab ->
+                    if (tab == "processing") {
+                        ProcessingScreen(
+                            viewModel = viewModel,
+                            settingsViewModel = settingsViewModel,
+                            imageRepository = imageRepository,
+                            onNavigateToBeforeAfter = { id ->
+                                navController.navigate(Screen.BeforeAfter.createRoute(id))
+                            },
+                            onNavigateToBrisque = { id ->
+                                navController.navigate(Screen.Brisque.createRoute(id))
+                            },
+                            onNavigateToSettings = { currentTab = "settings" },
+                            initialSharedUris = sharedUris,
+                            onRemoveSharedUri = { /* handle removal */ },
+                            lazyListState = lazyListState
                         )
-                    })
-                NavigationBarItem(
-                    selected = currentTab == "settings",
-                    onClick = { haptic.light(); currentTab = "settings" },
-                    label = { Text(stringResource(R.string.settings)) },
-                    icon = {
-                        Icon(
-                            if (currentTab == "settings") Icons.Filled.Settings else Icons.Outlined.Settings,
-                            null
-                        )
-                    })
+                    } else {
+                        SettingsScreen(settingsViewModel, onBack = { currentTab = "processing" })
+                    }
+                }
             }
-        }) { paddingValues ->
-        Box(Modifier.padding(paddingValues)) {
-            if (currentTab == "processing") {
-                ProcessingScreen(
-                    viewModel = viewModel,
-                    settingsViewModel = settingsViewModel,
-                    imageRepository = imageRepository,
-                    onNavigateToBeforeAfter = { id ->
-                        navController.navigate(
-                            Screen.BeforeAfter.createRoute(
-                                id
+
+            AnimatedVisibility(
+                visible = toolbarVisible,
+                enter = fadeIn(spring(stiffness = Spring.StiffnessMedium)) + slideInVertically(
+                    spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    )
+                ) { it },
+                exit = fadeOut(spring(stiffness = Spring.StiffnessMedium)) + slideOutVertically(
+                    spring(stiffness = Spring.StiffnessMedium)
+                ) { it },
+                modifier = Modifier.align(Alignment.BottomCenter)
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(bottom = 30.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    HorizontalFloatingToolbar(
+                        expanded = true,
+                        colors = FloatingToolbarDefaults.standardFloatingToolbarColors(),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            val processingActive = currentTab == "processing"
+                            val processingIconColor by animateColorAsState(
+                                targetValue = if (processingActive) MaterialTheme.colorScheme.onSecondaryContainer
+                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                                label = "processing_icon_color"
                             )
-                        )
-                    },
-                    onNavigateToBrisque = { id ->
-                        navController.navigate(
-                            Screen.Brisque.createRoute(
-                                id
+                            val processingContainerColor by animateColorAsState(
+                                targetValue = if (processingActive) MaterialTheme.colorScheme.secondaryContainer
+                                else MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.18f),
+                                animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                                label = "processing_container"
                             )
-                        )
-                    },
-                    onNavigateToSettings = { currentTab = "settings" },
-                    initialSharedUris = sharedUris,
-                    onRemoveSharedUri = { /* handle removal */ })
-            } else {
-                SettingsScreen(settingsViewModel, onBack = { currentTab = "processing" })
+                            val processingContentColor by animateColorAsState(
+                                targetValue = if (processingActive) MaterialTheme.colorScheme.onSecondaryContainer
+                                else MaterialTheme.colorScheme.onSurface,
+                                animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                                label = "processing_content"
+                            )
+                            Button(
+                                onClick = { haptic.light(); currentTab = "processing" },
+                                shapes = ButtonDefaults.shapes(
+                                    shape = RoundedCornerShape(
+                                        topStart = PillOuter,
+                                        bottomStart = PillOuter,
+                                        topEnd = PillInner,
+                                        bottomEnd = PillInner
+                                    ), pressedShape = RoundedCornerShape(PillOuter)
+                                ),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = processingContainerColor,
+                                    contentColor = processingContentColor
+                                ),
+                                modifier = Modifier
+                                    .height(52.dp)
+                                    .animateContentSize(
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                                            stiffness = Spring.StiffnessMedium
+                                        )
+                                    ),
+                                contentPadding = PaddingValues(horizontal = 24.dp),
+                            ) {
+                                Icon(
+                                    Icons.Filled.Image,
+                                    contentDescription = stringResource(R.string.processing),
+                                    tint = processingIconColor
+                                )
+                                if (!processingActive) {
+                                    Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                                    Text(stringResource(R.string.processing))
+                                }
+                            }
+
+                            Spacer(Modifier.width(2.dp))
+
+                            val settingsActive = currentTab == "settings"
+                            val settingsIconColor by animateColorAsState(
+                                targetValue = if (settingsActive) MaterialTheme.colorScheme.onSecondaryContainer
+                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                                label = "settings_icon_color"
+                            )
+                            val settingsContainerColor by animateColorAsState(
+                                targetValue = if (settingsActive) MaterialTheme.colorScheme.secondaryContainer
+                                else MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.18f),
+                                animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                                label = "settings_container"
+                            )
+                            val settingsContentColor by animateColorAsState(
+                                targetValue = if (settingsActive) MaterialTheme.colorScheme.onSecondaryContainer
+                                else MaterialTheme.colorScheme.onSurface,
+                                animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                                label = "settings_content"
+                            )
+                            Button(
+                                onClick = { haptic.light(); currentTab = "settings" },
+                                shapes = ButtonDefaults.shapes(
+                                    shape = RoundedCornerShape(
+                                        topStart = PillInner,
+                                        bottomStart = PillInner,
+                                        topEnd = PillOuter,
+                                        bottomEnd = PillOuter
+                                    ), pressedShape = RoundedCornerShape(PillOuter)
+                                ),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = settingsContainerColor,
+                                    contentColor = settingsContentColor
+                                ),
+                                modifier = Modifier
+                                    .height(52.dp)
+                                    .animateContentSize(
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                                            stiffness = Spring.StiffnessMedium
+                                        )
+                                    ),
+                                contentPadding = PaddingValues(horizontal = 24.dp),
+                            ) {
+                                Icon(
+                                    Icons.Filled.Settings,
+                                    contentDescription = stringResource(R.string.settings),
+                                    tint = settingsIconColor
+                                )
+                                if (!settingsActive) {
+                                    Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                                    Text(stringResource(R.string.settings))
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

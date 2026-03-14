@@ -19,26 +19,31 @@ package com.je.dejpeg.ui.screens
 
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -59,6 +64,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.je.dejpeg.R
 import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.data.ImageRepository
@@ -74,8 +80,11 @@ import me.saket.telephoto.zoomable.ZoomSpec
 import me.saket.telephoto.zoomable.rememberZoomableState
 import me.saket.telephoto.zoomable.zoomable
 
+private val PillOuter = 50.dp
+private val PillInner = 6.dp
+
 @Suppress("AssignedValueIsNeverRead")
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun BeforeAfterScreen(
     imageRepository: ImageRepository,
@@ -113,18 +122,12 @@ fun BeforeAfterScreen(
             bitmap = bitmap,
             filename = name,
             imageId = imageId,
-            onSuccess = {
-                imageRepository.markImageAsSaved(imageId)
-            },
-            onError = { errorMsg ->
-                saveErrorMessage = errorMsg
-            })
+            onSuccess = { imageRepository.markImageAsSaved(imageId) },
+            onError = { errorMsg -> saveErrorMessage = errorMsg })
     }
 
     Column(
-        Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
+        Modifier.fillMaxSize()
     ) {
         TopAppBar(
             title = { Text(filename, style = MaterialTheme.typography.titleMedium) },
@@ -140,55 +143,98 @@ fun BeforeAfterScreen(
             Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface)
         ) {
-            if (afterBitmap != null) {
-                BeforeAfterSlider(
-                    beforeBitmap = beforeBitmap,
-                    afterBitmap = afterBitmap,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                SingleImageView(beforeBitmap)
-            }
-        }
-
-        Surface(
-            color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp, horizontal = 16.dp)
-                    .navigationBarsPadding(), Arrangement.SpaceEvenly
+            Box(
+                Modifier.fillMaxSize()
             ) {
-                IconButton(onClick = {
-                    haptic.light()
-                    ImageActions.shareImage(context, afterBitmap ?: beforeBitmap)
-                }) {
-                    Icon(Icons.Filled.Share, "Share", modifier = Modifier.size(32.dp))
+                if (afterBitmap != null) {
+                    BeforeAfterSlider(
+                        beforeBitmap = beforeBitmap,
+                        afterBitmap = afterBitmap,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    SingleImageView(beforeBitmap)
+                }
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(bottom = 28.dp)
+                    .zIndex(1f)
+            ) {
+                Button(
+                    modifier = Modifier.height(56.dp),
+                    onClick = {
+                        haptic.light()
+                        ImageActions.shareImage(context, afterBitmap ?: beforeBitmap)
+                    },
+                    shapes = ButtonDefaults.shapes(
+                        shape = RoundedCornerShape(
+                            topStart = PillOuter,
+                            bottomStart = PillOuter,
+                            topEnd = PillInner,
+                            bottomEnd = PillInner
+                        ), pressedShape = RoundedCornerShape(PillOuter)
+                    ),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.inverseOnSurface,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    contentPadding = PaddingValues(horizontal = 20.dp),
+                ) {
+                    Icon(
+                        Icons.Filled.Share,
+                        contentDescription = "Share",
+                    )
+                    Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                    Text(
+                        text = "Share",
+                    )
                 }
 
-                IconButton(onClick = {
-                    haptic.medium()
-                    if (skipSaveDialog) {
-                        if (ImageActions.checkFileExists(filename)) {
-                            overwriteDialogFilename = filename
+                Button(
+                    modifier = Modifier.height(56.dp),
+                    onClick = {
+                        haptic.medium()
+                        if (skipSaveDialog) {
+                            if (ImageActions.checkFileExists(filename)) {
+                                overwriteDialogFilename = filename
+                            } else {
+                                imageRepository.saveImage(
+                                    context = context,
+                                    imageId = imageId,
+                                    onSuccess = {},
+                                    onError = { errorMsg -> saveErrorMessage = errorMsg })
+                            }
                         } else {
-                            imageRepository.saveImage(
-                                context = context,
-                                imageId = imageId,
-                                onSuccess = {},
-                                onError = { errorMsg -> saveErrorMessage = errorMsg })
+                            showSaveDialog = true
                         }
-                    } else {
-                        showSaveDialog = true
-                    }
-                }) {
+                    },
+                    shapes = ButtonDefaults.shapes(
+                        shape = RoundedCornerShape(
+                            topStart = PillInner,
+                            bottomStart = PillInner,
+                            topEnd = PillOuter,
+                            bottomEnd = PillOuter
+                        ), pressedShape = RoundedCornerShape(PillOuter)
+                    ),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.inverseOnSurface,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    contentPadding = PaddingValues(horizontal = 20.dp),
+                ) {
                     Icon(
                         Icons.Filled.Save,
-                        stringResource(id = R.string.save),
-                        modifier = Modifier.size(32.dp)
+                        contentDescription = stringResource(id = R.string.save),
+                    )
+                    Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                    Text(
+                        text = stringResource(id = R.string.save),
                     )
                 }
             }
@@ -249,9 +295,7 @@ fun BeforeAfterScreen(
             title = stringResource(R.string.saving_images),
             progress = progress?.let { it.first.toFloat() / it.second.toFloat() },
             progressText = progress?.let {
-                stringResource(
-                    R.string.saving_image_progress, it.first, it.second
-                )
+                stringResource(R.string.saving_image_progress, it.first, it.second)
             })
     }
 }

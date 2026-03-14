@@ -17,36 +17,36 @@
 
 package com.je.dejpeg.utils.helpers
 
+import android.content.ClipData
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
+import android.media.MediaScannerConnection
 import android.net.Uri
+import android.os.Environment
+import android.provider.MediaStore
 import android.provider.OpenableColumns
+import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
+import androidx.core.content.FileProvider
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
 import androidx.exifinterface.media.ExifInterface
-import java.io.File
-import android.provider.MediaStore
-import androidx.activity.result.ActivityResultLauncher
-import androidx.core.content.FileProvider
-import java.io.IOException
-import android.content.ClipData
-import android.content.Intent
-import android.media.MediaScannerConnection
-import android.os.Environment
-import android.widget.Toast
 import com.je.dejpeg.R
+import com.je.dejpeg.utils.CacheManager
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import com.je.dejpeg.utils.CacheManager
 
 object ImageLoadingHelper {
     private const val THUMBNAIL_SIZE = 144

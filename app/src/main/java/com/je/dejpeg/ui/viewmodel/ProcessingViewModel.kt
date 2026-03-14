@@ -29,12 +29,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.je.dejpeg.ModelType
 import com.je.dejpeg.ProcessingService
+import com.je.dejpeg.data.ImageRepository
+import com.je.dejpeg.data.ProcessingMode
 import com.je.dejpeg.utils.CacheManager
 import com.je.dejpeg.utils.ProcessingQueueManager
 import com.je.dejpeg.utils.helpers.ImagePickerHelper
 import com.je.dejpeg.utils.helpers.ServiceCommunicationHelper
-import com.je.dejpeg.data.ImageRepository
-import com.je.dejpeg.data.ProcessingMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -98,7 +98,11 @@ class ProcessingViewModel : ViewModel() {
                 }
 
                 override fun onProgress(imageId: String, message: String) {
-                    imageRepository.updateImageState(imageId) { it.copy(isProcessing = true, progress = message) }
+                    imageRepository.updateImageState(imageId) {
+                        it.copy(
+                            isProcessing = true, progress = message
+                        )
+                    }
                 }
 
                 override fun onChunkProgress(
@@ -168,7 +172,11 @@ class ProcessingViewModel : ViewModel() {
                 return
             }
             queue.cancelInProgress = true
-            imageRepository.updateImageState(id) { it.copy(isCancelling = true, progress = statusCanceling) }
+            imageRepository.updateImageState(id) {
+                it.copy(
+                    isCancelling = true, progress = statusCanceling
+                )
+            }
             cancelProcessingService(id)
             return
         }
@@ -232,16 +240,19 @@ class ProcessingViewModel : ViewModel() {
             if (queue.cancelInProgress || queue.currentProcessingId != null || !queue.isEmpty) {
                 if (queue.isActive(id) || queue.contains(id)) return@launch
                 queue.enqueueSingle(id)
-                queue.setActiveTotal(maxOf(
-                    queue.activeProcessingTotal,
-                    queue.queueSize + if (queue.currentProcessingId != null) 1 else 0
-                ))
+                queue.setActiveTotal(
+                    maxOf(
+                        queue.activeProcessingTotal,
+                        queue.queueSize + if (queue.currentProcessingId != null) 1 else 0
+                    )
+                )
                 imageRepository.updateImageState(id) {
                     resetChunkProgress(it).copy(
                         isProcessing = true, progress = statusQueued, isCancelling = false
                     )
                 }
-                uiState.value = ProcessingUiState.Processing(queue.currentIndex(), queue.activeProcessingTotal)
+                uiState.value =
+                    ProcessingUiState.Processing(queue.currentIndex(), queue.activeProcessingTotal)
                 return@launch
             }
 
@@ -262,9 +273,8 @@ class ProcessingViewModel : ViewModel() {
 
         val image = imageRepository.getImageById(imageId) ?: return processNextInQueue()
 
-        val total =
-            if (queue.activeProcessingTotal > 0) queue.activeProcessingTotal
-            else imageRepository.images.value.count { it.uri != null }
+        val total = if (queue.activeProcessingTotal > 0) queue.activeProcessingTotal
+        else imageRepository.images.value.count { it.uri != null }
         queue.setActiveTotal(total)
         uiState.value = ProcessingUiState.Processing(queue.currentIndex(), total)
 
@@ -301,7 +311,9 @@ class ProcessingViewModel : ViewModel() {
                 onnxDeviceThreads = settingsViewModel.onnxDeviceThreads.value,
                 modelName = settingsViewModel.getActiveModelName(),
                 processingMode = mode.name,
-                oidnWeightsPath = if (mode == ProcessingMode.OIDN) settingsViewModel.modelManager?.getActiveModelPath(ModelType.OIDN) else null,
+                oidnWeightsPath = if (mode == ProcessingMode.OIDN) settingsViewModel.modelManager?.getActiveModelPath(
+                    ModelType.OIDN
+                ) else null,
                 oidnHdr = settingsViewModel.oidnHdr.value,
                 oidnSrgb = settingsViewModel.oidnSrgb.value,
                 oidnQuality = settingsViewModel.oidnQuality.value,
@@ -324,9 +336,10 @@ class ProcessingViewModel : ViewModel() {
             }
             cancelProcessingService(it)
         }
-        imageRepository.images.value.filter { it.isProcessing && it.id != queue.currentProcessingId }.forEach { image ->
-            imageRepository.updateImageState(image.id) { resetImageProcessingState(it) }
-        }
+        imageRepository.images.value.filter { it.isProcessing && it.id != queue.currentProcessingId }
+            .forEach { image ->
+                imageRepository.updateImageState(image.id) { resetImageProcessingState(it) }
+            }
         uiState.value = ProcessingUiState.Idle
     }
 
@@ -400,7 +413,11 @@ class ProcessingViewModel : ViewModel() {
         serviceAlreadyDead: Boolean = false
     ) {
         if (!imageId.isNullOrEmpty()) {
-            imageRepository.updateImageState(imageId) { resetImageProcessingState(it, progress = displayMessage) }
+            imageRepository.updateImageState(imageId) {
+                resetImageProcessingState(
+                    it, progress = displayMessage
+                )
+            }
             queue.remove(imageId)
 
             if (isCancelled) {
@@ -457,7 +474,11 @@ class ProcessingViewModel : ViewModel() {
 
     fun cancelProcessingForImage(imageId: String) {
         queue.cancelInProgress = true
-        imageRepository.updateImageState(imageId) { it.copy(isCancelling = true, progress = statusCanceling) }
+        imageRepository.updateImageState(imageId) {
+            it.copy(
+                isCancelling = true, progress = statusCanceling
+            )
+        }
         cancelProcessingService(imageId)
     }
 

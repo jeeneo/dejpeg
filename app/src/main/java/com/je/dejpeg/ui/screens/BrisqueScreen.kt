@@ -132,11 +132,11 @@ fun BRISQUEScreen(
     ) {
         TopAppBar(
             title = {
-            Text(
-                stringResource(R.string.brisque_analysis),
-                style = MaterialTheme.typography.titleMedium
-            )
-        },
+                Text(
+                    stringResource(R.string.brisque_analysis),
+                    style = MaterialTheme.typography.titleMedium
+                )
+            },
             navigationIcon = {
                 IconButton(onClick = { haptic.light(); onBack() }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back_desc))

@@ -22,12 +22,14 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
+import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -58,7 +60,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -242,15 +243,16 @@ fun AboutDialog(onDismiss: () -> Unit) {
     val haptic = rememberHapticFeedback()
     val versionName = try {
         context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "Unknown"
-    } catch (_: Exception) { "Unknown" }
+    } catch (_: Exception) {
+        "Unknown"
+    }
     var spawnTrigger by remember { mutableLongStateOf(0L) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        dragHandle = { BottomSheetDefaults.DragHandle() }
-    ) {
+        dragHandle = { BottomSheetDefaults.DragHandle() }) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -260,8 +262,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
                 Box(
                     Modifier
                         .fillMaxWidth()
-                        .height(128.dp),
-                    contentAlignment = Alignment.Center
+                        .height(128.dp), contentAlignment = Alignment.Center
                 ) {
                     Image(
                         painter = painterResource(R.drawable.dejpeg_logo_rounded),
@@ -270,9 +271,9 @@ fun AboutDialog(onDismiss: () -> Unit) {
                             .size(128.dp)
                             .clickable(
                                 indication = null,
-                                interactionSource = remember { MutableInteractionSource() }
-                            ) { haptic.light(); spawnTrigger = System.currentTimeMillis() }
-                    )
+                                interactionSource = remember { MutableInteractionSource() }) {
+                                haptic.light(); spawnTrigger = System.currentTimeMillis()
+                            })
                 }
                 Spacer(Modifier.height(8.dp))
                 Text(
@@ -284,8 +285,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
                 Text(stringResource(R.string.open_source_app_description))
                 Spacer(Modifier.height(16.dp))
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                    modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End
                 ) {
                     DialogTextButton(
                         stringResource(R.string.source_code),
@@ -308,6 +308,18 @@ fun AboutDialog(onDismiss: () -> Unit) {
         }
     }
 }
+
+data class FallingLogo(
+    val id: Int,
+    val startX: Float,
+    val startY: Float,
+    val velocityX: Float,
+    val velocityY: Float,
+    val rotation: Float,
+    val rotationSpeed: Float,
+    val scale: Float,
+    val startTime: Long
+)
 
 @Composable
 fun RainingLogoEffect(
@@ -576,12 +588,12 @@ fun RemoveImageDialog(
             ) {
                 DialogTextButton(
                     stringResource(R.string.remove), {
-                    CacheManager.deleteRecoveryPair(
-                        context, imageId, deleteProcessed = true, deleteUnprocessed = true
-                    )
-                    onRemove()
-                    onDismissRequest()
-                }, { haptic.heavy() }, MaterialTheme.colorScheme.error
+                        CacheManager.deleteRecoveryPair(
+                            context, imageId, deleteProcessed = true, deleteUnprocessed = true
+                        )
+                        onRemove()
+                        onDismissRequest()
+                    }, { haptic.heavy() }, MaterialTheme.colorScheme.error
                 )
                 if (hasOutput) {
                     Button({ haptic.medium(); onSaveAndRemove(); onDismissRequest() }) {
@@ -717,6 +729,7 @@ private sealed interface HelpTarget {
     data object Camera : HelpTarget
 }
 
+@Suppress("AssignedValueIsNeverRead")
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ImageSourceDialog(
@@ -732,6 +745,7 @@ fun ImageSourceDialog(
     val haptic = rememberHapticFeedback()
     var setAsDefault by remember { mutableStateOf(false) }
     var helpTarget by remember { mutableStateOf<HelpTarget?>(null) }
+    var pressedTile by remember { mutableStateOf<String?>(null) }
 
     val handleSelection: suspend (String, () -> Unit) -> Unit = { key, action ->
         if (setAsDefault) appPreferences.setDefaultImageSource(key)
@@ -744,7 +758,6 @@ fun ImageSourceDialog(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         dragHandle = { BottomSheetDefaults.DragHandle() }) {
         Column(
             modifier = Modifier
@@ -758,72 +771,94 @@ fun ImageSourceDialog(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 4.dp)
             )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+
+            Column(
+                modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(9.dp)
             ) {
-                SourceTile(
-                    modifier = Modifier.weight(1f),
-                    icon = painterResource(R.drawable.ic_gallery),
-                    label = stringResource(R.string.gallery),
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    onHelpClick = { haptic.light(); helpTarget = HelpTarget.Gallery },
-                    onClick = {
-                        haptic.medium(); scope.launch {
-                        handleSelection(
-                            "gallery", onGallerySelected
-                        )
-                    }
-                    })
-                SourceTile(
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.Outlined.Photo,
-                    label = stringResource(R.string.internal_picker),
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    onHelpClick = { haptic.light(); helpTarget = HelpTarget.Internal },
-                    onClick = {
-                        haptic.medium(); scope.launch {
-                        handleSelection(
-                            "internal", onInternalSelected
-                        )
-                    }
-                    })
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(9.dp)
+                ) {
+                    GroupedSourceTile(
+                        modifier = Modifier.weight(1f),
+                        tileKey = "gallery",
+                        pressedTile = pressedTile,
+                        onPressedChange = { pressedTile = it },
+                        icon = painterResource(R.drawable.ic_gallery),
+                        label = stringResource(R.string.gallery),
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        topStart = 28f,
+                        topEnd = 16f,
+                        bottomStart = 16f,
+                        bottomEnd = 16f,
+                        onHelpClick = { haptic.light(); helpTarget = HelpTarget.Gallery },
+                        onClick = {
+                            haptic.medium()
+                            scope.launch { handleSelection("gallery", onGallerySelected) }
+                        })
+                    GroupedSourceTile(
+                        modifier = Modifier.weight(1f),
+                        tileKey = "internal",
+                        pressedTile = pressedTile,
+                        onPressedChange = { pressedTile = it },
+                        icon = Icons.Outlined.Photo,
+                        label = stringResource(R.string.internal_picker),
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        topStart = 16f,
+                        topEnd = 28f,
+                        bottomStart = 16f,
+                        bottomEnd = 16f,
+                        onHelpClick = { haptic.light(); helpTarget = HelpTarget.Internal },
+                        onClick = {
+                            haptic.medium()
+                            scope.launch { handleSelection("internal", onInternalSelected) }
+                        })
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(9.dp)
+                ) {
+                    GroupedSourceTile(
+                        modifier = Modifier.weight(1f),
+                        tileKey = "documents",
+                        pressedTile = pressedTile,
+                        onPressedChange = { pressedTile = it },
+                        icon = Icons.Outlined.Folder,
+                        label = stringResource(R.string.documents),
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                        topStart = 16f,
+                        topEnd = 16f,
+                        bottomStart = 28f,
+                        bottomEnd = 16f,
+                        onHelpClick = { haptic.light(); helpTarget = HelpTarget.Documents },
+                        onClick = {
+                            haptic.medium()
+                            scope.launch { handleSelection("documents", onDocumentsSelected) }
+                        })
+                    GroupedSourceTile(
+                        modifier = Modifier.weight(1f),
+                        tileKey = "camera",
+                        pressedTile = pressedTile,
+                        onPressedChange = { pressedTile = it },
+                        icon = Icons.Outlined.CameraAlt,
+                        label = stringResource(R.string.camera),
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                        topStart = 16f,
+                        topEnd = 16f,
+                        bottomStart = 16f,
+                        bottomEnd = 28f,
+                        onHelpClick = { haptic.light(); helpTarget = HelpTarget.Camera },
+                        onClick = {
+                            haptic.medium()
+                            scope.launch { handleSelection("camera", onCameraSelected) }
+                        })
+                }
             }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                SourceTile(
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.Outlined.Folder,
-                    label = stringResource(R.string.documents),
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                    onHelpClick = { haptic.light(); helpTarget = HelpTarget.Documents },
-                    onClick = {
-                        haptic.medium(); scope.launch {
-                        handleSelection(
-                            "documents", onDocumentsSelected
-                        )
-                    }
-                    })
-                SourceTile(
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.Outlined.CameraAlt,
-                    label = stringResource(R.string.camera),
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    contentColor = MaterialTheme.colorScheme.onSurface,
-                    onHelpClick = { haptic.light(); helpTarget = HelpTarget.Camera },
-                    onClick = {
-                        haptic.medium(); scope.launch {
-                        handleSelection(
-                            "camera", onCameraSelected
-                        )
-                    }
-                    })
-            }
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -856,6 +891,106 @@ fun ImageSourceDialog(
             title = stringResource(titleRes),
             text = stringResource(descRes),
             onDismiss = { helpTarget = null })
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun GroupedSourceTile(
+    modifier: Modifier = Modifier,
+    tileKey: String,
+    pressedTile: String?,
+    onPressedChange: (String?) -> Unit,
+    icon: Any,
+    label: String,
+    containerColor: Color,
+    contentColor: Color,
+    topStart: Float,
+    topEnd: Float,
+    bottomStart: Float,
+    bottomEnd: Float,
+    onClick: () -> Unit,
+    onHelpClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    LaunchedEffect(isPressed) {
+        onPressedChange(if (isPressed) tileKey else null)
+    }
+
+    val isThisTilePressed = pressedTile == tileKey
+
+    val morphSpec: AnimationSpec<Float> = spring(
+        dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium
+    )
+
+    val animTopStart by animateFloatAsState(
+        targetValue = if (isThisTilePressed && topStart == 16f) 28f else topStart,
+        animationSpec = morphSpec,
+        label = "${tileKey}_topStart"
+    )
+    val animTopEnd by animateFloatAsState(
+        targetValue = if (isThisTilePressed && topEnd == 16f) 28f else topEnd,
+        animationSpec = morphSpec,
+        label = "${tileKey}_topEnd"
+    )
+    val animBottomStart by animateFloatAsState(
+        targetValue = if (isThisTilePressed && bottomStart == 16f) 28f else bottomStart,
+        animationSpec = morphSpec,
+        label = "${tileKey}_bottomStart"
+    )
+    val animBottomEnd by animateFloatAsState(
+        targetValue = if (isThisTilePressed && bottomEnd == 16f) 28f else bottomEnd,
+        animationSpec = morphSpec,
+        label = "${tileKey}_bottomEnd"
+    )
+
+    Box(
+        modifier = modifier
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(110.dp)
+                .combinedClickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick,
+                    onLongClick = onHelpClick
+                ), shape = RoundedCornerShape(
+                topStart = animTopStart.dp,
+                topEnd = animTopEnd.dp,
+                bottomStart = animBottomStart.dp,
+                bottomEnd = animBottomEnd.dp
+            ), color = containerColor
+        ) {
+            Box(Modifier.fillMaxSize()) {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    when (icon) {
+                        is ImageVector -> Icon(
+                            icon, null, Modifier.size(34.dp), contentColor
+                        )
+
+                        is Painter -> Icon(
+                            icon, null, Modifier.size(34.dp), contentColor
+                        )
+                    }
+                    Text(
+                        label,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = contentColor
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -911,94 +1046,6 @@ fun HelpDialog(title: String, text: String, onDismiss: () -> Unit) {
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun SourceTile(
-    modifier: Modifier = Modifier,
-    icon: Any,
-    label: String,
-    containerColor: Color,
-    contentColor: Color,
-    onClick: () -> Unit,
-    onHelpClick: () -> Unit
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-
-    val animatedCorner by animateFloatAsState(
-        targetValue = if (isPressed) 28f else 20f, animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium
-        ), label = "tile_corner"
-    )
-    val animatedIconSize by animateFloatAsState(
-        targetValue = if (isPressed) 42f else 36f, animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium
-        ), label = "tile_icon_size"
-    )
-
-    Box(modifier = modifier) {
-        Surface(
-            onClick = onClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(110.dp),
-            shape = RoundedCornerShape(animatedCorner.dp),
-            color = containerColor,
-            interactionSource = interactionSource
-        ) {
-            Box(Modifier.fillMaxSize()) {
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    when (icon) {
-                        is ImageVector -> Icon(
-                            icon, null, Modifier.size(animatedIconSize.dp), contentColor
-                        )
-
-                        is Painter -> Icon(
-                            icon, null, Modifier.size(animatedIconSize.dp), contentColor
-                        )
-                    }
-                    Text(
-                        label,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = contentColor
-                    )
-                }
-                IconButton(
-                    onClick = onHelpClick, modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .size(36.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Info,
-                        stringResource(R.string.help),
-                        Modifier.size(24.dp),
-                        contentColor.copy(alpha = 0.6f)
-                    )
-                }
-            }
-        }
-    }
-}
-
-data class FallingLogo(
-    val id: Int,
-    val startX: Float,
-    val startY: Float,
-    val velocityX: Float,
-    val velocityY: Float,
-    val rotation: Float,
-    val rotationSpeed: Float,
-    val scale: Float,
-    val startTime: Long
-)
-
 private fun hapticAnd(action: () -> Unit, hapticAction: () -> Unit) {
     hapticAction()
     action()
@@ -1006,10 +1053,7 @@ private fun hapticAnd(action: () -> Unit, hapticAction: () -> Unit) {
 
 @Composable
 private fun DialogTextButton(
-    label: String,
-    onClick: () -> Unit,
-    hapticAction: () -> Unit,
-    textColor: Color? = null
+    label: String, onClick: () -> Unit, hapticAction: () -> Unit, textColor: Color? = null
 ) {
     TextButton(onClick = { hapticAnd(onClick, hapticAction) }) {
         if (textColor != null) Text(label, color = textColor) else Text(label)
