@@ -25,6 +25,11 @@ import androidx.lifecycle.viewModelScope
 import com.je.dejpeg.ModelManager
 import com.je.dejpeg.ModelType
 import com.je.dejpeg.utils.helpers.ModelMigrationHelper
+import com.je.dejpeg.BuildConfig
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.data.Prefs
 import com.je.dejpeg.data.ProcessingMode
@@ -45,7 +50,10 @@ class SettingsViewModel : ViewModel() {
     val overlapSize = MutableStateFlow(AppPreferences.DEFAULT_OVERLAP_SIZE)
     val onnxDeviceThreads = MutableStateFlow(AppPreferences.DEFAULT_ONNX_DEVICE_THREADS)
     val globalStrength = MutableStateFlow(AppPreferences.DEFAULT_GLOBAL_STRENGTH)
-    val processingMode = MutableStateFlow(ProcessingMode.ONNX)
+    private val _processingMode = MutableStateFlow(ProcessingMode.ONNX)
+    val processingMode: StateFlow<ProcessingMode> = _processingMode
+        .map { saved -> if (!BuildConfig.OIDN_ENABLED && saved == ProcessingMode.OIDN) ProcessingMode.ONNX else saved }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, ProcessingMode.ONNX)
     val oidnHdr = MutableStateFlow(false)
     val oidnSrgb = MutableStateFlow(false)
     val oidnQuality = MutableStateFlow(AppPreferences.DEFAULT_OIDN_QUALITY)
@@ -80,7 +88,7 @@ class SettingsViewModel : ViewModel() {
             overlapSize to Prefs.OVERLAP_SIZE,
             onnxDeviceThreads to Prefs.ONNX_DEVICE_THREADS,
             globalStrength to Prefs.GLOBAL_STRENGTH,
-            processingMode to Prefs.PROCESSING_MODE,
+            _processingMode to Prefs.PROCESSING_MODE,
             oidnHdr to Prefs.OIDN_HDR,
             oidnSrgb to Prefs.OIDN_SRGB,
             oidnQuality to Prefs.OIDN_QUALITY,
@@ -185,7 +193,7 @@ class SettingsViewModel : ViewModel() {
     }
 
     fun setProcessingMode(mode: ProcessingMode) {
-        persistPref(processingMode, mode) { appPreferences?.setProcessingMode(it) ?: Unit }
+        persistPref(_processingMode, mode) { appPreferences?.setProcessingMode(it) ?: Unit }
     }
 
     fun setOidnInputScale(scale: Float) = persistPref(oidnInputScale, scale) { appPreferences?.setOidnInputScale(it) ?: Unit }

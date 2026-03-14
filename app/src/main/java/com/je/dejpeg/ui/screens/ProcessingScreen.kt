@@ -20,15 +20,20 @@ package com.je.dejpeg.ui.screens
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,32 +56,33 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.outlined.AddPhotoAlternate
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.activity.compose.BackHandler
-import androidx.compose.runtime.mutableLongStateOf
-import android.widget.Toast
-import com.je.dejpeg.ExitActivity
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -87,7 +93,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -102,8 +107,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.je.dejpeg.R
+import com.je.dejpeg.ExitActivity
 import com.je.dejpeg.ModelType
+import com.je.dejpeg.R
+import com.je.dejpeg.data.AppPreferences
+import com.je.dejpeg.data.ImageRepository
+import com.je.dejpeg.data.ProcessingMode
 import com.je.dejpeg.ui.components.BaseDialog
 import com.je.dejpeg.ui.components.CancelProcessingDialog
 import com.je.dejpeg.ui.components.DeprecatedModelWarningDialog
@@ -119,9 +128,6 @@ import com.je.dejpeg.ui.viewmodel.SettingsViewModel
 import com.je.dejpeg.utils.HapticFeedbackPerformer
 import com.je.dejpeg.utils.helpers.ImageActions
 import com.je.dejpeg.utils.rememberHapticFeedback
-import com.je.dejpeg.data.AppPreferences
-import com.je.dejpeg.data.ImageRepository
-import com.je.dejpeg.data.ProcessingMode
 import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -260,7 +266,9 @@ fun ProcessingScreen(
             val toAdd =
                 initialSharedUris.filter { uri -> uri.toString() !in existing && uri.toString() !in processedShareUris.value }
             if (toAdd.isNotEmpty()) {
-                imageRepository.addImagesFromUris(context, toAdd, settingsViewModel.globalStrength.value / 100f)
+                imageRepository.addImagesFromUris(
+                    context, toAdd, settingsViewModel.globalStrength.value / 100f
+                )
                 processedShareUris.value += toAdd.map { it.toString() }
             }
         }
@@ -280,7 +288,9 @@ fun ProcessingScreen(
                     uris.add(it)
                     viewModel.clearCameraPhotoUri()
                 }
-                imageRepository.addImagesFromUris(context, uris, settingsViewModel.globalStrength.value / 100f)
+                imageRepository.addImagesFromUris(
+                    context, uris, settingsViewModel.globalStrength.value / 100f
+                )
             }
         }
     LaunchedEffect(Unit) { viewModel.setImagePickerLauncher(imagePickerLauncher) }
@@ -314,12 +324,21 @@ fun ProcessingScreen(
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
+            val interactionSource =
+                remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+            val isPressed by interactionSource.collectIsPressedAsState()
+            val animatedCornerRadius by animateFloatAsState(
+                targetValue = if (isPressed) 28f else 18f, animationSpec = spring()
+            )
             FloatingActionButton(
                 onClick = { importImage() },
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                shape = RoundedCornerShape(16.dp)
-            ) { Icon(Icons.Filled.Add, stringResource(R.string.add_images)) }
+                shape = RoundedCornerShape(animatedCornerRadius.dp),
+                interactionSource = interactionSource
+            ) {
+                Icon(Icons.Filled.Add, stringResource(R.string.add_images))
+            }
         }
 
         if (images.isNotEmpty() && supportsStrength) {
@@ -395,17 +414,30 @@ fun ProcessingScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Spacer(Modifier.height(48.dp))
+                    // Hoist interaction source above the box
+                    val buttonInteractionSource =
+                        remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                    val isButtonAreaPressed by buttonInteractionSource.collectIsPressedAsState()
+                    val animatedCornerRadius by animateFloatAsState(
+                        targetValue = if (isButtonAreaPressed) 24f else 12f, animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        ), label = "button_corner"
+                    )
+                    val emptyStateDashedColor = MaterialTheme.colorScheme.surfaceVariant
                     Box(
                         Modifier
-                            .width(240.dp)
-                            .height(180.dp)
-                            .clip(RoundedCornerShape(20.dp))
-                            .clickable { importImage() }
+                            .width(280.dp)
+                            .height(220.dp)
+                            .clip(RoundedCornerShape(28.dp))
+                            .clickable(
+                                interactionSource = buttonInteractionSource, indication = null
+                            ) { importImage() }
                             .drawBehind {
                                 val strokeWidth = 2.dp.toPx()
-                                val cornerRadius = 20.dp.toPx()
+                                val cornerRadius = 28.dp.toPx()
                                 drawRoundRect(
-                                    Color.Gray,
+                                    emptyStateDashedColor,
                                     androidx.compose.ui.geometry.Offset(0f, 0f),
                                     size,
                                     CornerRadius(cornerRadius, cornerRadius),
@@ -416,8 +448,15 @@ fun ProcessingScreen(
                                     )
                                 )
                             }
-                            .padding(32.dp), contentAlignment = Alignment.Center) {
+                            .padding(20.dp), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                Icons.Outlined.AddPhotoAlternate,
+                                stringResource(R.string.add_images),
+                                modifier = Modifier.size(64.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(Modifier.height(12.dp))
                             Text(
                                 stringResource(R.string.no_images_yet),
                                 style = MaterialTheme.typography.titleLarge,
@@ -429,6 +468,17 @@ fun ProcessingScreen(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            Spacer(Modifier.height(12.dp))
+                            FilledTonalButton(
+                                onClick = { importImage() },
+                                shape = RoundedCornerShape(animatedCornerRadius.dp),
+                                interactionSource = buttonInteractionSource
+                            ) {
+                                Text(
+                                    stringResource(R.string.add_images),
+                                    style = MaterialTheme.typography.labelLarge
+                                )
+                            }
                         }
                     }
                 }
@@ -493,8 +543,14 @@ fun ProcessingScreen(
         }
 
         if (images.isNotEmpty()) {
+            val interactionSource =
+                remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+            val isPressed by interactionSource.collectIsPressedAsState()
+            val animatedCornerRadius by animateFloatAsState(
+                targetValue = if (isPressed) 24f else 16f, animationSpec = spring()
+            )
             Button(
-                {
+                onClick = {
                     if (uiState is ProcessingUiState.Processing) {
                         haptic.heavy(); showCancelAllDialog = true
                     } else {
@@ -503,19 +559,20 @@ fun ProcessingScreen(
                         }
                     }
                 },
-                Modifier
+                modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 16.dp)
                     .height(56.dp),
                 colors = if (uiState is ProcessingUiState.Processing) ButtonDefaults.buttonColors(
                     MaterialTheme.colorScheme.error
                 ) else ButtonDefaults.buttonColors(MaterialTheme.colorScheme.primary),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(animatedCornerRadius.dp),
+                interactionSource = interactionSource
             ) {
                 Text(
                     if (uiState is ProcessingUiState.Processing) stringResource(R.string.cancel_processing) else stringResource(
                         R.string.process_all
-                    ), fontSize = 16.sp, fontWeight = FontWeight.Medium
+                    ), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium
                 )
             }
         }
@@ -660,7 +717,11 @@ fun SwipeToDismissWrapper(
     content: @Composable () -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val animatedOffset by animateFloatAsState(swipeState.value, label = "swipe")
+    val animatedOffset by animateFloatAsState(
+        targetValue = swipeState.value, animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium
+        ), label = "swipe"
+    )
     var widthPx by remember { mutableIntStateOf(0) }
     val density = LocalDensity.current.density
     val haptic = rememberHapticFeedback()
@@ -673,23 +734,24 @@ fun SwipeToDismissWrapper(
     val currentOnLeftSwipe by rememberUpdatedState(actualLeftSwipe)
     val allowLeftSwipe = !isProcessing
 
-    Box(Modifier
-        .fillMaxWidth()
-        .height(96.dp)
-        .onSizeChanged { widthPx = it.width }) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(96.dp)
+            .onSizeChanged { widthPx = it.width }) {
         if (animatedOffset > 0f) Box(
             Modifier
                 .width((animatedOffset / density).dp)
                 .height(96.dp)
                 .clip(RoundedCornerShape(16.dp))
-                .background(if (swapActions) Color(0xFF4CAF50) else Color(0xFFEF5350)),
+                .background(if (swapActions) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.errorContainer),
             Alignment.Center
         ) {
             Icon(
                 if (swapActions) (if (hasOutput) Icons.Filled.Save else Icons.Filled.PlayArrow) else (if (isProcessing) Icons.Filled.Close else Icons.Filled.Delete),
                 if (swapActions) (if (hasOutput) "Save" else "Process") else (if (isProcessing) "Cancel" else "Delete"),
                 Modifier.size(28.dp),
-                tint = Color.White
+                tint = if (swapActions) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onErrorContainer
             )
         }
         if (animatedOffset < 0f && allowLeftSwipe) Box(
@@ -702,14 +764,14 @@ fun SwipeToDismissWrapper(
                     .width((-animatedOffset / density).dp)
                     .height(96.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(if (swapActions) Color(0xFFEF5350) else Color(0xFF4CAF50)),
+                    .background(if (swapActions) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer),
                 Alignment.Center
             ) {
                 Icon(
                     if (swapActions) (Icons.Filled.Delete) else (if (hasOutput) Icons.Filled.Save else Icons.Filled.PlayArrow),
                     if (swapActions) ("Delete") else (if (hasOutput) "Save" else "Process"),
                     Modifier.size(28.dp),
-                    tint = Color.White
+                    tint = if (swapActions) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
         }
@@ -759,21 +821,30 @@ fun NoModelDialog(onDismiss: () -> Unit, onGoToSettings: () -> Unit) {
     )
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ChunkProgressIndicator(completedChunks: Int, totalChunks: Int) {
     val target = if (totalChunks > 0) (completedChunks.toFloat() / totalChunks.toFloat()).coerceIn(
         0f, 1f
     ) else 0f
-    val animatedProgress by animateFloatAsState(targetValue = target, label = "chunk_progress")
-    LinearProgressIndicator(
+    val animatedProgress by animateFloatAsState(
+        targetValue = target,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium
+        ),
+        label = "chunk_progress",
+    )
+    LinearWavyProgressIndicator(
         progress = { animatedProgress },
         modifier = Modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.primary,
-        trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+        trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+//        amplitude = { progress -> progress },
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+// 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ImageCard(
     image: ImageItem,
@@ -785,17 +856,33 @@ fun ImageCard(
     isProcessing: Boolean = false,
     haptic: HapticFeedbackPerformer
 ) {
+    val cardInteractionSource =
+        remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    val isCardPressed by cardInteractionSource.collectIsPressedAsState()
+    val animatedBadgeCorner by animateFloatAsState(
+        targetValue = if (isCardPressed) 24f else 8f, animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium
+        ), label = "badge_corner"
+    )
+    val animatedCardCorner by animateFloatAsState(
+        targetValue = if (isCardPressed) 24f else 16f, animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium
+        ), label = "card_corner"
+    )
     Box(
         Modifier
             .fillMaxWidth()
             .height(96.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .clickable(enabled = !isProcessing) { haptic.light(); if (image.outputBitmap != null) onClick() else onBeforeOnly() }) {
+            .clip(RoundedCornerShape(animatedCardCorner.dp))
+            .clickable(
+                interactionSource = cardInteractionSource,
+                indication = ripple(),
+                enabled = !isProcessing
+            ) { haptic.light(); if (image.outputBitmap != null) onClick() else onBeforeOnly() }) {
         Card(
             Modifier.fillMaxSize(),
-            RoundedCornerShape(16.dp),
-            CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceContainer),
-            CardDefaults.cardElevation(2.dp, 4.dp)
+            RoundedCornerShape(animatedCardCorner.dp),
+            CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceContainer)
         ) {
             Box(
                 Modifier
@@ -842,16 +929,15 @@ fun ImageCard(
                             Text(
                                 image.size,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 11.sp
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         if (image.isProcessing) {
                             Spacer(Modifier.height(6.dp))
                             if (image.totalChunks > 1) ChunkProgressIndicator(
                                 image.completedChunks, image.totalChunks
-                            ) else LinearProgressIndicator(
-                                Modifier.fillMaxWidth(),
+                            ) else LinearWavyProgressIndicator(
+                                modifier = Modifier.fillMaxWidth(),
                                 color = MaterialTheme.colorScheme.primary,
                                 trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
                             )
@@ -860,13 +946,12 @@ fun ImageCard(
                                 image.progress,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.primary,
-                                fontSize = 10.sp,
                                 maxLines = 1
                             )
                         } else if (image.outputBitmap != null) {
                             Spacer(Modifier.height(4.dp))
                             Surface(
-                                shape = RoundedCornerShape(8.dp),
+                                shape = RoundedCornerShape(animatedBadgeCorner.dp),
                                 color = MaterialTheme.colorScheme.primaryContainer
                             ) {
                                 Text(
@@ -890,7 +975,7 @@ fun ImageCard(
                             Icon(
                                 Icons.Filled.Close,
                                 stringResource(R.string.cancel_processing),
-                                tint = Color(0xFFEF5350),
+                                tint = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -899,7 +984,7 @@ fun ImageCard(
                             Icon(
                                 Icons.Filled.PlayArrow,
                                 stringResource(R.string.process),
-                                tint = Color(0xFF4CAF50),
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -907,7 +992,7 @@ fun ImageCard(
                             Icon(
                                 Icons.Filled.Delete,
                                 stringResource(R.string.remove),
-                                tint = Color(0xFFEF5350),
+                                tint = MaterialTheme.colorScheme.onErrorContainer,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -918,7 +1003,7 @@ fun ImageCard(
                                 Text(
                                     "B",
                                     fontStyle = FontStyle.Italic,
-                                    color = MaterialTheme.colorScheme.primary,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                                     fontSize = 20.sp,
                                     fontWeight = FontWeight.Bold
                                 )

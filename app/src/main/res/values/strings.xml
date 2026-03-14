@@ -47,6 +47,7 @@
     <string name="camera_desc">Opens your device\'s camera, photos taken will be imported automatically.</string>
     <string name="set_as_default">Set as default</string>
     <string name="help">Help</string>
+    <string name="info">Info</string>
 
     <!-- FAQ Content -->
     <string name="faq_what_is_this_title">What is this app for?</string>
@@ -54,10 +55,10 @@
 
     <string name="faq_which_models_title">Which models to use?</string>
     <string name="faq_fbcnn_title">FBCNN</string>
-    <string name="faq_fbcnn_content">Use for images that have JPEG compression (e.g. low-res images from Google, Pinterest, Instagram, that random forum, etc).\n\nThe slider is available for FBCNN models only, and affects how much strength goes into removing compression, values around 30/50 for minor compression, and 70+ for heavy removal, afterward it begins to get noticeably smoother.\n\nThe base model is `color`, the `gray` FBCNN models are for black and white images, `gray double` is for images saved and re-saved as JPEG. (edited/resized twice both saving as JPEG).</string>
+    <string name="faq_fbcnn_content">Use for images that have JPEG compression (e.g. low-res images from Google, Pinterest, Instagram, that random forum, etc).\n\nThe slider is available for FBCNN models only, and affects how much strength goes into removing compression, values around 30/50 for minor compression, and 70+ for heavy removal, afterward it begins to get noticeably smoother.\n\nThe base model is color, the gray FBCNN models are for black and white images, gray double is for images saved and re-saved as JPEG. (edited/resized twice both saving as JPEG).</string>
 
     <string name="faq_scunet_title">SCUNet</string>
-    <string name="faq_scunet_content">`SCUNet` is more adept at removing noise (e.g. ISO noise, grainy looking or speckled).\n\nIt can also remove compression and GIF artifacts, to some degree.\n\nThe `gray` `15/25/50` SCUNet models are only for grayscale images as well, with different levels of noise removal.\n\nHigher the number, the more noise is removed.\n\nThe `PSNR` variant tries to pixel-match the original image as closely as possible, so it looks mathematically correct but may appear overly smooth.\n\n`GAN` sacrifices pixel-perfect accuracy to add realistic textures or details, which can look more natural. As with most cases, try both and see which one suits your image better.</string>
+    <string name="faq_scunet_content">SCUNet is more adept at removing noise (e.g. ISO noise, grainy looking or speckled).\n\nIt can also remove compression and GIF artifacts, to some degree.\n\nThe gray 15/25/50 SCUNet models are only for grayscale images as well, with different levels of noise removal.\n\nHigher the number, the more noise is removed.\n\nThe PSNR variant tries to pixel-match the original image as closely as possible, so it looks mathematically correct but may appear overly smooth.\n\nGAN sacrifices pixel-perfect accuracy to add realistic textures or details, which can look more natural. As with most cases, try both and see which one suits your image better.</string>
 
     <string name="ok">OK</string>
     <string name="images">Images (%1$d)</string>
@@ -71,7 +72,6 @@
     <string name="go_to_settings">Go to settings</string>
     <string name="import_error">Import error</string>
     <string name="model_management">Model management</string>
-    <string name="no_models_installed">No models found. Import a model to get started.</string>
     <string name="active">active</string>
     <string name="download">Download</string>
     <string name="delete">Delete</string>
@@ -109,7 +109,6 @@
     <string name="show_frequently_asked_questions">Show frequently asked questions</string>
     <string name="imported_model">Imported %1$s</string>
     <string name="deleted_model">Deleted %1$s</string>
-    <string name="warning_emoji" translatable="false">⚠</string>
     <string name="import_anyway">Import anyway</string>
     <string name="use_anyway">Use anyway</string>
     <string name="import_text">Import</string>
@@ -119,7 +118,7 @@
     <string name="source_code">Source code</string>
     <string name="show_save_dialog">Show save dialog</string>
     <string name="swap_swipe_actions">Swap swipe actions</string>
-    <string name="processing_threads_desc">Sets how many chunks process in parallel.</string>
+    <string name="processing_threads_desc">Parallel</string>
     <string name="processing_threads_max">Max available on this device: %1$d</string>
     <string name="thread_value_auto">Auto (%1$d)</string>
     <string name="default_image_source">Default source</string>

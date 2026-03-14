@@ -61,7 +61,6 @@ class ModelManager(
 
     companion object {
         private const val STARTER_MODELS_ASSET_DIR = "embedonnx"
-
         private val MODEL_HASHES = mapOf(
             "fbcnn_color_fp16.onnx" to "1a678ff4f721b557fd8a7e560b99cb94ba92f201545c7181c703e7808b93e922",
             "fbcnn_gray_fp16.onnx" to "e220b9637a9f2c34a36c98b275b2c9d2b9c2c029e365be82111072376afbec54",
@@ -75,30 +74,6 @@ class ModelManager(
             "scunet_gray_25_fp16.onnx" to "dec631fbdca7705bbff1fc779cf85a657dcb67f55359c368464dd6e734e1f2b7",
             "scunet_gray_50_fp16.onnx" to "48b7d07229a03d98b892d2b33aa4c572ea955301772e7fcb5fd10723552a1874",
         )
-
-        private val F32_LEGACY_MODELS = listOf(
-            "fbcnn_color.onnx",
-            "fbcnn_gray.onnx",
-            "fbcnn_gray_double.onnx",
-            "scunet_color_real_gan.onnx",
-            "scunet_color_real_psnr.onnx",
-            "scunet_gray_15.onnx",
-            "scunet_gray_25.onnx",
-            "scunet_gray_50.onnx"
-        )
-
-        private val MODEL_WARNINGS = buildMap {
-            F32_LEGACY_MODELS.forEach { modelName ->
-                put(
-                    modelName, ModelWarning(
-                        R.string.model_warning_outdated_title,
-                        R.string.model_warning_outdated_message,
-                        R.string.use_anyway,
-                        R.string.cancel
-                    )
-                )
-            }
-        }
 
         private val MODEL_INFO_RES_IDS = mapOf(
             // starter models
@@ -372,38 +347,10 @@ class ModelManager(
                 onError(context.getString(type.invalidFileTypeResId))
                 return
             }
-            // Hash-checking / warning flow only for ONNX models
-            if (type == ModelType.ONNX) {
-                val actualHash = HashUtils.computeSHA256(modelUri, context)
-                val (matchedModel, modelWarning) = findModelByHash(actualHash)
-                if (modelWarning != null && !force) {
-                    onWarning?.invoke(matchedModel ?: "", modelWarning)
-                    return
-                }
-                if (matchedModel == null && !force) {
-                    val unrecognizedWarning = ModelWarning(
-                        R.string.model_warning_unrecognized_title,
-                        R.string.model_warning_unrecognized_message,
-                        R.string.import_anyway,
-                        R.string.cancel
-                    )
-                    onWarning?.invoke(filename, unrecognizedWarning)
-                    return
-                }
-            }
             importModelInternal(modelUri, filename, type, onProgress, onSuccess, onError)
         } catch (e: Exception) {
             onError(e.message ?: context.getString(R.string.unknown_error))
         }
-    }
-
-    private fun findModelByHash(actualHash: String): Pair<String?, ModelWarning?> {
-        for ((modelName, expectedHash) in MODEL_HASHES) {
-            if (expectedHash.equals(actualHash, ignoreCase = true)) {
-                return modelName to MODEL_WARNINGS[modelName]
-            }
-        }
-        return null to null
     }
 
     private fun resolveFilename(uri: Uri): String {
