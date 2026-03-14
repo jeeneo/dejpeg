@@ -23,6 +23,7 @@ speed:
 - ✧ ➤ [1x-span-anime-pretrain-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/nanomodels/1x-span-anime-pretrain-fp16.onnx) ([source](https://openmodeldb.info/models/1x-span-anime-pretrain)) - usage: general compression, general noise, anime
 - ✧ ➤ [1xBook-Compact-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/nanomodels/1xBook-Compact-fp16.onnx) ([source](https://openmodeldb.info/models/1x-Book-Compact)) - usage: book scanning
 - ✧ ➤ [1xOverExposureCorrection_compact-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/nanomodels/1xOverExposureCorrection_compact-fp16.onnx) ([source](https://openmodeldb.info/models/1x-ExposureCorrection-compact)) - usage: exposure correction
+- ✧ ➤ [ArtCNN_R8F64_JPEG420.onnx](https://github.com/Artoriuz/ArtCNN/raw/refs/heads/main/ONNX/ArtCNN_R8F64_JPEG420.onnx), [ArtCNN_R8F64_JPEG444.onnx](https://github.com/Artoriuz/ArtCNN/raw/refs/heads/main/ONNX/ArtCNN_R8F64_JPEG444.onnx) ([source](https://github.com/Artoriuz/ArtCNN)) - usage: JPEG compression, anime
 
 # [Other models](https://huggingface.co/colpona/dejpeg-models/tree/main/other-models):
 
@@ -38,7 +39,9 @@ speed:
 - ✚ ➠ [1x-DeBink-v5.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x-DeBink-v5.onnx) ([source](https://openmodeldb.info/models/1x-DeBink-v5)) - usage: bink compression, stronger
 - ✚ ➠ [1x-DeBink-v6.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x-DeBink-v6.onnx) ([source](https://openmodeldb.info/models/1x-DeBink-v6)) - usage: bink compression, soft, retains detail
 
-#### JPEG quality range models: ([sources](https://huggingface.co/utnah/esrgan))
+### JPEG compression models:
+
+#### General quality range ([source](https://huggingface.co/utnah/esrgan))
 - ✚ ➽➽ [1x_JPEG_00-20-fp16.ort](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_JPEG_00-20-fp16.ort)
 - ✚ ➽➽ [1x_JPEG_20-40-fp16.ort](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_JPEG_20-40-fp16.ort)
 - ✚ ➽➽ [1x_JPEG_40-60-fp16.ort](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_JPEG_40-60-fp16.ort)
@@ -64,8 +67,6 @@ speed:
 
 - ✚ ➽ [deblurring_nafnet_2025may](https://huggingface.co/opencv/deblurring_nafnet/resolve/main/deblurring_nafnet_2025may.onnx?download=true)  ([source](https://github.com/megvii-research/NAFNet)), additional models [here](https://huggingface.co/deepghs/image_restoration/tree/main)
 
-([sources](https://huggingface.co/utnah/esrgan))
-
 - ✚ ➠ [1x-Debandurh-FS-Ultra-lite-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x-Debandurh-FS-Ultra-lite-fp16.onnx) ([source](https://openmodeldb.info/models/1x-Debandurh-FS-Ultra-lite)) - usage: debanding
 - ✚ ➽ [1x_NMKD-BrightenRedux_200k-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_NMKD-BrightenRedux_200k-fp16.onnx) - usage: brightness reduction
 - ✚ ➽ [1x_NMKDDetoon_97500_G-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_NMKDDetoon_97500_G-fp16.onnx) - usage: detoning
@@ -78,4 +79,4 @@ speed:
 - ✚ ➽ [1x_artifacts_dithering_alsa-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_artifacts_dithering_alsa-fp16.onnx) - usage: dithering
 - ✚ ➽ [1x_nmkdbrighten_10000_G-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_nmkdbrighten_10000_G-fp16.onnx) - usage: brightening
 
-<!-- this readme was typed out by a real human -->
+<!-- this readme was still typed out by a real human -->
