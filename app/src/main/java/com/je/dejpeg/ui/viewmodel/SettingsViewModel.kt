@@ -44,6 +44,8 @@ import kotlinx.coroutines.withContext
 class SettingsViewModel : ViewModel() {
     val installedModels = MutableStateFlow<List<String>>(emptyList())
     val installedOidnModels = MutableStateFlow<List<String>>(emptyList())
+    val activeModelName = MutableStateFlow<String?>(null)
+    val activeOidnModelName = MutableStateFlow<String?>(null)
     val hasCheckedModels = MutableStateFlow(false)
     val shouldShowNoModelDialog = MutableStateFlow(false)
     val deprecatedModelWarning = MutableStateFlow<ModelManager.ModelWarning?>(null)
@@ -117,6 +119,12 @@ class SettingsViewModel : ViewModel() {
                 modelManager?.getInstalledModels(ModelType.OIDN) ?: emptyList()
             }
             hasCheckedModels.value = true
+            activeModelName.value = withContext(Dispatchers.IO) {
+                modelManager?.getActiveModelName(ModelType.ONNX)
+            }
+            activeOidnModelName.value = withContext(Dispatchers.IO) {
+                modelManager?.getActiveModelName(ModelType.OIDN)
+            }
             val activeType =
                 if (processingMode.value == ProcessingMode.OIDN) ModelType.OIDN else ModelType.ONNX
             val activeList =
@@ -158,6 +166,10 @@ class SettingsViewModel : ViewModel() {
                     onProgress = { launch(Dispatchers.Main) { onProgress(it) } },
                     onSuccess = { modelName ->
                         modelManager?.setActiveModel(modelName, type)
+                        when (type) {
+                            ModelType.ONNX -> activeModelName.value = modelName
+                            ModelType.OIDN -> activeOidnModelName.value = modelName
+                        }
                         refreshInstalledModels(type)
                         launch(Dispatchers.Main) { onSuccess(modelName) }
                     },
@@ -195,6 +207,10 @@ class SettingsViewModel : ViewModel() {
         modelManager?.setActiveModel(name, type) ?: Log.e(
             "SettingsViewModel", "modelManager is null!"
         )
+        when (type) {
+            ModelType.ONNX -> activeModelName.value = name
+            ModelType.OIDN -> activeOidnModelName.value = name
+        }
     }
 
     fun hasActiveModel(type: ModelType = ModelType.ONNX) =

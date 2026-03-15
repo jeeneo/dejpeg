@@ -156,6 +156,16 @@ class ProcessingViewModel : ViewModel() {
                 markOutputsStale()
             }
         }
+        viewModelScope.launch {
+            settings.activeModelName.collect {
+                markOutputsStale()
+            }
+        }
+        viewModelScope.launch {
+            settings.activeOidnModelName.collect {
+                markOutputsStale()
+            }
+        }
     }
 
     private fun markOutputsStale() {
