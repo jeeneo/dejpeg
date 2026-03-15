@@ -306,4 +306,5 @@
     <string name="no_oidn_models_installed">Файлы весов (.tza) не найдены. Импортируйте веса, чтобы начать.</string>
     <string name="processing_threads_desc">Параллельный</string>
     <string name="thread_value_auto">Авто (%1$d)</string>
+    <string name="info">Инфо</string>
 </resources>
