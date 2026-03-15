@@ -142,6 +142,7 @@ fun MainScreen(
         ) { backStackEntry ->
             val imageId = backStackEntry.arguments?.getString("imageId") ?: ""
             BeforeAfterScreen(
+                viewModel = viewModel,
                 imageRepository = imageRepository,
                 imageId = imageId,
                 onBack = { navController.popBackStack() })

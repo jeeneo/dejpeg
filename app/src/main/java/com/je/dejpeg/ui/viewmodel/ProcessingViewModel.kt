@@ -39,6 +39,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 @Immutable
 data class ImageItem(
@@ -55,7 +57,8 @@ data class ImageItem(
     val isCancelling: Boolean = false,
     val completedChunks: Int = 0,
     val totalChunks: Int = 0,
-    val hasBeenSaved: Boolean = false
+    val hasBeenSaved: Boolean = false,
+    val isOutputStale: Boolean = false
 )
 
 sealed class ProcessingUiState {
@@ -75,7 +78,14 @@ class ProcessingViewModel : ViewModel() {
     private var isInitialized = false
 
     lateinit var imageRepository: ImageRepository
-    lateinit var settingsViewModel: SettingsViewModel
+
+    private var _settingsViewModel: SettingsViewModel? = null
+    var settingsViewModel: SettingsViewModel
+        get() = _settingsViewModel!!
+        set(value) {
+            _settingsViewModel = value
+            observeSettingsForStaleOutputs()
+        }
 
     private fun status(resId: Int) = appContext!!.getString(resId)
     private val statusPreparing get() = status(com.je.dejpeg.R.string.status_preparing)
@@ -132,6 +142,26 @@ class ProcessingViewModel : ViewModel() {
                 }
             })
         serviceHelper?.register()
+    }
+
+    private fun observeSettingsForStaleOutputs() {
+        val settings = _settingsViewModel ?: return
+        viewModelScope.launch {
+            settings.globalStrength.collect {
+                markOutputsStale()
+            }
+        }
+        viewModelScope.launch {
+            settings.processingMode.collect {
+                markOutputsStale()
+            }
+        }
+    }
+
+    private fun markOutputsStale() {
+        imageRepository.images.value.filter { it.outputBitmap != null }.forEach { image ->
+            imageRepository.updateImageState(image.id) { it.copy(isOutputStale = true) }
+        }
     }
 
     override fun onCleared() {
@@ -374,7 +404,8 @@ class ProcessingViewModel : ViewModel() {
                             isProcessing = false,
                             progress = statusComplete,
                             completedChunks = 0,
-                            totalChunks = 0
+                            totalChunks = 0,
+                            isOutputStale = false
                         )
                     }
                 } else {
@@ -484,5 +515,49 @@ class ProcessingViewModel : ViewModel() {
 
     fun dismissProcessingErrorDialog() {
         processingErrorDialog.value = null
+    }
+
+    fun saveAllImages(
+        context: Context,
+        imageIds: List<String>,
+        baseFilename: String? = null,
+        onProgress: (Int, Int) -> Unit = { _, _ -> },
+        onComplete: () -> Unit = {},
+        onError: (String) -> Unit = {}
+    ) {
+        val repo = imageRepository
+        viewModelScope.launch {
+            try {
+                repo.isSavingImages.value = true
+                repo.savingImagesProgress.value = Pair(0, imageIds.size)
+                imageIds.forEachIndexed { index, id ->
+                    val image = repo.getImageById(id)
+                    val preferredFilenameRaw = if (imageIds.size > 1)
+                        image?.filename?.ifBlank { "${baseFilename ?: "DeJPEG"}_${index + 1}" }
+                            ?: "${baseFilename ?: "DeJPEG"}_${index + 1}"
+                    else image?.filename ?: (baseFilename ?: "DeJPEG")
+                    val filename = preferredFilenameRaw.substringBeforeLast('.', preferredFilenameRaw)
+
+                    try {
+                        suspendCancellableCoroutine<Unit> { cont ->
+                            repo.saveImage(context, id, filename, onSuccess = {
+                                repo.savingImagesProgress.value = Pair(index + 1, imageIds.size)
+                                onProgress(index + 1, imageIds.size)
+                                cont.resume(Unit)
+                            }, onError = { err ->
+                                onError(err)
+                                cont.resume(Unit)
+                            })
+                        }
+                    } catch (e: Exception) {
+                        onError(e.message ?: "Unknown error")
+                    }
+                }
+                onComplete()
+            } finally {
+                repo.isSavingImages.value = false
+                repo.savingImagesProgress.value = null
+            }
+        }
     }
 }

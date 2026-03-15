@@ -142,40 +142,6 @@ class ImageRepository(private val appContext: Context) {
         )
     }
 
-    fun saveAllImages(
-        context: Context, onComplete: () -> Unit = {}, onError: (String) -> Unit = {}
-    ) {
-        val imagesToSave = images.value.filter { it.outputBitmap != null }
-        val imagesData = imagesToSave.map { it.filename to it.outputBitmap!! }
-
-        if (imagesData.isEmpty()) return
-
-        isSavingImages.value = true
-        savingImagesProgress.value = Pair(0, imagesData.size)
-
-        ImageActions.saveAllImages(
-            context = context,
-            images = imagesData,
-            onProgress = { current, total ->
-                savingImagesProgress.value = Pair(current, total)
-            },
-            onComplete = {
-                scope.launch {
-                    imagesToSave.forEach { image ->
-                        updateImageState(image.id) { it.copy(hasBeenSaved = true) }
-                    }
-                }
-                isSavingImages.value = false
-                savingImagesProgress.value = null
-                onComplete()
-            },
-            onError = { errorMsg ->
-                isSavingImages.value = false
-                savingImagesProgress.value = null
-                onError(errorMsg)
-            })
-    }
-
     companion object {
         @Volatile
         private var instance: ImageRepository? = null

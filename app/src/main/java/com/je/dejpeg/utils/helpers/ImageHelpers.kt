@@ -447,52 +447,6 @@ object ImageActions {
         }
     }
 
-    fun saveAllImages(
-        context: Context,
-        images: List<Pair<String, Bitmap>>,
-        baseFilename: String? = null,
-        onProgress: (Int, Int) -> Unit = { _, _ -> },
-        onComplete: () -> Unit = {},
-        onError: (String) -> Unit = {}
-    ) {
-        @OptIn(DelicateCoroutinesApi::class) GlobalScope.launch(Dispatchers.IO) {
-            try {
-                val usedFilenames = mutableSetOf<String>()
-                images.forEachIndexed { index, (originalFilename, bitmap) ->
-                    val preferredFilenameRaw =
-                        if (images.size > 1) originalFilename.ifBlank { "${baseFilename ?: "DeJPEG"}_${index + 1}" } else originalFilename.ifBlank {
-                            baseFilename ?: "DeJPEG"
-                        }
-                    val preferredFilename =
-                        preferredFilenameRaw.substringBeforeLast('.', preferredFilenameRaw)
-                    val fileName = generateUniqueFilename(preferredFilename, usedFilenames)
-                    usedFilenames.add(fileName)
-                    val outputFile = saveBitmapToPictures(fileName, bitmap)
-                    MediaScannerConnection.scanFile(
-                        context, arrayOf(outputFile.toString()), null, null
-                    )
-                    withContext(Dispatchers.Main) {
-                        onProgress(index + 1, images.size)
-                    }
-                }
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(
-                        context, context.resources.getQuantityString(
-                            R.plurals.all_images_saved_to_gallery, images.size, images.size
-                        ), Toast.LENGTH_SHORT
-                    ).show()
-                    onComplete()
-                }
-            } catch (e: Exception) {
-                val errorMsg = context.getString(R.string.error_saving_images, e.message)
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
-                    onError(errorMsg)
-                }
-            }
-        }
-    }
-
     private fun saveBitmapToPictures(baseName: String, bitmap: Bitmap): File {
         val outputFile = File(
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),

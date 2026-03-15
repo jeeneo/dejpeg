@@ -24,10 +24,17 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.LocalOverscrollFactory
@@ -48,6 +55,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -133,7 +141,14 @@ import java.util.Locale
 import kotlin.math.roundToInt
 
 @Suppress("AssignedValueIsNeverRead")
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(
+    ExperimentalMaterial3Api::class,
+    ExperimentalFoundationApi::class,
+    ExperimentalAnimationApi::class
+)
+
+// im not a real programmer, i throw together things until it works then i move on.
+
 @Composable
 fun ProcessingScreen(
     viewModel: ProcessingViewModel,
@@ -330,18 +345,60 @@ fun ProcessingScreen(
             ) {
                 val uiState by viewModel.uiState.collectAsState()
                 val isProcessing = uiState is ProcessingUiState.Processing
+                val allComplete =
+                    images.isNotEmpty() && images.all { it.outputBitmap != null && !it.isOutputStale && !it.isProcessing }
                 val procInteraction =
                     remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                 val isProcPressed by procInteraction.collectIsPressedAsState()
-                val procCorner by animateFloatAsState(
-                    targetValue = if (isProcPressed) 28f else 18f,
-                    animationSpec = spring(),
-                    label = "proc_corner"
+
+                val fabCorner by animateFloatAsState(
+                    targetValue = if (isProcPressed) 28f else if (allComplete) 16f else 18f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    ),
+                    label = "fab_corner"
                 )
+
+                val fabWidthDp by androidx.compose.animation.core.animateDpAsState(
+                    targetValue = if (allComplete) 160.dp else 56.dp, animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    ), label = "fab_width"
+                )
+
+                val fabContainerColor by animateColorAsState(
+                    targetValue = if (isProcessing) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.secondaryContainer,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    ),
+                    label = "fab_container"
+                )
+
+                val fabContentColor by animateColorAsState(
+                    targetValue = if (isProcessing) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSecondaryContainer,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    ),
+                    label = "fab_content"
+                )
+
                 FloatingActionButton(
                     onClick = {
                         if (isProcessing) {
                             haptic.heavy(); showCancelAllDialog = true
+                        } else if (allComplete) {
+                            haptic.medium()
+                            val imageIds = images.filter { it.outputBitmap != null }.map { it.id }
+                            viewModel.saveAllImages(
+                                context = context,
+                                imageIds = imageIds,
+                                onComplete = {
+                                    imageIds.forEach { id -> performRemoval(id) }
+                                },
+                                onError = { saveErrorMessage = it })
                         } else {
                             if (!settingsViewModel.hasActiveModel(activeModelType)) settingsViewModel.showNoModelDialog()
                             else {
@@ -349,17 +406,57 @@ fun ProcessingScreen(
                             }
                         }
                     },
-                    containerColor = if (isProcessing) MaterialTheme.colorScheme.errorContainer
-                    else MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = if (isProcessing) MaterialTheme.colorScheme.onErrorContainer
-                    else MaterialTheme.colorScheme.onSecondaryContainer,
-                    shape = RoundedCornerShape(procCorner.dp),
-                    interactionSource = procInteraction
+                    containerColor = fabContainerColor,
+                    contentColor = fabContentColor,
+                    shape = RoundedCornerShape(fabCorner.dp),
+                    interactionSource = procInteraction,
+                    modifier = Modifier
+                        .height(56.dp)
+                        .widthIn(min = 56.dp)
+                        .width(fabWidthDp)
                 ) {
-                    androidx.compose.animation.Crossfade(
-                        isProcessing, label = "proc_icon"
-                    ) { processing ->
-                        Icon(if (processing) Icons.Filled.Close else Icons.Filled.PlayArrow, null)
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        androidx.compose.animation.AnimatedContent(
+                            targetState = when {
+                                isProcessing -> 0
+                                allComplete -> 1
+                                else -> 2
+                            }, label = "proc_icon", transitionSpec = {
+                                fadeIn(animationSpec = spring(stiffness = Spring.StiffnessMedium)).togetherWith(
+                                    fadeOut(animationSpec = spring(stiffness = Spring.StiffnessMedium))
+                                )
+                            }, modifier = Modifier.size(24.dp)
+                        ) { state ->
+                            Icon(
+                                when (state) {
+                                    0 -> Icons.Filled.Close
+                                    1 -> Icons.Filled.Save
+                                    else -> Icons.Filled.PlayArrow
+                                }, null
+                            )
+                        }
+                        AnimatedVisibility(
+                            visible = allComplete,
+                            enter = fadeIn(spring(stiffness = Spring.StiffnessMedium)) + expandHorizontally(
+                                spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                expandFrom = Alignment.Start
+                            ),
+                            exit = fadeOut(spring(stiffness = Spring.StiffnessMedium)) + shrinkHorizontally(
+                                spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                shrinkTowards = Alignment.Start
+                            )
+                        ) {
+                            Row {
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    stringResource(R.string.save_all),
+                                    style = MaterialTheme.typography.labelLarge
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -1007,15 +1104,24 @@ fun ImageCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             val isActive = image.isProcessing
+            val isStale = image.outputBitmap != null && image.isOutputStale && !isActive
             val morphContainerColor by animateColorAsState(
-                targetValue = if (isActive) MaterialTheme.colorScheme.errorContainer
-                else MaterialTheme.colorScheme.secondaryContainer,
+                targetValue = when {
+                    isActive -> MaterialTheme.colorScheme.errorContainer
+                    isStale -> MaterialTheme.colorScheme.tertiaryContainer
+                    image.outputBitmap != null -> MaterialTheme.colorScheme.primaryContainer
+                    else -> MaterialTheme.colorScheme.secondaryContainer
+                },
                 animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
                 label = "morph_container"
             )
             val morphContentColor by animateColorAsState(
-                targetValue = if (isActive) MaterialTheme.colorScheme.onErrorContainer
-                else MaterialTheme.colorScheme.onSecondaryContainer,
+                targetValue = when {
+                    isActive -> MaterialTheme.colorScheme.onErrorContainer
+                    isStale -> MaterialTheme.colorScheme.onTertiaryContainer
+                    image.outputBitmap != null -> MaterialTheme.colorScheme.onPrimaryContainer
+                    else -> MaterialTheme.colorScheme.onSecondaryContainer
+                },
                 animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
                 label = "morph_content"
             )
@@ -1039,14 +1145,28 @@ fun ImageCard(
                 label = "morph_end_corner"
             )
 
+            val primaryState = when {
+                isActive -> "processing"
+                image.outputBitmap != null && image.isOutputStale -> "reprocess"
+                image.outputBitmap != null -> "save"
+                else -> "process"
+            }
             Button(
                 onClick = {
-                    if (isActive) {
-                        haptic.heavy(); onRemove()
-                    } else {
-                        if (image.outputBitmap != null) {
+                    when (primaryState) {
+                        "processing" -> {
+                            haptic.heavy(); onRemove()
+                        }
+
+                        "save" -> {
                             haptic.medium(); onSave()
-                        } else {
+                        }
+
+                        "reprocess" -> {
+                            haptic.medium(); onProcess()
+                        }
+
+                        else -> {
                             haptic.medium(); onProcess()
                         }
                     }
@@ -1060,28 +1180,30 @@ fun ImageCard(
                 ), interactionSource = if (isActive) cancelInteraction else processInteraction
             ) {
                 androidx.compose.animation.Crossfade(
-                    targetState = isActive,
+                    targetState = primaryState,
                     animationSpec = spring(stiffness = Spring.StiffnessMedium),
                     label = "morph_icon"
-                ) { processing ->
+                ) { state ->
                     Icon(
-                        when {
-                            processing -> Icons.Filled.Close
-                            image.outputBitmap != null -> Icons.Filled.Save
+                        when (state) {
+                            "processing" -> Icons.Filled.Close
+                            "save" -> Icons.Filled.Save
+                            "reprocess" -> Icons.Filled.PlayArrow
                             else -> Icons.Filled.PlayArrow
                         }, null, Modifier.size(16.dp)
                     )
                 }
                 Spacer(Modifier.width(4.dp))
                 androidx.compose.animation.Crossfade(
-                    targetState = isActive,
+                    targetState = primaryState,
                     animationSpec = spring(stiffness = Spring.StiffnessMedium),
                     label = "morph_label"
-                ) { processing ->
+                ) { state ->
                     Text(
-                        when {
-                            processing -> stringResource(R.string.cancel_processing)
-                            image.outputBitmap != null -> stringResource(R.string.save)
+                        when (state) {
+                            "processing" -> stringResource(R.string.cancel_processing)
+                            "save" -> stringResource(R.string.save)
+                            "reprocess" -> stringResource(R.string.reprocess)
                             else -> stringResource(R.string.process)
                         }, style = MaterialTheme.typography.labelLarge
                     )
@@ -1090,11 +1212,11 @@ fun ImageCard(
 
             androidx.compose.animation.AnimatedVisibility(
                 visible = !isActive,
-                enter = androidx.compose.animation.fadeIn(spring(stiffness = Spring.StiffnessMedium)) + androidx.compose.animation.expandHorizontally(
+                enter = fadeIn(spring(stiffness = Spring.StiffnessMedium)) + expandHorizontally(
                     spring(dampingRatio = Spring.DampingRatioMediumBouncy),
                     expandFrom = Alignment.Start
                 ),
-                exit = androidx.compose.animation.fadeOut(spring(stiffness = Spring.StiffnessMedium)) + androidx.compose.animation.shrinkHorizontally(
+                exit = fadeOut(spring(stiffness = Spring.StiffnessMedium)) + shrinkHorizontally(
                     spring(dampingRatio = Spring.DampingRatioMediumBouncy),
                     shrinkTowards = Alignment.Start
                 )
@@ -1124,11 +1246,11 @@ fun ImageCard(
 
             androidx.compose.animation.AnimatedVisibility(
                 visible = !isActive,
-                enter = androidx.compose.animation.fadeIn(spring(stiffness = Spring.StiffnessMedium)) + androidx.compose.animation.expandHorizontally(
+                enter = fadeIn(spring(stiffness = Spring.StiffnessMedium)) + expandHorizontally(
                     spring(dampingRatio = Spring.DampingRatioMediumBouncy),
                     expandFrom = Alignment.Start
                 ),
-                exit = androidx.compose.animation.fadeOut(spring(stiffness = Spring.StiffnessMedium)) + androidx.compose.animation.shrinkHorizontally(
+                exit = fadeOut(spring(stiffness = Spring.StiffnessMedium)) + shrinkHorizontally(
                     spring(dampingRatio = Spring.DampingRatioMediumBouncy),
                     shrinkTowards = Alignment.Start
                 )

@@ -93,6 +93,7 @@
     <string name="add_images">Add Images</string>
     <string name="process">Process</string>
     <string name="cancel_processing">Cancel</string>
+    <string name="reprocess">Re-process</string>
     <string name="no_model_loaded">No model loaded</string>
     <string name="chunk_size_px">%1$d px</string>
     <string name="overlap_size_px">%1$d px</string>

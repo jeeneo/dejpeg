@@ -71,6 +71,7 @@ import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.ui.components.BeforeAfterSlider
 import com.je.dejpeg.ui.components.LoadingDialog
 import com.je.dejpeg.ui.components.SaveImageDialog
+import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.utils.helpers.ImageActions
 import com.je.dejpeg.utils.rememberHapticFeedback
 import kotlinx.coroutines.launch
@@ -83,10 +84,10 @@ import me.saket.telephoto.zoomable.zoomable
 private val PillOuter = 50.dp
 private val PillInner = 6.dp
 
-@Suppress("AssignedValueIsNeverRead")
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun BeforeAfterScreen(
+    viewModel: ProcessingViewModel,
     imageRepository: ImageRepository,
     imageId: String,
     onBack: () -> Unit = {},
@@ -156,149 +157,165 @@ fun BeforeAfterScreen(
                 } else {
                     SingleImageView(beforeBitmap)
                 }
-            }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-                    .padding(bottom = 28.dp)
-                    .zIndex(1f)
-            ) {
-                Button(
-                    modifier = Modifier.height(56.dp),
-                    onClick = {
-                        haptic.light()
-                        ImageActions.shareImage(context, afterBitmap ?: beforeBitmap)
-                    },
-                    shapes = ButtonDefaults.shapes(
-                        shape = RoundedCornerShape(
-                            topStart = PillOuter,
-                            bottomStart = PillOuter,
-                            topEnd = PillInner,
-                            bottomEnd = PillInner
-                        ), pressedShape = RoundedCornerShape(PillOuter)
-                    ),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.inverseOnSurface,
-                        contentColor = MaterialTheme.colorScheme.onSurface
-                    ),
-                    contentPadding = PaddingValues(horizontal = 20.dp),
-                ) {
-                    Icon(
-                        Icons.Filled.Share,
-                        contentDescription = "Share",
-                    )
-                    Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                    Text(
-                        text = "Share",
-                    )
-                }
 
-                Button(
-                    modifier = Modifier.height(56.dp),
-                    onClick = {
-                        haptic.medium()
-                        if (skipSaveDialog) {
-                            if (ImageActions.checkFileExists(filename)) {
-                                overwriteDialogFilename = filename
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .navigationBarsPadding()
+                        .padding(bottom = 28.dp)
+                        .zIndex(1f)
+                ) {
+                    Button(
+                        modifier = Modifier.height(56.dp),
+                        onClick = {
+                            haptic.light()
+                            ImageActions.shareImage(context, afterBitmap ?: beforeBitmap)
+                        },
+                        shapes = ButtonDefaults.shapes(
+                            shape = RoundedCornerShape(
+                                topStart = PillOuter,
+                                bottomStart = PillOuter,
+                                topEnd = PillInner,
+                                bottomEnd = PillInner
+                            ), pressedShape = RoundedCornerShape(PillOuter)
+                        ),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.inverseOnSurface,
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        ),
+                        contentPadding = PaddingValues(horizontal = 20.dp),
+                    ) {
+                        Icon(
+                            Icons.Filled.Share,
+                            contentDescription = "Share",
+                        )
+                        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                        Text(
+                            text = "Share",
+                        )
+                    }
+
+                    Button(
+                        modifier = Modifier.height(56.dp),
+                        onClick = {
+                            haptic.medium()
+                            if (skipSaveDialog) {
+                                if (ImageActions.checkFileExists(filename)) {
+                                    overwriteDialogFilename = filename
+                                } else {
+                                    imageRepository.saveImage(
+                                        context = context,
+                                        imageId = imageId,
+                                        onSuccess = {},
+                                        onError = { errorMsg -> saveErrorMessage = errorMsg })
+                                }
                             } else {
-                                imageRepository.saveImage(
-                                    context = context,
-                                    imageId = imageId,
-                                    onSuccess = {},
-                                    onError = { errorMsg -> saveErrorMessage = errorMsg })
+                                showSaveDialog = true
                             }
-                        } else {
-                            showSaveDialog = true
-                        }
-                    },
-                    shapes = ButtonDefaults.shapes(
-                        shape = RoundedCornerShape(
-                            topStart = PillInner,
-                            bottomStart = PillInner,
-                            topEnd = PillOuter,
-                            bottomEnd = PillOuter
-                        ), pressedShape = RoundedCornerShape(PillOuter)
-                    ),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.inverseOnSurface,
-                        contentColor = MaterialTheme.colorScheme.onSurface
-                    ),
-                    contentPadding = PaddingValues(horizontal = 20.dp),
-                ) {
-                    Icon(
-                        Icons.Filled.Save,
-                        contentDescription = stringResource(id = R.string.save),
-                    )
-                    Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                    Text(
-                        text = stringResource(id = R.string.save),
-                    )
+                        },
+                        shapes = ButtonDefaults.shapes(
+                            shape = RoundedCornerShape(
+                                topStart = PillInner,
+                                bottomStart = PillInner,
+                                topEnd = PillOuter,
+                                bottomEnd = PillOuter
+                            ), pressedShape = RoundedCornerShape(PillOuter)
+                        ),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.inverseOnSurface,
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        ),
+                        contentPadding = PaddingValues(horizontal = 20.dp),
+                    ) {
+                        Icon(
+                            Icons.Filled.Save,
+                            contentDescription = stringResource(id = R.string.save),
+                        )
+                        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                        Text(
+                            text = stringResource(id = R.string.save),
+                        )
+                    }
                 }
             }
         }
-    }
 
-    if (showSaveDialog) {
-        SaveImageDialog(
-            filename,
-            showSaveAllOption,
-            false,
-            hideOptions = false,
-            onDismissRequest = { showSaveDialog = false }) { name, all, skip ->
-            if (skip) {
-                scope.launch { appPreferences.setSkipSaveDialog(true) }
-            }
-            if (all) {
-                imageRepository.saveAllImages(
-                    context = context,
-                    onComplete = {},
-                    onError = { errorMsg -> saveErrorMessage = errorMsg })
-            } else {
-                if (ImageActions.checkFileExists(name)) {
-                    overwriteDialogFilename = name
+        if (showSaveDialog) {
+            SaveImageDialog(
+                filename,
+                showSaveAllOption,
+                false,
+                hideOptions = false,
+                onDismissRequest = { showSaveDialog = false }) { name, all, skip ->
+                if (skip) {
+                    scope.launch { appPreferences.setSkipSaveDialog(true) }
+                }
+                if (all) {
+                    val toSave = images.filter { it.outputBitmap != null }
+                    val imagesData = toSave.map { it.filename to it.outputBitmap!! }
+                    if (imagesData.isNotEmpty()) {
+                        val imageIds = toSave.map { it.id }
+                        viewModel.saveAllImages(
+                            context = context,
+                            imageIds = imageIds,
+                            baseFilename = name,
+                            onProgress = { cur, total ->
+                                imageRepository.savingImagesProgress.value = Pair(cur, total)
+                            },
+                            onComplete = {
+                                // ProcessingViewModel updates repository state as images are saved
+                            },
+                            onError = { errorMsg -> saveErrorMessage = errorMsg })
+                    }
                 } else {
-                    performSave(afterBitmap ?: beforeBitmap, name)
+                    if (ImageActions.checkFileExists(name)) {
+                        overwriteDialogFilename = name
+                    } else {
+                        performSave(afterBitmap ?: beforeBitmap, name)
+                    }
                 }
             }
         }
-    }
 
-    overwriteDialogFilename?.let { fname ->
-        SaveImageDialog(
-            fname,
-            showSaveAllOption = false,
-            initialSaveAll = false,
-            hideOptions = true,
-            onDismissRequest = { overwriteDialogFilename = null }) { name, _, _ ->
-            performSave(afterBitmap ?: beforeBitmap, name)
+        overwriteDialogFilename?.let { fname ->
+            SaveImageDialog(
+                fname,
+                showSaveAllOption = false,
+                initialSaveAll = false,
+                hideOptions = true,
+                onDismissRequest = { overwriteDialogFilename = null }) { name, _, _ ->
+                performSave(afterBitmap ?: beforeBitmap, name)
+            }
         }
-    }
 
-    saveErrorMessage?.let { errorMsg ->
-        AlertDialog(
-            onDismissRequest = { saveErrorMessage = null },
-            title = { Text(stringResource(R.string.error_saving_image_title)) },
-            text = { Text(errorMsg) },
-            confirmButton = {
-                TextButton(onClick = { saveErrorMessage = null }) {
-                    Text(stringResource(R.string.ok))
-                }
-            })
-    }
+        saveErrorMessage?.let { errorMsg ->
+            AlertDialog(
+                onDismissRequest = { saveErrorMessage = null },
+                title = { Text(stringResource(R.string.error_saving_image_title)) },
+                text = { Text(errorMsg) },
+                confirmButton = {
+                    TextButton(onClick = { saveErrorMessage = null }) {
+                        Text(stringResource(R.string.ok))
+                    }
+                })
+        }
 
-    if (isSavingImages) {
-        val progress = savingImagesProgress
-        LoadingDialog(
-            title = stringResource(R.string.saving_images),
-            progress = progress?.let { it.first.toFloat() / it.second.toFloat() },
-            progressText = progress?.let {
-                stringResource(R.string.saving_image_progress, it.first, it.second)
-            })
+        if (isSavingImages) {
+            val progress = savingImagesProgress
+            LoadingDialog(
+                title = stringResource(R.string.saving_images),
+                progress = progress?.let { it.first.toFloat() / it.second.toFloat() },
+                progressText = progress?.let {
+                    stringResource(R.string.saving_image_progress, it.first, it.second)
+                })
+        }
     }
 }
+
+// yeah but you're leaking memory everywhere
+// ill just restart apache every 20 requests
 
 @Composable
 private fun SingleImageView(bitmap: Bitmap) {
