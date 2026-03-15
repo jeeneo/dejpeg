@@ -83,30 +83,34 @@ fun RecoveryDialog(
         CacheManager.clearAbandonedImages(context)
         val cachedRecoveryImages = CacheManager.getRecoveryImages(context)
         if (cachedRecoveryImages.isNotEmpty()) {
-            val loadedImages = mutableListOf<RecoveryImage>()
-            for ((imageId, file) in cachedRecoveryImages) {
-                val processedBitmap = withContext(Dispatchers.IO) {
-                    BitmapFactory.decodeFile(file.absolutePath)
-                }
-                if (processedBitmap != null) {
-                    val unprocessedFile = CacheManager.getUnprocessedImage(context, imageId)
-                    val unprocessedBitmap = if (unprocessedFile != null) {
-                        withContext(Dispatchers.IO) {
-                            BitmapFactory.decodeFile(unprocessedFile.absolutePath)
-                        }
-                    } else null
-                    loadedImages.add(
-                        RecoveryImage(
-                            imageId,
-                            "Recovered_${imageId.take(8)}",
-                            processedBitmap,
-                            unprocessedBitmap
+            val existingIds = imageRepository.images.value.map { it.id }.toSet()
+            val newRecoveryImages = cachedRecoveryImages.filter { (id, _) -> id !in existingIds }
+            if (newRecoveryImages.isNotEmpty()) {
+                val loadedImages = mutableListOf<RecoveryImage>()
+                for ((imageId, file) in newRecoveryImages) {
+                    val processedBitmap = withContext(Dispatchers.IO) {
+                        BitmapFactory.decodeFile(file.absolutePath)
+                    }
+                    if (processedBitmap != null) {
+                        val unprocessedFile = CacheManager.getUnprocessedImage(context, imageId)
+                        val unprocessedBitmap = if (unprocessedFile != null) {
+                            withContext(Dispatchers.IO) {
+                                BitmapFactory.decodeFile(unprocessedFile.absolutePath)
+                            }
+                        } else null
+                        loadedImages.add(
+                            RecoveryImage(
+                                imageId,
+                                "Recovered_${imageId.take(8)}",
+                                processedBitmap,
+                                unprocessedBitmap
+                            )
                         )
-                    )
+                    }
                 }
+                recoveryImages.value = loadedImages
+                showDialog.value = loadedImages.isNotEmpty()
             }
-            recoveryImages.value = loadedImages
-            showDialog.value = true
         }
     }
 

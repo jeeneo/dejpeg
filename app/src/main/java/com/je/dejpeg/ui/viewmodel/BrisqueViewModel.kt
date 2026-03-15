@@ -25,10 +25,10 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.je.dejpeg.R
-import com.je.dejpeg.utils.brisque.BRISQUEAssessor
-import com.je.dejpeg.utils.brisque.BRISQUEDescaler
 import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.data.BrisqueSettings
+import com.je.dejpeg.utils.brisque.BRISQUEAssessor
+import com.je.dejpeg.utils.brisque.BRISQUEDescaler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow

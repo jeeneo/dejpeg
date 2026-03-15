@@ -69,24 +69,23 @@ object ModelMigrationHelper {
         }
     }
 
-    private fun deleteDeprecated(dirs: List<File>, names: List<String>): Boolean =
-        try {
-            val count = dirs.sumOf { dir ->
-                (dir.listFiles { f -> f.isFile && f.name in names }
-                    ?: emptyArray()).count { f -> f.delete() }
-            }
-            dirs.forEach { dir ->
-                if (dir.exists() && dir.isDirectory && (dir.listFiles()
-                        ?.isEmpty() == true)
-                ) dir.delete()
-            }
-            Log.d(
-                TAG,
-                if (count > 0) "Deleted $count deprecated BRISQUE file(s)" else "No deprecated BRISQUE files"
-            ); true
-        } catch (e: Exception) {
-            Log.e(TAG, "BRISQUE cleanup failed: ${e.message}", e); false
+    private fun deleteDeprecated(dirs: List<File>, names: List<String>): Boolean = try {
+        val count = dirs.sumOf { dir ->
+            (dir.listFiles { f -> f.isFile && f.name in names }
+                ?: emptyArray()).count { f -> f.delete() }
         }
+        dirs.forEach { dir ->
+            if (dir.exists() && dir.isDirectory && (dir.listFiles()
+                    ?.isEmpty() == true)
+            ) dir.delete()
+        }
+        Log.d(
+            TAG,
+            if (count > 0) "Deleted $count deprecated BRISQUE file(s)" else "No deprecated BRISQUE files"
+        ); true
+    } catch (e: Exception) {
+        Log.e(TAG, "BRISQUE cleanup failed: ${e.message}", e); false
+    }
 
     private fun moveFile(src: File, dst: File): Boolean = try {
         when {

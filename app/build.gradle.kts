@@ -31,8 +31,8 @@ android {
         applicationId = "com.je.dejpeg"
         minSdk = 24
         targetSdk = 36
-        versionCode = 363
-        versionName = "3.6.3"
+        versionCode = 400
+        versionName = "4.0.0"
         ndk {
             abiFilters += "arm64-v8a"
         }
@@ -123,6 +123,8 @@ dependencies {
     implementation(libs.androidx.exifinterface)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.compose.animation.core)
+//    implementation(libs.androidx.material3)
 }
 
 androidComponents {

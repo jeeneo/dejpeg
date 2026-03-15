@@ -5,22 +5,23 @@ coreSplashscreen = "1.2.0"
 #noinspection GradleDependency
 foundation = "1.10.3"
 kotlin = "2.3.10"
-coreKtx = "1.17.0"
+coreKtx = "1.18.0"
 #junit = "4.13.2"
 #junitVersion = "1.3.0"
 #espressoCore = "3.7.0"
 lifecycleRuntimeKtx = "2.10.0"
-activityCompose = "1.12.4"
-composeBom = "2026.02.01"
+activityCompose = "1.13.0"
+composeBom = "2026.03.00"
 material = "1.13.0"
-material3 = "1.4.0"
+material3 = "1.5.0-alpha15"
 materialIconsExtended = "1.7.8"
 navigationCompose = "2.9.7"
 #noinspection NewerVersionAvailable
 onnxruntimeAndroid = "1.23.2"
 zoomable = "0.18.0"
 exifinterface = "1.4.2"
-datastore = "1.2.0"
+datastore = "1.2.1"
+animationCore = "1.10.5"
 
 [libraries]
 androidx-compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "foundation" }
@@ -45,6 +46,8 @@ onnxruntime-android = { module = "com.microsoft.onnxruntime:onnxruntime-android"
 zoomable = { module = "me.saket.telephoto:zoomable", version.ref = "zoomable" }
 androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+androidx-compose-animation-core = { group = "androidx.compose.animation", name = "animation-core", version.ref = "animationCore" }
+#androidx-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3Version" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
