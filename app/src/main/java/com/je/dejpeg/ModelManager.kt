@@ -289,7 +289,7 @@ class ModelManager(
     private fun configureSessionOptions(opts: OrtSession.SessionOptions, modelName: String) {
         val processors = Runtime.getRuntime().availableProcessors()
         try {
-            opts.setIntraOpNumThreads(if (processors <= 2) 1 else (processors * 3) / 4)
+            opts.setIntraOpNumThreads(if (processors <= 2) 1 else 2)
         } catch (e: OrtException) {
             Log.e("ModelManager", "Error setting IntraOpNumThreads: ${e.message}")
         }
