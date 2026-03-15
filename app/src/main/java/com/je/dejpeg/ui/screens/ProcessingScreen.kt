@@ -162,7 +162,6 @@ fun ProcessingScreen(
         ?.contains("fbcnn", ignoreCase = true) == true && processingMode == ProcessingMode.ONNX
     val shouldShowNoModelDialog by settingsViewModel.shouldShowNoModelDialog.collectAsState()
     val haptic = rememberHapticFeedback()
-    val deprecatedModelWarning by settingsViewModel.deprecatedModelWarning.collectAsState()
     val isLoadingImages by imageRepository.isLoadingImages.collectAsState()
     val loadingImagesProgress by imageRepository.loadingImagesProgress.collectAsState()
     val processingErrorDialog by viewModel.processingErrorDialog.collectAsState()
@@ -574,6 +573,7 @@ fun ProcessingScreen(
                                 onBrisque,
                                 onClick,
                                 onClick,
+                                onLeftSwipe,
                                 image.isProcessing,
                                 haptic
                             )
@@ -769,38 +769,37 @@ fun SwipeToDismissWrapper(
                 )
             }
         }
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .offset { IntOffset(animatedOffset.roundToInt(), 0) }
-                .pointerInput(widthPx, allowLeftSwipe) {
-                    detectHorizontalDragGestures(onDragStart = {
-                        if (!hasStartedDrag) {
-                            haptic.gestureStart(); hasStartedDrag = true
-                        }
-                    }, onHorizontalDrag = { _, dragAmount ->
-                        val newValue = swipeState.value + dragAmount
-                        swipeState.value = if (allowLeftSwipe) newValue else maxOf(0f, newValue)
-                        val absOffset = kotlin.math.abs(swipeState.value)
-                        val threshold = widthPx * swipeThreshold
-                        if (widthPx > 0 && absOffset > threshold && !hasReachedThreshold) {
-                            haptic.medium(); hasReachedThreshold = true
-                        } else if (absOffset <= threshold) hasReachedThreshold = false
-                    }, onDragEnd = {
-                        val absOffset = kotlin.math.abs(swipeState.value)
-                        val threshold = widthPx * swipeThreshold
-                        if (widthPx > 0 && absOffset > threshold) {
-                            haptic.heavy()
-                            if (swipeState.value > 0) currentOnRightSwipe()
-                            else if (allowLeftSwipe) currentOnLeftSwipe()
-                        }
-                        scope.launch {
-                            swipeState.value = 0f
-                            hasStartedDrag = false
-                            hasReachedThreshold = false
-                        }
-                    })
-                }) { content() }
+        Box(Modifier
+            .fillMaxWidth()
+            .offset { IntOffset(animatedOffset.roundToInt(), 0) }
+            .pointerInput(widthPx, allowLeftSwipe) {
+                detectHorizontalDragGestures(onDragStart = {
+                    if (!hasStartedDrag) {
+                        haptic.gestureStart(); hasStartedDrag = true
+                    }
+                }, onHorizontalDrag = { _, dragAmount ->
+                    val newValue = swipeState.value + dragAmount
+                    swipeState.value = if (allowLeftSwipe) newValue else maxOf(0f, newValue)
+                    val absOffset = kotlin.math.abs(swipeState.value)
+                    val threshold = widthPx * swipeThreshold
+                    if (widthPx > 0 && absOffset > threshold && !hasReachedThreshold) {
+                        haptic.medium(); hasReachedThreshold = true
+                    } else if (absOffset <= threshold) hasReachedThreshold = false
+                }, onDragEnd = {
+                    val absOffset = kotlin.math.abs(swipeState.value)
+                    val threshold = widthPx * swipeThreshold
+                    if (widthPx > 0 && absOffset > threshold) {
+                        haptic.heavy()
+                        if (swipeState.value > 0) currentOnRightSwipe()
+                        else if (allowLeftSwipe) currentOnLeftSwipe()
+                    }
+                    scope.launch {
+                        swipeState.value = 0f
+                        hasStartedDrag = false
+                        hasReachedThreshold = false
+                    }
+                })
+            }) { content() }
     }
 }
 
@@ -848,6 +847,7 @@ fun ImageCard(
     onBrisque: () -> Unit,
     onClick: () -> Unit,
     onBeforeOnly: () -> Unit,
+    onSave: () -> Unit,
     isProcessing: Boolean = false,
     haptic: HapticFeedbackPerformer
 ) {
@@ -1044,7 +1044,11 @@ fun ImageCard(
                     if (isActive) {
                         haptic.heavy(); onRemove()
                     } else {
-                        haptic.medium(); onProcess()
+                        if (image.outputBitmap != null) {
+                            haptic.medium(); onSave()
+                        } else {
+                            haptic.medium(); onProcess()
+                        }
                     }
                 }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(
                     topStart = morphStartCorner.dp,
@@ -1061,9 +1065,11 @@ fun ImageCard(
                     label = "morph_icon"
                 ) { processing ->
                     Icon(
-                        if (processing) Icons.Filled.Close else Icons.Filled.PlayArrow,
-                        null,
-                        Modifier.size(16.dp)
+                        when {
+                            processing -> Icons.Filled.Close
+                            image.outputBitmap != null -> Icons.Filled.Save
+                            else -> Icons.Filled.PlayArrow
+                        }, null, Modifier.size(16.dp)
                     )
                 }
                 Spacer(Modifier.width(4.dp))
@@ -1073,9 +1079,11 @@ fun ImageCard(
                     label = "morph_label"
                 ) { processing ->
                     Text(
-                        if (processing) stringResource(R.string.cancel_processing)
-                        else stringResource(R.string.process),
-                        style = MaterialTheme.typography.labelLarge
+                        when {
+                            processing -> stringResource(R.string.cancel_processing)
+                            image.outputBitmap != null -> stringResource(R.string.save)
+                            else -> stringResource(R.string.process)
+                        }, style = MaterialTheme.typography.labelLarge
                     )
                 }
             }
