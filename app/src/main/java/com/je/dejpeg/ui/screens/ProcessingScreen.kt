@@ -116,7 +116,6 @@ import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.data.ProcessingMode
 import com.je.dejpeg.ui.components.BaseDialog
 import com.je.dejpeg.ui.components.CancelProcessingDialog
-import com.je.dejpeg.ui.components.DeprecatedModelWarningDialog
 import com.je.dejpeg.ui.components.ErrorAlertDialog
 import com.je.dejpeg.ui.components.ImageSourceDialog
 import com.je.dejpeg.ui.components.LoadingDialog
@@ -249,6 +248,7 @@ fun ProcessingScreen(
     }
 
     var lastBackPressTime by remember { mutableLongStateOf(0L) }
+
     BackHandler {
         val currentTime = System.currentTimeMillis()
         if (currentTime - lastBackPressTime < 2000) {
@@ -648,19 +648,6 @@ fun ProcessingScreen(
             settingsViewModel.dismissNoModelDialog()
             onNavigateToSettings()
         })
-    }
-
-    deprecatedModelWarning?.let { warning ->
-        val activeModelName = settingsViewModel.getActiveModelName() ?: ""
-        DeprecatedModelWarningDialog(
-            modelName = activeModelName,
-            warning = warning,
-            onContinue = { settingsViewModel.dismissDeprecatedModelWarning() },
-            onGoToSettings = {
-                haptic.medium()
-                settingsViewModel.dismissDeprecatedModelWarning()
-                onNavigateToSettings()
-            })
     }
 
     saveErrorMessage?.let { errorMsg ->

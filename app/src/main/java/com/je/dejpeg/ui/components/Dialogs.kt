@@ -97,7 +97,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
-import com.je.dejpeg.ModelManager
 import com.je.dejpeg.R
 import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.utils.CacheManager
@@ -588,12 +587,12 @@ fun RemoveImageDialog(
             ) {
                 DialogTextButton(
                     stringResource(R.string.remove), {
-                        CacheManager.deleteRecoveryPair(
-                            context, imageId, deleteProcessed = true, deleteUnprocessed = true
-                        )
-                        onRemove()
-                        onDismissRequest()
-                    }, { haptic.heavy() }, MaterialTheme.colorScheme.error
+                    CacheManager.deleteRecoveryPair(
+                        context, imageId, deleteProcessed = true, deleteUnprocessed = true
+                    )
+                    onRemove()
+                    onDismissRequest()
+                }, { haptic.heavy() }, MaterialTheme.colorScheme.error
                 )
                 if (hasOutput) {
                     Button({ haptic.medium(); onSaveAndRemove(); onDismissRequest() }) {
@@ -635,35 +634,6 @@ fun CancelProcessingDialog(
                 Text(stringResource(R.string.yes_stop))
             }
         })
-}
-
-@Composable
-fun DeprecatedModelWarningDialog(
-    modelName: String,
-    warning: ModelManager.ModelWarning,
-    onContinue: () -> Unit,
-    onGoToSettings: () -> Unit
-) {
-    BaseDialog(
-        title = stringResource(warning.titleResId),
-        content = {
-            Column {
-                Text(
-                    "Active model: $modelName",
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(stringResource(warning.messageResId))
-            }
-        },
-        onDismiss = onContinue,
-        confirmButtonText = stringResource(R.string.ok),
-        onConfirm = onContinue,
-        dismissButtonText = stringResource(R.string.go_to_settings),
-        onDismissButton = onGoToSettings
-    )
 }
 
 @Composable

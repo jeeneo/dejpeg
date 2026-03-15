@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="close">关闭</string>
     <string name="image">图像</string>
     <string name="save">保存</string>
     <string name="before">前</string>
@@ -44,7 +43,6 @@
     <string name="camera_title">相机</string>
     <string name="camera_desc">打开设备的相机，拍摄的照片将自动导入。</string>
     <string name="set_as_default">设为默认</string>
-    <string name="help">帮助</string>
     <string name="faq_what_is_this_title">这个应用是做什么的？</string>
     <string name="faq_what_is_this_content">本应用专为优化画质、消除压缩痕迹和噪点设计。\n\n注意： 这并非“AI”或图像超分辨率处理，您的图片将保持原有的分辨率。\n其作用是让画面变得更纯净，这样您后续使用“AI 增强工具”可以获得更佳效果。</string>
     <string name="faq_which_models_title">使用哪一个模型？</string>
@@ -64,17 +62,13 @@
     <string name="go_to_settings">前往设置</string>
     <string name="import_error">导入出错</string>
     <string name="model_management">模型管理</string>
-    <string name="no_models_installed">未找到模型。请导入模型以开始。</string>
     <string name="active">可用</string>
     <string name="download">下载</string>
     <string name="delete">删除</string>
-    <string name="delete_models">删除所有模型</string>
     <string name="importing_model">导入模型</string>
     <string name="chunk_settings">ONNX设置</string>
     <string name="chunk_size">分块大小</string>
     <string name="overlap_size">重叠大小</string>
-    <string name="note_chunk_info">超过%1$d像素的图像将进行分块处理，通过重叠可防止产生可见接缝。</string>
-    <string name="large_chunk_warning">较大尺寸可能会导致不稳定。</string>
     <string name="preferences">偏好设置</string>
     <string name="vibration_on_touch">触摸时振动</string>
     <string name="faqs">常见问题</string>
@@ -90,7 +84,6 @@
     <string name="add_images">添加图像</string>
     <string name="process">进度</string>
     <string name="cancel_processing">取消</string>
-    <string name="process_all">处理全部</string>
     <string name="no_model_loaded">未加载模型</string>
     <string name="chunk_size_px">%1$d 像素</string>
     <string name="overlap_size_px">%1$d 像素</string>
@@ -101,27 +94,14 @@
     <string name="show_frequently_asked_questions">显示常见问题</string>
     <string name="imported_model">已导入 %1$s</string>
     <string name="deleted_model">已删除 %1$s</string>
-    <string name="import_anyway">仍然导入</string>
-    <string name="use_anyway">仍然使用</string>
-    <string name="import_text">导入</string>
     <string name="import_model_text">导入模型</string>
-    <string name="progress_percent">%1$d%%</string>
     <string name="open_source_app_description">一款用于去除照片噪点和压缩痕迹的开源应用</string>
     <string name="source_code">源代码</string>
     <string name="show_save_dialog">显示保存对话框</string>
     <string name="swap_swipe_actions">调换轻扫操作</string>
     <string name="default_image_source">默认来源</string>
     <string name="none">无</string>
-    <string name="photos">照片</string>
     <string name="clear_default_source">清除</string>
-    <string name="no_default_source">未设置</string>
-    <string name="cannot_open_link_detail">无法打开链接：%1$s</string>
-    <string name="expand">展开</string>
-    <string name="collapse">收起</string>
-    <string name="model_warning_outdated_title">已过时模型</string>
-    <string name="model_warning_outdated_message">这是一个较旧的 fp32 模型。现有更新、更快的 fp16 版本，请查看模型管理中的下载按钮</string>
-    <string name="model_warning_unrecognized_title">无法识别的模型</string>
-    <string name="model_warning_unrecognized_message">此模型不受官方支持，可能无法正常工作</string>
     <string name="error_processing_cancelled">处理已取消</string>
     <string name="processing_chunk_x_of_y">正在处理分块 %1$d/%2$d</string>
     <plurals name="processing_chunk_range_of_y_threads">
@@ -146,7 +126,6 @@
     <string name="starter_model_title">入门模型</string>
     <string name="starter_model_message">DeJPEG 现在提供了轻量且快速的通用模型。请不要期待它们能完美处理每一张图像。\n\n您仍可以随时从设置中导入更多模型。\n\n为获得最佳效果，可通过链接获取更多模型。\n\n如果您不需要这些模型，可以将其删除，它们将不再显示。您也可以在偏好设置中重新添加。</string>
     <string name="got_it">知道了</string>
-    <string name="extract_starter_model">提取嵌入的模型</string>
     <string name="model_info_1x_rgb_max_denoise_fp16">快速，针对噪点与压缩，主要用于动画。也可将照片转换为动画效果。</string>
     <string name="model_info_1x_span_anime_pretrain_fp16">快速，针对一般压缩与噪点。适用于动画、漫画、动漫以及部分照片。</string>
     <string name="model_info_fbcnn_color_fp16">最擅长处理一般 JPEG 压缩和轻微噪点，适用于各类彩色图像</string>
@@ -207,11 +186,8 @@
     <string name="model_info_1x_artifacts_dithering_alsa_fp16">抖动伪影</string>
     <string name="model_info_1x_nmkd_brighten_10000_g_fp16">提亮</string>
     <string name="copy">复制</string>
-    <string name="tip">提示</string>
-    <string name="tip_model_long_press">长按模型以查看其详细信息。</string>
     <string name="drag_to_compare">拖动来对比</string>
     <string name="app_icon">应用图标</string>
-    <string name="close_desc">关闭</string>
     <string name="back_desc">返回</string>
     <string name="info_desc">信息</string>
     <string name="settings_desc">设置</string>
@@ -290,14 +266,12 @@
     <string name="brisque_phase_fine_scan">细扫</string>
     <string name="brisque_phase_fine_done">细扫完成</string>
     <string name="brisque_phase_finalizing">即将完成</string>
-    <string name="oidn_description">使用 Oidn</string>
     <string name="invalid_tza_file_type">Oidn 模式仅支持 .tza 格式的模型文件</string>
     <string name="processing_mode">处理模式</string>
     <string name="mode_onnx_desc">使用 ONNX Runtime 运行预训练模型 (.onnx/.ort)</string>
     <string name="mode_oidn_desc">使用带有训练权重（.tza）的Intel® Open Image Denoise</string>
     <string name="oidn_settings">Oidn 设置</string>
     <string name="oidn_model_management">Oidn 模型管理</string>
-    <string name="oidn_no_model_loaded">未加载 .tza 模型</string>
     <string name="oidn_hdr">HDR 输入</string>
     <string name="oidn_hdr_desc">输入 HDR 图像时启用</string>
     <string name="oidn_srgb">sRGB 输入</string>

@@ -17,6 +17,7 @@
 
 package com.je.dejpeg.ui.screens
 
+import android.graphics.Bitmap
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -33,8 +34,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -58,12 +61,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SheetState
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -72,6 +78,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -96,6 +103,10 @@ import com.je.dejpeg.ui.components.SimpleAlertDialog
 import com.je.dejpeg.ui.viewmodel.BrisqueViewModel
 import com.je.dejpeg.utils.brisque.BRISQUEDescaler
 import com.je.dejpeg.utils.rememberHapticFeedback
+import kotlinx.coroutines.launch
+import me.saket.telephoto.zoomable.ZoomSpec
+import me.saket.telephoto.zoomable.rememberZoomableState
+import me.saket.telephoto.zoomable.zoomable
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -119,7 +130,6 @@ fun BRISQUEScreen(
     var showConfirm by remember { mutableStateOf(false) }
     var showInfoDialog by remember { mutableStateOf(false) }
     var showBRISQUESettings by remember { mutableStateOf(false) }
-
     LaunchedEffect(image.id) {
         brisqueViewModel.initialize(
             context, image.inputBitmap, image.filename
@@ -129,14 +139,15 @@ fun BRISQUEScreen(
         Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surface)
+            .navigationBarsPadding()
     ) {
         TopAppBar(
             title = {
-                Text(
-                    stringResource(R.string.brisque_analysis),
-                    style = MaterialTheme.typography.titleMedium
-                )
-            },
+            Text(
+                stringResource(R.string.brisque_analysis),
+                style = MaterialTheme.typography.titleMedium
+            )
+        },
             navigationIcon = {
                 IconButton(onClick = { haptic.light(); onBack() }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back_desc))
@@ -382,16 +393,15 @@ fun BRISQUEScreen(
         imageWidth = image.inputBitmap.width,
         imageHeight = image.inputBitmap.height,
         onDismiss = { showBRISQUESettings = false })
+
     if (showImageModal) {
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-        ) {
-            BeforeAfterScreen(
-                imageRepository = imageRepository,
-                imageId = image.id,
-                onBack = { showImageModal = false })
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        (brisqueState?.descaledBitmap ?: brisqueState?.originalBitmap)?.let { bitmap ->
+            ImageViewerModal(
+                bitmap = bitmap,
+                filename = image.filename,
+                sheetState = sheetState,
+                onDismiss = { showImageModal = false })
         }
     }
     if (brisqueState?.isDescaling == true) brisqueState?.descaleProgress?.let {
@@ -677,6 +687,61 @@ private fun LogEntry(text: String, isActive: Boolean = false) {
             style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
             color = if (isActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ImageViewerModal(
+    bitmap: Bitmap, filename: String, sheetState: SheetState, onDismiss: () -> Unit
+) {
+    val haptic = rememberHapticFeedback()
+    val scope = rememberCoroutineScope()
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        dragHandle = null,
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Box(Modifier.fillMaxSize()) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .zoomable(rememberZoomableState(zoomSpec = ZoomSpec(maxZoomFactor = 20f))),
+                Alignment.Center
+            ) {
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = filename,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit,
+                    filterQuality = FilterQuality.None
+                )
+            }
+            IconButton(
+                onClick = {
+                    haptic.light()
+                    scope.launch { sheetState.hide() }.invokeOnCompletion {
+                        if (!sheetState.isVisible) onDismiss()
+                    }
+                },
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .statusBarsPadding()
+                    .padding(8.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    stringResource(R.string.back_desc),
+                    Modifier.size(28.dp)
+                )
+            }
+        }
     }
 }
 

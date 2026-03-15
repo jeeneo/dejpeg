@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="close">Закрыть</string>
     <string name="image">Изображение</string>
     <string name="save">Сохранить</string>
     <string name="before">До</string>
@@ -47,7 +46,6 @@
     <string name="camera_title">Камера устройства</string>
     <string name="camera_desc">Открывает камеру вашего устройства, сделанные фотографии будут импортированы автоматически.</string>
     <string name="set_as_default">Сделать по умолчанию</string>
-    <string name="help">Помощь</string>
     <!-- FAQ Content -->
     <string name="faq_what_is_this_title">Для чего предназначено это приложение?</string>
     <string name="faq_what_is_this_content">Это приложение предназначено для удаления сжатия изображений, шума и других неприятных артефактов.\n\nПримечание: это не «ИИ» или масштабирование изображений, ваши изображения сохраняют прежнее разрешение.\nОно предназначено для обеспечения более чистого изображения, что может дать лучшие результаты, если вы используете «улучшители на основе ИИ».</string>
@@ -68,17 +66,13 @@
     <string name="go_to_settings">Настройки</string>
     <string name="import_error">Ошибка импорта</string>
     <string name="model_management">Управление моделями</string>
-    <string name="no_models_installed">Модели не найдены. Импортируйте модель, чтобы начать.</string>
     <string name="active">Текущая</string>
     <string name="download">Загрузить</string>
     <string name="delete">Удалить</string>
-    <string name="delete_models">Удалить модели</string>
     <string name="importing_model">Импорт модели</string>
     <string name="chunk_settings">Параметры ONNX</string>
     <string name="chunk_size">Размер фрагмента</string>
     <string name="overlap_size">Размер перекрытия</string>
-    <string name="note_chunk_info">Изображения размером более %1$d px, будут разбиты на фрагменты, а перекрытие предотвратит появление видимых швов.</string>
-    <string name="large_chunk_warning">Большие размеры могут вызвать нестабильность.</string>
     <string name="preferences">Предпочтения</string>
     <string name="vibration_on_touch">Вибрация при касании</string>
     <!-- <string name="haptic_feedback_desc">Включить небольшую вибрацию для действий</string> -->
@@ -95,7 +89,6 @@
     <string name="add_images">Добавить изображения</string>
     <string name="process">Процесс</string>
     <string name="cancel_processing">Отменить</string>
-    <string name="process_all">Обработать все</string>
     <string name="no_model_loaded">Модель не загружена</string>
     <string name="chunk_size_px">%1$d px</string>
     <string name="overlap_size_px">%1$d px</string>
@@ -106,11 +99,7 @@
     <string name="show_frequently_asked_questions">Показать часто задаваемые вопросы</string>
     <string name="imported_model">Импортировано %1$s</string>
     <string name="deleted_model">Удалено %1$s</string>
-    <string name="import_anyway">Импортировать в любом случае</string>
-    <string name="use_anyway">Использовать в любом случае</string>
-    <string name="import_text">Импорт</string>
     <string name="import_model_text">Импорт модели</string>
-    <string name="progress_percent">%1$d%%</string>
     <string name="open_source_app_description">Приложение с открытым исходным кодом для удаления шума и сжатия с фотографий</string>
     <string name="source_code">Исходный код</string>
     <string name="show_save_dialog">Диалог сохранения</string>
@@ -151,16 +140,7 @@
     <string name="brisque_fine_stepping">Мелкие шаги</string>
     <string name="default_image_source">Источник по умолчанию</string>
     <string name="none">ничего</string>
-    <string name="photos">Фотографии</string>
     <string name="clear_default_source">Очистить</string>
-    <string name="no_default_source">Не задано</string>
-    <string name="cannot_open_link_detail">Невозможно открыть ссылку: %1$s</string>
-    <string name="expand">Развернуть</string>
-    <string name="collapse">Свернуть</string>
-    <string name="model_warning_outdated_title">Устаревшая модель</string>
-    <string name="model_warning_outdated_message">Это старая модель fp32. Доступна более новая/быстрая версия fp16, проверьте кнопку загрузки в разделе управления моделями</string>
-    <string name="model_warning_unrecognized_title">Неизвестная модель</string>
-    <string name="model_warning_unrecognized_message">Данная модель официально не поддерживается и может работать некорректно</string>
     <string name="error_processing_cancelled">Обработка отменена</string>
     <string name="processing_chunk_x_of_y">Обработка фрагмента %1$d/%2$d</string>
     <plurals name="processing_chunk_range_of_y_threads">
@@ -188,7 +168,6 @@
     <string name="starter_model_title">Базовые модели</string>
     <string name="starter_model_message">Теперь в DeJPEG включены небольшие быстрые модели общего назначения. Не стоит ожидать, что они будут идеально обрабатывать каждое изображение.\n\nДля достижения наилучших результатов по ссылкам доступны дополнительные модели.\n\nЕсли вам не нужны эти модели, вы можете удалить их, и они больше не будут отображаться. Их также можно добавить обратно в настройках.</string>
     <string name="got_it">Понятно</string>
-    <string name="extract_starter_model">Извлечь встроенные модели</string>
     <string name="model_info_1x_rgb_max_denoise_fp16">Быстрое шумоподавление и сжатие, в основном для анимации. Или может превращать фотографии в мультфильмы.</string>
     <string name="model_info_1x_span_anime_pretrain_fp16">Быстрое общее сжатие, общий шум. Подходит для анимации, комиксов, аниме и некоторых фотографий.</string>
     <string name="model_info_fbcnn_color_fp16">Лучше всего подходит для общего сжатия JPEG, с незначительным уровнем шума, для любых цветных изображений</string>
@@ -253,11 +232,8 @@
     <string name="model_info_1x_noise_toner_uniform_soft_100000_g_fp16">Тонирование равномерным шумом (мягкое)</string>
     <string name="model_info_1x_nmkd_brighten_10000_g_fp16">Осветление</string>
     <string name="copy">Копировать</string>
-    <string name="tip">Подсказка</string>
-    <string name="tip_model_long_press">Нажмите и удерживайте модель, чтобы просмотреть информацию о ней.</string>
     <string name="drag_to_compare">Перетащите для сравнения</string>
     <string name="app_icon">Значок приложения</string>
-    <string name="close_desc">Закрыть</string>
     <string name="back_desc">Назад</string>
     <string name="info_desc">Информация</string>
     <string name="settings_desc">Настройки</string>
@@ -314,7 +290,6 @@
     <string name="mode_oidn_desc">Использует Intel® Open Image Denoise с обученными весами (.tza)</string>
     <string name="oidn_settings">Параметры Oidn</string>
     <string name="oidn_model_management">Управление весами</string>
-    <string name="oidn_no_model_loaded">Нет загруженных весов</string>
     <string name="oidn_hdr">HDR-вход</string>
     <string name="oidn_hdr_desc">Включить, если входное изображение в формате HDR</string>
     <string name="oidn_srgb">sRGB‑вход</string>
@@ -329,8 +304,6 @@
     <string name="oidn_settings_desc">HDR, sRGB, качество, потоки</string>
     <string name="import_tza_model">Импорт весов</string>
     <string name="no_oidn_models_installed">Файлы весов (.tza) не найдены. Импортируйте веса, чтобы начать.</string>
-    <string name="oidn_description">с поддержкой OIDN</string>
-    <string name="processing_threads_desc">Определяет количество фрагментов, обрабатываемых параллельно.</string>
-    <string name="processing_threads_max">Макс. доступно на этом устройстве: %1$d</string>
+    <string name="processing_threads_desc">Параллельный</string>
     <string name="thread_value_auto">Авто (%1$d)</string>
 </resources>
