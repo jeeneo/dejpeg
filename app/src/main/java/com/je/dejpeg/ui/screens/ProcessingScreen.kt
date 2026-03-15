@@ -134,7 +134,6 @@ import com.je.dejpeg.ui.viewmodel.ProcessingUiState
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
 import com.je.dejpeg.utils.HapticFeedbackPerformer
-import com.je.dejpeg.utils.helpers.ImageActions
 import com.je.dejpeg.utils.rememberHapticFeedback
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -185,6 +184,7 @@ fun ProcessingScreen(
     var showImageSourceDialog by remember { mutableStateOf(false) }
     var showCancelAllDialog by remember { mutableStateOf(false) }
     var saveErrorMessage by remember { mutableStateOf<String?>(null) }
+    var saveDialogState by remember { mutableStateOf<Pair<String, String>?>(null) }
     var overwriteDialogState by remember { mutableStateOf<Pair<String, String>?>(null) }
 
     DisposableEffect(Unit) {
@@ -194,6 +194,7 @@ fun ProcessingScreen(
             showImageSourceDialog = false
             showCancelAllDialog = false
             saveErrorMessage = null
+            saveDialogState = null
             overwriteDialogState = null
         }
     }
@@ -252,8 +253,8 @@ fun ProcessingScreen(
     LaunchedEffect(images) {
         imageIdToRemove = imageIdToRemove?.takeIf { id -> images.any { it.id == id } }
         imageIdToCancel = imageIdToCancel?.takeIf { id -> images.any { it.id == id } }
-        overwriteDialogState =
-            overwriteDialogState?.takeIf { (id, _) -> images.any { it.id == id } }
+        overwriteDialogState = overwriteDialogState?.takeIf { (id, _) -> images.any { it.id == id } }
+        saveDialogState = saveDialogState?.takeIf { (id, _) -> images.any { it.id == id } }
     }
 
     LaunchedEffect(Unit) {
@@ -645,13 +646,7 @@ fun ProcessingScreen(
                         val onLeftSwipe = remember(image.id, hasOutput) {
                             {
                                 if (hasOutput) {
-                                    if (ImageActions.checkFileExists(image.filename)) overwriteDialogState =
-                                        Pair(image.id, image.filename)
-                                    else imageRepository.saveImage(
-                                        context,
-                                        image.id,
-                                        onSuccess = { performRemoval(image.id) },
-                                        onError = { saveErrorMessage = it })
+                                    saveDialogState = Pair(image.id, image.filename)
                                 } else onProcess()
                             }
                         }
@@ -691,19 +686,8 @@ fun ProcessingScreen(
                 onDismissRequest = { imageIdToRemove = null },
                 onRemove = { performRemoval(targetId) },
                 onSaveAndRemove = {
-                    if (ImageActions.checkFileExists(image.filename)) {
-                        imageIdToRemove = null
-                        overwriteDialogState = Pair(targetId, image.filename)
-                    } else {
-                        imageRepository.saveImage(
-                            context = context,
-                            imageId = targetId,
-                            onSuccess = { performRemoval(targetId) },
-                            onError = {
-                                imageIdToRemove = null
-                                saveErrorMessage = it
-                            })
-                    }
+                    imageIdToRemove = null
+                    saveDialogState = Pair(targetId, image.filename)
                 })
         } ?: run { imageIdToRemove = null }
     }
@@ -770,6 +754,23 @@ fun ProcessingScreen(
                     name,
                     onSuccess = { performRemoval(id); overwriteDialogState = null },
                     onError = { overwriteDialogState = null; saveErrorMessage = it })
+            })
+    }
+
+    saveDialogState?.let { (id, fn) ->
+        SaveImageDialog(
+            defaultFilename = fn,
+            showSaveAllOption = false,
+            initialSaveAll = false,
+            hideOptions = false,
+            onDismissRequest = { saveDialogState = null },
+            onSave = { name, _, _ ->
+                imageRepository.saveImage(
+                    context,
+                    id,
+                    name,
+                    onSuccess = { performRemoval(id); saveDialogState = null },
+                    onError = { saveDialogState = null; saveErrorMessage = it })
             })
     }
 
@@ -931,7 +932,6 @@ fun ChunkProgressIndicator(completedChunks: Int, totalChunks: Int) {
         modifier = Modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.primary,
         trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-        // amplitude = { progress -> progress },
     )
 }
 
