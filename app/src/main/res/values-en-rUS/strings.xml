@@ -288,7 +288,4 @@
     <string name="oidn_num_threads_desc">0 = auto</string>
     <string name="oidn_settings_desc">HDR, sRGB, quality, threads</string>
     <string name="import_tza_model">Import .tza model</string>
-    <string name="app_name" translatable="false"></string>
-    <string name="mode_oidn" translatable="false"></string>
-    <string name="mode_onnx" translatable="false"></string>
 </resources>
