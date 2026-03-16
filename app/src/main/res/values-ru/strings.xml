@@ -295,4 +295,10 @@
     <string name="processing_threads_desc">Параллельный</string>
     <string name="thread_value_auto">Авто (%1$d)</string>
     <string name="info">Инфо</string>
+    <string name="reprocess"></string>
+    <string name="mode_onnx" translatable="false"></string>
+    <string name="extracted_starter_models"></string>
+    <string name="extract"></string>
+    <string name="app_name" translatable="false"></string>
+    <string name="mode_oidn" translatable="false"></string>
 </resources>
