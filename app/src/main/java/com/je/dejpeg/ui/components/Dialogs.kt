@@ -31,7 +31,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -883,10 +882,10 @@ private fun GroupedSourceTile(
     onHelpClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
+    val press by rememberMaterialPressState(interactionSource)
 
-    LaunchedEffect(isPressed) {
-        onPressedChange(if (isPressed) tileKey else null)
+    LaunchedEffect(press) {
+        onPressedChange(if (press > 0f) tileKey else null)
     }
 
     val isThisTilePressed = pressedTile == tileKey

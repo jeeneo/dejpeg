@@ -35,7 +35,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -103,6 +102,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.lerp
 import androidx.core.net.toUri
 import com.je.dejpeg.BuildConfig
 import com.je.dejpeg.ModelManager
@@ -112,6 +112,7 @@ import com.je.dejpeg.data.ProcessingMode
 import com.je.dejpeg.ui.components.AboutDialog
 import com.je.dejpeg.ui.components.BaseDialog
 import com.je.dejpeg.ui.components.loadFAQSections
+import com.je.dejpeg.ui.components.rememberMaterialPressState
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
 import com.je.dejpeg.utils.rememberHapticFeedback
 import kotlinx.coroutines.Dispatchers
@@ -245,23 +246,18 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
             Box(Modifier.padding(bottom = 100.dp)) {
                 val haptic = rememberHapticFeedback()
                 val fabInteractionSource = remember { MutableInteractionSource() }
-                val isFabPressed by fabInteractionSource.collectIsPressedAsState()
-                val animatedFabCorner by animateFloatAsState(
-                    targetValue = if (isFabPressed) 28f else 16f, animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    ), label = "fab_corner"
-                )
+                val fabPress by rememberMaterialPressState(fabInteractionSource)
+                val animatedFabCorner = lerp(16f, 28f, fabPress)
 
                 ExtendedFloatingActionButton(
                     onClick = {
-                    haptic.light()
-                    if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN) {
-                        oidnModelPickerLauncher.launch("*/*")
-                    } else {
-                        modelPickerLauncher.launch("*/*")
-                    }
-                },
+                        haptic.light() // huh wonky, reformatting doesnt like you
+                        if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN) {
+                            oidnModelPickerLauncher.launch("*/*")
+                        } else {
+                            modelPickerLauncher.launch("*/*")
+                        }
+                    },
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = {
                         Text(
@@ -722,41 +718,42 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
 
             val isOidn = BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN
 
-            Box(modifier = Modifier
-                .fillMaxWidth()
-                .onSizeChanged { containerWidth = it.width }
-                .clip(MaterialTheme.shapes.large)
-                .pointerInput(processingMode) {
-                    if (!BuildConfig.OIDN_ENABLED) return@pointerInput
-                    detectHorizontalDragGestures(onDragEnd = {
-                        val threshold = containerWidth * 0.35f
-                        scope.launch {
-                            if (animatedOffset.value > threshold && processingMode == ProcessingMode.OIDN) {
-                                animatedOffset.animateTo(containerWidth.toFloat(), spring())
-                                viewModel.setProcessingMode(ProcessingMode.ONNX)
-                                animatedOffset.snapTo(0f)
-                            } else if (animatedOffset.value < -threshold && processingMode == ProcessingMode.ONNX) {
-                                animatedOffset.animateTo(
-                                    -containerWidth.toFloat(), spring()
-                                )
-                                viewModel.setProcessingMode(ProcessingMode.OIDN)
-                                animatedOffset.snapTo(0f)
-                            } else {
-                                animatedOffset.animateTo(0f, spring())
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onSizeChanged { containerWidth = it.width }
+                    .clip(MaterialTheme.shapes.large)
+                    .pointerInput(processingMode) {
+                        if (!BuildConfig.OIDN_ENABLED) return@pointerInput
+                        detectHorizontalDragGestures(onDragEnd = {
+                            val threshold = containerWidth * 0.35f
+                            scope.launch {
+                                if (animatedOffset.value > threshold && processingMode == ProcessingMode.OIDN) {
+                                    animatedOffset.animateTo(containerWidth.toFloat(), spring())
+                                    viewModel.setProcessingMode(ProcessingMode.ONNX)
+                                    animatedOffset.snapTo(0f)
+                                } else if (animatedOffset.value < -threshold && processingMode == ProcessingMode.ONNX) {
+                                    animatedOffset.animateTo(
+                                        -containerWidth.toFloat(), spring()
+                                    )
+                                    viewModel.setProcessingMode(ProcessingMode.OIDN)
+                                    animatedOffset.snapTo(0f)
+                                } else {
+                                    animatedOffset.animateTo(0f, spring())
+                                }
                             }
-                        }
-                    }, onDragCancel = {
-                        scope.launch { animatedOffset.animateTo(0f, spring()) }
-                    }, onHorizontalDrag = { change, dragAmount ->
-                        change.consume()
-                        val newOffset = animatedOffset.value + dragAmount
-                        val clamped = when (processingMode) {
-                            ProcessingMode.OIDN -> newOffset.coerceAtLeast(0f)
-                            ProcessingMode.ONNX -> newOffset.coerceAtMost(0f)
-                        }
-                        scope.launch { animatedOffset.snapTo(clamped) }
-                    })
-                }) {
+                        }, onDragCancel = {
+                            scope.launch { animatedOffset.animateTo(0f, spring()) }
+                        }, onHorizontalDrag = { change, dragAmount ->
+                            change.consume()
+                            val newOffset = animatedOffset.value + dragAmount
+                            val clamped = when (processingMode) {
+                                ProcessingMode.OIDN -> newOffset.coerceAtLeast(0f)
+                                ProcessingMode.ONNX -> newOffset.coerceAtMost(0f)
+                            }
+                            scope.launch { animatedOffset.snapTo(clamped) }
+                        })
+                    }) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1186,12 +1183,8 @@ fun PreferenceItem(
 ) {
     val haptic = rememberHapticFeedback()
     val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val animatedIconCorner by animateFloatAsState(
-        targetValue = if (isPressed) 22f else 14f, animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium
-        ), label = "icon_corner"
-    )
+    val press by rememberMaterialPressState(interactionSource)
+    val animatedIconCorner = lerp(14f, 22f, press)
 
     Row(
         modifier = Modifier
@@ -1286,10 +1279,11 @@ fun FAQSection(title: String, content: String?, subSections: List<Pair<String, S
     )
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        Row(modifier = Modifier
-            .fillMaxWidth()
-            .clickable { haptic.light(); expanded = !expanded }
-            .padding(vertical = 8.dp),
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { haptic.light(); expanded = !expanded }
+                .padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
             Text(title, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))

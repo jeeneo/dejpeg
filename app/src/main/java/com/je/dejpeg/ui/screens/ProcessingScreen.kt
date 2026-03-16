@@ -28,6 +28,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandHorizontally
@@ -41,7 +42,7 @@ import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -74,7 +75,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -113,9 +113,11 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.util.lerp
 import com.je.dejpeg.ExitActivity
 import com.je.dejpeg.ModelType
 import com.je.dejpeg.R
@@ -129,6 +131,7 @@ import com.je.dejpeg.ui.components.ImageSourceDialog
 import com.je.dejpeg.ui.components.LoadingDialog
 import com.je.dejpeg.ui.components.RemoveImageDialog
 import com.je.dejpeg.ui.components.SaveImageDialog
+import com.je.dejpeg.ui.components.rememberMaterialPressState
 import com.je.dejpeg.ui.viewmodel.ImageItem
 import com.je.dejpeg.ui.viewmodel.ProcessingUiState
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
@@ -253,7 +256,8 @@ fun ProcessingScreen(
     LaunchedEffect(images) {
         imageIdToRemove = imageIdToRemove?.takeIf { id -> images.any { it.id == id } }
         imageIdToCancel = imageIdToCancel?.takeIf { id -> images.any { it.id == id } }
-        overwriteDialogState = overwriteDialogState?.takeIf { (id, _) -> images.any { it.id == id } }
+        overwriteDialogState =
+            overwriteDialogState?.takeIf { (id, _) -> images.any { it.id == id } }
         saveDialogState = saveDialogState?.takeIf { (id, _) -> images.any { it.id == id } }
     }
 
@@ -348,20 +352,12 @@ fun ProcessingScreen(
                 val isProcessing = uiState is ProcessingUiState.Processing
                 val allComplete =
                     images.isNotEmpty() && images.all { it.outputBitmap != null && !it.isOutputStale && !it.isProcessing }
-                val procInteraction =
-                    remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-                val isProcPressed by procInteraction.collectIsPressedAsState()
+                val procInteraction = remember { MutableInteractionSource() }
+                val procPress by rememberMaterialPressState(procInteraction)
 
-                val fabCorner by animateFloatAsState(
-                    targetValue = if (isProcPressed) 28f else if (allComplete) 16f else 18f,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    ),
-                    label = "fab_corner"
-                )
+                val fabCorner = lerp(if (allComplete) 16f else 18f, 28f, procPress)
 
-                val fabWidthDp by androidx.compose.animation.core.animateDpAsState(
+                val fabWidthDp by animateDpAsState(
                     targetValue = if (allComplete) 160.dp else 56.dp, animationSpec = spring(
                         dampingRatio = Spring.DampingRatioMediumBouncy,
                         stiffness = Spring.StiffnessMedium
@@ -461,14 +457,9 @@ fun ProcessingScreen(
                     }
                 }
 
-                val addInteraction =
-                    remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-                val isAddPressed by addInteraction.collectIsPressedAsState()
-                val addCorner by animateFloatAsState(
-                    targetValue = if (isAddPressed) 28f else 18f,
-                    animationSpec = spring(),
-                    label = "add_corner"
-                )
+                val addInteraction = remember { MutableInteractionSource() }
+                val addPress by rememberMaterialPressState(addInteraction)
+                val addCorner = lerp(18f, 28f, addPress)
                 FloatingActionButton(
                     onClick = { importImage() },
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -554,15 +545,9 @@ fun ProcessingScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Spacer(Modifier.height(48.dp))
-                    val buttonInteractionSource =
-                        remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-                    val isButtonAreaPressed by buttonInteractionSource.collectIsPressedAsState()
-                    val animatedCornerRadius by animateFloatAsState(
-                        targetValue = if (isButtonAreaPressed) 24f else 12f, animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessMedium
-                        ), label = "button_corner"
-                    )
+                    val buttonInteractionSource = remember { MutableInteractionSource() }
+                    val buttonAreaPress by rememberMaterialPressState(buttonInteractionSource)
+                    val animatedCornerRadius = lerp(12f, 24f, buttonAreaPress)
                     val emptyStateDashedColor = MaterialTheme.colorScheme.surfaceVariant
                     Box(
                         Modifier
@@ -948,54 +933,22 @@ fun ImageCard(
     isProcessing: Boolean = false,
     haptic: HapticFeedbackPerformer
 ) {
-    val cardInteractionSource =
-        remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-    val isCardPressed by cardInteractionSource.collectIsPressedAsState()
-    val animatedBadgeCorner by animateFloatAsState(
-        targetValue = if (isCardPressed) 24f else 8f, animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium
-        ), label = "badge_corner"
-    )
-    val animatedCardCorner by animateFloatAsState(
-        targetValue = if (isCardPressed) 24f else 16f, animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium
-        ), label = "card_corner"
-    )
+    val cardInteractionSource = remember { MutableInteractionSource() }
+    val cardPress by rememberMaterialPressState(cardInteractionSource)
+    val processInteraction = remember { MutableInteractionSource() }
+    val removeInteraction = remember { MutableInteractionSource() }
+    val brisqueInteraction = remember { MutableInteractionSource() }
+    val animatedBadgeCorner = lerp(8f, 24f, cardPress)
+    val animatedCardCorner = lerp(16f, 24f, cardPress)
+    val processPress by rememberMaterialPressState(processInteraction)
+    val removePress by rememberMaterialPressState(removeInteraction)
+    val brisquePress by rememberMaterialPressState(brisqueInteraction)
 
-    val processInteraction =
-        remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-    val removeInteraction =
-        remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-    val brisqueInteraction =
-        remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-    val cancelInteraction =
-        remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-
-    val isProcessPressed by processInteraction.collectIsPressedAsState()
-    val isRemovePressed by removeInteraction.collectIsPressedAsState()
-    val isBrisquePressed by brisqueInteraction.collectIsPressedAsState()
-    val isCancelPressed by cancelInteraction.collectIsPressedAsState()
-
-    val removeStartCorner by animateFloatAsState(
-        targetValue = if (isRemovePressed) 28f else 6f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "remove_start"
+    val bouncySpringFloat = spring<Float>(
+        dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium
     )
-    val removeEndCorner by animateFloatAsState(
-        targetValue = if (isRemovePressed) 28f else 6f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "remove_end"
-    )
-
-    val brisqueStartCorner by animateFloatAsState(
-        targetValue = if (isBrisquePressed) 28f else 6f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "brisque_start"
-    )
-    val brisqueEndCorner by animateFloatAsState(
-        targetValue = 28f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "brisque_end"
+    val bouncySpringDp = spring<Dp>(
+        dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium
     )
 
     Card(
@@ -1019,11 +972,11 @@ fun ImageCard(
                 .padding(12.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            val imageBitmap = remember(
-                image.thumbnailBitmap ?: image.outputBitmap ?: image.inputBitmap
-            ) {
-                (image.thumbnailBitmap ?: image.outputBitmap ?: image.inputBitmap).asImageBitmap()
-            }
+            val imageBitmap =
+                remember(image.thumbnailBitmap, image.outputBitmap, image.inputBitmap) {
+                    (image.thumbnailBitmap ?: image.outputBitmap
+                    ?: image.inputBitmap).asImageBitmap()
+                }
             Surface(
                 Modifier
                     .size(72.dp)
@@ -1090,194 +1043,184 @@ fun ImageCard(
             }
         }
 
-        HorizontalDivider(
-            Modifier.padding(horizontal = 12.dp),
-            thickness = 0.5.dp,
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+        val isActive = image.isProcessing
+        val isStale = image.outputBitmap != null && image.isOutputStale && !isActive
+
+        val morphContainerColor by animateColorAsState(
+            targetValue = when {
+                isActive -> MaterialTheme.colorScheme.errorContainer
+                isStale -> MaterialTheme.colorScheme.tertiaryContainer
+                image.outputBitmap != null -> MaterialTheme.colorScheme.primaryContainer
+                else -> MaterialTheme.colorScheme.secondaryContainer
+            },
+            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+            label = "morph_container"
+        )
+        val morphContentColor by animateColorAsState(
+            targetValue = when {
+                isActive -> MaterialTheme.colorScheme.onErrorContainer
+                isStale -> MaterialTheme.colorScheme.onTertiaryContainer
+                image.outputBitmap != null -> MaterialTheme.colorScheme.onPrimaryContainer
+                else -> MaterialTheme.colorScheme.onSecondaryContainer
+            },
+            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+            label = "morph_content"
         )
 
-        Row(
+        Box(
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 8.dp, vertical = 8.dp)
         ) {
-            val isActive = image.isProcessing
-            val isStale = image.outputBitmap != null && image.isOutputStale && !isActive
-            val morphContainerColor by animateColorAsState(
-                targetValue = when {
-                    isActive -> MaterialTheme.colorScheme.errorContainer
-                    isStale -> MaterialTheme.colorScheme.tertiaryContainer
-                    image.outputBitmap != null -> MaterialTheme.colorScheme.primaryContainer
-                    else -> MaterialTheme.colorScheme.secondaryContainer
-                },
-                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                label = "morph_container"
-            )
-            val morphContentColor by animateColorAsState(
-                targetValue = when {
-                    isActive -> MaterialTheme.colorScheme.onErrorContainer
-                    isStale -> MaterialTheme.colorScheme.onTertiaryContainer
-                    image.outputBitmap != null -> MaterialTheme.colorScheme.onPrimaryContainer
-                    else -> MaterialTheme.colorScheme.onSecondaryContainer
-                },
-                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                label = "morph_content"
-            )
-            val morphStartCorner by animateFloatAsState(
-                targetValue = when {
-                    isActive && isCancelPressed -> 6f
-                    isProcessPressed -> 28f
-                    else -> 28f
-                },
-                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                label = "morph_start_corner"
-            )
-            val morphEndCorner by animateFloatAsState(
-                targetValue = when {
-                    isActive && isCancelPressed -> 6f
-                    isActive -> 28f
-                    isProcessPressed -> 28f
-                    else -> 6f
-                },
-                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                label = "morph_end_corner"
-            )
+            Row(
+                Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(
+                    animateDpAsState(
+                        targetValue = if (isActive) 0.dp else 6.dp, animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        ), label = "button_spacing"
+                    ).value
+                ), verticalAlignment = Alignment.CenterVertically
+            ) {
+                val pressOffset = 0.18f
 
-            val primaryState = when {
-                isActive -> "processing"
-                image.outputBitmap != null && image.isOutputStale -> "reprocess"
-                image.outputBitmap != null -> "save"
-                else -> "process"
-            }
-            Button(
-                onClick = {
-                    when (primaryState) {
-                        "processing" -> {
-                            haptic.heavy(); onRemove()
+                val primaryWeight by animateFloatAsState(
+                    targetValue = when {
+                        isActive -> 1f
+                        processPress > 0f -> 1f + pressOffset
+                        removePress > 0f -> 1f - pressOffset * 0.5f
+                        else -> 1f
+                    }, animationSpec = bouncySpringFloat, label = "primary_weight"
+                )
+
+                val removeWidth by animateDpAsState(
+                    targetValue = when {
+                        isActive -> 0.dp
+                        else -> lerp(145f, 166f, removePress).dp - lerp(0f, 15f, processPress).dp
+                    }, animationSpec = bouncySpringDp, label = "remove_width"
+                )
+
+                val brisqueWidth by animateDpAsState(
+                    targetValue = when {
+                        isActive -> 0.dp
+                        brisquePress > 0f -> 56.dp
+                        removePress > 0f -> 32.dp
+                        processPress > 0f -> 32.dp
+                        else -> 40.dp
+                    }, animationSpec = bouncySpringDp, label = "brisque_width"
+                )
+
+                val brisqueCorner by animateDpAsState(
+                    targetValue = lerp(28f, 6f, brisquePress).dp,
+                    animationSpec = bouncySpringDp,
+                )
+
+                val processStartCorner by animateDpAsState(
+                    targetValue = lerp(28f, 6f, processPress).dp,
+                    animationSpec = bouncySpringDp,
+                    label = "process_start_corner"
+                )
+                val processEndCorner by animateDpAsState(
+                    targetValue = if (isActive) lerp(28f, 6f, processPress).dp else 6.dp,
+                    animationSpec = bouncySpringDp,
+                    label = "process_end_corner"
+                )
+
+                val processShape = RoundedCornerShape(
+                    topStart = processStartCorner,
+                    bottomStart = processStartCorner,
+                    topEnd = processEndCorner,
+                    bottomEnd = processEndCorner
+                )
+
+                Box(Modifier.weight(primaryWeight)) {
+                    Button(
+                        onClick = {
+                            when {
+                                isActive -> {
+                                    haptic.heavy(); onRemove()
+                                }
+
+                                image.outputBitmap != null && !image.isOutputStale -> {
+                                    haptic.medium(); onSave()
+                                }
+
+                                else -> {
+                                    haptic.medium(); onProcess()
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = processShape,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = morphContainerColor, contentColor = morphContentColor
+                        ),
+                        interactionSource = processInteraction
+                    ) {
+                        val (icon, label) = when {
+                            isActive -> Icons.Filled.Close to stringResource(R.string.cancel)
+                            image.outputBitmap != null && image.isOutputStale -> Icons.Filled.PlayArrow to stringResource(
+                                R.string.reprocess
+                            )
+
+                            image.outputBitmap != null -> Icons.Filled.Save to stringResource(R.string.save)
+                            else -> Icons.Filled.PlayArrow to stringResource(R.string.process)
                         }
 
-                        "save" -> {
-                            haptic.medium(); onSave()
-                        }
+                        Icon(icon, null, Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(label, style = MaterialTheme.typography.labelLarge)
+                    }
+                }
 
-                        "reprocess" -> {
-                            haptic.medium(); onProcess()
-                        }
-
-                        else -> {
-                            haptic.medium(); onProcess()
+                if (!isActive && removeWidth > 90.dp) { // keep both buttons gated together to avoid quirky button jerking
+                    Box(Modifier.width(removeWidth)) {
+                        Button(
+                            onClick = { haptic.heavy(); onRemove() },
+                            modifier = Modifier.width(removeWidth),
+                            shape = RoundedCornerShape(6.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer,
+                                contentColor = MaterialTheme.colorScheme.onErrorContainer
+                            ),
+                            contentPadding = PaddingValues(0.dp),
+                            interactionSource = removeInteraction
+                        ) {
+                            Icon(Icons.Filled.Delete, null, Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                stringResource(R.string.remove),
+                                style = MaterialTheme.typography.labelLarge
+                            )
                         }
                     }
-                }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(
-                    topStart = morphStartCorner.dp,
-                    bottomStart = morphStartCorner.dp,
-                    topEnd = morphEndCorner.dp,
-                    bottomEnd = morphEndCorner.dp
-                ), colors = ButtonDefaults.buttonColors(
-                    containerColor = morphContainerColor, contentColor = morphContentColor
-                ), interactionSource = if (isActive) cancelInteraction else processInteraction
-            ) {
-                androidx.compose.animation.Crossfade(
-                    targetState = primaryState,
-                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                    label = "morph_icon"
-                ) { state ->
-                    Icon(
-                        when (state) {
-                            "processing" -> Icons.Filled.Close
-                            "save" -> Icons.Filled.Save
-                            "reprocess" -> Icons.Filled.PlayArrow
-                            else -> Icons.Filled.PlayArrow
-                        }, null, Modifier.size(16.dp)
-                    )
-                }
-                Spacer(Modifier.width(4.dp))
-                androidx.compose.animation.Crossfade(
-                    targetState = primaryState,
-                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                    label = "morph_label"
-                ) { state ->
-                    Text(
-                        when (state) {
-                            "processing" -> stringResource(R.string.cancel_processing)
-                            "save" -> stringResource(R.string.save)
-                            "reprocess" -> stringResource(R.string.reprocess)
-                            else -> stringResource(R.string.process)
-                        }, style = MaterialTheme.typography.labelLarge
-                    )
-                }
-            }
 
-            androidx.compose.animation.AnimatedVisibility(
-                visible = !isActive,
-                enter = fadeIn(spring(stiffness = Spring.StiffnessMedium)) + expandHorizontally(
-                    spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                    expandFrom = Alignment.Start
-                ),
-                exit = fadeOut(spring(stiffness = Spring.StiffnessMedium)) + shrinkHorizontally(
-                    spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                    shrinkTowards = Alignment.Start
-                )
-            ) {
-                Button(
-                    onClick = { haptic.heavy(); onRemove() },
-                    modifier = Modifier.width(140.dp),
-                    shape = RoundedCornerShape(
-                        topStart = removeStartCorner.dp,
-                        bottomStart = removeStartCorner.dp,
-                        topEnd = removeEndCorner.dp,
-                        bottomEnd = removeEndCorner.dp
-                    ),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer
-                    ),
-                    interactionSource = removeInteraction
-                ) {
-                    Icon(Icons.Filled.Delete, null, Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        stringResource(R.string.remove), style = MaterialTheme.typography.labelLarge
-                    )
-                }
-            }
-
-            androidx.compose.animation.AnimatedVisibility(
-                visible = !isActive,
-                enter = fadeIn(spring(stiffness = Spring.StiffnessMedium)) + expandHorizontally(
-                    spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                    expandFrom = Alignment.Start
-                ),
-                exit = fadeOut(spring(stiffness = Spring.StiffnessMedium)) + shrinkHorizontally(
-                    spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                    shrinkTowards = Alignment.Start
-                )
-            ) {
-                Button(
-                    onClick = { haptic.light(); onBrisque() },
-                    modifier = Modifier.width(48.dp),
-                    shape = RoundedCornerShape(
-                        topStart = brisqueStartCorner.dp,
-                        bottomStart = brisqueStartCorner.dp,
-                        topEnd = brisqueEndCorner.dp,
-                        bottomEnd = brisqueEndCorner.dp
-                    ),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    ),
-                    contentPadding = PaddingValues(0.dp),
-                    interactionSource = brisqueInteraction
-                ) {
-                    Text(
-                        "B",
-                        fontStyle = FontStyle.Italic,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Box(Modifier.width(brisqueWidth)) {
+                        Button(
+                            onClick = { haptic.light(); onBrisque() },
+                            modifier = Modifier.width(brisqueWidth),
+                            shape = RoundedCornerShape(
+                                topStart = 6.dp,
+                                bottomStart = 6.dp,
+                                topEnd = brisqueCorner,
+                                bottomEnd = brisqueCorner
+                            ),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            contentPadding = PaddingValues(0.dp),
+                            interactionSource = brisqueInteraction
+                        ) {
+                            Text(
+                                "B",
+                                fontStyle = FontStyle.Italic,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                 }
             }
         }
