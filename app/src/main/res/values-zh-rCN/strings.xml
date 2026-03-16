@@ -278,4 +278,13 @@
     <string name="oidn_settings_desc">HDR，sRGB，质量，线程</string>
     <string name="import_tza_model">导入 .tza 模型</string>
     <string name="model_info_1x_jpeg_80_100_fp16">JPEG 压缩（质量 80–100）</string>
+    <string name="reprocess"></string>
+    <string name="processing_threads_desc"></string>
+    <string name="mode_onnx" translatable="false"></string>
+    <string name="info"></string>
+    <string name="extracted_starter_models"></string>
+    <string name="thread_value_auto"></string>
+    <string name="extract"></string>
+    <string name="app_name" translatable="false"></string>
+    <string name="mode_oidn" translatable="false"></string>
 </resources>
