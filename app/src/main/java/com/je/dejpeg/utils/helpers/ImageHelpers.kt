@@ -28,13 +28,15 @@ import android.net.Uri
 import android.os.Environment
 import android.provider.MediaStore
 import android.provider.OpenableColumns
-import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.core.content.FileProvider
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
 import androidx.exifinterface.media.ExifInterface
 import com.je.dejpeg.R
+import com.je.dejpeg.ui.components.SnackbarDuration
+import com.je.dejpeg.ui.components.SnackySnackbarController
+import com.je.dejpeg.ui.components.SnackySnackbarEvents
 import com.je.dejpeg.utils.CacheManager
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -382,42 +384,35 @@ object ImageActions {
         @OptIn(DelicateCoroutinesApi::class) GlobalScope.launch(Dispatchers.IO) {
             try {
                 val fileNameRaw = filename?.takeIf { it.isNotBlank() } ?: "DeJPEG_${
-                    SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(
-                        Date()
-                    )
+                    SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
                 }"
                 val fileName = fileNameRaw.substringBeforeLast('.', fileNameRaw)
-                val picturesDir =
-                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+                val picturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
                 val outputFile = File(picturesDir, "$fileName.png")
                 if (outputFile.exists()) outputFile.delete()
-                FileOutputStream(outputFile).use {
-                    bitmap.compress(
-                        Bitmap.CompressFormat.PNG, 100, it
-                    )
-                }
+                FileOutputStream(outputFile).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
                 if (imageId != null) {
-                    CacheManager.deleteRecoveryPair(
-                        context, imageId, deleteProcessed = true, deleteUnprocessed = false
-                    )
+                    CacheManager.deleteRecoveryPair(context, imageId, deleteProcessed = true, deleteUnprocessed = false)
                 }
                 withContext(Dispatchers.Main) {
-                    MediaScannerConnection.scanFile(
-                        context, arrayOf(outputFile.toString()), null, null
-                    )
-                    Toast.makeText(
-                        context,
-                        context.getString(R.string.image_saved_to_gallery),
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    MediaScannerConnection.scanFile(context, arrayOf(outputFile.toString()), null, null)
                     onSuccess()
                 }
+                SnackySnackbarController.pushEvent(
+                    SnackySnackbarEvents.MessageEvent(
+                        message = context.getString(R.string.image_saved_to_gallery),
+                        duration = SnackbarDuration.Short
+                    )
+                )
             } catch (e: Exception) {
                 val errorMsg = context.getString(R.string.error_saving_image, e.message)
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
-                    onError(errorMsg)
-                }
+                withContext(Dispatchers.Main) { onError(errorMsg) }
+                SnackySnackbarController.pushEvent(
+                    SnackySnackbarEvents.MessageEvent(
+                        message = errorMsg,
+                        duration = SnackbarDuration.Long
+                    )
+                )
             }
         }
     }
@@ -435,15 +430,18 @@ object ImageActions {
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 clipData = ClipData.newRawUri(null, contentUri)
             }
-            context.startActivity(
-                Intent.createChooser(
-                    shareIntent, context.getString(R.string.share_image)
-                )
-            )
+            context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.share_image)))
         } catch (e: Exception) {
             val errorMsg = context.getString(R.string.error_sharing_image, e.message)
-            Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
             onError(errorMsg)
+            @OptIn(DelicateCoroutinesApi::class) GlobalScope.launch {
+                SnackySnackbarController.pushEvent(
+                    SnackySnackbarEvents.MessageEvent(
+                        message = errorMsg,
+                        duration = SnackbarDuration.Long
+                    )
+                )
+            }
         }
     }
 

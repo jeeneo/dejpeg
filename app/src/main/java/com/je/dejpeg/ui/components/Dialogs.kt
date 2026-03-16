@@ -21,7 +21,6 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.widget.Toast
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -130,62 +129,6 @@ fun StyledAlertDialog(
 }
 
 @Composable
-fun BaseDialog(
-    title: String,
-    onDismiss: () -> Unit,
-    confirmButtonText: String,
-    onConfirm: () -> Unit,
-    modifier: Modifier = Modifier,
-    message: String? = null,
-    content: (@Composable () -> Unit)? = null,
-    dismissButtonText: String? = null,
-    onDismissButton: (() -> Unit)? = null,
-    isError: Boolean = false,
-    context: Context? = null,
-    showCopyButton: Boolean = isError,
-    icon: ImageVector? = null,
-    customButtons: (@Composable () -> Unit)? = null
-) {
-    val haptic = rememberHapticFeedback()
-    val clipboardManager = remember(context) { context?.getClipboard() }
-    val textToCopy = message ?: ""
-
-    StyledAlertDialog(
-        onDismissRequest = onDismiss,
-        modifier = modifier,
-        icon = icon,
-        title = { Text(title) },
-        text = content ?: message?.let { { Text(it) } },
-        dismissButton = when {
-            customButtons != null -> null
-            dismissButtonText != null && onDismissButton != null -> {
-                {
-                    DialogTextButton(dismissButtonText, { onDismissButton() }, { haptic.light() })
-                }
-            }
-
-            showCopyButton && isError && clipboardManager != null -> {
-                {
-                    DialogTextButton(stringResource(R.string.copy), {
-                        clipboardManager.setPrimaryClip(
-                            ClipData.newPlainText(
-                                context?.getString(R.string.error) ?: "error", textToCopy
-                            )
-                        )
-                        context?.let { it.toast(it.getString(R.string.error_copied)) }
-                    }, { haptic.light() })
-                }
-            }
-
-            else -> null
-        },
-        confirmButton = {
-            if (customButtons != null) customButtons()
-            else DialogPrimaryButton(confirmButtonText, { onConfirm() }, { haptic.light() })
-        })
-}
-
-@Composable
 fun ErrorAlertDialog(
     title: String,
     errorMessage: String,
@@ -193,15 +136,36 @@ fun ErrorAlertDialog(
     context: Context,
     confirmButtonText: String? = null
 ) {
-    BaseDialog(
-        title = title,
-        message = errorMessage,
-        onDismiss = onDismiss,
-        confirmButtonText = confirmButtonText ?: stringResource(R.string.ok),
-        onConfirm = onDismiss,
-        isError = true,
-        context = context,
-        showCopyButton = true
+    val haptic = rememberHapticFeedback()
+    val clipboardManager = remember(context) { context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager }
+
+    StyledAlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { Text(errorMessage) },
+        dismissButton = {
+            val scope = rememberCoroutineScope()
+            TextButton(onClick = {
+                haptic.light()
+                clipboardManager?.setPrimaryClip(
+                    ClipData.newPlainText(context.getString(R.string.error), errorMessage)
+                )
+                scope.launch {
+                    SnackySnackbarController.pushEvent(
+                        SnackySnackbarEvents.MessageEvent(
+                            message = context.getString(R.string.error_copied),
+                            duration = SnackbarDuration.Short
+                        )
+                    )
+                }
+            }) { Text(stringResource(R.string.copy)) }
+        },
+        confirmButton = {
+            MorphButton(
+                label = confirmButtonText ?: stringResource(R.string.ok),
+                onClick = { haptic.light(); onDismiss() }
+            )
+        }
     )
 }
 
@@ -1014,10 +978,6 @@ private fun sanitizeFilename(input: String, fallback: String = "image"): String 
 
 private fun Context.getClipboard(): ClipboardManager? =
     getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-
-private fun Context.toast(text: String) {
-    Toast.makeText(this, text, Toast.LENGTH_SHORT).show()
-}
 
 private fun Context.openUrl(url: String) {
     try {

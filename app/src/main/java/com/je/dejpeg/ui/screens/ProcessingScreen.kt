@@ -128,7 +128,6 @@ import com.je.dejpeg.R
 import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.data.ProcessingMode
-import com.je.dejpeg.ui.components.BaseDialog
 import com.je.dejpeg.ui.components.CancelProcessingDialog
 import com.je.dejpeg.ui.components.ErrorAlertDialog
 import com.je.dejpeg.ui.components.ImageSourceDialog
@@ -714,12 +713,12 @@ fun ProcessingScreen(
 
     val saveState by viewModel.saveState.collectAsState()
     (saveState as? SaveState.Error)?.let { err ->
-        BaseDialog(
+        ErrorAlertDialog(
             title = stringResource(R.string.error_saving_image_title),
-            message = err.message,
+            errorMessage = err.message,
             onDismiss = { viewModel.dismissSaveError() },
-            confirmButtonText = stringResource(R.string.ok),
-            onConfirm = { haptic.light(); viewModel.dismissSaveError() })
+            context = context
+        )
     }
 
     (saveState as? SaveState.Saving)?.let { state ->

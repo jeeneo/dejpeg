@@ -110,7 +110,7 @@ import com.je.dejpeg.ModelType
 import com.je.dejpeg.R
 import com.je.dejpeg.data.ProcessingMode
 import com.je.dejpeg.ui.components.AboutDialog
-import com.je.dejpeg.ui.components.BaseDialog
+import com.je.dejpeg.ui.components.ErrorAlertDialog
 import com.je.dejpeg.ui.components.SnackbarDuration
 import com.je.dejpeg.ui.components.SnackySnackbarController
 import com.je.dejpeg.ui.components.SnackySnackbarEvents
@@ -1067,12 +1067,12 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
             }
 
             is ModelWarningState.Error -> {
-                BaseDialog(
+                ErrorAlertDialog(
                     title = stringResource(R.string.import_error),
-                    message = state.message,
+                    errorMessage = state.message,
                     onDismiss = { warningState = null },
-                    confirmButtonText = stringResource(R.string.ok),
-                    onConfirm = { warningState = null })
+                    context = context
+                )
             }
         }
     }
