@@ -48,7 +48,6 @@ class SettingsViewModel : ViewModel() {
     val activeOidnModelName = MutableStateFlow<String?>(null)
     val hasCheckedModels = MutableStateFlow(false)
     val shouldShowNoModelDialog = MutableStateFlow(false)
-    val deprecatedModelWarning = MutableStateFlow<ModelManager.ModelWarning?>(null)
 
     val chunkSize = MutableStateFlow(AppPreferences.DEFAULT_CHUNK_SIZE)
     val overlapSize = MutableStateFlow(AppPreferences.DEFAULT_OVERLAP_SIZE)
@@ -103,8 +102,7 @@ class SettingsViewModel : ViewModel() {
 
         bindings.forEach { (stateFlow, pref) ->
             @Suppress("UNCHECKED_CAST") syncPref(
-                stateFlow as MutableStateFlow<Any>,
-                (pref.flow(prefs) as Flow<Any>)
+                stateFlow as MutableStateFlow<Any>, (pref.flow(prefs) as Flow<Any>)
             )
         }
 
@@ -252,15 +250,4 @@ class SettingsViewModel : ViewModel() {
     fun setOidnNumThreadsPref(numThreads: Int) =
         persistPref(oidnNumThreads, numThreads) { appPreferences?.setOidnNumThreads(it) ?: Unit }
 
-    fun showNoModelDialog() {
-        shouldShowNoModelDialog.value = true
-    }
-
-    fun dismissNoModelDialog() {
-        shouldShowNoModelDialog.value = false
-    }
-
-    fun dismissDeprecatedModelWarning() {
-        deprecatedModelWarning.value = null
-    }
 }

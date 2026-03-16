@@ -66,6 +66,8 @@ import com.je.dejpeg.ui.screens.BRISQUEScreen
 import com.je.dejpeg.ui.screens.BeforeAfterScreen
 import com.je.dejpeg.ui.screens.ProcessingScreen
 import com.je.dejpeg.ui.screens.SettingsScreen
+import com.je.dejpeg.ui.components.SnackySnackbarBox
+import com.je.dejpeg.ui.components.SnackySnackbarHostState
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
 import com.je.dejpeg.utils.rememberHapticFeedback
@@ -102,61 +104,65 @@ fun MainScreen(
 
     RecoveryDialog(imageRepository = imageRepository)
 
-    NavHost(
-        navController = navController,
-        startDestination = Screen.Home.route,
-        modifier = Modifier.fillMaxSize(),
-        enterTransition = {
-            slideIntoContainer(
-                AnimatedContentTransitionScope.SlideDirection.Start, tween(400)
-            ) + fadeIn(tween(400))
-        },
-        exitTransition = {
-            slideOutOfContainer(
-                AnimatedContentTransitionScope.SlideDirection.Start, tween(400)
-            ) + fadeOut(tween(400))
-        },
-        popEnterTransition = {
-            slideIntoContainer(
-                AnimatedContentTransitionScope.SlideDirection.End, tween(400)
-            ) + fadeIn(tween(400))
-        },
-        popExitTransition = {
-            slideOutOfContainer(
-                AnimatedContentTransitionScope.SlideDirection.End, tween(400)
-            ) + fadeOut(tween(400))
-        }) {
-        composable(Screen.Home.route) {
-            HomeWrapperScreen(
-                navController = navController,
-                viewModel = viewModel,
-                settingsViewModel = settingsViewModel,
-                imageRepository = imageRepository,
-                sharedUris = sharedUris
-            )
-        }
+    val snackbarHostState = remember { SnackySnackbarHostState() }
 
-        composable(
-            route = Screen.BeforeAfter.route,
-            arguments = listOf(navArgument("imageId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val imageId = backStackEntry.arguments?.getString("imageId") ?: ""
-            BeforeAfterScreen(
-                viewModel = viewModel,
-                imageRepository = imageRepository,
-                imageId = imageId,
-                onBack = { navController.popBackStack() })
-        }
+    SnackySnackbarBox(snackbarHostState = snackbarHostState) {
+        NavHost(
+            navController = navController,
+            startDestination = Screen.Home.route,
+            modifier = Modifier.fillMaxSize(),
+            enterTransition = {
+                slideIntoContainer(
+                    AnimatedContentTransitionScope.SlideDirection.Start, tween(400)
+                ) + fadeIn(tween(400))
+            },
+            exitTransition = {
+                slideOutOfContainer(
+                    AnimatedContentTransitionScope.SlideDirection.Start, tween(400)
+                ) + fadeOut(tween(400))
+            },
+            popEnterTransition = {
+                slideIntoContainer(
+                    AnimatedContentTransitionScope.SlideDirection.End, tween(400)
+                ) + fadeIn(tween(400))
+            },
+            popExitTransition = {
+                slideOutOfContainer(
+                    AnimatedContentTransitionScope.SlideDirection.End, tween(400)
+                ) + fadeOut(tween(400))
+            }) {
+            composable(Screen.Home.route) {
+                HomeWrapperScreen(
+                    navController = navController,
+                    viewModel = viewModel,
+                    settingsViewModel = settingsViewModel,
+                    imageRepository = imageRepository,
+                    sharedUris = sharedUris
+                )
+            }
 
-        composable(
-            route = Screen.Brisque.route,
-            arguments = listOf(navArgument("imageId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val imageId = backStackEntry.arguments?.getString("imageId") ?: ""
-            BRISQUEScreen(
-                imageRepository = imageRepository,
-                imageId = imageId,
-                onBack = { navController.popBackStack() })
+            composable(
+                route = Screen.BeforeAfter.route,
+                arguments = listOf(navArgument("imageId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val imageId = backStackEntry.arguments?.getString("imageId") ?: ""
+                BeforeAfterScreen(
+                    viewModel = viewModel,
+                    imageRepository = imageRepository,
+                    imageId = imageId,
+                    onBack = { navController.popBackStack() })
+            }
+
+            composable(
+                route = Screen.Brisque.route,
+                arguments = listOf(navArgument("imageId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val imageId = backStackEntry.arguments?.getString("imageId") ?: ""
+                BRISQUEScreen(
+                    imageRepository = imageRepository,
+                    imageId = imageId,
+                    onBack = { navController.popBackStack() })
+            }
         }
     }
 }
@@ -206,7 +212,6 @@ fun HomeWrapperScreen(
                             onNavigateToBrisque = { id ->
                                 navController.navigate(Screen.Brisque.createRoute(id))
                             },
-                            onNavigateToSettings = { currentTab = "settings" },
                             initialSharedUris = sharedUris,
                             onRemoveSharedUri = { /* handle removal */ },
                             lazyListState = lazyListState

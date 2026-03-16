@@ -69,9 +69,9 @@ import com.je.dejpeg.R
 import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.ui.components.BeforeAfterSlider
-import com.je.dejpeg.ui.components.LoadingDialog
 import com.je.dejpeg.ui.components.SaveImageDialog
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
+import com.je.dejpeg.ui.viewmodel.SaveState
 import com.je.dejpeg.utils.helpers.ImageActions
 import com.je.dejpeg.utils.rememberHapticFeedback
 import kotlinx.coroutines.launch
@@ -103,9 +103,7 @@ fun BeforeAfterScreen(
     val image = images.firstOrNull { it.id == imageId }
     var showSaveDialog by remember { mutableStateOf(false) }
     var overwriteDialogFilename by remember { mutableStateOf<String?>(null) }
-    var saveErrorMessage by remember { mutableStateOf<String?>(null) }
-    val isSavingImages by imageRepository.isSavingImages.collectAsState()
-    val savingImagesProgress by imageRepository.savingImagesProgress.collectAsState()
+    val saveState by viewModel.saveState.collectAsState()
 
     if (image == null) {
         LaunchedEffect(Unit) { onBack() }
@@ -117,14 +115,8 @@ fun BeforeAfterScreen(
     val filename = image.filename
     val showSaveAllOption = images.any { it.outputBitmap != null }
 
-    val performSave = { bitmap: Bitmap, name: String ->
-        ImageActions.saveImage(
-            context = context,
-            bitmap = bitmap,
-            filename = name,
-            imageId = imageId,
-            onSuccess = { imageRepository.markImageAsSaved(imageId) },
-            onError = { errorMsg -> saveErrorMessage = errorMsg })
+    val performSave = { _: Bitmap, name: String ->
+        viewModel.saveImage(context = context, imageId = imageId, filename = name)
     }
 
     Column(
@@ -205,11 +197,9 @@ fun BeforeAfterScreen(
                                 if (ImageActions.checkFileExists(filename)) {
                                     overwriteDialogFilename = filename
                                 } else {
-                                    imageRepository.saveImage(
-                                        context = context,
-                                        imageId = imageId,
-                                        onSuccess = {},
-                                        onError = { errorMsg -> saveErrorMessage = errorMsg })
+                                    viewModel.saveImage(
+                                        context = context, imageId = imageId, filename = filename
+                                    )
                                 }
                             } else {
                                 showSaveDialog = true
@@ -249,31 +239,17 @@ fun BeforeAfterScreen(
                 false,
                 hideOptions = false,
                 onDismissRequest = { showSaveDialog = false }) { name, all, skip ->
-                if (skip) {
-                    scope.launch { appPreferences.setSkipSaveDialog(true) }
-                }
+                if (skip) scope.launch { appPreferences.setSkipSaveDialog(true) }
                 if (all) {
-                    val toSave = images.filter { it.outputBitmap != null }
-                    val imagesData = toSave.map { it.filename to it.outputBitmap!! }
-                    if (imagesData.isNotEmpty()) {
-                        val imageIds = toSave.map { it.id }
-                        viewModel.saveAllImages(
-                            context = context,
-                            imageIds = imageIds,
-                            baseFilename = name,
-                            onProgress = { cur, total ->
-                                imageRepository.savingImagesProgress.value = Pair(cur, total)
-                            },
-                            onComplete = {
-                                // ProcessingViewModel updates repository state as images are saved
-                            },
-                            onError = { errorMsg -> saveErrorMessage = errorMsg })
-                    }
+                    val imageIds = images.filter { it.outputBitmap != null }.map { it.id }
+                    if (imageIds.isNotEmpty()) viewModel.saveImages(context, imageIds)
+                    showSaveDialog = false
                 } else {
                     if (ImageActions.checkFileExists(name)) {
                         overwriteDialogFilename = name
                     } else {
-                        performSave(afterBitmap ?: beforeBitmap, name)
+                        viewModel.saveImage(context, imageId, name)
+                        showSaveDialog = false
                     }
                 }
             }
@@ -289,27 +265,20 @@ fun BeforeAfterScreen(
                 performSave(afterBitmap ?: beforeBitmap, name)
             }
         }
-
-        saveErrorMessage?.let { errorMsg ->
+        (saveState as? SaveState.Error)?.let { err ->
             AlertDialog(
-                onDismissRequest = { saveErrorMessage = null },
+                onDismissRequest = { viewModel.dismissSaveError() },
                 title = { Text(stringResource(R.string.error_saving_image_title)) },
-                text = { Text(errorMsg) },
+                text = { Text(err.message) },
                 confirmButton = {
-                    TextButton(onClick = { saveErrorMessage = null }) {
+                    TextButton(onClick = { viewModel.dismissSaveError() }) {
                         Text(stringResource(R.string.ok))
                     }
                 })
         }
 
-        if (isSavingImages) {
-            val progress = savingImagesProgress
-            LoadingDialog(
-                title = stringResource(R.string.saving_images),
-                progress = progress?.let { it.first.toFloat() / it.second.toFloat() },
-                progressText = progress?.let {
-                    stringResource(R.string.saving_image_progress, it.first, it.second)
-                })
+        (saveState as? SaveState.Saving)?.let { state ->
+            SaveProgressDialog(state)
         }
     }
 }

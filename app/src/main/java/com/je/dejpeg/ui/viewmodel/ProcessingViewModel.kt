@@ -33,13 +33,14 @@ import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.data.ProcessingMode
 import com.je.dejpeg.utils.CacheManager
 import com.je.dejpeg.utils.ProcessingQueueManager
+import com.je.dejpeg.utils.helpers.ImageActions
 import com.je.dejpeg.utils.helpers.ImagePickerHelper
 import com.je.dejpeg.utils.helpers.ServiceCommunicationHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import kotlin.coroutines.resume
 
 @Immutable
@@ -67,9 +68,16 @@ sealed class ProcessingUiState {
     data class Error(val message: String) : ProcessingUiState()
 }
 
+sealed class SaveState {
+    object Idle : SaveState()
+    data class Saving(val current: Int, val total: Int) : SaveState()
+    data class Error(val message: String) : SaveState()
+}
+
 class ProcessingViewModel : ViewModel() {
     val uiState = MutableStateFlow<ProcessingUiState>(ProcessingUiState.Idle)
     val processingErrorDialog = MutableStateFlow<String?>(null)
+    val saveState = MutableStateFlow<SaveState>(SaveState.Idle)
 
     private var appContext: Context? = null
     private var serviceHelper: ServiceCommunicationHelper? = null
@@ -94,6 +102,10 @@ class ProcessingViewModel : ViewModel() {
     private val statusCanceling get() = status(com.je.dejpeg.R.string.status_canceling)
     private val statusQueued get() = status(com.je.dejpeg.R.string.status_queued)
     private val statusNativeCrash get() = status(com.je.dejpeg.R.string.error_native_crash)
+
+    fun dismissSaveError() {
+        saveState.value = SaveState.Idle
+    }
 
     fun initialize(context: Context) {
         if (isInitialized) return
@@ -527,47 +539,52 @@ class ProcessingViewModel : ViewModel() {
         processingErrorDialog.value = null
     }
 
-    fun saveAllImages(
+    fun saveImages(
         context: Context,
         imageIds: List<String>,
         baseFilename: String? = null,
-        onProgress: (Int, Int) -> Unit = { _, _ -> },
-        onComplete: () -> Unit = {},
-        onError: (String) -> Unit = {}
+        onComplete: () -> Unit = {}
     ) {
-        val repo = imageRepository
         viewModelScope.launch {
+            saveState.value = SaveState.Saving(0, imageIds.size)
             try {
-                repo.isSavingImages.value = true
-                repo.savingImagesProgress.value = Pair(0, imageIds.size)
                 imageIds.forEachIndexed { index, id ->
-                    val image = repo.getImageById(id)
-                    val preferredFilenameRaw = if (imageIds.size > 1)
-                        image?.filename?.ifBlank { "${baseFilename ?: "DeJPEG"}_${index + 1}" }
-                            ?: "${baseFilename ?: "DeJPEG"}_${index + 1}"
-                    else image?.filename ?: (baseFilename ?: "DeJPEG")
-                    val filename = preferredFilenameRaw.substringBeforeLast('.', preferredFilenameRaw)
+                    val image = imageRepository.getImageById(id) ?: return@forEachIndexed
+                    val name = resolveFilename(image.filename, baseFilename, index, imageIds.size)
+                    saveState.value = SaveState.Saving(index + 1, imageIds.size)
 
-                    try {
-                        suspendCancellableCoroutine<Unit> { cont ->
-                            repo.saveImage(context, id, filename, onSuccess = {
-                                repo.savingImagesProgress.value = Pair(index + 1, imageIds.size)
-                                onProgress(index + 1, imageIds.size)
+                    suspendCancellableCoroutine { cont ->
+                        ImageActions.saveImage(
+                            context = context,
+                            bitmap = image.outputBitmap ?: return@suspendCancellableCoroutine,
+                            filename = name,
+                            imageId = id,
+                            onSuccess = {
+                                imageRepository.markImageAsSaved(id)
                                 cont.resume(Unit)
-                            }, onError = { err ->
-                                onError(err)
+                            },
+                            onError = { msg ->
+                                saveState.value = SaveState.Error(msg)
                                 cont.resume(Unit)
                             })
-                        }
-                    } catch (e: Exception) {
-                        onError(e.message ?: "Unknown error")
                     }
                 }
                 onComplete()
             } finally {
-                repo.isSavingImages.value = false
-                repo.savingImagesProgress.value = null
+                saveState.value = SaveState.Idle
             }
         }
+    }
+
+    fun saveImage(
+        context: Context, imageId: String, filename: String? = null, onComplete: () -> Unit = {}
+    ) {
+        saveImages(context, listOf(imageId), filename, onComplete)
+    }
+
+    private fun resolveFilename(original: String, base: String?, index: Int, total: Int): String {
+        val raw = if (total > 1) original.ifBlank { "${base ?: "DeJPEG"}_${index + 1}" }
+        else original.ifBlank { base ?: "DeJPEG" }
+        return raw.substringBeforeLast('.', raw)
     }
 }

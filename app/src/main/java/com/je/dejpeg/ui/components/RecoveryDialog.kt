@@ -31,7 +31,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -209,31 +208,33 @@ fun RecoveryDialog(
                 }) { Text(discardButtonText) }
             },
             confirmButton = {
-                Button(onClick = {
-                    haptic.medium()
-                    recoveryImages.value.forEach { img ->
-                        val processed = img.processedBitmap
-                        val unprocessedFile = CacheManager.getUnprocessedImage(context, img.imageId)
-                        val uri = unprocessedFile?.let {
-                            FileProvider.getUriForFile(
-                                context, "${context.packageName}.provider", it
+                MorphButton(
+                    label = recoverButtonText, onClick = {
+                        haptic.medium()
+                        recoveryImages.value.forEach { img ->
+                            val processed = img.processedBitmap
+                            val unprocessedFile =
+                                CacheManager.getUnprocessedImage(context, img.imageId)
+                            val uri = unprocessedFile?.let {
+                                FileProvider.getUriForFile(
+                                    context, "${context.packageName}.provider", it
+                                )
+                            }
+                            imageRepository.addImage(
+                                ImageItem(
+                                    id = img.imageId,
+                                    uri = uri,
+                                    filename = recoveredImagePrefix,
+                                    inputBitmap = img.unprocessedBitmap ?: processed,
+                                    outputBitmap = processed,
+                                    thumbnailBitmap = ImageLoadingHelper.generateThumbnail(processed),
+                                    size = "${processed.width}x${processed.height}",
+                                    hasBeenSaved = false
+                                )
                             )
                         }
-                        imageRepository.addImage(
-                            ImageItem(
-                                id = img.imageId,
-                                uri = uri,
-                                filename = recoveredImagePrefix,
-                                inputBitmap = img.unprocessedBitmap ?: processed,
-                                outputBitmap = processed,
-                                thumbnailBitmap = ImageLoadingHelper.generateThumbnail(processed),
-                                size = "${processed.width}x${processed.height}",
-                                hasBeenSaved = false
-                            )
-                        )
-                    }
-                    showDialog.value = false
-                }) { Text(recoverButtonText) }
+                        showDialog.value = false
+                    })
             })
     }
 }

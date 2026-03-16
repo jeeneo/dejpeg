@@ -25,13 +25,6 @@
     <string name="image_saved_to_gallery">Изображение сохранено в галерею</string>
     <string name="share_image">Поделиться изображением</string>
     <string name="error_sharing_image">Ошибка отправки изображения: %1$s</string>
-    <plurals name="all_images_saved_to_gallery">
-        <item quantity="one">%1$d изображение сохранено в галерею</item>
-        <item quantity="few">Все %1$d изображения сохранены в галерею</item>
-        <item quantity="many">Все %1$d изображений сохранено в галерею</item>
-        <item quantity="other">Все %1$d изображений сохранено в галерею</item>
-    </plurals>
-    <string name="error_saving_images">Ошибка сохранения изображений: %1$s</string>
     <string name="select_image_source">Источник изображений</string>
     <string name="gallery">Галерея</string>
     <string name="gallery_picker_title">Выбор галереи</string>
@@ -62,11 +55,8 @@
     <string name="no_images_yet">Нет изображений</string>
     <string name="tap_to_add_images">Нажмите, чтобы добавить</string>
     <string name="no_model_installed_title">Модель не установлена</string>
-    <string name="no_model_installed_desc">Для обработки изображений необходимо импортировать модель. Хотите перейти в настройки, чтобы импортировать одну из моделей?</string>
-    <string name="go_to_settings">Настройки</string>
     <string name="import_error">Ошибка импорта</string>
     <string name="model_management">Управление моделями</string>
-    <string name="active">Текущая</string>
     <string name="download">Загрузить</string>
     <string name="delete">Удалить</string>
     <string name="importing_model">Импорт модели</string>
@@ -88,7 +78,6 @@
     <string name="settings">Настройки</string>
     <string name="add_images">Добавить изображения</string>
     <string name="process">Процесс</string>
-    <string name="cancel_processing">Отменить</string>
     <string name="no_model_loaded">Модель не загружена</string>
     <string name="chunk_size_px">%1$d px</string>
     <string name="overlap_size_px">%1$d px</string>
@@ -151,7 +140,7 @@
     </plurals>
     <string name="loading_images">Загрузка изображений…</string>
     <string name="loading_image_progress">Загрузка %1$d из %2$d</string>
-    <string name="saving_images">Сохранение изображений…</string>
+    <string name="saving_images">Сохранение…</string>
     <string name="saving_image_progress">Сохранение %1$d из %2$d</string>
     <string name="error_processing_title">Ошибка обработки</string>
     <string name="error_native_crash">Служба обработки неожиданно завершила работу. Обычно это указывает на несовместимую модель или недостаточное количество памяти.</string>
@@ -303,7 +292,6 @@
     <string name="oidn_num_threads_desc">0 = автоматически</string>
     <string name="oidn_settings_desc">HDR, sRGB, качество, потоки</string>
     <string name="import_tza_model">Импорт весов</string>
-    <string name="no_oidn_models_installed">Файлы весов (.tza) не найдены. Импортируйте веса, чтобы начать.</string>
     <string name="processing_threads_desc">Параллельный</string>
     <string name="thread_value_auto">Авто (%1$d)</string>
     <string name="info">Инфо</string>

@@ -22,7 +22,6 @@ package com.je.dejpeg.ui.screens
 
 import android.content.Intent
 import android.net.Uri
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -52,6 +51,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
@@ -111,6 +111,9 @@ import com.je.dejpeg.R
 import com.je.dejpeg.data.ProcessingMode
 import com.je.dejpeg.ui.components.AboutDialog
 import com.je.dejpeg.ui.components.BaseDialog
+import com.je.dejpeg.ui.components.SnackbarDuration
+import com.je.dejpeg.ui.components.SnackySnackbarController
+import com.je.dejpeg.ui.components.SnackySnackbarEvents
 import com.je.dejpeg.ui.components.loadFAQSections
 import com.je.dejpeg.ui.components.rememberMaterialPressState
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
@@ -204,9 +207,14 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
             viewModel.importModel(it, onProgress = { importProgress = it }, onSuccess = { name ->
                 showImportProgress = false
                 pendingImportUri = null
-                Toast.makeText(
-                    context, importedModelMessage.format(name), Toast.LENGTH_SHORT
-                ).show()
+                scope.launch {
+                    SnackySnackbarController.pushEvent(
+                        SnackySnackbarEvents.MessageEvent(
+                            message = importedModelMessage.format(name),
+                            duration = SnackbarDuration.Short
+                        )
+                    )
+                }
             }, onError = { err ->
                 showImportProgress = false
                 pendingImportUri = null
@@ -230,9 +238,14 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
                 onProgress = { importProgress = it },
                 onSuccess = { name ->
                     showImportProgress = false
-                    Toast.makeText(
-                        context, importedModelMessage.format(name), Toast.LENGTH_SHORT
-                    ).show()
+                    scope.launch {
+                        SnackySnackbarController.pushEvent(
+                            SnackySnackbarEvents.MessageEvent(
+                                message = importedModelMessage.format(name),
+                                duration = SnackbarDuration.Short
+                            )
+                        )
+                    }
                 },
                 onError = { err ->
                     showImportProgress = false
@@ -251,13 +264,13 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
 
                 ExtendedFloatingActionButton(
                     onClick = {
-                        haptic.light() // huh wonky, reformatting doesnt like you
-                        if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN) {
-                            oidnModelPickerLauncher.launch("*/*")
-                        } else {
-                            modelPickerLauncher.launch("*/*")
-                        }
-                    },
+                    haptic.light() // huh wonky, reformatting doesnt like you
+                    if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN) {
+                        oidnModelPickerLauncher.launch("*/*")
+                    } else {
+                        modelPickerLauncher.launch("*/*")
+                    }
+                },
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = {
                         Text(
@@ -357,6 +370,8 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
                         })
                     AnimatedVisibility(visible = expandedSection == SettingsSection.ModelManagement) {
                         val haptic = rememberHapticFeedback()
+                        val extractedMsg = stringResource(R.string.extracted_starter_models)
+                        val failedMsg = stringResource(R.string.failed_to_extract_starter_models)
                         Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                             installedModels.forEach { modelName ->
                                 val isActive = modelName == activeModelName
@@ -403,11 +418,14 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
                                                 modelName
                                             )
                                         ) {
-                                            Toast.makeText(
-                                                context,
-                                                deletedModelMessage.format(it),
-                                                Toast.LENGTH_SHORT
-                                            ).show()
+                                            scope.launch {
+                                                SnackySnackbarController.pushEvent(
+                                                    SnackySnackbarEvents.MessageEvent(
+                                                        message = deletedModelMessage.format(it),
+                                                        duration = SnackbarDuration.Short
+                                                    )
+                                                )
+                                            }
                                         }
                                         }, modifier = Modifier.size(32.dp)
                                     ) {
@@ -425,24 +443,43 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                if (installedModels.isEmpty()) {
-                                    Text(
-                                        stringResource(R.string.no_model_loaded),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(
-                                            horizontal = 8.dp, vertical = 4.dp
-                                        )
-                                    )
-                                } else {
-                                    Spacer(Modifier.weight(1f))
-                                }
+                                Spacer(Modifier.weight(1f))
                                 TextButton(onClick = { modelPickerLauncher.launch("*/*") }) {
                                     Icon(
                                         Icons.Filled.Add, null, modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(Modifier.width(4.dp))
                                     Text(stringResource(R.string.import_model_text))
+                                }
+                                TextButton(onClick = {
+                                    haptic.light()
+                                    scope.launch {
+                                        val extracted = withContext(Dispatchers.IO) {
+                                            modelManager.extractStarterModel(setAsActive = true)
+                                        }
+                                        if (extracted) {
+                                            viewModel.refreshInstalledModels(ModelType.ONNX)
+                                            SnackySnackbarController.pushEvent(
+                                                SnackySnackbarEvents.MessageEvent(
+                                                    message = extractedMsg,
+                                                    duration = SnackbarDuration.Short
+                                                )
+                                            )
+                                        } else {
+                                            SnackySnackbarController.pushEvent(
+                                                SnackySnackbarEvents.MessageEvent(
+                                                    message = failedMsg,
+                                                    duration = SnackbarDuration.Short
+                                                )
+                                            )
+                                        }
+                                    }
+                                }) {
+                                    Icon(
+                                        Icons.Filled.Archive, null, modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(stringResource(R.string.extract))
                                 }
                                 TextButton(onClick = {
                                     val intent = Intent(
@@ -459,7 +496,6 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
                             }
                         }
                     }
-
                     PreferenceItem(
                         icon = Icons.Filled.GridOn,
                         iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -550,13 +586,6 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
                                         }
                                         .padding(horizontal = 8.dp, vertical = 10.dp),
                                     verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        painterResource(R.drawable.ic_model),
-                                        contentDescription = null,
-                                        tint = if (isActive) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(20.dp)
-                                    )
                                     Spacer(Modifier.width(12.dp))
                                     Text(
                                         modelName,
@@ -575,11 +604,14 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
                                                 modelName
                                             ), ModelType.OIDN
                                         ) {
-                                            Toast.makeText(
-                                                context,
-                                                deletedModelMessage.format(it),
-                                                Toast.LENGTH_SHORT
-                                            ).show()
+                                            scope.launch {
+                                                SnackySnackbarController.pushEvent(
+                                                    SnackySnackbarEvents.MessageEvent(
+                                                        message = deletedModelMessage.format(it),
+                                                        duration = SnackbarDuration.Short
+                                                    )
+                                                )
+                                            }
                                         }
                                         }, modifier = Modifier.size(32.dp)
                                     ) {
@@ -718,42 +750,41 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
 
             val isOidn = BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .onSizeChanged { containerWidth = it.width }
-                    .clip(MaterialTheme.shapes.large)
-                    .pointerInput(processingMode) {
-                        if (!BuildConfig.OIDN_ENABLED) return@pointerInput
-                        detectHorizontalDragGestures(onDragEnd = {
-                            val threshold = containerWidth * 0.35f
-                            scope.launch {
-                                if (animatedOffset.value > threshold && processingMode == ProcessingMode.OIDN) {
-                                    animatedOffset.animateTo(containerWidth.toFloat(), spring())
-                                    viewModel.setProcessingMode(ProcessingMode.ONNX)
-                                    animatedOffset.snapTo(0f)
-                                } else if (animatedOffset.value < -threshold && processingMode == ProcessingMode.ONNX) {
-                                    animatedOffset.animateTo(
-                                        -containerWidth.toFloat(), spring()
-                                    )
-                                    viewModel.setProcessingMode(ProcessingMode.OIDN)
-                                    animatedOffset.snapTo(0f)
-                                } else {
-                                    animatedOffset.animateTo(0f, spring())
-                                }
+            Box(modifier = Modifier
+                .fillMaxWidth()
+                .onSizeChanged { containerWidth = it.width }
+                .clip(MaterialTheme.shapes.large)
+                .pointerInput(processingMode) {
+                    if (!BuildConfig.OIDN_ENABLED) return@pointerInput
+                    detectHorizontalDragGestures(onDragEnd = {
+                        val threshold = containerWidth * 0.35f
+                        scope.launch {
+                            if (animatedOffset.value > threshold && processingMode == ProcessingMode.OIDN) {
+                                animatedOffset.animateTo(containerWidth.toFloat(), spring())
+                                viewModel.setProcessingMode(ProcessingMode.ONNX)
+                                animatedOffset.snapTo(0f)
+                            } else if (animatedOffset.value < -threshold && processingMode == ProcessingMode.ONNX) {
+                                animatedOffset.animateTo(
+                                    -containerWidth.toFloat(), spring()
+                                )
+                                viewModel.setProcessingMode(ProcessingMode.OIDN)
+                                animatedOffset.snapTo(0f)
+                            } else {
+                                animatedOffset.animateTo(0f, spring())
                             }
-                        }, onDragCancel = {
-                            scope.launch { animatedOffset.animateTo(0f, spring()) }
-                        }, onHorizontalDrag = { change, dragAmount ->
-                            change.consume()
-                            val newOffset = animatedOffset.value + dragAmount
-                            val clamped = when (processingMode) {
-                                ProcessingMode.OIDN -> newOffset.coerceAtLeast(0f)
-                                ProcessingMode.ONNX -> newOffset.coerceAtMost(0f)
-                            }
-                            scope.launch { animatedOffset.snapTo(clamped) }
-                        })
-                    }) {
+                        }
+                    }, onDragCancel = {
+                        scope.launch { animatedOffset.animateTo(0f, spring()) }
+                    }, onHorizontalDrag = { change, dragAmount ->
+                        change.consume()
+                        val newOffset = animatedOffset.value + dragAmount
+                        val clamped = when (processingMode) {
+                            ProcessingMode.OIDN -> newOffset.coerceAtLeast(0f)
+                            ProcessingMode.ONNX -> newOffset.coerceAtMost(0f)
+                        }
+                        scope.launch { animatedOffset.snapTo(clamped) }
+                    })
+                }) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -968,7 +999,6 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
         val haptic = rememberHapticFeedback()
         when (state) {
             is ModelWarningState.ModelWarning -> {
-                val context = LocalContext.current
 
                 ModalBottomSheet(onDismissRequest = { warningState = null }) {
                     Column(Modifier.padding(16.dp)) {
@@ -1000,11 +1030,15 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
                                             onSuccess = { name ->
                                                 showImportProgress = false
                                                 warningState = null
-                                                Toast.makeText(
-                                                    context,
-                                                    importedModelMessage.format(name),
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
+                                                scope.launch {
+                                                    SnackySnackbarController.pushEvent(
+                                                        SnackySnackbarEvents.MessageEvent(
+                                                            message = importedModelMessage.format(
+                                                                name
+                                                            ), duration = SnackbarDuration.Short
+                                                        )
+                                                    )
+                                                }
                                             },
                                             onError = { err ->
                                                 showImportProgress = false
@@ -1279,11 +1313,10 @@ fun FAQSection(title: String, content: String?, subSections: List<Pair<String, S
     )
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { haptic.light(); expanded = !expanded }
-                .padding(vertical = 8.dp),
+        Row(modifier = Modifier
+            .fillMaxWidth()
+            .clickable { haptic.light(); expanded = !expanded }
+            .padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
             Text(title, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))

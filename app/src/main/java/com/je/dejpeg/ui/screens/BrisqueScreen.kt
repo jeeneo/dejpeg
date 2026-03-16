@@ -18,7 +18,6 @@
 package com.je.dejpeg.ui.screens
 
 import android.graphics.Bitmap
-import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -100,6 +99,9 @@ import com.je.dejpeg.R
 import com.je.dejpeg.data.BrisqueSettings
 import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.ui.components.SimpleAlertDialog
+import com.je.dejpeg.ui.components.SnackbarDuration
+import com.je.dejpeg.ui.components.SnackySnackbarController
+import com.je.dejpeg.ui.components.SnackySnackbarEvents
 import com.je.dejpeg.ui.viewmodel.BrisqueViewModel
 import com.je.dejpeg.utils.brisque.BRISQUEDescaler
 import com.je.dejpeg.utils.rememberHapticFeedback
@@ -118,6 +120,7 @@ fun BRISQUEScreen(
 ) {
     val context = LocalContext.current
     val haptic = rememberHapticFeedback()
+    val scope = rememberCoroutineScope()
     val successSaveMsg = stringResource(R.string.brisque_image_saved)
     val failureSaveMsg = stringResource(R.string.brisque_failed_to_save)
     val images by imageRepository.images.collectAsState()
@@ -164,11 +167,22 @@ fun BRISQUEScreen(
                     onClick = {
                         haptic.medium()
                         brisqueViewModel.saveCurrentImage(context, {
-                            Toast.makeText(context, successSaveMsg, Toast.LENGTH_SHORT).show()
+                            scope.launch {
+                                SnackySnackbarController.pushEvent(
+                                    SnackySnackbarEvents.MessageEvent(
+                                        message = successSaveMsg, duration = SnackbarDuration.Short
+                                    )
+                                )
+                            }
                         }) { error ->
-                            Toast.makeText(
-                                context, "$failureSaveMsg $error", Toast.LENGTH_SHORT
-                            ).show()
+                            scope.launch {
+                                SnackySnackbarController.pushEvent(
+                                    SnackySnackbarEvents.MessageEvent(
+                                        message = "$failureSaveMsg $error",
+                                        duration = SnackbarDuration.Long
+                                    )
+                                )
+                            }
                         }
                     }, enabled = brisqueState != null
                 ) {

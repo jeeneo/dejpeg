@@ -25,7 +25,6 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Log
 import com.je.dejpeg.data.AppPreferences
-import com.je.dejpeg.utils.HashUtils
 import com.je.dejpeg.utils.helpers.ModelMigrationHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -35,8 +34,9 @@ import java.io.File
 import java.io.FileOutputStream
 
 enum class ModelType(val extensions: List<String>, val invalidFileTypeResId: Int) {
-    ONNX(listOf(".onnx", ".ort"), R.string.invalid_file_type),
-    OIDN(listOf(".tza"), R.string.invalid_tza_file_type);
+    ONNX(listOf(".onnx", ".ort"), R.string.invalid_file_type), OIDN(
+        listOf(".tza"), R.string.invalid_tza_file_type
+    );
 
     fun matches(filename: String): Boolean {
         val lower = filename.lowercase()
@@ -421,7 +421,9 @@ class ModelManager(
         }
     }
 
-    fun deleteModel(modelName: String, type: ModelType = ModelType.ONNX, onDeleted: (String) -> Unit = {}) {
+    fun deleteModel(
+        modelName: String, type: ModelType = ModelType.ONNX, onDeleted: (String) -> Unit = {}
+    ) {
         val modelFile = File(getModelsDir(type), modelName)
         if (modelFile.exists()) {
             modelFile.delete()
@@ -506,7 +508,10 @@ class ModelManager(
             if (!targetDir.exists()) targetDir.mkdirs()
             val assetFiles = context.assets.list(STARTER_MODELS_ASSET_DIR) ?: emptyArray()
             if (assetFiles.isEmpty()) {
-                Log.w("ModelManager", "No starter model files found in assets/$STARTER_MODELS_ASSET_DIR")
+                Log.w(
+                    "ModelManager",
+                    "No starter model files found in assets/$STARTER_MODELS_ASSET_DIR"
+                )
                 return false
             }
             for (filename in assetFiles) {

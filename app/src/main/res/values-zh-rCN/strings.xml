@@ -25,10 +25,6 @@
     <string name="image_saved_to_gallery">图像已存至相册</string>
     <string name="share_image">分享图像</string>
     <string name="error_sharing_image">分享图像%1$s时出错</string>
-    <plurals name="all_images_saved_to_gallery">
-        <item quantity="other">%1$d张图像已存至图库</item>
-    </plurals>
-    <string name="error_saving_images">保存图像%1$s时出错</string>
     <string name="select_image_source">选择图像来源</string>
     <string name="gallery">图库</string>
     <string name="gallery_picker_title">从图库选择</string>
@@ -58,11 +54,8 @@
     <string name="no_images_yet">暂无图像</string>
     <string name="tap_to_add_images">点击来添加图像</string>
     <string name="no_model_installed_title">未安装模型</string>
-    <string name="no_model_installed_desc">您需要先导入模型才能处理图像。是否前往设置进行导入？</string>
-    <string name="go_to_settings">前往设置</string>
     <string name="import_error">导入出错</string>
     <string name="model_management">模型管理</string>
-    <string name="active">可用</string>
     <string name="download">下载</string>
     <string name="delete">删除</string>
     <string name="importing_model">导入模型</string>
@@ -83,7 +76,6 @@
     <string name="settings">设置</string>
     <string name="add_images">添加图像</string>
     <string name="process">进度</string>
-    <string name="cancel_processing">取消</string>
     <string name="no_model_loaded">未加载模型</string>
     <string name="chunk_size_px">%1$d 像素</string>
     <string name="overlap_size_px">%1$d 像素</string>
@@ -109,7 +101,7 @@
     </plurals>
     <string name="loading_images">加载图像中 ……</string>
     <string name="loading_image_progress">正在加载 %2$d 项中的第 %1$d 项</string>
-    <string name="saving_images">保存图像中……</string>
+    <string name="saving_images">保存……</string>
     <string name="saving_image_progress">正在保存 %2$d 项中的第 %1$d 项</string>
     <string name="error_processing_title">处理出错</string>
     <string name="error_native_crash">处理服务意外终止。这通常表示模型不兼容或内存不足。</string>
@@ -285,6 +277,5 @@
     <string name="oidn_num_threads_desc">0 = 自动</string>
     <string name="oidn_settings_desc">HDR，sRGB，质量，线程</string>
     <string name="import_tza_model">导入 .tza 模型</string>
-    <string name="no_oidn_models_installed">未找到 .tza 模型。导入一个模型以开始。</string>
     <string name="model_info_1x_jpeg_80_100_fp16">JPEG 压缩（质量 80–100）</string>
 </resources>

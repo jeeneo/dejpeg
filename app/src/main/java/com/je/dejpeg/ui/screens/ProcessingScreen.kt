@@ -15,12 +15,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+@file:Suppress("SpellCheckingInspection")
+
 package com.je.dejpeg.ui.screens
 
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -67,10 +68,13 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.outlined.AddPhotoAlternate
+import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularWavyProgressIndicator
+import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
@@ -100,9 +104,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
@@ -113,11 +115,13 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
+import androidx.compose.ui.window.DialogProperties
 import com.je.dejpeg.ExitActivity
 import com.je.dejpeg.ModelType
 import com.je.dejpeg.R
@@ -131,12 +135,17 @@ import com.je.dejpeg.ui.components.ImageSourceDialog
 import com.je.dejpeg.ui.components.LoadingDialog
 import com.je.dejpeg.ui.components.RemoveImageDialog
 import com.je.dejpeg.ui.components.SaveImageDialog
+import com.je.dejpeg.ui.components.SnackbarDuration
+import com.je.dejpeg.ui.components.SnackySnackbarController
+import com.je.dejpeg.ui.components.SnackySnackbarEvents
 import com.je.dejpeg.ui.components.rememberMaterialPressState
 import com.je.dejpeg.ui.viewmodel.ImageItem
 import com.je.dejpeg.ui.viewmodel.ProcessingUiState
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
+import com.je.dejpeg.ui.viewmodel.SaveState
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
 import com.je.dejpeg.utils.HapticFeedbackPerformer
+import com.je.dejpeg.utils.helpers.ImageActions
 import com.je.dejpeg.utils.rememberHapticFeedback
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -158,7 +167,6 @@ fun ProcessingScreen(
     imageRepository: ImageRepository,
     onNavigateToBeforeAfter: (String) -> Unit = {},
     onNavigateToBrisque: (String) -> Unit = {},
-    onNavigateToSettings: () -> Unit = {},
     initialSharedUris: List<Uri> = emptyList(),
     onRemoveSharedUri: (Uri) -> Unit = {},
     lazyListState: androidx.compose.foundation.lazy.LazyListState = androidx.compose.foundation.lazy.rememberLazyListState(),
@@ -177,8 +185,9 @@ fun ProcessingScreen(
     val activeModelType = if (isOidnMode) ModelType.OIDN else ModelType.ONNX
     val supportsStrength = if (isOidnMode) true else settingsViewModel.getActiveModelName()
         ?.contains("fbcnn", ignoreCase = true) == true && processingMode == ProcessingMode.ONNX
-    val shouldShowNoModelDialog by settingsViewModel.shouldShowNoModelDialog.collectAsState()
     val haptic = rememberHapticFeedback()
+    val noModelMessage = stringResource(R.string.no_model_installed_title)
+    val scope = rememberCoroutineScope()
     val isLoadingImages by imageRepository.isLoadingImages.collectAsState()
     val loadingImagesProgress by imageRepository.loadingImagesProgress.collectAsState()
     val processingErrorDialog by viewModel.processingErrorDialog.collectAsState()
@@ -186,7 +195,6 @@ fun ProcessingScreen(
     var imageIdToCancel by remember { mutableStateOf<String?>(null) }
     var showImageSourceDialog by remember { mutableStateOf(false) }
     var showCancelAllDialog by remember { mutableStateOf(false) }
-    var saveErrorMessage by remember { mutableStateOf<String?>(null) }
     var saveDialogState by remember { mutableStateOf<Pair<String, String>?>(null) }
     var overwriteDialogState by remember { mutableStateOf<Pair<String, String>?>(null) }
 
@@ -196,14 +204,10 @@ fun ProcessingScreen(
             imageIdToCancel = null
             showImageSourceDialog = false
             showCancelAllDialog = false
-            saveErrorMessage = null
             saveDialogState = null
             overwriteDialogState = null
         }
     }
-
-    var headerHeightPx by remember { mutableIntStateOf(0) }
-
     val handleImageRemoval: (String) -> Unit = { imageId ->
         images.firstOrNull { it.id == imageId }?.let { image ->
             when {
@@ -274,7 +278,13 @@ fun ProcessingScreen(
             viewModel.cancelProcessing()
             ExitActivity.exitApplication(context)
         } else {
-            Toast.makeText(context, backExitMessage, Toast.LENGTH_SHORT).show()
+            scope.launch {
+                SnackySnackbarController.pushEvent(
+                    SnackySnackbarEvents.MessageEvent(
+                        message = backExitMessage, duration = SnackbarDuration.Short
+                    )
+                )
+            }
             lastBackPressTime = currentTime
         }
     }
@@ -334,8 +344,7 @@ fun ProcessingScreen(
         Row(
             Modifier
                 .fillMaxWidth()
-                .padding(bottom = 16.dp)
-                .onSizeChanged { headerHeightPx = it.height },
+                .padding(bottom = 16.dp),
             Arrangement.SpaceBetween,
             Alignment.CenterVertically
         ) {
@@ -384,21 +393,23 @@ fun ProcessingScreen(
 
                 FloatingActionButton(
                     onClick = {
+                        haptic.medium()
                         if (isProcessing) {
-                            haptic.heavy(); showCancelAllDialog = true
+                            showCancelAllDialog = true
                         } else if (allComplete) {
-                            haptic.medium()
                             val imageIds = images.filter { it.outputBitmap != null }.map { it.id }
-                            viewModel.saveAllImages(
-                                context = context,
-                                imageIds = imageIds,
-                                onComplete = {
+                            viewModel.saveImages(
+                                context = context, imageIds = imageIds, onComplete = {
                                     imageIds.forEach { id -> performRemoval(id) }
-                                },
-                                onError = { saveErrorMessage = it })
+                                })
                         } else {
-                            if (!settingsViewModel.hasActiveModel(activeModelType)) settingsViewModel.showNoModelDialog()
-                            else {
+                            if (!settingsViewModel.hasActiveModel(activeModelType)) scope.launch {
+                                SnackySnackbarController.pushEvent(
+                                    SnackySnackbarEvents.MessageEvent(
+                                        message = noModelMessage, duration = SnackbarDuration.Long
+                                    )
+                                )
+                            } else {
                                 haptic.medium(); viewModel.processImages()
                             }
                         }
@@ -537,18 +548,15 @@ fun ProcessingScreen(
                 Modifier
                     .fillMaxSize()
                     .weight(1f)
-                    .offset { IntOffset(0, -(headerHeightPx / 2)) },
-                contentAlignment = Alignment.Center
+                    .padding(bottom = 112.dp), contentAlignment = Alignment.Center
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Spacer(Modifier.height(48.dp))
                     val buttonInteractionSource = remember { MutableInteractionSource() }
                     val buttonAreaPress by rememberMaterialPressState(buttonInteractionSource)
                     val animatedCornerRadius = lerp(12f, 24f, buttonAreaPress)
-                    val emptyStateDashedColor = MaterialTheme.colorScheme.surfaceVariant
                     Box(
                         Modifier
                             .width(280.dp)
@@ -557,22 +565,9 @@ fun ProcessingScreen(
                             .clickable(
                                 interactionSource = buttonInteractionSource, indication = null
                             ) { importImage() }
-                            .drawBehind {
-                                val strokeWidth = 2.dp.toPx()
-                                val cornerRadius = 28.dp.toPx()
-                                drawRoundRect(
-                                    emptyStateDashedColor,
-                                    androidx.compose.ui.geometry.Offset(0f, 0f),
-                                    size,
-                                    CornerRadius(cornerRadius, cornerRadius),
-                                    Stroke(
-                                        strokeWidth, pathEffect = PathEffect.dashPathEffect(
-                                            floatArrayOf(10f, 10f), 0f
-                                        )
-                                    )
-                                )
-                            }
-                            .padding(20.dp), contentAlignment = Alignment.Center) {
+                            .padding(20.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
                                 Icons.Outlined.AddPhotoAlternate,
@@ -617,18 +612,27 @@ fun ProcessingScreen(
                     items(images, { it.id }) { image ->
                         val swipeState = remember { mutableFloatStateOf(0f) }
                         val hasOutput = image.outputBitmap != null
-                        val onRightSwipe = remember(image.id) { { handleImageRemoval(image.id) } }
-                        val onProcess = remember(image.id) {
+                        val onRightSwipe: () -> Unit =
+                            remember(image.id) { { handleImageRemoval(image.id) } }
+                        val onProcess: () -> Unit = remember(image.id) {
                             {
-                                if (!settingsViewModel.hasActiveModel(activeModelType)) settingsViewModel.showNoModelDialog() else viewModel.processImage(
+                                if (!settingsViewModel.hasActiveModel(activeModelType)) scope.launch {
+                                    SnackySnackbarController.pushEvent(
+                                        SnackySnackbarEvents.MessageEvent(
+                                            message = noModelMessage,
+                                            duration = SnackbarDuration.Long
+                                        )
+                                    )
+                                } else viewModel.processImage(
                                     image.id
                                 )
                             }
                         }
-                        val onBrisque =
+                        val onBrisque: () -> Unit =
                             remember(image.id) { { haptic.light(); onNavigateToBrisque(image.id) } }
-                        val onClick = remember(image.id) { { onNavigateToBeforeAfter(image.id) } }
-                        val onLeftSwipe = remember(image.id, hasOutput) {
+                        val onClick: () -> Unit =
+                            remember(image.id) { { onNavigateToBeforeAfter(image.id) } }
+                        val onLeftSwipe: () -> Unit = remember(image.id, hasOutput) {
                             {
                                 if (hasOutput) {
                                     saveDialogState = Pair(image.id, image.filename)
@@ -708,21 +712,18 @@ fun ProcessingScreen(
             })
     }
 
-    if (shouldShowNoModelDialog) {
-        NoModelDialog(onDismiss = { settingsViewModel.dismissNoModelDialog() }, onGoToSettings = {
-            haptic.medium()
-            settingsViewModel.dismissNoModelDialog()
-            onNavigateToSettings()
-        })
-    }
-
-    saveErrorMessage?.let { errorMsg ->
+    val saveState by viewModel.saveState.collectAsState()
+    (saveState as? SaveState.Error)?.let { err ->
         BaseDialog(
             title = stringResource(R.string.error_saving_image_title),
-            message = errorMsg,
-            onDismiss = { saveErrorMessage = null },
+            message = err.message,
+            onDismiss = { viewModel.dismissSaveError() },
             confirmButtonText = stringResource(R.string.ok),
-            onConfirm = { haptic.light(); saveErrorMessage = null })
+            onConfirm = { haptic.light(); viewModel.dismissSaveError() })
+    }
+
+    (saveState as? SaveState.Saving)?.let { state ->
+        SaveProgressDialog(state)
     }
 
     overwriteDialogState?.let { (id, fn) ->
@@ -733,12 +734,11 @@ fun ProcessingScreen(
             hideOptions = true,
             onDismissRequest = { overwriteDialogState = null },
             onSave = { name, _, _ ->
-                imageRepository.saveImage(
-                    context,
-                    id,
-                    name,
-                    onSuccess = { performRemoval(id); overwriteDialogState = null },
-                    onError = { overwriteDialogState = null; saveErrorMessage = it })
+                viewModel.saveImage(
+                    context = context,
+                    imageId = id,
+                    filename = name,
+                    onComplete = { performRemoval(id); overwriteDialogState = null })
             })
     }
 
@@ -750,12 +750,16 @@ fun ProcessingScreen(
             hideOptions = false,
             onDismissRequest = { saveDialogState = null },
             onSave = { name, _, _ ->
-                imageRepository.saveImage(
-                    context,
-                    id,
-                    name,
-                    onSuccess = { performRemoval(id); saveDialogState = null },
-                    onError = { saveDialogState = null; saveErrorMessage = it })
+                saveDialogState = null
+                if (ImageActions.checkFileExists(name)) {
+                    overwriteDialogState = Pair(id, name)
+                } else {
+                    viewModel.saveImage(
+                        context = context,
+                        imageId = id,
+                        filename = name,
+                        onComplete = { performRemoval(id) })
+                }
             })
     }
 
@@ -886,19 +890,6 @@ fun SwipeToDismissWrapper(
     }
 }
 
-@Composable
-fun NoModelDialog(onDismiss: () -> Unit, onGoToSettings: () -> Unit) {
-    BaseDialog(
-        title = stringResource(R.string.no_model_installed_title),
-        message = stringResource(R.string.no_model_installed_desc),
-        onDismiss = onDismiss,
-        confirmButtonText = stringResource(R.string.go_to_settings),
-        onConfirm = onGoToSettings,
-        dismissButtonText = stringResource(R.string.cancel),
-        onDismissButton = onDismiss
-    )
-}
-
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ChunkProgressIndicator(completedChunks: Int, totalChunks: Int) {
@@ -918,6 +909,90 @@ fun ChunkProgressIndicator(completedChunks: Int, totalChunks: Int) {
         color = MaterialTheme.colorScheme.primary,
         trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
     )
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
+@Composable
+fun SaveProgressDialog(saveState: SaveState.Saving) {
+    val progress = if (saveState.total > 0) saveState.current.toFloat() / saveState.total.toFloat()
+    else 0f
+
+    val thickStrokeWidth = with(LocalDensity.current) { 8.dp.toPx() }
+    val thickStroke = remember(thickStrokeWidth) {
+        Stroke(width = thickStrokeWidth, cap = StrokeCap.Round)
+    }
+
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress, animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessVeryLow,
+            visibilityThreshold = 1f / 1000f
+        ), label = "save_progress"
+    )
+
+    BasicAlertDialog(
+        onDismissRequest = {},
+        modifier = Modifier,
+        properties = DialogProperties(),
+        content = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable(enabled = false) {},
+                contentAlignment = Alignment.Center
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(28.dp),
+                    tonalElevation = 6.dp,
+                    modifier = Modifier.size(240.dp),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            stringResource(R.string.saving_images),
+                            style = MaterialTheme.typography.titleLarge,
+                            textAlign = TextAlign.Center
+                        )
+                        Box(
+                            modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    ContainedLoadingIndicator(
+                                        modifier = Modifier.size(80.dp)
+                                    )
+                                    CircularWavyProgressIndicator(
+                                        progress = { animatedProgress },
+                                        modifier = Modifier.size(88.dp),
+                                        stroke = thickStroke,
+                                        trackStroke = thickStroke,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                    )
+                                }
+                                if (saveState.total > 1) {
+                                    Text(
+                                        stringResource(
+                                            R.string.saving_image_progress,
+                                            saveState.current,
+                                            saveState.total
+                                        ),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        })
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)

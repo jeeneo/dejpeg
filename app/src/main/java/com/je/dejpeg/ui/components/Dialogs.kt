@@ -22,10 +22,6 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
-import androidx.compose.animation.core.AnimationSpec
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -93,6 +89,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.lerp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
@@ -246,7 +243,6 @@ fun AboutDialog(onDismiss: () -> Unit) {
     }
     var spawnTrigger by remember { mutableLongStateOf(0L) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -291,7 +287,6 @@ fun AboutDialog(onDismiss: () -> Unit) {
                         { haptic.light() })
                 }
             }
-
             val painter = painterResource(R.drawable.dejpeg_logo_rounded)
             val density = LocalDensity.current
             val logoSizePx = with(density) { 128.dp.roundToPx() }
@@ -339,7 +334,6 @@ fun RainingLogoEffect(
             }
         }
     }
-
     LaunchedEffect(frameTime) {
         logos = logos.filter { logo ->
             val elapsed = (frameTime - logo.startTime).toFloat()
@@ -349,7 +343,6 @@ fun RainingLogoEffect(
             y < canvasSize.height + scaledHeight * 2f
         }
     }
-
     LaunchedEffect(spawnTrigger) {
         if (spawnTrigger > 0) {
             onTap()
@@ -392,7 +385,6 @@ fun RainingLogoEffect(
             logos = logos + newLogos
         }
     }
-
     Box(modifier = modifier) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             if (canvasSize.width == 0 || canvasSize.height == 0) {
@@ -492,7 +484,6 @@ fun SaveImageDialog(
     var saveAll by remember { mutableStateOf(initialSaveAll) }
     var skipNext by remember { mutableStateOf(false) }
     val haptic = rememberHapticFeedback()
-
     StyledAlertDialog(onDismissRequest = onDismissRequest, title = {
         Text(stringResource(if (hideOptions) R.string.overwrite_image else R.string.save_image))
     }, text = {
@@ -551,10 +542,10 @@ fun SaveImageDialog(
     }, dismissButton = {
         DialogTextButton(stringResource(R.string.cancel), onDismissRequest, { haptic.light() })
     }, confirmButton = {
-        DialogPrimaryButton(label = stringResource(R.string.save), onClick = {
+        DialogPrimaryButton(stringResource(R.string.save), {
             onSave(sanitizeFilename(textState), saveAll, skipNext)
             onDismissRequest()
-        }, hapticAction = { haptic.light() })
+        }, { haptic.light() })
     })
 }
 
@@ -594,9 +585,10 @@ fun RemoveImageDialog(
                 }, { haptic.heavy() }, MaterialTheme.colorScheme.error
                 )
                 if (hasOutput) {
-                    Button({ haptic.medium(); onSaveAndRemove(); onDismissRequest() }) {
-                        Text(stringResource(R.string.save))
-                    }
+                    MorphButton(
+                        label = stringResource(R.string.save),
+                        onClick = { haptic.medium(); onSaveAndRemove(); onDismissRequest() })
+
                 }
             }
         })
@@ -626,12 +618,11 @@ fun CancelProcessingDialog(
                 { haptic.light() })
         },
         confirmButton = {
-            Button(
+            MorphButton(
+                label = stringResource(R.string.yes_stop),
                 onClick = { haptic.heavy(); onConfirm(); onDismissRequest() },
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-            ) {
-                Text(stringResource(R.string.yes_stop))
-            }
+            )
         })
 }
 
@@ -647,13 +638,8 @@ fun StarterModelDialog(onDismiss: () -> Unit) {
             }
         },
         confirmButton = {
-            Button(
-                onClick = {
-                    haptic.light()
-                    onDismiss()
-                }) {
-                Text(stringResource(R.string.got_it))
-            }
+            MorphButton(
+                label = stringResource(R.string.got_it), onClick = { haptic.light(); onDismiss() })
         })
 }
 
@@ -714,7 +700,6 @@ fun ImageSourceDialog(
     val haptic = rememberHapticFeedback()
     var setAsDefault by remember { mutableStateOf(false) }
     var helpTarget by remember { mutableStateOf<HelpTarget?>(null) }
-    var pressedTile by remember { mutableStateOf<String?>(null) }
 
     val handleSelection: suspend (String, () -> Unit) -> Unit = { key, action ->
         if (setAsDefault) appPreferences.setDefaultImageSource(key)
@@ -750,9 +735,6 @@ fun ImageSourceDialog(
                 ) {
                     GroupedSourceTile(
                         modifier = Modifier.weight(1f),
-                        tileKey = "gallery",
-                        pressedTile = pressedTile,
-                        onPressedChange = { pressedTile = it },
                         icon = painterResource(R.drawable.ic_gallery),
                         label = stringResource(R.string.gallery),
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -768,9 +750,6 @@ fun ImageSourceDialog(
                         })
                     GroupedSourceTile(
                         modifier = Modifier.weight(1f),
-                        tileKey = "internal",
-                        pressedTile = pressedTile,
-                        onPressedChange = { pressedTile = it },
                         icon = Icons.Outlined.Photo,
                         label = stringResource(R.string.internal_picker),
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -791,9 +770,6 @@ fun ImageSourceDialog(
                 ) {
                     GroupedSourceTile(
                         modifier = Modifier.weight(1f),
-                        tileKey = "documents",
-                        pressedTile = pressedTile,
-                        onPressedChange = { pressedTile = it },
                         icon = Icons.Outlined.Folder,
                         label = stringResource(R.string.documents),
                         containerColor = MaterialTheme.colorScheme.tertiaryContainer,
@@ -809,9 +785,6 @@ fun ImageSourceDialog(
                         })
                     GroupedSourceTile(
                         modifier = Modifier.weight(1f),
-                        tileKey = "camera",
-                        pressedTile = pressedTile,
-                        onPressedChange = { pressedTile = it },
                         icon = Icons.Outlined.CameraAlt,
                         label = stringResource(R.string.camera),
                         containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
@@ -867,9 +840,6 @@ fun ImageSourceDialog(
 @Composable
 private fun GroupedSourceTile(
     modifier: Modifier = Modifier,
-    tileKey: String,
-    pressedTile: String?,
-    onPressedChange: (String?) -> Unit,
     icon: Any,
     label: String,
     containerColor: Color,
@@ -884,36 +854,15 @@ private fun GroupedSourceTile(
     val interactionSource = remember { MutableInteractionSource() }
     val press by rememberMaterialPressState(interactionSource)
 
-    LaunchedEffect(press) {
-        onPressedChange(if (press > 0f) tileKey else null)
-    }
+    val targetTopStart = if (topStart == 16f) 28f else topStart
+    val targetTopEnd = if (topEnd == 16f) 28f else topEnd
+    val targetBottomStart = if (bottomStart == 16f) 28f else bottomStart
+    val targetBottomEnd = if (bottomEnd == 16f) 28f else bottomEnd
 
-    val isThisTilePressed = pressedTile == tileKey
-
-    val morphSpec: AnimationSpec<Float> = spring(
-        dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium
-    )
-
-    val animTopStart by animateFloatAsState(
-        targetValue = if (isThisTilePressed && topStart == 16f) 28f else topStart,
-        animationSpec = morphSpec,
-        label = "${tileKey}_topStart"
-    )
-    val animTopEnd by animateFloatAsState(
-        targetValue = if (isThisTilePressed && topEnd == 16f) 28f else topEnd,
-        animationSpec = morphSpec,
-        label = "${tileKey}_topEnd"
-    )
-    val animBottomStart by animateFloatAsState(
-        targetValue = if (isThisTilePressed && bottomStart == 16f) 28f else bottomStart,
-        animationSpec = morphSpec,
-        label = "${tileKey}_bottomStart"
-    )
-    val animBottomEnd by animateFloatAsState(
-        targetValue = if (isThisTilePressed && bottomEnd == 16f) 28f else bottomEnd,
-        animationSpec = morphSpec,
-        label = "${tileKey}_bottomEnd"
-    )
+    val animTopStart = lerp(topStart, targetTopStart, press)
+    val animTopEnd = lerp(topEnd, targetTopEnd, press)
+    val animBottomStart = lerp(bottomStart, targetBottomStart, press)
+    val animBottomEnd = lerp(bottomEnd, targetBottomEnd, press)
 
     Box(
         modifier = modifier
@@ -1033,7 +982,29 @@ private fun DialogTextButton(
 private fun DialogPrimaryButton(
     label: String, onClick: () -> Unit, hapticAction: () -> Unit, enabled: Boolean = true
 ) {
-    Button(onClick = { hapticAnd(onClick, hapticAction) }, enabled = enabled) { Text(label) }
+    MorphButton(label = label, onClick = { hapticAnd(onClick, hapticAction) }, enabled = enabled)
+}
+
+@Composable
+fun MorphButton(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    colors: androidx.compose.material3.ButtonColors = ButtonDefaults.buttonColors()
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressProgress by rememberMaterialPressState(interactionSource)
+    val cornerRadius = lerp(50f, 6f, pressProgress)
+
+    Button(
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        shape = RoundedCornerShape(cornerRadius.dp),
+        colors = colors,
+        interactionSource = interactionSource
+    ) { Text(label) }
 }
 
 private fun sanitizeFilename(input: String, fallback: String = "image"): String {

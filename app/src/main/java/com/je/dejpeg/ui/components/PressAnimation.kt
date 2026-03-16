@@ -9,16 +9,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
-import kotlinx.coroutines.flow.collect
 
 @Composable
 fun rememberMaterialPressState(
-    interactionSource: MutableInteractionSource,
-    pressInMs: Int = 80,
-    releaseMs: Int = 150
+    interactionSource: MutableInteractionSource, pressInMs: Int = 80, releaseMs: Int = 150
 ): State<Float> {
     val progress = remember { Animatable(0f) }
-
     LaunchedEffect(interactionSource) {
         interactionSource.interactions.collect { interaction ->
             when (interaction) {
@@ -34,6 +30,5 @@ fun rememberMaterialPressState(
             }
         }
     }
-
-    return derivedStateOf { progress.value }
+    return remember { derivedStateOf { progress.value } }
 }

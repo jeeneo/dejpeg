@@ -40,7 +40,6 @@ class ImageRepository(private val appContext: Context) {
     val sharedUris = MutableStateFlow<List<Uri>>(emptyList())
     val isLoadingImages = MutableStateFlow(false)
     val loadingImagesProgress = MutableStateFlow<Pair<Int, Int>?>(null)
-    val isSavingImages = MutableStateFlow(false)
     val savingImagesProgress = MutableStateFlow<Pair<Int, Int>?>(null)
 
     fun addImage(item: ImageItem) {
