@@ -9,7 +9,7 @@
     <string name="already_exists">Это изображение уже существует. Перезаписать?</string>
     <string name="filename">Имя файла</string>
     <string name="save_all">Сохранить все</string>
-    <string name="dont_show_dialog">Не показывать этот диалог</string>
+    <string name="dont_show_dialog">Не показывать снова</string>
     <string name="cancel">Отмена</string>
     <string name="back_exit_confirm">Нажмите ещё раз, чтобы выйти</string>
     <string name="remove_image_title">Удалить изображение?</string>
@@ -295,4 +295,11 @@
     <string name="reprocess">Повторная обработка</string>
     <string name="extract">Извлечь</string>
     <string name="extracted_starter_models">Базовые модели извлечены</string>
+    <plurals name="image_saved_to_gallery">
+        <item quantity="one">%1$d изображение сохранено</item>
+        <item quantity="few">%1$d изображения сохранены</item>
+        <item quantity="many">%1$d изображений сохранено</item>
+        <item quantity="other">%1$d изображений сохранено</item>
+    </plurals>
+    <string name="model_switch_blocked_processing">Нельзя переключать модели во время обработки</string>
 </resources>
