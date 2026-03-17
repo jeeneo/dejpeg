@@ -259,8 +259,8 @@
     <string name="brisque_phase_finalizing">即将完成</string>
     <string name="invalid_tza_file_type">Oidn 模式仅支持 .tza 格式的模型文件</string>
     <string name="processing_mode">处理模式</string>
-    <string name="mode_onnx_desc">使用 ONNX Runtime 运行预训练模型 (.onnx/.ort)</string>
-    <string name="mode_oidn_desc">使用带有训练权重（.tza）的Intel® Open Image Denoise</string>
+    <string name="mode_onnx_desc">使用 ONNX Runtime</string>
+    <string name="mode_oidn_desc">使用 Intel® Open Image Denoise</string>
     <string name="oidn_settings">Oidn 设置</string>
     <string name="oidn_model_management">Oidn 模型管理</string>
     <string name="oidn_hdr">HDR 输入</string>

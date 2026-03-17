@@ -270,8 +270,8 @@
     <string name="brisque_phase_finalizing">Finalizing</string>
     <string name="invalid_tza_file_type">Only .tza model files are supported in Oidn mode</string>
     <string name="processing_mode">Processing mode</string>
-    <string name="mode_onnx_desc">Uses ONNX Runtime for pretrained models (.onnx/.ort)</string>
-    <string name="mode_oidn_desc">Uses Intel® Open Image Denoise with trained weights (.tza)</string>
+    <string name="mode_onnx_desc">Uses ONNX</string>
+    <string name="mode_oidn_desc">Uses Intel® Open Image Denoise</string>
     <string name="oidn_settings">Oidn settings</string>
     <string name="oidn_model_management">Oidn model management</string>
     <string name="oidn_hdr">HDR input</string>
@@ -287,4 +287,5 @@
     <string name="oidn_num_threads_desc">0 = auto</string>
     <string name="oidn_settings_desc">HDR, sRGB, quality, threads</string>
     <string name="import_tza_model">Import .tza model</string>
+    <string name="model_switch_blocked_processing">You can\'t switch models while procesing</string>
 </resources>

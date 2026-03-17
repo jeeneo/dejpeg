@@ -53,7 +53,7 @@
     <string name="text_auto">Авто</string>
     <string name="no_images_yet">Нет изображений</string>
     <string name="tap_to_add_images">Нажмите, чтобы добавить</string>
-    <string name="no_model_installed_title">Модель не установлена</string>
+    <string name="no_model_installed_title">Модели не установлены</string>
     <string name="import_error">Ошибка импорта</string>
     <string name="model_management">Управление моделями</string>
     <string name="download">Загрузить</string>
@@ -64,7 +64,6 @@
     <string name="overlap_size">Размер перекрытия</string>
     <string name="preferences">Предпочтения</string>
     <string name="vibration_on_touch">Вибрация при касании</string>
-    <!-- <string name="haptic_feedback_desc">Включить небольшую вибрацию для действий</string> -->
     <string name="faqs">ЧаВо</string>
     <string name="processing">Обработка</string>
     <string name="finishing_up">Завершение…</string>
@@ -137,7 +136,7 @@
         <item quantity="many">Обработка %1$d-%2$d/%3$d (%4$d потоков)</item>
         <item quantity="other">Обработка %1$d-%2$d/%3$d (%4$d потоков)</item>
     </plurals>
-    <string name="loading_images">Загрузка изображений…</string>
+    <string name="loading_images">Загрузка…</string>
     <string name="loading_image_progress">Загрузка %1$d из %2$d</string>
     <string name="saving_images">Сохранение…</string>
     <string name="saving_image_progress">Сохранение %1$d из %2$d</string>
@@ -154,7 +153,7 @@
     <string name="discard">Отклонить</string>
     <string name="recovered_image_prefix">Восстановлено</string>
     <string name="starter_model_title">Базовые модели</string>
-    <string name="starter_model_message">DeJPEG теперь поставляется с небольшими быстрыми моделями общего назначения. Не ожидайте, что они будут идеально обрабатывать каждое изображение.\n\nВы по-прежнему можете в любой момент импортировать дополнительные модели из настроек.\n\nДля достижения наилучших результатов дополнительные модели доступны по ссылкам.\n\nЕсли вам не нужны эти модели, вы можете удалить их, и они больше не будут отображаться. Их также можно добавить обратно из настроек.</string>
+    <string name="starter_model_message">Теперь в DeJPEG включены небольшие быстрые модели общего назначения. Не стоит ожидать, что они будут идеально обрабатывать каждое изображение.\n\nДля достижения наилучших результатов по ссылкам доступны дополнительные модели.\n\nЕсли вам не нужны эти модели, вы можете удалить их, и они больше не будут отображаться. Их также можно добавить обратно в настройках.</string>
     <string name="got_it">Понятно</string>
     <string name="model_info_1x_rgb_max_denoise_fp16">Быстрое шумоподавление и сжатие, в основном для анимации. Или может превращать фотографии в мультфильмы.</string>
     <string name="model_info_1x_span_anime_pretrain_fp16">Быстрое общее сжатие, общий шум. Подходит для анимации, комиксов, аниме и некоторых фотографий.</string>
@@ -274,8 +273,8 @@
     <string name="brisque_phase_finalizing">Завершение</string>
     <string name="invalid_tza_file_type">В режиме Oidn поддерживаются только файлы моделей .tza</string>
     <string name="processing_mode">Режим обработки</string>
-    <string name="mode_onnx_desc">Использует ONNX Runtime для предобученных моделей (.onnx/.ort)</string>
-    <string name="mode_oidn_desc">Использует Intel® Open Image Denoise с обученными весами (.tza)</string>
+    <string name="mode_onnx_desc">Использует ONNX</string>
+    <string name="mode_oidn_desc">Использует Intel® Open Image Denoise</string>
     <string name="oidn_settings">Параметры Oidn</string>
     <string name="oidn_model_management">Управление весами</string>
     <string name="oidn_hdr">HDR-вход</string>
@@ -294,4 +293,7 @@
     <string name="processing_threads_desc">Параллельные фрагменты</string>
     <string name="thread_value_auto">Авто (%1$d)</string>
     <string name="info">Инфо</string>
+    <string name="reprocess">Повторная обработка</string>
+    <string name="extract">Извлечь</string>
+    <string name="extracted_starter_models">Базовые модели извлечены</string>
 </resources>
