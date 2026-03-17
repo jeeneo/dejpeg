@@ -456,23 +456,28 @@ object ImageActions {
         }
     }
 
-    fun shareImage(context: Context, bitmap: Bitmap, onError: (String) -> Unit = {}) {
-        try {
-            val cachePath = File(context.cacheDir, "shared_image.png")
-            if (cachePath.exists()) cachePath.delete()
-            FileOutputStream(cachePath).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
-            val contentUri =
-                FileProvider.getUriForFile(context, "${context.packageName}.provider", cachePath)
-            val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                type = "image/png"
-                putExtra(Intent.EXTRA_STREAM, contentUri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                clipData = ClipData.newRawUri(null, contentUri)
+    fun shareImage(context: Context, bitmap: Bitmap, onReady: () -> Unit = {}, onError: (String) -> Unit = {}) {
+        @OptIn(DelicateCoroutinesApi::class) GlobalScope.launch(Dispatchers.IO) {
+            try {
+                val cachePath = File(context.cacheDir, "shared_image.png")
+                if (cachePath.exists()) cachePath.delete()
+                FileOutputStream(cachePath).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                val contentUri =
+                    FileProvider.getUriForFile(context, "${context.packageName}.provider", cachePath)
+                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "image/png"
+                    putExtra(Intent.EXTRA_STREAM, contentUri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    clipData = ClipData.newRawUri(null, contentUri)
+                }
+                withContext(Dispatchers.Main) {
+                    onReady()
+                    context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.share_image)))
+                }
+            } catch (e: Exception) {
+                val errorMsg = context.getString(R.string.error_sharing_image, e.message)
+                withContext(Dispatchers.Main) { onError(errorMsg) }
             }
-            context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.share_image)))
-        } catch (e: Exception) {
-            val errorMsg = context.getString(R.string.error_sharing_image, e.message)
-            onError(errorMsg)
         }
     }
 }

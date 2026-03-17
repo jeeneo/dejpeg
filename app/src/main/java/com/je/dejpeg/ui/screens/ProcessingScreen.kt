@@ -1006,13 +1006,24 @@ fun SaveProgressDialog(saveState: SaveState.Saving) {
                                     ContainedLoadingIndicator(
                                         modifier = Modifier.size(80.dp)
                                     )
-                                    CircularWavyProgressIndicator(
-                                        progress = { animatedProgress },
-                                        modifier = Modifier.size(88.dp),
-                                        stroke = thickStroke,
-                                        trackStroke = thickStroke,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                    )
+                                    if (saveState.total > 1) {
+                                        CircularWavyProgressIndicator(
+                                            progress = { animatedProgress },
+                                            modifier = Modifier.size(88.dp),
+                                            stroke = thickStroke,
+                                            trackStroke = thickStroke,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                        )
+                                    }
+                                    else
+                                    {
+                                        CircularWavyProgressIndicator(
+                                            modifier = Modifier.size(88.dp),
+                                            stroke = thickStroke,
+                                            trackStroke = thickStroke,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                        )
+                                    }
                                 }
                                 if (saveState.total > 1) {
                                     Text(

@@ -48,6 +48,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -69,6 +70,7 @@ import com.je.dejpeg.R
 import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.ui.components.BeforeAfterSlider
+import com.je.dejpeg.ui.components.PreparingShareDialog
 import com.je.dejpeg.ui.components.SaveImageDialog
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SaveState
@@ -103,6 +105,7 @@ fun BeforeAfterScreen(
     val image = images.firstOrNull { it.id == imageId }
     var showSaveDialog by remember { mutableStateOf(false) }
     var overwriteDialogFilename by remember { mutableStateOf<String?>(null) }
+    var isPreparingShare by remember { mutableStateOf(false) }
     val saveState by viewModel.saveState.collectAsState()
 
     if (image == null) {
@@ -159,7 +162,13 @@ fun BeforeAfterScreen(
                         modifier = Modifier.height(56.dp),
                         onClick = {
                             haptic.light()
-                            ImageActions.shareImage(context, afterBitmap ?: beforeBitmap)
+                            isPreparingShare = true
+                            ImageActions.shareImage(
+                                context = context,
+                                bitmap = afterBitmap ?: beforeBitmap,
+                                onReady = { isPreparingShare = false },
+                                onError = { isPreparingShare = false }
+                            )
                         },
                         shapes = ButtonDefaults.shapes(
                             shape = RoundedCornerShape(
@@ -227,6 +236,8 @@ fun BeforeAfterScreen(
                 }
             }
         }
+
+        if (isPreparingShare) PreparingShareDialog()
 
         if (showSaveDialog) {
             SaveImageDialog(
