@@ -270,7 +270,6 @@
     <string name="brisque_phase_finalizing">Finalizing</string>
     <string name="invalid_tza_file_type">Only .tza model files are supported in Oidn mode</string>
     <string name="processing_mode">Processing mode</string>
-    <string name="mode_onnx_desc">Uses ONNX</string>
     <string name="mode_oidn_desc">Uses Intel® Open Image Denoise</string>
     <string name="oidn_settings">Oidn settings</string>
     <string name="oidn_model_management">Oidn model management</string>

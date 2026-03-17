@@ -273,7 +273,6 @@
     <string name="brisque_phase_finalizing">Завершение</string>
     <string name="invalid_tza_file_type">В режиме Oidn поддерживаются только файлы моделей .tza</string>
     <string name="processing_mode">Режим обработки</string>
-    <string name="mode_onnx_desc">Использует ONNX</string>
     <string name="mode_oidn_desc">Использует Intel® Open Image Denoise</string>
     <string name="oidn_settings">Параметры Oidn</string>
     <string name="oidn_model_management">Управление весами</string>

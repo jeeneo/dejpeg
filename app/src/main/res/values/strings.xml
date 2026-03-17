@@ -277,7 +277,6 @@
     <string name="processing_mode">Processing mode</string>
     <string name="mode_onnx" translatable="false">ONNX</string>
     <string name="mode_oidn" translatable="false">Oidn</string>
-    <string name="mode_onnx_desc">Uses ONNX</string>
     <string name="mode_oidn_desc">Uses Intel® Open Image Denoise</string>
     <string name="oidn_settings">Oidn settings</string>
     <string name="oidn_model_management">Oidn model management</string>

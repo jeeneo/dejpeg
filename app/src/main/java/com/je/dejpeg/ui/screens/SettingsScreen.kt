@@ -167,7 +167,7 @@ fun SettingsScreen(
     val oidnHdr by viewModel.oidnHdr.collectAsState()
     @Suppress("SpellCheckingInspection") val oidnSrgb by viewModel.oidnSrgb.collectAsState()
     val oidnQuality by viewModel.oidnQuality.collectAsState()
-    @Suppress("SpellCheckingInspection") val oidnNumThreads by viewModel.oidnNumThreads.collectAsState()
+    val oidnNumThreads by viewModel.oidnNumThreads.collectAsState()
     var activeOidnModelName by remember {
         mutableStateOf(runBlocking { viewModel.getActiveModelName(ModelType.OIDN) })
     }
@@ -319,13 +319,14 @@ fun SettingsScreen(
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            if (processingMode == ProcessingMode.OIDN) stringResource(R.string.mode_oidn_desc)
-                            else stringResource(R.string.mode_onnx_desc),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        if (processingMode == ProcessingMode.OIDN) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                stringResource(R.string.mode_oidn_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         Spacer(modifier = Modifier.height(12.dp))
                         SingleChoiceSegmentedButtonRow(
                             modifier = Modifier.fillMaxWidth()
