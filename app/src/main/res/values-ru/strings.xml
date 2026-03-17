@@ -22,7 +22,6 @@
     <string name="yes_stop">Остановить</string>
     <string name="error_saving_image_title">Ошибка сохранения изображения</string>
     <string name="error_saving_image">Ошибка сохранения изображения: %1$s</string>
-    <string name="image_saved_to_gallery">Изображение сохранено в галерею</string>
     <string name="share_image">Поделиться изображением</string>
     <string name="error_sharing_image">Ошибка отправки изображения: %1$s</string>
     <string name="select_image_source">Источник изображений</string>

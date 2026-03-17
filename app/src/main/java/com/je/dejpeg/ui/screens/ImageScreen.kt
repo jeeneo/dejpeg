@@ -19,6 +19,7 @@ package com.je.dejpeg.ui.screens
 
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,7 +49,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -119,7 +119,9 @@ fun BeforeAfterScreen(
     val showSaveAllOption = images.any { it.outputBitmap != null }
 
     Column(
-        Modifier.fillMaxSize()
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
     ) {
         TopAppBar(
             title = { Text(filename, style = MaterialTheme.typography.titleMedium) },
@@ -203,7 +205,9 @@ fun BeforeAfterScreen(
                                     overwriteDialogFilename = filename
                                 } else {
                                     viewModel.saveImage(
-                                        context = context, imageIds = listOf(imageId), baseFilename = filename
+                                        context = context,
+                                        imageIds = listOf(imageId),
+                                        baseFilename = filename
                                     )
                                 }
                             } else {
@@ -255,7 +259,11 @@ fun BeforeAfterScreen(
                     if (ImageActions.checkFileExists(context, name)) {
                         overwriteDialogFilename = name
                     } else {
-                        viewModel.saveImage(context, imageIds = listOf(imageId), baseFilename = name)
+                        viewModel.saveImage(
+                            context,
+                            imageIds = listOf(imageId),
+                            baseFilename = name
+                        )
                         showSaveDialog = false
                     }
                 }
@@ -269,7 +277,11 @@ fun BeforeAfterScreen(
                 initialSaveAll = false,
                 hideOptions = true,
                 onDismissRequest = { overwriteDialogFilename = null }) { name, _, _ ->
-                viewModel.saveImage(context = context, imageIds = listOf(imageId), baseFilename = name)
+                viewModel.saveImage(
+                    context = context,
+                    imageIds = listOf(imageId),
+                    baseFilename = name
+                )
             }
         }
         (saveState as? SaveState.Error)?.let { err ->

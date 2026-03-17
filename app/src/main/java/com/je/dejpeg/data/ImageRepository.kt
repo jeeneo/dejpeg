@@ -21,7 +21,6 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import com.je.dejpeg.ui.viewmodel.ImageItem
-import com.je.dejpeg.utils.helpers.ImageActions
 import com.je.dejpeg.utils.helpers.ImageLoadingHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

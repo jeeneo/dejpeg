@@ -42,11 +42,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.ui.MainScreen
 import com.je.dejpeg.ui.components.StarterModelDialog
-import com.je.dejpeg.ui.viewmodel.SettingsViewModel
-import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.ui.theme.DeJPEGTheme
+import com.je.dejpeg.ui.viewmodel.SettingsViewModel
 
 class MainActivity : ComponentActivity() {
     private val settingsViewModel: SettingsViewModel by viewModels()

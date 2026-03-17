@@ -18,23 +18,22 @@
 package com.je.dejpeg.utils.brisque
 
 import android.content.Context
-import android.util.Log
-import java.lang.ref.WeakReference
 import android.graphics.Bitmap
+import android.util.Log
 import androidx.core.graphics.scale
 import com.je.dejpeg.R
+import com.je.dejpeg.utils.HashUtils
 import kotlinx.coroutines.yield
-import kotlin.math.sqrt
+import java.io.File
+import java.lang.ref.WeakReference
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.exp
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
-import com.je.dejpeg.utils.HashUtils
-import java.io.File
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
 
 class BRISQUEAssessor {
     companion object {
@@ -50,7 +49,7 @@ class BRISQUEAssessor {
         }
     }
 
-    fun assessImageQualityFromBitmap(bitmap: android.graphics.Bitmap): Float {
+    fun assessImageQualityFromBitmap(bitmap: Bitmap): Float {
         return try {
             val model = getModel()
             if (model == null) {
@@ -387,7 +386,7 @@ class BRISQUEDescaler(
             }
             if (n == 0) return 0f
             val rawSharpness = sqrt(sum / n).toFloat()
-            val normalized = 100f * (1f - kotlin.math.exp(-rawSharpness / 30f))
+            val normalized = 100f * (1f - exp(-rawSharpness / 30f))
             normalized
         } catch (e: Exception) {
             Log.e("Sharpness", e.message ?: "err")

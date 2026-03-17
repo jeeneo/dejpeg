@@ -32,14 +32,14 @@ import com.je.dejpeg.ProcessingService
 import com.je.dejpeg.R
 import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.data.ProcessingMode
+import com.je.dejpeg.ui.components.SnackbarDuration
+import com.je.dejpeg.ui.components.SnackySnackbarController
+import com.je.dejpeg.ui.components.SnackySnackbarEvents
 import com.je.dejpeg.utils.CacheManager
 import com.je.dejpeg.utils.ProcessingQueueManager
 import com.je.dejpeg.utils.helpers.ImageActions
 import com.je.dejpeg.utils.helpers.ImagePickerHelper
 import com.je.dejpeg.utils.helpers.ServiceCommunicationHelper
-import com.je.dejpeg.ui.components.SnackbarDuration
-import com.je.dejpeg.ui.components.SnackySnackbarController
-import com.je.dejpeg.ui.components.SnackySnackbarEvents
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -94,12 +94,12 @@ class ProcessingViewModel : ViewModel() {
         }
 
     private fun status(resId: Int) = appContext!!.getString(resId)
-    private val statusPreparing get() = status(com.je.dejpeg.R.string.status_preparing)
-    private val statusComplete get() = status(com.je.dejpeg.R.string.status_complete)
-    private val statusCancelled get() = status(com.je.dejpeg.R.string.status_cancelled)
-    private val statusCanceling get() = status(com.je.dejpeg.R.string.status_canceling)
-    private val statusQueued get() = status(com.je.dejpeg.R.string.status_queued)
-    private val statusNativeCrash get() = status(com.je.dejpeg.R.string.error_native_crash)
+    private val statusPreparing get() = status(R.string.status_preparing)
+    private val statusComplete get() = status(R.string.status_complete)
+    private val statusCancelled get() = status(R.string.status_cancelled)
+    private val statusCanceling get() = status(R.string.status_canceling)
+    private val statusQueued get() = status(R.string.status_queued)
+    private val statusNativeCrash get() = status(R.string.error_native_crash)
 
     fun dismissSaveError() {
         saveState.value = SaveState.Idle
@@ -573,11 +573,9 @@ class ProcessingViewModel : ViewModel() {
                     }
                 }
                 if (savedCount > 0) {
-                    val message = if (savedCount == 1) {
-                        context.getString(R.string.image_saved_to_gallery)
-                    } else {
-                        context.getString(R.string.images_saved_to_gallery, savedCount)
-                    }
+                    val message = context.resources.getQuantityString(
+                        R.plurals.image_saved_to_gallery, savedCount, savedCount
+                    )
                     SnackySnackbarController.pushEvent(
                         SnackySnackbarEvents.MessageEvent(
                             message = message,

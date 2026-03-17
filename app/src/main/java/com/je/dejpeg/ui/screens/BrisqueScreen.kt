@@ -98,13 +98,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.je.dejpeg.R
 import com.je.dejpeg.data.BrisqueSettings
 import com.je.dejpeg.data.ImageRepository
-import com.je.dejpeg.ui.components.SimpleAlertDialog
-import com.je.dejpeg.ui.components.SnackbarDuration
-import com.je.dejpeg.ui.components.SnackySnackbarController
-import com.je.dejpeg.ui.components.SnackySnackbarEvents
 import com.je.dejpeg.ui.components.ErrorAlertDialog
-import com.je.dejpeg.ui.viewmodel.SaveState
+import com.je.dejpeg.ui.components.SimpleAlertDialog
 import com.je.dejpeg.ui.viewmodel.BrisqueViewModel
+import com.je.dejpeg.ui.viewmodel.SaveState
 import com.je.dejpeg.utils.brisque.BRISQUEDescaler
 import com.je.dejpeg.utils.rememberHapticFeedback
 import kotlinx.coroutines.launch
@@ -118,13 +115,13 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BRISQUEScreen(
-    imageRepository: ImageRepository, imageId: String, onBack: () -> Unit = {}
+    imageRepository: ImageRepository, imageId: String, onBack: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val haptic = rememberHapticFeedback()
-    val scope = rememberCoroutineScope()
-    val successSaveMsg = stringResource(R.string.brisque_image_saved)
-    val failureSaveMsg = stringResource(R.string.brisque_failed_to_save)
+    rememberCoroutineScope()
+    stringResource(R.string.brisque_image_saved)
+    stringResource(R.string.brisque_failed_to_save)
     val images by imageRepository.images.collectAsState()
     val image =
         images.firstOrNull { it.id == imageId } ?: run { LaunchedEffect(Unit) { onBack() }; return }
@@ -149,11 +146,11 @@ fun BRISQUEScreen(
     ) {
         TopAppBar(
             title = {
-            Text(
-                stringResource(R.string.brisque_analysis),
-                style = MaterialTheme.typography.titleMedium
-            )
-        },
+                Text(
+                    stringResource(R.string.brisque_analysis),
+                    style = MaterialTheme.typography.titleMedium
+                )
+            },
             navigationIcon = {
                 IconButton(onClick = { haptic.light(); onBack() }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back_desc))

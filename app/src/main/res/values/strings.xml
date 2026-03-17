@@ -23,8 +23,10 @@
     <string name="yes_stop">Yes, stop</string>
     <string name="error_saving_image_title">Error saving image</string>
     <string name="error_saving_image">Error saving image: %1$s</string>
-    <string name="image_saved_to_gallery">Image saved</string>
-    <string name="images_saved_to_gallery">%1$d images saved</string>
+    <plurals name="image_saved_to_gallery">
+        <item quantity="one">Image saved</item>
+        <item quantity="other">%1$d images saved</item>
+    </plurals>
     <string name="share_image">Share image</string>
     <string name="error_sharing_image">Error sharing image: %1$s</string>
     <string name="select_image_source">Select image source</string>

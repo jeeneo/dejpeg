@@ -142,7 +142,8 @@ fun ErrorAlertDialog(
     confirmButtonText: String? = null
 ) {
     val haptic = rememberHapticFeedback()
-    val clipboardManager = remember(context) { context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager }
+    val clipboardManager =
+        remember(context) { context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager }
 
     StyledAlertDialog(
         onDismissRequest = onDismiss,
@@ -589,12 +590,12 @@ fun RemoveImageDialog(
             ) {
                 DialogTextButton(
                     stringResource(R.string.remove), {
-                    CacheManager.deleteRecoveryPair(
-                        context, imageId, deleteProcessed = true, deleteUnprocessed = true
-                    )
-                    onRemove()
-                    onDismissRequest()
-                }, { haptic.heavy() }, MaterialTheme.colorScheme.error
+                        CacheManager.deleteRecoveryPair(
+                            context, imageId, deleteProcessed = true, deleteUnprocessed = true
+                        )
+                        onRemove()
+                        onDismissRequest()
+                    }, { haptic.heavy() }, MaterialTheme.colorScheme.error
                 )
                 if (hasOutput) {
                     MorphButton(

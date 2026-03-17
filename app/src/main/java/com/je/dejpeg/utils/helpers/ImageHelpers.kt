@@ -18,16 +18,16 @@
 package com.je.dejpeg.utils.helpers
 
 import android.content.ClipData
+import android.content.ContentUris
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
-import android.content.ContentValues
-import android.content.ContentUris
-import android.os.Build
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.media.MediaScannerConnection
 import android.net.Uri
+import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.provider.OpenableColumns
@@ -394,7 +394,11 @@ object ImageActions {
     ) {
         @OptIn(DelicateCoroutinesApi::class) GlobalScope.launch(Dispatchers.IO) {
             try {
-                val fileNameRaw = filename?.takeIf { it.isNotBlank() } ?: "DeJPEG_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}"
+                val fileNameRaw = filename?.takeIf { it.isNotBlank() } ?: "DeJPEG_${
+                    SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(
+                        Date()
+                    )
+                }"
                 val fileName = fileNameRaw.substringBeforeLast('.', fileNameRaw)
                 val finalName = "$fileName.png"
 
@@ -409,8 +413,12 @@ object ImageActions {
                     null
                 )?.use { cursor ->
                     while (cursor.moveToNext()) {
-                        val id = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID))
-                        val deleteUri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id)
+                        val id =
+                            cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID))
+                        val deleteUri = ContentUris.withAppendedId(
+                            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                            id
+                        )
                         context.contentResolver.delete(deleteUri, null, null)
                     }
                 }
@@ -437,13 +445,19 @@ object ImageActions {
                     values.put(MediaStore.Images.Media.IS_PENDING, 0)
                     context.contentResolver.update(uri, values, null, null)
                 } else {
-                    val path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).absolutePath + "/$finalName"
+                    val path =
+                        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).absolutePath + "/$finalName"
                     MediaScannerConnection.scanFile(context, arrayOf(path), null, null)
                 }
 
                 if (imageId != null) {
                     try {
-                        CacheManager.deleteRecoveryPair(context, imageId, deleteProcessed = true, deleteUnprocessed = false)
+                        CacheManager.deleteRecoveryPair(
+                            context,
+                            imageId,
+                            deleteProcessed = true,
+                            deleteUnprocessed = false
+                        )
                     } catch (_: Exception) {
                     }
                 }
@@ -456,14 +470,29 @@ object ImageActions {
         }
     }
 
-    fun shareImage(context: Context, bitmap: Bitmap, onReady: () -> Unit = {}, onError: (String) -> Unit = {}) {
+    fun shareImage(
+        context: Context,
+        bitmap: Bitmap,
+        onReady: () -> Unit = {},
+        onError: (String) -> Unit = {}
+    ) {
         @OptIn(DelicateCoroutinesApi::class) GlobalScope.launch(Dispatchers.IO) {
             try {
                 val cachePath = File(context.cacheDir, "shared_image.png")
                 if (cachePath.exists()) cachePath.delete()
-                FileOutputStream(cachePath).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                FileOutputStream(cachePath).use {
+                    bitmap.compress(
+                        Bitmap.CompressFormat.PNG,
+                        100,
+                        it
+                    )
+                }
                 val contentUri =
-                    FileProvider.getUriForFile(context, "${context.packageName}.provider", cachePath)
+                    FileProvider.getUriForFile(
+                        context,
+                        "${context.packageName}.provider",
+                        cachePath
+                    )
                 val shareIntent = Intent(Intent.ACTION_SEND).apply {
                     type = "image/png"
                     putExtra(Intent.EXTRA_STREAM, contentUri)
@@ -472,7 +501,12 @@ object ImageActions {
                 }
                 withContext(Dispatchers.Main) {
                     onReady()
-                    context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.share_image)))
+                    context.startActivity(
+                        Intent.createChooser(
+                            shareIntent,
+                            context.getString(R.string.share_image)
+                        )
+                    )
                 }
             } catch (e: Exception) {
                 val errorMsg = context.getString(R.string.error_sharing_image, e.message)

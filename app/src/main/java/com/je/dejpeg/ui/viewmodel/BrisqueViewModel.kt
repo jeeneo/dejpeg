@@ -19,26 +19,23 @@ package com.je.dejpeg.ui.viewmodel
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.os.Environment
-import android.provider.MediaStore
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.je.dejpeg.R
 import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.data.BrisqueSettings
+import com.je.dejpeg.ui.components.SnackbarDuration
+import com.je.dejpeg.ui.components.SnackySnackbarController
+import com.je.dejpeg.ui.components.SnackySnackbarEvents
 import com.je.dejpeg.utils.brisque.BRISQUEAssessor
 import com.je.dejpeg.utils.brisque.BRISQUEDescaler
+import com.je.dejpeg.utils.helpers.ImageActions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import com.je.dejpeg.utils.helpers.ImageActions
-import java.io.IOException
-import com.je.dejpeg.ui.components.SnackbarDuration
-import com.je.dejpeg.ui.components.SnackySnackbarController
-import com.je.dejpeg.ui.components.SnackySnackbarEvents
 
 sealed class SaveState {
     object Idle : SaveState()
@@ -264,7 +261,7 @@ class BrisqueViewModel : ViewModel() {
                 viewModelScope.launch {
                     SnackySnackbarController.pushEvent(
                         SnackySnackbarEvents.MessageEvent(
-                            message = context.getString(R.string.image_saved_to_gallery),
+                            message = context.resources.getQuantityString(R.plurals.image_saved_to_gallery, 1, 1),
                             duration = SnackbarDuration.Short
                         )
                     )
@@ -276,6 +273,7 @@ class BrisqueViewModel : ViewModel() {
             }
         )
     }
+
     fun dismissSaveError() {
         saveState.value = SaveState.Idle
     }

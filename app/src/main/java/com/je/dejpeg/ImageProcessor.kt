@@ -30,11 +30,10 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.util.Log
 import androidx.core.graphics.createBitmap
-import com.je.dejpeg.R
-import com.je.dejpeg.utils.CacheManager
 import com.je.dejpeg.data.AppPreferences
-import kotlinx.coroutines.coroutineScope
+import com.je.dejpeg.utils.CacheManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit

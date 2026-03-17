@@ -22,7 +22,6 @@
     <string name="yes_stop">是，停止</string>
     <string name="error_saving_image_title">保存图像时出错</string>
     <string name="error_saving_image">保存图像%1$s时出错</string>
-    <string name="image_saved_to_gallery">图像已存至相册</string>
     <string name="share_image">分享图像</string>
     <string name="error_sharing_image">分享图像%1$s时出错</string>
     <string name="select_image_source">选择图像来源</string>

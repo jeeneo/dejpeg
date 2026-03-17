@@ -264,13 +264,13 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
 
                 ExtendedFloatingActionButton(
                     onClick = {
-                    haptic.light() // huh wonky, reformatting doesnt like you
-                    if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN) {
-                        oidnModelPickerLauncher.launch("*/*")
-                    } else {
-                        modelPickerLauncher.launch("*/*")
-                    }
-                },
+                        haptic.light() // huh wonky, reformatting doesnt like you
+                        if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN) {
+                            oidnModelPickerLauncher.launch("*/*")
+                        } else {
+                            modelPickerLauncher.launch("*/*")
+                        }
+                    },
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = {
                         Text(
@@ -754,41 +754,42 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
 
             val isOidn = BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN
 
-            Box(modifier = Modifier
-                .fillMaxWidth()
-                .onSizeChanged { containerWidth = it.width }
-                .clip(MaterialTheme.shapes.large)
-                .pointerInput(processingMode) {
-                    if (!BuildConfig.OIDN_ENABLED) return@pointerInput
-                    detectHorizontalDragGestures(onDragEnd = {
-                        val threshold = containerWidth * 0.35f
-                        scope.launch {
-                            if (animatedOffset.value > threshold && processingMode == ProcessingMode.OIDN) {
-                                animatedOffset.animateTo(containerWidth.toFloat(), spring())
-                                viewModel.setProcessingMode(ProcessingMode.ONNX)
-                                animatedOffset.snapTo(0f)
-                            } else if (animatedOffset.value < -threshold && processingMode == ProcessingMode.ONNX) {
-                                animatedOffset.animateTo(
-                                    -containerWidth.toFloat(), spring()
-                                )
-                                viewModel.setProcessingMode(ProcessingMode.OIDN)
-                                animatedOffset.snapTo(0f)
-                            } else {
-                                animatedOffset.animateTo(0f, spring())
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onSizeChanged { containerWidth = it.width }
+                    .clip(MaterialTheme.shapes.large)
+                    .pointerInput(processingMode) {
+                        if (!BuildConfig.OIDN_ENABLED) return@pointerInput
+                        detectHorizontalDragGestures(onDragEnd = {
+                            val threshold = containerWidth * 0.35f
+                            scope.launch {
+                                if (animatedOffset.value > threshold && processingMode == ProcessingMode.OIDN) {
+                                    animatedOffset.animateTo(containerWidth.toFloat(), spring())
+                                    viewModel.setProcessingMode(ProcessingMode.ONNX)
+                                    animatedOffset.snapTo(0f)
+                                } else if (animatedOffset.value < -threshold && processingMode == ProcessingMode.ONNX) {
+                                    animatedOffset.animateTo(
+                                        -containerWidth.toFloat(), spring()
+                                    )
+                                    viewModel.setProcessingMode(ProcessingMode.OIDN)
+                                    animatedOffset.snapTo(0f)
+                                } else {
+                                    animatedOffset.animateTo(0f, spring())
+                                }
                             }
-                        }
-                    }, onDragCancel = {
-                        scope.launch { animatedOffset.animateTo(0f, spring()) }
-                    }, onHorizontalDrag = { change, dragAmount ->
-                        change.consume()
-                        val newOffset = animatedOffset.value + dragAmount
-                        val clamped = when (processingMode) {
-                            ProcessingMode.OIDN -> newOffset.coerceAtLeast(0f)
-                            ProcessingMode.ONNX -> newOffset.coerceAtMost(0f)
-                        }
-                        scope.launch { animatedOffset.snapTo(clamped) }
-                    })
-                }) {
+                        }, onDragCancel = {
+                            scope.launch { animatedOffset.animateTo(0f, spring()) }
+                        }, onHorizontalDrag = { change, dragAmount ->
+                            change.consume()
+                            val newOffset = animatedOffset.value + dragAmount
+                            val clamped = when (processingMode) {
+                                ProcessingMode.OIDN -> newOffset.coerceAtLeast(0f)
+                                ProcessingMode.ONNX -> newOffset.coerceAtMost(0f)
+                            }
+                            scope.launch { animatedOffset.snapTo(clamped) }
+                        })
+                    }) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1317,10 +1318,11 @@ fun FAQSection(title: String, content: String?, subSections: List<Pair<String, S
     )
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        Row(modifier = Modifier
-            .fillMaxWidth()
-            .clickable { haptic.light(); expanded = !expanded }
-            .padding(vertical = 8.dp),
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { haptic.light(); expanded = !expanded }
+                .padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
             Text(title, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))

@@ -21,8 +21,6 @@ import android.content.Context
 import android.graphics.Bitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import com.je.dejpeg.BuildConfig
-import com.je.dejpeg.R
 
 class OidnProcessor(private val context: Context) {
 

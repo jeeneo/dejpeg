@@ -648,7 +648,7 @@ fun ProcessingScreen(
                             hasOutput,
                             onRightSwipe,
                             onLeftSwipe,
-                            swapSwipeActions,
+                            swapActions = swapSwipeActions,
                             modifier = Modifier.animateItem(
                                 fadeInSpec = spring(
                                     dampingRatio = Spring.DampingRatioMediumBouncy,
@@ -809,9 +809,9 @@ fun SwipeToDismissWrapper(
     hasOutput: Boolean,
     onRightSwipe: () -> Unit,
     onLeftSwipe: () -> Unit,
+    modifier: Modifier = Modifier,
     swapActions: Boolean = false,
     rightSwipeImmediate: Boolean = !isProcessing,
-    modifier: Modifier = Modifier,
     leftSwipeImmediate: Boolean = false,
     content: @Composable () -> Unit
 ) {
@@ -875,56 +875,59 @@ fun SwipeToDismissWrapper(
                 )
             }
         }
-        Box(Modifier
-            .fillMaxWidth()
-            .offset { IntOffset(animatedOffset.roundToInt(), 0) }
-            .pointerInput(widthPx, allowLeftSwipe) {
-                detectHorizontalDragGestures(onDragStart = {
-                    if (!hasStartedDrag) {
-                        haptic.gestureStart(); hasStartedDrag = true
-                    }
-                }, onHorizontalDrag = { _, dragAmount ->
-                    val newValue = swipeState.value + dragAmount
-                    swipeState.value = if (allowLeftSwipe) newValue else maxOf(0f, newValue)
-                    val absOffset = kotlin.math.abs(swipeState.value)
-                    val threshold = widthPx * swipeThreshold
-                    if (widthPx > 0 && absOffset > threshold && !hasReachedThreshold) {
-                        haptic.medium(); hasReachedThreshold = true
-                    } else if (absOffset <= threshold) hasReachedThreshold = false
-                }, onDragEnd = {
-                    val absOffset = kotlin.math.abs(swipeState.value)
-                    val threshold = widthPx * swipeThreshold
-                    if (widthPx > 0 && absOffset > threshold) {
-                        haptic.heavy()
-                        val isRight = swipeState.value > 0
-                        val willSlideOff = if (isRight) rightSwipeImmediate else (allowLeftSwipe && leftSwipeImmediate)
-                        scope.launch {
-                            if (willSlideOff) {
-                                val targetOffset = if (isRight) widthPx.toFloat() else -widthPx.toFloat()
-                                animate(
-                                    initialValue = swipeState.value,
-                                    targetValue = targetOffset,
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioNoBouncy,
-                                        stiffness = Spring.StiffnessMedium
-                                    )
-                                ) { value, _ -> swipeState.value = value }
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .offset { IntOffset(animatedOffset.roundToInt(), 0) }
+                .pointerInput(widthPx, allowLeftSwipe) {
+                    detectHorizontalDragGestures(onDragStart = {
+                        if (!hasStartedDrag) {
+                            haptic.gestureStart(); hasStartedDrag = true
+                        }
+                    }, onHorizontalDrag = { _, dragAmount ->
+                        val newValue = swipeState.value + dragAmount
+                        swipeState.value = if (allowLeftSwipe) newValue else maxOf(0f, newValue)
+                        val absOffset = kotlin.math.abs(swipeState.value)
+                        val threshold = widthPx * swipeThreshold
+                        if (widthPx > 0 && absOffset > threshold && !hasReachedThreshold) {
+                            haptic.medium(); hasReachedThreshold = true
+                        } else if (absOffset <= threshold) hasReachedThreshold = false
+                    }, onDragEnd = {
+                        val absOffset = kotlin.math.abs(swipeState.value)
+                        val threshold = widthPx * swipeThreshold
+                        if (widthPx > 0 && absOffset > threshold) {
+                            haptic.heavy()
+                            val isRight = swipeState.value > 0
+                            val willSlideOff =
+                                if (isRight) rightSwipeImmediate else (allowLeftSwipe && leftSwipeImmediate)
+                            scope.launch {
+                                if (willSlideOff) {
+                                    val targetOffset =
+                                        if (isRight) widthPx.toFloat() else -widthPx.toFloat()
+                                    animate(
+                                        initialValue = swipeState.value,
+                                        targetValue = targetOffset,
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioNoBouncy,
+                                            stiffness = Spring.StiffnessMedium
+                                        )
+                                    ) { value, _ -> swipeState.value = value }
+                                }
+                                if (isRight) currentOnRightSwipe()
+                                else if (allowLeftSwipe) currentOnLeftSwipe()
+                                swipeState.value = 0f
+                                hasStartedDrag = false
+                                hasReachedThreshold = false
                             }
-                            if (isRight) currentOnRightSwipe()
-                            else if (allowLeftSwipe) currentOnLeftSwipe()
-                            swipeState.value = 0f
-                            hasStartedDrag = false
-                            hasReachedThreshold = false
+                        } else {
+                            scope.launch {
+                                swipeState.value = 0f
+                                hasStartedDrag = false
+                                hasReachedThreshold = false
+                            }
                         }
-                    } else {
-                        scope.launch {
-                            swipeState.value = 0f
-                            hasStartedDrag = false
-                            hasReachedThreshold = false
-                        }
-                    }
-                })
-            }) { content() }
+                    })
+                }) { content() }
     }
 }
 
@@ -1014,9 +1017,7 @@ fun SaveProgressDialog(saveState: SaveState.Saving) {
                                             trackStroke = thickStroke,
                                             color = MaterialTheme.colorScheme.onSurface,
                                         )
-                                    }
-                                    else
-                                    {
+                                    } else {
                                         CircularWavyProgressIndicator(
                                             modifier = Modifier.size(88.dp),
                                             stroke = thickStroke,
@@ -1264,9 +1265,17 @@ fun ImageCard(
                     Button(
                         onClick = {
                             when {
-                                isProcessing -> { haptic.heavy(); onRemove() }
-                                image.outputBitmap != null && !image.isOutputStale -> { haptic.medium(); onSave() }
-                                else -> { haptic.medium(); onProcess() }
+                                isProcessing -> {
+                                    haptic.heavy(); onRemove()
+                                }
+
+                                image.outputBitmap != null && !image.isOutputStale -> {
+                                    haptic.medium(); onSave()
+                                }
+
+                                else -> {
+                                    haptic.medium(); onProcess()
+                                }
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -1279,7 +1288,10 @@ fun ImageCard(
                     ) {
                         val (icon, label) = when {
                             isProcessing -> Icons.Filled.Close to stringResource(R.string.cancel)
-                            image.outputBitmap != null && image.isOutputStale -> Icons.Filled.PlayArrow to stringResource(R.string.reprocess)
+                            image.outputBitmap != null && image.isOutputStale -> Icons.Filled.PlayArrow to stringResource(
+                                R.string.reprocess
+                            )
+
                             image.outputBitmap != null -> Icons.Filled.Save to stringResource(R.string.save)
                             else -> Icons.Filled.PlayArrow to stringResource(R.string.process)
                         }

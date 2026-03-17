@@ -1,7 +1,6 @@
 package com.je.dejpeg.ui
 
 import android.net.Uri
-import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
@@ -10,6 +9,8 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
@@ -49,6 +50,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -62,12 +64,12 @@ import androidx.navigation.navArgument
 import com.je.dejpeg.R
 import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.ui.components.RecoveryDialog
+import com.je.dejpeg.ui.components.SnackySnackbarBox
+import com.je.dejpeg.ui.components.SnackySnackbarHostState
 import com.je.dejpeg.ui.screens.BRISQUEScreen
 import com.je.dejpeg.ui.screens.BeforeAfterScreen
 import com.je.dejpeg.ui.screens.ProcessingScreen
 import com.je.dejpeg.ui.screens.SettingsScreen
-import com.je.dejpeg.ui.components.SnackySnackbarBox
-import com.je.dejpeg.ui.components.SnackySnackbarHostState
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
 import com.je.dejpeg.utils.rememberHapticFeedback
@@ -95,41 +97,52 @@ fun MainScreen(
     val settingsViewModel: SettingsViewModel = viewModel()
     val imageRepository = remember { ImageRepository.getInstance(context) }
     val navController = rememberNavController()
-
+    val snackbarHostState = remember { SnackySnackbarHostState() }
     LaunchedEffect(Unit) {
         viewModel.imageRepository = imageRepository
         viewModel.settingsViewModel = settingsViewModel
         settingsViewModel.initialize(context)
     }
-
     RecoveryDialog(imageRepository = imageRepository)
-
-    val snackbarHostState = remember { SnackySnackbarHostState() }
-
     SnackySnackbarBox(snackbarHostState = snackbarHostState) {
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route,
-            modifier = Modifier.fillMaxSize(),
             enterTransition = {
-                slideIntoContainer(
-                    AnimatedContentTransitionScope.SlideDirection.Start, tween(400)
-                ) + fadeIn(tween(400))
+                scaleIn(
+                    initialScale = 0.9f,
+                    transformOrigin = TransformOrigin.Center,
+                    animationSpec = tween(300)
+                ) + slideInHorizontally(
+                    initialOffsetX = { it / 4 }, animationSpec = tween(300)
+                ) + fadeIn(tween(300))
             },
             exitTransition = {
-                slideOutOfContainer(
-                    AnimatedContentTransitionScope.SlideDirection.Start, tween(400)
-                ) + fadeOut(tween(400))
+                scaleOut(
+                    targetScale = 0.9f,
+                    transformOrigin = TransformOrigin.Center,
+                    animationSpec = tween(300)
+                ) + slideOutHorizontally(
+                    targetOffsetX = { -it / 4 }, animationSpec = tween(300)
+                ) + fadeOut(tween(300))
             },
             popEnterTransition = {
-                slideIntoContainer(
-                    AnimatedContentTransitionScope.SlideDirection.End, tween(400)
-                ) + fadeIn(tween(400))
+                scaleIn(
+                    initialScale = 0.9f,
+                    transformOrigin = TransformOrigin.Center,
+                    animationSpec = tween(300)
+                ) + slideInHorizontally(
+                    initialOffsetX = { -it / 4 }, animationSpec = tween(300)
+                ) + fadeIn(tween(300))
             },
             popExitTransition = {
-                slideOutOfContainer(
-                    AnimatedContentTransitionScope.SlideDirection.End, tween(400)
-                ) + fadeOut(tween(400))
+                scaleOut(
+                    targetScale = 0.9f,
+                    transformOrigin = TransformOrigin.Center,
+                    animationSpec = tween(300)
+                ) + slideOutHorizontally(
+                    targetOffsetX = { it / 4 }, animationSpec = tween(300)
+                ) + fadeOut(tween(300))
             }) {
             composable(Screen.Home.route) {
                 HomeWrapperScreen(
@@ -140,7 +153,6 @@ fun MainScreen(
                     sharedUris = sharedUris
                 )
             }
-
             composable(
                 route = Screen.BeforeAfter.route,
                 arguments = listOf(navArgument("imageId") { type = NavType.StringType })
@@ -152,7 +164,6 @@ fun MainScreen(
                     imageId = imageId,
                     onBack = { navController.popBackStack() })
             }
-
             composable(
                 route = Screen.Brisque.route,
                 arguments = listOf(navArgument("imageId") { type = NavType.StringType })
