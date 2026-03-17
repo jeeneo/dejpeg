@@ -62,6 +62,7 @@ class ModelManager(
     companion object {
         private const val STARTER_MODELS_ASSET_DIR = "embedonnx"
         private val MODEL_HASHES = mapOf(
+            // should show dialog/warning if mismatch again? probably
             "fbcnn_color_fp16.onnx" to "1a678ff4f721b557fd8a7e560b99cb94ba92f201545c7181c703e7808b93e922",
             "fbcnn_gray_fp16.onnx" to "e220b9637a9f2c34a36c98b275b2c9d2b9c2c029e365be82111072376afbec54",
             "fbcnn_gray_double_fp16.onnx" to "17feadd8970772f5ff85596cb9fb152ae3c2b82bca4deb52a7c8b3ecb2f7ac14",

@@ -49,13 +49,13 @@ import com.je.dejpeg.ui.theme.DeJPEGTheme
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
 
 class MainActivity : ComponentActivity() {
+    private var handledIntentHash: Int? = null
     private val settingsViewModel: SettingsViewModel by viewModels()
     private val imageRepository by lazy { ImageRepository.getInstance(this) }
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
-        @Suppress("ControlFlowWithEmptyBody")
-        if (isGranted) {
+        @Suppress("ControlFlowWithEmptyBody") if (isGranted) {
             // granted
         } else {
             // denied - nothing shown cause its annoying
@@ -128,6 +128,9 @@ class MainActivity : ComponentActivity() {
     @Suppress("DEPRECATION")
     private fun handleShareIntent(intent: Intent?) {
         if (intent == null) return
+        val hash = System.identityHashCode(intent)
+        if (hash == handledIntentHash) return
+        handledIntentHash = hash
         when (intent.action) {
             Intent.ACTION_SEND -> {
                 val uri: Uri? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
