@@ -163,8 +163,7 @@ class ProcessingService : Service() {
                 val overlapSize =
                     intent.getIntExtra(EXTRA_OVERLAP_SIZE, AppPreferences.DEFAULT_OVERLAP_SIZE)
                 val onnxDeviceThreads = intent.getIntExtra(
-                    EXTRA_ONNX_DEVICE_THREADS,
-                    AppPreferences.DEFAULT_ONNX_DEVICE_THREADS
+                    EXTRA_ONNX_DEVICE_THREADS, AppPreferences.DEFAULT_ONNX_DEVICE_THREADS
                 )
                 imageProcessor?.also {
                     it.chunkSize = chunkSize
@@ -225,10 +224,6 @@ class ProcessingService : Service() {
                                 callback = object : OidnProcessor.ProcessCallback {
                                     override fun onComplete(result: Bitmap) {
                                         try {
-                                            NotificationHelper.show(
-                                                this@ProcessingService,
-                                                getString(R.string.processing_complete_notification)
-                                            )
                                             val safeName =
                                                 if (!imageId.isNullOrEmpty()) imageId else filename
                                             val outFile =
@@ -242,6 +237,10 @@ class ProcessingService : Service() {
                                                 COMPLETE_ACTION,
                                                 COMPLETE_EXTRA_PATH to outFile.absolutePath,
                                                 imageId = imageId
+                                            )
+                                            NotificationHelper.show(
+                                                this@ProcessingService,
+                                                getString(R.string.processing_complete_notification)
                                             )
                                         } catch (e: Exception) {
                                             broadcast(
@@ -278,10 +277,6 @@ class ProcessingService : Service() {
                                 bitmap, strength, object : ImageProcessor.ProcessCallback {
                                     override fun onComplete(result: Bitmap) {
                                         try {
-                                            NotificationHelper.show(
-                                                this@ProcessingService,
-                                                getString(R.string.processing_complete_notification)
-                                            )
                                             val safeName =
                                                 if (!imageId.isNullOrEmpty()) imageId else filename
                                             val outFile =
@@ -295,6 +290,10 @@ class ProcessingService : Service() {
                                                 COMPLETE_ACTION,
                                                 COMPLETE_EXTRA_PATH to outFile.absolutePath,
                                                 imageId = imageId
+                                            )
+                                            NotificationHelper.show(
+                                                this@ProcessingService,
+                                                getString(R.string.processing_complete_notification)
                                             )
                                         } catch (e: Exception) {
                                             broadcast(
@@ -391,9 +390,7 @@ class ProcessingService : Service() {
     }
 
     private fun formatChunkProgressMessage(
-        completedChunks: Int,
-        totalChunks: Int,
-        parallelWorkers: Int
+        completedChunks: Int, totalChunks: Int, parallelWorkers: Int
     ): String {
         if (totalChunks <= 1) return getString(R.string.processing)
         if (parallelWorkers > 1) {

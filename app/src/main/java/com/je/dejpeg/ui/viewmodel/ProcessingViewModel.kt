@@ -526,13 +526,17 @@ class ProcessingViewModel : ViewModel() {
     fun isCurrentlyProcessing(imageId: String) = queue.isActive(imageId)
 
     fun cancelProcessingForImage(imageId: String) {
-        queue.cancelInProgress = true
-        imageRepository.updateImageState(imageId) {
-            it.copy(
-                isCancelling = true, progress = statusCanceling
-            )
+        if (queue.isActive(imageId)) {
+            queue.cancelInProgress = true
+            imageRepository.updateImageState(imageId) {
+                it.copy(isCancelling = true, progress = statusCanceling)
+            }
+            cancelProcessingService(imageId)
+        } else if (queue.contains(imageId)) {
+            queue.remove(imageId)
+            queue.decrementActiveTotal()
+            imageRepository.updateImageState(imageId) { resetImageProcessingState(it) }
         }
-        cancelProcessingService(imageId)
     }
 
     fun dismissProcessingErrorDialog() {

@@ -29,6 +29,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -390,78 +391,82 @@ fun ProcessingScreen(
                     label = "fab_content"
                 )
 
-                FloatingActionButton(
-                    onClick = {
-                        haptic.medium()
-                        if (isProcessing) {
-                            showCancelAllDialog = true
-                        } else if (allComplete) {
-                            val imageIds = images.filter { it.outputBitmap != null }.map { it.id }
-                            viewModel.saveImages(
-                                context = context, imageIds = imageIds, onComplete = {
-                                    imageIds.forEach { id -> performRemoval(id) }
-                                })
-                        } else {
-                            if (!settingsViewModel.hasActiveModel(activeModelType)) scope.launch {
-                                SnackySnackbarController.pushEvent(
-                                    SnackySnackbarEvents.MessageEvent(
-                                        message = noModelMessage, duration = SnackbarDuration.Long
-                                    )
-                                )
+                if (images.isNotEmpty()) {
+                    FloatingActionButton(
+                        onClick = {
+                            haptic.medium()
+                            if (isProcessing) {
+                                showCancelAllDialog = true
+                            } else if (allComplete) {
+                                val imageIds =
+                                    images.filter { it.outputBitmap != null }.map { it.id }
+                                viewModel.saveImages(
+                                    context = context, imageIds = imageIds, onComplete = {
+                                        imageIds.forEach { id -> performRemoval(id) }
+                                    })
                             } else {
-                                haptic.medium(); viewModel.processImages()
+                                if (!settingsViewModel.hasActiveModel(activeModelType)) scope.launch {
+                                    SnackySnackbarController.pushEvent(
+                                        SnackySnackbarEvents.MessageEvent(
+                                            message = noModelMessage,
+                                            duration = SnackbarDuration.Long
+                                        )
+                                    )
+                                } else {
+                                    haptic.medium(); viewModel.processImages()
+                                }
                             }
-                        }
-                    },
-                    containerColor = fabContainerColor,
-                    contentColor = fabContentColor,
-                    shape = RoundedCornerShape(fabCorner.dp),
-                    interactionSource = procInteraction,
-                    modifier = Modifier
-                        .height(56.dp)
-                        .widthIn(min = 56.dp)
-                        .width(fabWidthDp)
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
+                        },
+                        containerColor = fabContainerColor,
+                        contentColor = fabContentColor,
+                        shape = RoundedCornerShape(fabCorner.dp),
+                        interactionSource = procInteraction,
+                        modifier = Modifier
+                            .height(56.dp)
+                            .widthIn(min = 56.dp)
+                            .width(fabWidthDp)
                     ) {
-                        androidx.compose.animation.AnimatedContent(
-                            targetState = when {
-                                isProcessing -> 0
-                                allComplete -> 1
-                                else -> 2
-                            }, label = "proc_icon", transitionSpec = {
-                                fadeIn(animationSpec = spring(stiffness = Spring.StiffnessMedium)).togetherWith(
-                                    fadeOut(animationSpec = spring(stiffness = Spring.StiffnessMedium))
-                                )
-                            }, modifier = Modifier.size(24.dp)
-                        ) { state ->
-                            Icon(
-                                when (state) {
-                                    0 -> Icons.Filled.Close
-                                    1 -> Icons.Filled.Save
-                                    else -> Icons.Filled.PlayArrow
-                                }, null
-                            )
-                        }
-                        AnimatedVisibility(
-                            visible = allComplete,
-                            enter = fadeIn(spring(stiffness = Spring.StiffnessMedium)) + expandHorizontally(
-                                spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                                expandFrom = Alignment.Start
-                            ),
-                            exit = fadeOut(spring(stiffness = Spring.StiffnessMedium)) + shrinkHorizontally(
-                                spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                                shrinkTowards = Alignment.Start
-                            )
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row {
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    stringResource(R.string.save_all),
-                                    style = MaterialTheme.typography.labelLarge
+                            androidx.compose.animation.AnimatedContent(
+                                targetState = when {
+                                    isProcessing -> 0
+                                    allComplete -> 1
+                                    else -> 2
+                                }, label = "proc_icon", transitionSpec = {
+                                    fadeIn(animationSpec = spring(stiffness = Spring.StiffnessMedium)).togetherWith(
+                                        fadeOut(animationSpec = spring(stiffness = Spring.StiffnessMedium))
+                                    )
+                                }, modifier = Modifier.size(24.dp)
+                            ) { state ->
+                                Icon(
+                                    when (state) {
+                                        0 -> Icons.Filled.Close
+                                        1 -> Icons.Filled.Save
+                                        else -> Icons.Filled.PlayArrow
+                                    }, null
                                 )
+                            }
+                            AnimatedVisibility(
+                                visible = allComplete,
+                                enter = fadeIn(spring(stiffness = Spring.StiffnessMedium)) + expandHorizontally(
+                                    spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                    expandFrom = Alignment.Start
+                                ),
+                                exit = fadeOut(spring(stiffness = Spring.StiffnessMedium)) + shrinkHorizontally(
+                                    spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                                    shrinkTowards = Alignment.Start
+                                )
+                            ) {
+                                Row {
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        stringResource(R.string.save_all),
+                                        style = MaterialTheme.typography.labelLarge
+                                    )
+                                }
                             }
                         }
                     }
@@ -547,7 +552,8 @@ fun ProcessingScreen(
                 Modifier
                     .fillMaxSize()
                     .weight(1f)
-                    .padding(bottom = 112.dp), contentAlignment = Alignment.Center
+                    .padding(bottom = 112.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -564,9 +570,7 @@ fun ProcessingScreen(
                             .clickable(
                                 interactionSource = buttonInteractionSource, indication = null
                             ) { importImage() }
-                            .padding(20.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
+                            .padding(20.dp), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
                                 Icons.Outlined.AddPhotoAlternate,
@@ -644,7 +648,20 @@ fun ProcessingScreen(
                             hasOutput,
                             onRightSwipe,
                             onLeftSwipe,
-                            swapSwipeActions
+                            swapSwipeActions,
+                            modifier = Modifier.animateItem(
+                                fadeInSpec = spring(
+                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                    stiffness = Spring.StiffnessMedium
+                                ), fadeOutSpec = spring(
+                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                    stiffness = Spring.StiffnessMedium
+                                ), placementSpec = spring(
+                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                    stiffness = Spring.StiffnessMedium
+                                )
+                            ),
+                            rightSwipeImmediate = !image.isProcessing && !(image.outputBitmap != null && !image.hasBeenSaved),
                         ) {
                             ImageCard(
                                 image,
@@ -793,6 +810,9 @@ fun SwipeToDismissWrapper(
     onRightSwipe: () -> Unit,
     onLeftSwipe: () -> Unit,
     swapActions: Boolean = false,
+    rightSwipeImmediate: Boolean = !isProcessing,
+    modifier: Modifier = Modifier,
+    leftSwipeImmediate: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -815,7 +835,7 @@ fun SwipeToDismissWrapper(
     val allowLeftSwipe = !isProcessing
 
     Box(
-        Modifier
+        modifier
             .fillMaxWidth()
             .onSizeChanged { widthPx = it.width; heightPx = it.height }) {
         if (animatedOffset > 0f) Box(
@@ -876,13 +896,32 @@ fun SwipeToDismissWrapper(
                     val threshold = widthPx * swipeThreshold
                     if (widthPx > 0 && absOffset > threshold) {
                         haptic.heavy()
-                        if (swipeState.value > 0) currentOnRightSwipe()
-                        else if (allowLeftSwipe) currentOnLeftSwipe()
-                    }
-                    scope.launch {
-                        swipeState.value = 0f
-                        hasStartedDrag = false
-                        hasReachedThreshold = false
+                        val isRight = swipeState.value > 0
+                        val willSlideOff = if (isRight) rightSwipeImmediate else (allowLeftSwipe && leftSwipeImmediate)
+                        scope.launch {
+                            if (willSlideOff) {
+                                val targetOffset = if (isRight) widthPx.toFloat() else -widthPx.toFloat()
+                                animate(
+                                    initialValue = swipeState.value,
+                                    targetValue = targetOffset,
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioNoBouncy,
+                                        stiffness = Spring.StiffnessMedium
+                                    )
+                                ) { value, _ -> swipeState.value = value }
+                            }
+                            if (isRight) currentOnRightSwipe()
+                            else if (allowLeftSwipe) currentOnLeftSwipe()
+                            swipeState.value = 0f
+                            hasStartedDrag = false
+                            hasReachedThreshold = false
+                        }
+                    } else {
+                        scope.launch {
+                            swipeState.value = 0f
+                            hasStartedDrag = false
+                            hasReachedThreshold = false
+                        }
                     }
                 })
             }) { content() }
@@ -1025,6 +1064,29 @@ fun ImageCard(
         dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium
     )
 
+    val isStale = image.outputBitmap != null && image.isOutputStale && !isProcessing
+
+    val morphContainerColor by animateColorAsState(
+        targetValue = when {
+            isProcessing -> MaterialTheme.colorScheme.errorContainer
+            isStale -> MaterialTheme.colorScheme.tertiaryContainer
+            image.outputBitmap != null -> MaterialTheme.colorScheme.primaryContainer
+            else -> MaterialTheme.colorScheme.secondaryContainer
+        },
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "morph_container"
+    )
+    val morphContentColor by animateColorAsState(
+        targetValue = when {
+            isProcessing -> MaterialTheme.colorScheme.onErrorContainer
+            isStale -> MaterialTheme.colorScheme.onTertiaryContainer
+            image.outputBitmap != null -> MaterialTheme.colorScheme.onPrimaryContainer
+            else -> MaterialTheme.colorScheme.onSecondaryContainer
+        },
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "morph_content"
+    )
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -1117,50 +1179,30 @@ fun ImageCard(
             }
         }
 
-        val isActive = image.isProcessing
-        val isStale = image.outputBitmap != null && image.isOutputStale && !isActive
-
-        val morphContainerColor by animateColorAsState(
-            targetValue = when {
-                isActive -> MaterialTheme.colorScheme.errorContainer
-                isStale -> MaterialTheme.colorScheme.tertiaryContainer
-                image.outputBitmap != null -> MaterialTheme.colorScheme.primaryContainer
-                else -> MaterialTheme.colorScheme.secondaryContainer
-            },
-            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-            label = "morph_container"
-        )
-        val morphContentColor by animateColorAsState(
-            targetValue = when {
-                isActive -> MaterialTheme.colorScheme.onErrorContainer
-                isStale -> MaterialTheme.colorScheme.onTertiaryContainer
-                image.outputBitmap != null -> MaterialTheme.colorScheme.onPrimaryContainer
-                else -> MaterialTheme.colorScheme.onSecondaryContainer
-            },
-            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-            label = "morph_content"
-        )
-
         Box(
             Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp, vertical = 8.dp)
         ) {
             Row(
-                Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(
                     animateDpAsState(
-                        targetValue = if (isActive) 0.dp else 6.dp, animationSpec = spring(
+                        targetValue = if (isProcessing) 0.dp else 6.dp,
+                        animationSpec = spring(
                             dampingRatio = Spring.DampingRatioMediumBouncy,
                             stiffness = Spring.StiffnessMedium
-                        ), label = "button_spacing"
+                        ),
+                        label = "button_spacing"
                     ).value
-                ), verticalAlignment = Alignment.CenterVertically
+                ),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 val pressOffset = 0.18f
 
                 val primaryWeight by animateFloatAsState(
                     targetValue = when {
-                        isActive -> 1f
+                        isProcessing -> 1f
                         processPress > 0f -> 1f + pressOffset
                         removePress > 0f -> 1f - pressOffset * 0.5f
                         else -> 1f
@@ -1169,14 +1211,14 @@ fun ImageCard(
 
                 val removeWidth by animateDpAsState(
                     targetValue = when {
-                        isActive -> 0.dp
+                        isProcessing -> 0.dp
                         else -> lerp(145f, 166f, removePress).dp - lerp(0f, 15f, processPress).dp
                     }, animationSpec = bouncySpringDp, label = "remove_width"
                 )
 
                 val brisqueWidth by animateDpAsState(
                     targetValue = when {
-                        isActive -> 0.dp
+                        isProcessing -> 0.dp
                         brisquePress > 0f -> 56.dp
                         removePress > 0f -> 32.dp
                         processPress > 0f -> 32.dp
@@ -1195,7 +1237,7 @@ fun ImageCard(
                     label = "process_start_corner"
                 )
                 val processEndCorner by animateDpAsState(
-                    targetValue = if (isActive) lerp(28f, 6f, processPress).dp else 6.dp,
+                    targetValue = if (isProcessing) lerp(28f, 6f, processPress).dp else 6.dp,
                     animationSpec = bouncySpringDp,
                     label = "process_end_corner"
                 )
@@ -1211,43 +1253,32 @@ fun ImageCard(
                     Button(
                         onClick = {
                             when {
-                                isActive -> {
-                                    haptic.heavy(); onRemove()
-                                }
-
-                                image.outputBitmap != null && !image.isOutputStale -> {
-                                    haptic.medium(); onSave()
-                                }
-
-                                else -> {
-                                    haptic.medium(); onProcess()
-                                }
+                                isProcessing -> { haptic.heavy(); onRemove() }
+                                image.outputBitmap != null && !image.isOutputStale -> { haptic.medium(); onSave() }
+                                else -> { haptic.medium(); onProcess() }
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = processShape,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = morphContainerColor, contentColor = morphContentColor
+                            containerColor = morphContainerColor,
+                            contentColor = morphContentColor
                         ),
                         interactionSource = processInteraction
                     ) {
                         val (icon, label) = when {
-                            isActive -> Icons.Filled.Close to stringResource(R.string.cancel)
-                            image.outputBitmap != null && image.isOutputStale -> Icons.Filled.PlayArrow to stringResource(
-                                R.string.reprocess
-                            )
-
+                            isProcessing -> Icons.Filled.Close to stringResource(R.string.cancel)
+                            image.outputBitmap != null && image.isOutputStale -> Icons.Filled.PlayArrow to stringResource(R.string.reprocess)
                             image.outputBitmap != null -> Icons.Filled.Save to stringResource(R.string.save)
                             else -> Icons.Filled.PlayArrow to stringResource(R.string.process)
                         }
-
                         Icon(icon, null, Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
                         Text(label, style = MaterialTheme.typography.labelLarge)
                     }
                 }
 
-                if (!isActive && removeWidth > 90.dp) { // keep both buttons gated together to avoid quirky button jerking
+                if (!isProcessing && removeWidth > 90.dp) {
                     Box(Modifier.width(removeWidth)) {
                         Button(
                             onClick = { haptic.heavy(); onRemove() },

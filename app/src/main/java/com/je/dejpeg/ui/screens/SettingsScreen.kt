@@ -444,7 +444,10 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Spacer(Modifier.weight(1f))
-                                TextButton(onClick = { modelPickerLauncher.launch("*/*") }) {
+                                TextButton(onClick = {
+                                    haptic.light()
+                                    modelPickerLauncher.launch("*/*")
+                                }) {
                                     Icon(
                                         Icons.Filled.Add, null, modifier = Modifier.size(16.dp)
                                     )
@@ -482,6 +485,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
                                     Text(stringResource(R.string.extract))
                                 }
                                 TextButton(onClick = {
+                                    haptic.light()
                                     val intent = Intent(
                                         Intent.ACTION_VIEW,
                                         "https://codeberg.org/dryerlint/dejpeg/src/branch/main/models".toUri()
