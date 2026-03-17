@@ -20,6 +20,9 @@ package com.je.dejpeg.utils.helpers
 import android.content.ClipData
 import android.content.Context
 import android.content.Intent
+import android.content.ContentValues
+import android.content.ContentUris
+import android.os.Build
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
@@ -34,9 +37,6 @@ import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
 import androidx.exifinterface.media.ExifInterface
 import com.je.dejpeg.R
-import com.je.dejpeg.ui.components.SnackbarDuration
-import com.je.dejpeg.ui.components.SnackySnackbarController
-import com.je.dejpeg.ui.components.SnackySnackbarEvents
 import com.je.dejpeg.utils.CacheManager
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -364,13 +364,24 @@ class ImagePickerHelper(
 }
 
 object ImageActions {
-    fun checkFileExists(filename: String): Boolean {
+    fun checkFileExists(context: Context, filename: String): Boolean {
         val fileNameRaw = filename.takeIf { it.isNotBlank() } ?: return false
         val fileName = fileNameRaw.substringBeforeLast('.', fileNameRaw)
-        val picturesDir =
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-        val outputFile = File(picturesDir, "$fileName.png")
-        return outputFile.exists()
+        val finalName = "$fileName.png"
+        val projection = arrayOf(MediaStore.Images.Media._ID)
+        val selection = "${MediaStore.Images.Media.DISPLAY_NAME} = ?"
+        val selectionArgs = arrayOf(finalName)
+        return try {
+            context.contentResolver.query(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                projection,
+                selection,
+                selectionArgs,
+                null
+            )?.use { cursor -> cursor.moveToFirst() } ?: false
+        } catch (_: Exception) {
+            false
+        }
     }
 
     fun saveImage(
@@ -383,36 +394,64 @@ object ImageActions {
     ) {
         @OptIn(DelicateCoroutinesApi::class) GlobalScope.launch(Dispatchers.IO) {
             try {
-                val fileNameRaw = filename?.takeIf { it.isNotBlank() } ?: "DeJPEG_${
-                    SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-                }"
+                val fileNameRaw = filename?.takeIf { it.isNotBlank() } ?: "DeJPEG_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}"
                 val fileName = fileNameRaw.substringBeforeLast('.', fileNameRaw)
-                val picturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-                val outputFile = File(picturesDir, "$fileName.png")
-                if (outputFile.exists()) outputFile.delete()
-                FileOutputStream(outputFile).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                val finalName = "$fileName.png"
+
+                // overwrite is needed or should always append?
+                val selection = "${MediaStore.Images.Media.DISPLAY_NAME} = ?"
+                val selectionArgs = arrayOf(finalName)
+                context.contentResolver.query(
+                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                    arrayOf(MediaStore.Images.Media._ID),
+                    selection,
+                    selectionArgs,
+                    null
+                )?.use { cursor ->
+                    while (cursor.moveToNext()) {
+                        val id = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID))
+                        val deleteUri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id)
+                        context.contentResolver.delete(deleteUri, null, null)
+                    }
+                }
+
+                val values = ContentValues().apply {
+                    put(MediaStore.Images.Media.DISPLAY_NAME, finalName)
+                    put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES)
+                        put(MediaStore.Images.Media.IS_PENDING, 1)
+                    }
+                }
+
+                val uri = context.contentResolver.insert(
+                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values
+                ) ?: throw IOException("Failed to create MediaStore entry")
+
+                context.contentResolver.openOutputStream(uri)
+                    ?.use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                    ?: throw IOException("Failed to open output stream")
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    values.clear()
+                    values.put(MediaStore.Images.Media.IS_PENDING, 0)
+                    context.contentResolver.update(uri, values, null, null)
+                } else {
+                    val path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).absolutePath + "/$finalName"
+                    MediaScannerConnection.scanFile(context, arrayOf(path), null, null)
+                }
+
                 if (imageId != null) {
-                    CacheManager.deleteRecoveryPair(context, imageId, deleteProcessed = true, deleteUnprocessed = false)
+                    try {
+                        CacheManager.deleteRecoveryPair(context, imageId, deleteProcessed = true, deleteUnprocessed = false)
+                    } catch (_: Exception) {
+                    }
                 }
-                withContext(Dispatchers.Main) {
-                    MediaScannerConnection.scanFile(context, arrayOf(outputFile.toString()), null, null)
-                    onSuccess()
-                }
-                SnackySnackbarController.pushEvent(
-                    SnackySnackbarEvents.MessageEvent(
-                        message = context.getString(R.string.image_saved_to_gallery),
-                        duration = SnackbarDuration.Short
-                    )
-                )
+
+                withContext(Dispatchers.Main) { onSuccess() }
             } catch (e: Exception) {
                 val errorMsg = context.getString(R.string.error_saving_image, e.message)
                 withContext(Dispatchers.Main) { onError(errorMsg) }
-                SnackySnackbarController.pushEvent(
-                    SnackySnackbarEvents.MessageEvent(
-                        message = errorMsg,
-                        duration = SnackbarDuration.Long
-                    )
-                )
             }
         }
     }
@@ -434,33 +473,6 @@ object ImageActions {
         } catch (e: Exception) {
             val errorMsg = context.getString(R.string.error_sharing_image, e.message)
             onError(errorMsg)
-            @OptIn(DelicateCoroutinesApi::class) GlobalScope.launch {
-                SnackySnackbarController.pushEvent(
-                    SnackySnackbarEvents.MessageEvent(
-                        message = errorMsg,
-                        duration = SnackbarDuration.Long
-                    )
-                )
-            }
         }
-    }
-
-    private fun saveBitmapToPictures(baseName: String, bitmap: Bitmap): File {
-        val outputFile = File(
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
-            "$baseName.png"
-        )
-        FileOutputStream(outputFile).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
-        return outputFile
-    }
-
-    private fun generateUniqueFilename(base: String, existing: Set<String>): String {
-        if (!existing.contains(base)) return base
-        var counter = 1
-        var newName = "${base}_$counter"
-        while (existing.contains(newName)) {
-            counter++; newName = "${base}_$counter"
-        }
-        return newName
     }
 }

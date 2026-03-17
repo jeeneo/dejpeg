@@ -115,32 +115,6 @@ class ImageRepository(private val appContext: Context) {
         updateImageState(imageId) { it.copy(hasBeenSaved = true) }
     }
 
-    fun saveImage(
-        context: Context,
-        imageId: String,
-        filename: String? = null,
-        onSuccess: () -> Unit = {},
-        onError: (String) -> Unit = {}
-    ) {
-        val image = getImageById(imageId)
-        val bitmap = image?.outputBitmap
-        if (bitmap == null) {
-            onError("Image not found or has no output")
-            return
-        }
-        ImageActions.saveImage(
-            context = context,
-            bitmap = bitmap,
-            filename = filename ?: image.filename,
-            imageId = imageId,
-            onSuccess = {
-                updateImageState(imageId) { it.copy(hasBeenSaved = true) }
-                onSuccess()
-            },
-            onError = onError
-        )
-    }
-
     companion object {
         @Volatile
         private var instance: ImageRepository? = null

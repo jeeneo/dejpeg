@@ -29,6 +29,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.je.dejpeg.ModelType
 import com.je.dejpeg.ProcessingService
+import com.je.dejpeg.R
 import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.data.ProcessingMode
 import com.je.dejpeg.utils.CacheManager
@@ -36,6 +37,9 @@ import com.je.dejpeg.utils.ProcessingQueueManager
 import com.je.dejpeg.utils.helpers.ImageActions
 import com.je.dejpeg.utils.helpers.ImagePickerHelper
 import com.je.dejpeg.utils.helpers.ServiceCommunicationHelper
+import com.je.dejpeg.ui.components.SnackbarDuration
+import com.je.dejpeg.ui.components.SnackySnackbarController
+import com.je.dejpeg.ui.components.SnackySnackbarEvents
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -66,12 +70,6 @@ sealed class ProcessingUiState {
     object Idle : ProcessingUiState()
     data class Processing(val currentIndex: Int, val total: Int) : ProcessingUiState()
     data class Error(val message: String) : ProcessingUiState()
-}
-
-sealed class SaveState {
-    object Idle : SaveState()
-    data class Saving(val current: Int, val total: Int) : SaveState()
-    data class Error(val message: String) : SaveState()
 }
 
 class ProcessingViewModel : ViewModel() {
@@ -543,7 +541,7 @@ class ProcessingViewModel : ViewModel() {
         processingErrorDialog.value = null
     }
 
-    fun saveImages(
+    fun saveImage(
         context: Context,
         imageIds: List<String>,
         baseFilename: String? = null,
@@ -551,12 +549,12 @@ class ProcessingViewModel : ViewModel() {
     ) {
         viewModelScope.launch {
             saveState.value = SaveState.Saving(0, imageIds.size)
+            var savedCount = 0
             try {
                 imageIds.forEachIndexed { index, id ->
                     val image = imageRepository.getImageById(id) ?: return@forEachIndexed
                     val name = resolveFilename(image.filename, baseFilename, index, imageIds.size)
                     saveState.value = SaveState.Saving(index + 1, imageIds.size)
-
                     suspendCancellableCoroutine { cont ->
                         ImageActions.saveImage(
                             context = context,
@@ -565,6 +563,7 @@ class ProcessingViewModel : ViewModel() {
                             imageId = id,
                             onSuccess = {
                                 imageRepository.markImageAsSaved(id)
+                                savedCount++
                                 cont.resume(Unit)
                             },
                             onError = { msg ->
@@ -573,17 +572,24 @@ class ProcessingViewModel : ViewModel() {
                             })
                     }
                 }
+                if (savedCount > 0) {
+                    val message = if (savedCount == 1) {
+                        context.getString(R.string.image_saved_to_gallery)
+                    } else {
+                        context.getString(R.string.images_saved_to_gallery, savedCount)
+                    }
+                    SnackySnackbarController.pushEvent(
+                        SnackySnackbarEvents.MessageEvent(
+                            message = message,
+                            duration = SnackbarDuration.Short
+                        )
+                    )
+                }
                 onComplete()
             } finally {
                 saveState.value = SaveState.Idle
             }
         }
-    }
-
-    fun saveImage(
-        context: Context, imageId: String, filename: String? = null, onComplete: () -> Unit = {}
-    ) {
-        saveImages(context, listOf(imageId), filename, onComplete)
     }
 
     private fun resolveFilename(original: String, base: String?, index: Int, total: Int): String {

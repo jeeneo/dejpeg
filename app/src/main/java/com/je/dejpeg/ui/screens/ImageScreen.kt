@@ -115,10 +115,6 @@ fun BeforeAfterScreen(
     val filename = image.filename
     val showSaveAllOption = images.any { it.outputBitmap != null }
 
-    val performSave = { _: Bitmap, name: String ->
-        viewModel.saveImage(context = context, imageId = imageId, filename = name)
-    }
-
     Column(
         Modifier.fillMaxSize()
     ) {
@@ -194,11 +190,11 @@ fun BeforeAfterScreen(
                         onClick = {
                             haptic.medium()
                             if (skipSaveDialog) {
-                                if (ImageActions.checkFileExists(filename)) {
+                                if (ImageActions.checkFileExists(context, filename)) {
                                     overwriteDialogFilename = filename
                                 } else {
                                     viewModel.saveImage(
-                                        context = context, imageId = imageId, filename = filename
+                                        context = context, imageIds = listOf(imageId), baseFilename = filename
                                     )
                                 }
                             } else {
@@ -242,13 +238,13 @@ fun BeforeAfterScreen(
                 if (skip) scope.launch { appPreferences.setSkipSaveDialog(true) }
                 if (all) {
                     val imageIds = images.filter { it.outputBitmap != null }.map { it.id }
-                    if (imageIds.isNotEmpty()) viewModel.saveImages(context, imageIds)
+                    if (imageIds.isNotEmpty()) viewModel.saveImage(context, imageIds)
                     showSaveDialog = false
                 } else {
-                    if (ImageActions.checkFileExists(name)) {
+                    if (ImageActions.checkFileExists(context, name)) {
                         overwriteDialogFilename = name
                     } else {
-                        viewModel.saveImage(context, imageId, name)
+                        viewModel.saveImage(context, imageIds = listOf(imageId), baseFilename = name)
                         showSaveDialog = false
                     }
                 }
@@ -262,7 +258,7 @@ fun BeforeAfterScreen(
                 initialSaveAll = false,
                 hideOptions = true,
                 onDismissRequest = { overwriteDialogFilename = null }) { name, _, _ ->
-                performSave(afterBitmap ?: beforeBitmap, name)
+                viewModel.saveImage(context = context, imageIds = listOf(imageId), baseFilename = name)
             }
         }
         (saveState as? SaveState.Error)?.let { err ->

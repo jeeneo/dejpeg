@@ -102,6 +102,8 @@ import com.je.dejpeg.ui.components.SimpleAlertDialog
 import com.je.dejpeg.ui.components.SnackbarDuration
 import com.je.dejpeg.ui.components.SnackySnackbarController
 import com.je.dejpeg.ui.components.SnackySnackbarEvents
+import com.je.dejpeg.ui.components.ErrorAlertDialog
+import com.je.dejpeg.ui.viewmodel.SaveState
 import com.je.dejpeg.ui.viewmodel.BrisqueViewModel
 import com.je.dejpeg.utils.brisque.BRISQUEDescaler
 import com.je.dejpeg.utils.rememberHapticFeedback
@@ -128,6 +130,7 @@ fun BRISQUEScreen(
         images.firstOrNull { it.id == imageId } ?: run { LaunchedEffect(Unit) { onBack() }; return }
     val brisqueViewModel: BrisqueViewModel = viewModel()
     val brisqueState by brisqueViewModel.imageState.collectAsState()
+    val saveState by brisqueViewModel.saveState.collectAsState()
     val brisqueSettings by brisqueViewModel.settings.collectAsState()
     var showImageModal by remember { mutableStateOf(false) }
     var showConfirm by remember { mutableStateOf(false) }
@@ -165,25 +168,7 @@ fun BRISQUEScreen(
                 }) { Icon(Icons.Filled.Settings, stringResource(R.string.settings_desc)) }
                 IconButton(
                     onClick = {
-                        haptic.medium()
-                        brisqueViewModel.saveCurrentImage(context, {
-                            scope.launch {
-                                SnackySnackbarController.pushEvent(
-                                    SnackySnackbarEvents.MessageEvent(
-                                        message = successSaveMsg, duration = SnackbarDuration.Short
-                                    )
-                                )
-                            }
-                        }) { error ->
-                            scope.launch {
-                                SnackySnackbarController.pushEvent(
-                                    SnackySnackbarEvents.MessageEvent(
-                                        message = "$failureSaveMsg $error",
-                                        duration = SnackbarDuration.Long
-                                    )
-                                )
-                            }
-                        }
+                        haptic.medium(); brisqueViewModel.saveCurrentImage(context)
                     }, enabled = brisqueState != null
                 ) {
                     Icon(Icons.Filled.Save, stringResource(R.string.brisque_save_image_desc))
@@ -423,6 +408,19 @@ fun BRISQUEScreen(
             progress = it,
             logMessages = brisqueState?.descaleLog!!,
             onCancel = { haptic.medium(); brisqueViewModel.cancelDescaling(context) })
+    }
+
+    (saveState as? SaveState.Saving)?.let { state ->
+        SaveProgressDialog(state)
+    }
+
+    (saveState as? SaveState.Error)?.let { err ->
+        ErrorAlertDialog(
+            title = stringResource(R.string.error_saving_image_title),
+            errorMessage = err.message,
+            onDismiss = { brisqueViewModel.dismissSaveError() },
+            context = context
+        )
     }
 }
 

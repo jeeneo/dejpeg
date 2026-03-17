@@ -400,7 +400,7 @@ fun ProcessingScreen(
                             } else if (allComplete) {
                                 val imageIds =
                                     images.filter { it.outputBitmap != null }.map { it.id }
-                                viewModel.saveImages(
+                                viewModel.saveImage(
                                     context = context, imageIds = imageIds, onComplete = {
                                         imageIds.forEach { id -> performRemoval(id) }
                                     })
@@ -752,8 +752,8 @@ fun ProcessingScreen(
             onSave = { name, _, _ ->
                 viewModel.saveImage(
                     context = context,
-                    imageId = id,
-                    filename = name,
+                    imageIds = listOf(id),
+                    baseFilename = name,
                     onComplete = { performRemoval(id); overwriteDialogState = null })
             })
     }
@@ -767,13 +767,13 @@ fun ProcessingScreen(
             onDismissRequest = { saveDialogState = null },
             onSave = { name, _, _ ->
                 saveDialogState = null
-                if (ImageActions.checkFileExists(name)) {
+                if (ImageActions.checkFileExists(context, name)) {
                     overwriteDialogState = Pair(id, name)
                 } else {
                     viewModel.saveImage(
                         context = context,
-                        imageId = id,
-                        filename = name,
+                        imageIds = listOf(id),
+                        baseFilename = name,
                         onComplete = { performRemoval(id) })
                 }
             })

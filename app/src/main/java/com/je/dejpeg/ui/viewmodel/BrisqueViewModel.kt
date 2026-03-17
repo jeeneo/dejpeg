@@ -34,7 +34,17 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.je.dejpeg.utils.helpers.ImageActions
 import java.io.IOException
+import com.je.dejpeg.ui.components.SnackbarDuration
+import com.je.dejpeg.ui.components.SnackySnackbarController
+import com.je.dejpeg.ui.components.SnackySnackbarEvents
+
+sealed class SaveState {
+    object Idle : SaveState()
+    data class Saving(val current: Int, val total: Int) : SaveState()
+    data class Error(val message: String) : SaveState()
+}
 
 data class BrisqueImageState(
     val originalBitmap: Bitmap,
@@ -69,6 +79,7 @@ class BrisqueViewModel : ViewModel() {
 
     val imageState = MutableStateFlow<BrisqueImageState?>(null)
     val settings = MutableStateFlow(BrisqueSettings())
+    val saveState = MutableStateFlow<SaveState>(SaveState.Idle)
 
     companion object {
         private const val TAG = "BrisqueViewModel"
@@ -239,40 +250,34 @@ class BrisqueViewModel : ViewModel() {
         )
     }
 
-    fun saveCurrentImage(context: Context, onSuccess: () -> Unit, onError: (String) -> Unit) {
+    fun saveCurrentImage(context: Context) {
         val state = imageState.value ?: return
         val bmp = state.descaledBitmap ?: state.originalBitmap
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val suffix = if (state.descaledBitmap != null) "_descaled" else "_brisque"
-                val base = state.filename.substringBeforeLast(".")
-                val name = "${base}${suffix}.png"
-                val values = android.content.ContentValues().apply {
-                    put(MediaStore.Images.Media.DISPLAY_NAME, name)
-                    put(MediaStore.Images.Media.MIME_TYPE, "image/png")
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-                        put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES)
-                        put(MediaStore.Images.Media.IS_PENDING, 1)
-                    }
+        val suffix = if (state.descaledBitmap != null) "_descaled" else "_brisque"
+        val name = "${state.filename.substringBeforeLast(".")}${suffix}"
+        saveState.value = SaveState.Saving(0, 1)
+        ImageActions.saveImage(
+            context = context,
+            bitmap = bmp,
+            filename = name,
+            onSuccess = {
+                viewModelScope.launch {
+                    SnackySnackbarController.pushEvent(
+                        SnackySnackbarEvents.MessageEvent(
+                            message = context.getString(R.string.image_saved_to_gallery),
+                            duration = SnackbarDuration.Short
+                        )
+                    )
+                    saveState.value = SaveState.Idle
                 }
-                val uri = context.contentResolver.insert(
-                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values
-                )
-                if (uri != null) {
-                    context.contentResolver.openOutputStream(uri)
-                        ?.use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-                        values.clear()
-                        values.put(MediaStore.Images.Media.IS_PENDING, 0)
-                        context.contentResolver.update(uri, values, null, null)
-                    }
-                    withContext(Dispatchers.Main) { onSuccess() }
-                } else throw IOException("Failed to create media store entry")
-            } catch (e: Exception) {
-                Log.e(TAG, "Error saving image: ${e.message}", e)
-                withContext(Dispatchers.Main) { onError(e.message ?: "Failed to save image") }
+            },
+            onError = { error ->
+                saveState.value = SaveState.Error(error)
             }
-        }
+        )
+    }
+    fun dismissSaveError() {
+        saveState.value = SaveState.Idle
     }
 
     override fun onCleared() {
