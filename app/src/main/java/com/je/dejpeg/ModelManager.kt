@@ -205,6 +205,10 @@ class ModelManager(
         }
     }
 
+    fun getCurrentModelName(): String? {
+        return currentModelName
+    }
+
     fun setActiveModel(modelName: String, type: ModelType = ModelType.ONNX) {
         Log.d("ModelManager", "setActiveModel($type) called with: $modelName")
         if (type == ModelType.ONNX) unloadModel()

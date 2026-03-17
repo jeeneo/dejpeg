@@ -19,11 +19,16 @@ package com.je.dejpeg.utils.helpers
 
 import android.content.Context
 import android.util.Log
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
 import com.je.dejpeg.data.AppPreferences
+import com.je.dejpeg.data.PreferenceKeys
+import com.je.dejpeg.data.dataStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
+// to be removed sometime in 4.x.x prior to 5.x.x (if we even get there, honestly ive put way too much work into a simple image processor like frfr bro its not rocket science)
 object ModelMigrationHelper {
     private const val TAG = "ModelMigrationHelper"
     fun getOnnxModelsDir(context: Context): File = File(context.filesDir, "models/onnx")
@@ -32,6 +37,15 @@ object ModelMigrationHelper {
 
     suspend fun migrateModelsIfNeeded(context: Context): Boolean = withContext(Dispatchers.IO) {
         val prefs = AppPreferences(context.applicationContext)
+        context.dataStore.edit { store ->
+            val oldKey = booleanPreferencesKey("skipSaveDialog")
+            if (store[oldKey] != null) {
+                store[PreferenceKeys.SHOW_SAVE_DIALOG] =
+                    !(store[oldKey]!!) // convert to bool, invert, and delete old key
+                store.remove(oldKey)
+                Log.d(TAG, "Migrated 'skipSaveDialog' to 'showSaveDialog'")
+            }
+        }
         val onnx = migrateFiles(
             "ONNX",
             context.filesDir,

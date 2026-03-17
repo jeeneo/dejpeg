@@ -228,7 +228,10 @@ fun HomeWrapperScreen(
                             lazyListState = lazyListState
                         )
                     } else {
-                        SettingsScreen(settingsViewModel, onBack = { currentTab = "processing" })
+                        SettingsScreen(
+                            settingsViewModel,
+                            viewModel,
+                            onBack = { currentTab = "processing" })
                     }
                 }
             }

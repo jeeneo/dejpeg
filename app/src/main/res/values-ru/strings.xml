@@ -291,7 +291,7 @@
     <string name="oidn_num_threads_desc">0 = автоматически</string>
     <string name="oidn_settings_desc">HDR, sRGB, качество, потоки</string>
     <string name="import_tza_model">Импорт весов</string>
-    <string name="processing_threads_desc">Параллельный</string>
+    <string name="processing_threads_desc">Параллельные фрагменты</string>
     <string name="thread_value_auto">Авто (%1$d)</string>
     <string name="info">Инфо</string>
 </resources>

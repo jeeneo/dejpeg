@@ -479,7 +479,7 @@ fun SaveImageDialog(
                             verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(
                                 checked = saveAll,
-                                onCheckedChange = null,
+                                onCheckedChange = { haptic.light(); saveAll = it },
                                 modifier = Modifier.size(32.dp)
                             )
                             Spacer(Modifier.width(8.dp))
@@ -497,7 +497,7 @@ fun SaveImageDialog(
                         verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(
                             checked = skipNext,
-                            onCheckedChange = null,
+                            onCheckedChange = { haptic.light(); skipNext = it },
                             modifier = Modifier.size(32.dp)
                         )
                         Spacer(Modifier.width(8.dp))

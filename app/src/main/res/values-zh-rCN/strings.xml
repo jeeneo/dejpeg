@@ -88,7 +88,7 @@
     <string name="import_model_text">导入模型</string>
     <string name="open_source_app_description">一款用于去除照片噪点和压缩痕迹的开源应用</string>
     <string name="source_code">源代码</string>
-    <string name="show_save_dialog">显示保存对话框</string>
+    <string name="show_save_dialog">保存对话框</string>
     <string name="swap_swipe_actions">调换轻扫操作</string>
     <string name="default_image_source">默认来源</string>
     <string name="none">无</string>

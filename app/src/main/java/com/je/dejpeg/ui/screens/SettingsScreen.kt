@@ -116,6 +116,7 @@ import com.je.dejpeg.ui.components.SnackySnackbarController
 import com.je.dejpeg.ui.components.SnackySnackbarEvents
 import com.je.dejpeg.ui.components.loadFAQSections
 import com.je.dejpeg.ui.components.rememberMaterialPressState
+import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
 import com.je.dejpeg.utils.rememberHapticFeedback
 import kotlinx.coroutines.Dispatchers
@@ -127,7 +128,9 @@ import kotlin.math.roundToInt
 @Suppress("AssignedValueIsNeverRead")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
+fun SettingsScreen(
+    viewModel: SettingsViewModel, processingViewModel: ProcessingViewModel, onBack: () -> Unit = {}
+) {
     val context = LocalContext.current
     val modelManager = remember { ModelManager(context) }
     val appPreferences = remember { com.je.dejpeg.data.AppPreferences(context) }
@@ -143,6 +146,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
     var importProgress by remember { mutableIntStateOf(0) }
     val importedModelMessage = stringResource(R.string.imported_model)
     val deletedModelMessage = stringResource(R.string.deleted_model)
+    val blockedSwitchingMessage = stringResource(R.string.model_switch_blocked_processing)
     var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
     val chunkSize by viewModel.chunkSize.collectAsState()
     val overlapSize by viewModel.overlapSize.collectAsState()
@@ -152,7 +156,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
     }
     var pendingModelSelection by remember { mutableStateOf<String?>(null) }
     var warningState by remember { mutableStateOf<ModelWarningState?>(null) }
-    val skipSaveDialog by appPreferences.skipSaveDialog.collectAsState(initial = false)
+    val showSaveDialog by appPreferences.showSaveDialog.collectAsState(initial = true)
     val defaultImageSource by appPreferences.defaultImageSource.collectAsState(initial = null)
     val hapticFeedbackEnabled by appPreferences.hapticFeedbackEnabled.collectAsState(initial = true)
     val swapSwipeActions by appPreferences.swapSwipeActions.collectAsState(initial = false)
@@ -161,9 +165,9 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
     val processingMode by viewModel.processingMode.collectAsState()
     val installedOidnModels by viewModel.installedOidnModels.collectAsState()
     val oidnHdr by viewModel.oidnHdr.collectAsState()
-    val oidnSrgb by viewModel.oidnSrgb.collectAsState()
+    @Suppress("SpellCheckingInspection") val oidnSrgb by viewModel.oidnSrgb.collectAsState()
     val oidnQuality by viewModel.oidnQuality.collectAsState()
-    val oidnNumThreads by viewModel.oidnNumThreads.collectAsState()
+    @Suppress("SpellCheckingInspection") val oidnNumThreads by viewModel.oidnNumThreads.collectAsState()
     var activeOidnModelName by remember {
         mutableStateOf(runBlocking { viewModel.getActiveModelName(ModelType.OIDN) })
     }
@@ -264,13 +268,13 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
 
                 ExtendedFloatingActionButton(
                     onClick = {
-                        haptic.light() // huh wonky, reformatting doesnt like you
-                        if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN) {
-                            oidnModelPickerLauncher.launch("*/*")
-                        } else {
-                            modelPickerLauncher.launch("*/*")
-                        }
-                    },
+                    haptic.light() // huh wonky, reformatting doesn't like you
+                    if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN) {
+                        oidnModelPickerLauncher.launch("*/*")
+                    } else {
+                        modelPickerLauncher.launch("*/*")
+                    }
+                },
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = {
                         Text(
@@ -386,8 +390,19 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
                                         )
                                         .clickable {
                                             haptic.light()
-                                            viewModel.setActiveModelByName(modelName)
-                                            activeModelName = modelName
+                                            if (processingViewModel.isProcessingOrQueueActive()) {
+                                                scope.launch {
+                                                    SnackySnackbarController.pushEvent(
+                                                        SnackySnackbarEvents.MessageEvent(
+                                                            message = blockedSwitchingMessage,
+                                                            duration = SnackbarDuration.Short
+                                                        )
+                                                    )
+                                                }
+                                            } else {
+                                                viewModel.setActiveModelByName(modelName)
+                                                activeModelName = modelName
+                                            }
                                         }
                                         .padding(horizontal = 8.dp, vertical = 10.dp),
                                     verticalAlignment = Alignment.CenterVertically) {
@@ -584,9 +599,22 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
                                         .fillMaxWidth()
                                         .clip(RoundedCornerShape(8.dp))
                                         .clickable {
-                                            haptic.light(); viewModel.setActiveModelByName(
-                                            modelName, ModelType.OIDN
-                                        ); activeOidnModelName = modelName
+                                            haptic.light()
+                                            if (processingViewModel.isProcessingOrQueueActive()) {
+                                                scope.launch {
+                                                    SnackySnackbarController.pushEvent(
+                                                        SnackySnackbarEvents.MessageEvent(
+                                                            message = blockedSwitchingMessage,
+                                                            duration = SnackbarDuration.Short
+                                                        )
+                                                    )
+                                                }
+                                            } else {
+                                                viewModel.setActiveModelByName(
+                                                    modelName, ModelType.OIDN
+                                                )
+                                                activeOidnModelName = modelName
+                                            }
                                         }
                                         .padding(horizontal = 8.dp, vertical = 10.dp),
                                     verticalAlignment = Alignment.CenterVertically) {
@@ -754,42 +782,41 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
 
             val isOidn = BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .onSizeChanged { containerWidth = it.width }
-                    .clip(MaterialTheme.shapes.large)
-                    .pointerInput(processingMode) {
-                        if (!BuildConfig.OIDN_ENABLED) return@pointerInput
-                        detectHorizontalDragGestures(onDragEnd = {
-                            val threshold = containerWidth * 0.35f
-                            scope.launch {
-                                if (animatedOffset.value > threshold && processingMode == ProcessingMode.OIDN) {
-                                    animatedOffset.animateTo(containerWidth.toFloat(), spring())
-                                    viewModel.setProcessingMode(ProcessingMode.ONNX)
-                                    animatedOffset.snapTo(0f)
-                                } else if (animatedOffset.value < -threshold && processingMode == ProcessingMode.ONNX) {
-                                    animatedOffset.animateTo(
-                                        -containerWidth.toFloat(), spring()
-                                    )
-                                    viewModel.setProcessingMode(ProcessingMode.OIDN)
-                                    animatedOffset.snapTo(0f)
-                                } else {
-                                    animatedOffset.animateTo(0f, spring())
-                                }
+            Box(modifier = Modifier
+                .fillMaxWidth()
+                .onSizeChanged { containerWidth = it.width }
+                .clip(MaterialTheme.shapes.large)
+                .pointerInput(processingMode) {
+                    if (!BuildConfig.OIDN_ENABLED) return@pointerInput
+                    detectHorizontalDragGestures(onDragEnd = {
+                        val threshold = containerWidth * 0.35f
+                        scope.launch {
+                            if (animatedOffset.value > threshold && processingMode == ProcessingMode.OIDN) {
+                                animatedOffset.animateTo(containerWidth.toFloat(), spring())
+                                viewModel.setProcessingMode(ProcessingMode.ONNX)
+                                animatedOffset.snapTo(0f)
+                            } else if (animatedOffset.value < -threshold && processingMode == ProcessingMode.ONNX) {
+                                animatedOffset.animateTo(
+                                    -containerWidth.toFloat(), spring()
+                                )
+                                viewModel.setProcessingMode(ProcessingMode.OIDN)
+                                animatedOffset.snapTo(0f)
+                            } else {
+                                animatedOffset.animateTo(0f, spring())
                             }
-                        }, onDragCancel = {
-                            scope.launch { animatedOffset.animateTo(0f, spring()) }
-                        }, onHorizontalDrag = { change, dragAmount ->
-                            change.consume()
-                            val newOffset = animatedOffset.value + dragAmount
-                            val clamped = when (processingMode) {
-                                ProcessingMode.OIDN -> newOffset.coerceAtLeast(0f)
-                                ProcessingMode.ONNX -> newOffset.coerceAtMost(0f)
-                            }
-                            scope.launch { animatedOffset.snapTo(clamped) }
-                        })
-                    }) {
+                        }
+                    }, onDragCancel = {
+                        scope.launch { animatedOffset.animateTo(0f, spring()) }
+                    }, onHorizontalDrag = { change, dragAmount ->
+                        change.consume()
+                        val newOffset = animatedOffset.value + dragAmount
+                        val clamped = when (processingMode) {
+                            ProcessingMode.OIDN -> newOffset.coerceAtLeast(0f)
+                            ProcessingMode.ONNX -> newOffset.coerceAtMost(0f)
+                        }
+                        scope.launch { animatedOffset.snapTo(clamped) }
+                    })
+                }) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -851,10 +878,10 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit = {}) {
                         LabeledSwitch(
                             title = stringResource(R.string.show_save_dialog),
                             desc = "",
-                            checked = skipSaveDialog,
+                            checked = showSaveDialog,
                             onCheckedChange = { new ->
                                 scope.launch {
-                                    appPreferences.setSkipSaveDialog(new)
+                                    appPreferences.setShowSaveDialog(new)
                                 }
                             },
                             hapticAction = { haptic.light() })
@@ -1318,11 +1345,10 @@ fun FAQSection(title: String, content: String?, subSections: List<Pair<String, S
     )
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { haptic.light(); expanded = !expanded }
-                .padding(vertical = 8.dp),
+        Row(modifier = Modifier
+            .fillMaxWidth()
+            .clickable { haptic.light(); expanded = !expanded }
+            .padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
             Text(title, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))

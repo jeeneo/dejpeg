@@ -28,7 +28,6 @@ import com.je.dejpeg.BuildConfig
 import com.je.dejpeg.ModelManager
 import com.je.dejpeg.ModelType
 import com.je.dejpeg.data.AppPreferences
-import com.je.dejpeg.data.Prefs
 import com.je.dejpeg.data.ProcessingMode
 import com.je.dejpeg.utils.helpers.ModelMigrationHelper
 import kotlinx.coroutines.Dispatchers
@@ -86,25 +85,17 @@ class SettingsViewModel : ViewModel() {
         modelManager = ModelManager(context)
 
         val prefs = appPreferences!!
-        val bindings = listOf(
-            chunkSize to Prefs.CHUNK_SIZE,
-            overlapSize to Prefs.OVERLAP_SIZE,
-            onnxDeviceThreads to Prefs.ONNX_DEVICE_THREADS,
-            globalStrength to Prefs.GLOBAL_STRENGTH,
-            _processingMode to Prefs.PROCESSING_MODE,
-            oidnHdr to Prefs.OIDN_HDR,
-            oidnSrgb to Prefs.OIDN_SRGB,
-            oidnQuality to Prefs.OIDN_QUALITY,
-            oidnMaxMemoryMB to Prefs.OIDN_MAX_MEMORY_MB,
-            oidnNumThreads to Prefs.OIDN_NUM_THREADS,
-            oidnInputScale to Prefs.OIDN_INPUT_SCALE
-        )
-
-        bindings.forEach { (stateFlow, pref) ->
-            @Suppress("UNCHECKED_CAST") syncPref(
-                stateFlow as MutableStateFlow<Any>, (pref.flow(prefs) as Flow<Any>)
-            )
-        }
+        syncPref(chunkSize, prefs.chunkSize)
+        syncPref(overlapSize, prefs.overlapSize)
+        syncPref(onnxDeviceThreads, prefs.onnxDeviceThreads)
+        syncPref(globalStrength, prefs.globalStrength)
+        syncPref(_processingMode, prefs.processingMode)
+        syncPref(oidnHdr, prefs.oidnHdr)
+        syncPref(oidnSrgb, prefs.oidnSrgb)
+        syncPref(oidnQuality, prefs.oidnQuality)
+        syncPref(oidnMaxMemoryMB, prefs.oidnMaxMemoryMB)
+        syncPref(oidnNumThreads, prefs.oidnNumThreads)
+        syncPref(oidnInputScale, prefs.oidnInputScale)
 
         viewModelScope.launch {
             appCtx.let { ctx ->

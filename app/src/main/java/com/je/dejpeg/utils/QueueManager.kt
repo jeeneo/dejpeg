@@ -27,7 +27,7 @@ class ProcessingQueueManager {
     var cancelInProgress = false
     var currentProcessingId: String? = null
         private set
-
+    var singleImageCancelId: String? = null
     val queueSize: Int get() = processingQueue.size
     val isEmpty: Boolean get() = processingQueue.isEmpty()
 
@@ -74,12 +74,14 @@ class ProcessingQueueManager {
         processingQueue.clear()
         isProcessingQueue = false
         activeProcessingTotal = 0
+        singleImageCancelId = null
     }
 
     fun resetProcessingState() {
         isProcessingQueue = false
         activeProcessingTotal = 0
         currentProcessingId = null
+        singleImageCancelId = null
     }
 
     fun isActive(id: String): Boolean = currentProcessingId == id

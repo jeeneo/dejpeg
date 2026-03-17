@@ -51,9 +51,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -197,6 +200,7 @@ fun ProcessingScreen(
     var showCancelAllDialog by remember { mutableStateOf(false) }
     var saveDialogState by remember { mutableStateOf<Pair<String, String>?>(null) }
     var overwriteDialogState by remember { mutableStateOf<Pair<String, String>?>(null) }
+    val showSaveDialog by appPreferences.showSaveDialog.collectAsState(initial = true)
 
     DisposableEffect(Unit) {
         onDispose {
@@ -256,6 +260,14 @@ fun ProcessingScreen(
         imageIdToRemove = null
         imageIdToCancel = null
     }
+
+    val saveOrPrompt = rememberSaveOrPrompt(
+        showSaveDialog = showSaveDialog,
+        context = context,
+        viewModel = viewModel,
+        performRemoval = performRemoval,
+        setSaveDialogState = { p -> saveDialogState = p },
+        setOverwriteDialogState = { p -> overwriteDialogState = p })
 
     LaunchedEffect(images) {
         imageIdToRemove = imageIdToRemove?.takeIf { id -> images.any { it.id == id } }
@@ -337,7 +349,7 @@ fun ProcessingScreen(
     Column(
         Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(start = 16.dp, end = 16.dp, top = 16.dp)
     ) {
         Row(
             Modifier
@@ -398,10 +410,18 @@ fun ProcessingScreen(
                             } else if (allComplete) {
                                 val imageIds =
                                     images.filter { it.outputBitmap != null }.map { it.id }
-                                viewModel.saveImage(
-                                    context = context, imageIds = imageIds, onComplete = {
-                                        imageIds.forEach { id -> performRemoval(id) }
-                                    })
+                                val conflicting =
+                                    images.filter { it.outputBitmap != null }.firstOrNull {
+                                        ImageActions.checkFileExists(context, it.filename)
+                                    }
+                                if (conflicting != null) {
+                                    saveOrPrompt(conflicting.id, conflicting.filename)
+                                } else {
+                                    viewModel.saveImage(
+                                        context = context, imageIds = imageIds, onComplete = {
+                                            imageIds.forEach { id -> performRemoval(id) }
+                                        })
+                                }
                             } else {
                                 if (!settingsViewModel.hasActiveModel(activeModelType)) scope.launch {
                                     SnackySnackbarController.pushEvent(
@@ -550,8 +570,10 @@ fun ProcessingScreen(
                 Modifier
                     .fillMaxSize()
                     .weight(1f)
-                    .padding(bottom = 112.dp),
-                contentAlignment = Alignment.Center
+                    .padding(
+                        bottom = WindowInsets.navigationBars.asPaddingValues()
+                            .calculateBottomPadding() + 80.dp
+                    ), contentAlignment = Alignment.Center
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -608,7 +630,11 @@ fun ProcessingScreen(
                 LazyColumn(
                     state = lazyListState,
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(
+                        bottom = WindowInsets.navigationBars.asPaddingValues()
+                            .calculateBottomPadding() + 8.dp
+                    )
                 ) {
                     items(images, { it.id }) { image ->
                         val swipeState = remember { mutableFloatStateOf(0f) }
@@ -633,11 +659,11 @@ fun ProcessingScreen(
                             remember(image.id) { { haptic.light(); onNavigateToBrisque(image.id) } }
                         val onClick: () -> Unit =
                             remember(image.id) { { onNavigateToBeforeAfter(image.id) } }
-                        val onLeftSwipe: () -> Unit = remember(image.id, hasOutput) {
+                        val onLeftSwipe: () -> Unit = remember(image.id, hasOutput, saveOrPrompt) {
                             {
-                                if (hasOutput) {
-                                    saveDialogState = Pair(image.id, image.filename)
-                                } else onProcess()
+                                if (hasOutput) saveOrPrompt(
+                                    image.id, image.filename
+                                ) else onProcess()
                             }
                         }
                         SwipeToDismissWrapper(
@@ -668,7 +694,7 @@ fun ProcessingScreen(
                                 onBrisque,
                                 onClick,
                                 onClick,
-                                onLeftSwipe,
+                                onSave = { saveOrPrompt(image.id, image.filename) },
                                 image.isProcessing,
                                 haptic
                             )
@@ -690,7 +716,7 @@ fun ProcessingScreen(
                 onRemove = { performRemoval(targetId) },
                 onSaveAndRemove = {
                     imageIdToRemove = null
-                    saveDialogState = Pair(targetId, image.filename)
+                    saveOrPrompt(targetId, image.filename)
                 })
         } ?: run { imageIdToRemove = null }
     }
@@ -757,22 +783,29 @@ fun ProcessingScreen(
     }
 
     saveDialogState?.let { (id, fn) ->
+        val showSaveAllOption = images.any { it.outputBitmap != null }
         SaveImageDialog(
             defaultFilename = fn,
-            showSaveAllOption = false,
+            showSaveAllOption = showSaveAllOption,
             initialSaveAll = false,
             hideOptions = false,
             onDismissRequest = { saveDialogState = null },
-            onSave = { name, _, _ ->
+            onSave = { name, all, skip ->
                 saveDialogState = null
-                if (ImageActions.checkFileExists(context, name)) {
-                    overwriteDialogState = Pair(id, name)
+                if (skip) scope.launch { appPreferences.setShowSaveDialog(false) }
+                if (all) {
+                    val imageIds = images.filter { it.outputBitmap != null }.map { it.id }
+                    if (imageIds.isNotEmpty()) viewModel.saveImage(context, imageIds)
                 } else {
-                    viewModel.saveImage(
-                        context = context,
-                        imageIds = listOf(id),
-                        baseFilename = name,
-                        onComplete = { performRemoval(id) })
+                    if (ImageActions.checkFileExists(context, name)) {
+                        overwriteDialogState = Pair(id, name)
+                    } else {
+                        viewModel.saveImage(
+                            context = context,
+                            imageIds = listOf(id),
+                            baseFilename = name,
+                            onComplete = { performRemoval(id) })
+                    }
                 }
             })
     }
@@ -873,58 +906,59 @@ fun SwipeToDismissWrapper(
                 )
             }
         }
-        Box(Modifier
-            .fillMaxWidth()
-            .offset { IntOffset(animatedOffset.roundToInt(), 0) }
-            .pointerInput(widthPx, allowLeftSwipe) {
-                detectHorizontalDragGestures(onDragStart = {
-                    if (!hasStartedDrag) {
-                        haptic.gestureStart(); hasStartedDrag = true
-                    }
-                }, onHorizontalDrag = { _, dragAmount ->
-                    val newValue = swipeState.value + dragAmount
-                    swipeState.value = if (allowLeftSwipe) newValue else maxOf(0f, newValue)
-                    val absOffset = kotlin.math.abs(swipeState.value)
-                    val threshold = widthPx * swipeThreshold
-                    if (widthPx > 0 && absOffset > threshold && !hasReachedThreshold) {
-                        haptic.medium(); hasReachedThreshold = true
-                    } else if (absOffset <= threshold) hasReachedThreshold = false
-                }, onDragEnd = {
-                    val absOffset = kotlin.math.abs(swipeState.value)
-                    val threshold = widthPx * swipeThreshold
-                    if (widthPx > 0 && absOffset > threshold) {
-                        haptic.heavy()
-                        val isRight = swipeState.value > 0
-                        val willSlideOff =
-                            if (isRight) rightSwipeImmediate else (allowLeftSwipe && leftSwipeImmediate)
-                        scope.launch {
-                            if (willSlideOff) {
-                                val targetOffset =
-                                    if (isRight) widthPx.toFloat() else -widthPx.toFloat()
-                                animate(
-                                    initialValue = swipeState.value,
-                                    targetValue = targetOffset,
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioNoBouncy,
-                                        stiffness = Spring.StiffnessMedium
-                                    )
-                                ) { value, _ -> swipeState.value = value }
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .offset { IntOffset(animatedOffset.roundToInt(), 0) }
+                .pointerInput(widthPx, allowLeftSwipe) {
+                    detectHorizontalDragGestures(onDragStart = {
+                        if (!hasStartedDrag) {
+                            haptic.gestureStart(); hasStartedDrag = true
+                        }
+                    }, onHorizontalDrag = { _, dragAmount ->
+                        val newValue = swipeState.value + dragAmount
+                        swipeState.value = if (allowLeftSwipe) newValue else maxOf(0f, newValue)
+                        val absOffset = kotlin.math.abs(swipeState.value)
+                        val threshold = widthPx * swipeThreshold
+                        if (widthPx > 0 && absOffset > threshold && !hasReachedThreshold) {
+                            haptic.medium(); hasReachedThreshold = true
+                        } else if (absOffset <= threshold) hasReachedThreshold = false
+                    }, onDragEnd = {
+                        val absOffset = kotlin.math.abs(swipeState.value)
+                        val threshold = widthPx * swipeThreshold
+                        if (widthPx > 0 && absOffset > threshold) {
+                            haptic.heavy()
+                            val isRight = swipeState.value > 0
+                            val willSlideOff =
+                                if (isRight) rightSwipeImmediate else (allowLeftSwipe && leftSwipeImmediate)
+                            scope.launch {
+                                if (willSlideOff) {
+                                    val targetOffset =
+                                        if (isRight) widthPx.toFloat() else -widthPx.toFloat()
+                                    animate(
+                                        initialValue = swipeState.value,
+                                        targetValue = targetOffset,
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioNoBouncy,
+                                            stiffness = Spring.StiffnessMedium
+                                        )
+                                    ) { value, _ -> swipeState.value = value }
+                                }
+                                if (isRight) currentOnRightSwipe()
+                                else if (allowLeftSwipe) currentOnLeftSwipe()
+                                swipeState.value = 0f
+                                hasStartedDrag = false
+                                hasReachedThreshold = false
                             }
-                            if (isRight) currentOnRightSwipe()
-                            else if (allowLeftSwipe) currentOnLeftSwipe()
-                            swipeState.value = 0f
-                            hasStartedDrag = false
-                            hasReachedThreshold = false
+                        } else {
+                            scope.launch {
+                                swipeState.value = 0f
+                                hasStartedDrag = false
+                                hasReachedThreshold = false
+                            }
                         }
-                    } else {
-                        scope.launch {
-                            swipeState.value = 0f
-                            hasStartedDrag = false
-                            hasReachedThreshold = false
-                        }
-                    }
-                })
-            }) { content() }
+                    })
+                }) { content() }
     }
 }
 
@@ -1342,6 +1376,32 @@ fun ImageCard(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun rememberSaveOrPrompt(
+    showSaveDialog: Boolean,
+    context: android.content.Context,
+    viewModel: ProcessingViewModel,
+    performRemoval: (String) -> Unit,
+    setSaveDialogState: (Pair<String, String>?) -> Unit,
+    setOverwriteDialogState: (Pair<String, String>?) -> Unit
+): (String, String) -> Unit = remember(showSaveDialog) {
+    { imageId, filename ->
+        if (showSaveDialog) {
+            setSaveDialogState(Pair(imageId, filename))
+        } else {
+            if (ImageActions.checkFileExists(context, filename)) {
+                setOverwriteDialogState(Pair(imageId, filename))
+            } else {
+                viewModel.saveImage(
+                    context = context,
+                    imageIds = listOf(imageId),
+                    baseFilename = filename,
+                    onComplete = { performRemoval(imageId) })
             }
         }
     }

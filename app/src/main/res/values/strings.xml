@@ -10,7 +10,7 @@
     <string name="already_exists">That image already exists. Overwrite?</string>
     <string name="filename">Filename</string>
     <string name="save_all">Save all</string>
-    <string name="dont_show_dialog">Don\'t show this dialog</string>
+    <string name="dont_show_dialog">Don\'t show again</string>
     <string name="cancel">Cancel</string>
     <string name="back_exit_confirm">Press back again to exit</string>
     <string name="remove_image_title">Remove image?</string>
@@ -95,9 +95,9 @@
     <string name="import_model_text">Import model</string>
     <string name="open_source_app_description">An open source app for removing noise and compression from photos</string>
     <string name="source_code">Source code</string>
-    <string name="show_save_dialog">Show save dialog</string>
+    <string name="show_save_dialog">Save dialog</string>
     <string name="swap_swipe_actions">Swap swipe actions</string>
-    <string name="processing_threads_desc">Parallel</string>
+    <string name="processing_threads_desc">Parallel chunks</string>
     <string name="thread_value_auto">Auto (%1$d)</string>
     <string name="default_image_source">Default source</string>
     <string name="none">none</string>
@@ -294,4 +294,5 @@
     <string name="oidn_num_threads_desc">0 = auto</string>
     <string name="oidn_settings_desc">HDR, sRGB, quality, threads</string>
     <string name="import_tza_model">Import .tza model</string>
+    <string name="model_switch_blocked_processing">You can\'t switch models while procesing</string>
 </resources>

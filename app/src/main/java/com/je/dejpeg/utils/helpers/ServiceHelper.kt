@@ -50,9 +50,12 @@ class ServiceCommunicationHelper(
     private var serviceBinder: IBinder? = null
     private var isBound = false
     private val mainHandler = Handler(Looper.getMainLooper())
+    private var intentionalDisconnect = false
+    private var crashReported = false
 
     private val deathRecipient = IBinder.DeathRecipient {
         mainHandler.post {
+            if (crashReported) return@post
             Log.e(
                 "ServiceCommHelper",
                 "Service process died (DeathRecipient triggered) while processing: $currentProcessingImageId"
@@ -79,6 +82,8 @@ class ServiceCommunicationHelper(
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
+            if (intentionalDisconnect) return
+            crashReported = true
             Log.w("ServiceCommHelper", "Service disconnected unexpectedly")
             val imageId = currentProcessingImageId
             cleanupBinding()
@@ -101,17 +106,17 @@ class ServiceCommunicationHelper(
 
     private fun unbindFromService() {
         if (!isBound) return
+        intentionalDisconnect = true
         try {
             serviceBinder?.unlinkToDeath(deathRecipient, 0)
         } catch (e: Exception) {
-            Log.w("ServiceCommHelper", "Failed to unlink DeathRecipient: ${e.message}")
         }
         try {
             context.unbindService(serviceConnection)
             Log.d("ServiceCommHelper", "Unbound from service")
         } catch (e: Exception) {
-            Log.w("ServiceCommHelper", "Failed to unbind from service: ${e.message}")
         }
+        intentionalDisconnect = false
         cleanupBinding()
     }
 
@@ -120,6 +125,7 @@ class ServiceCommunicationHelper(
         isBound = false
         currentProcessingImageId = null
         serviceProcessPid = null
+        crashReported = false
     }
 
     private val receiver = object : BroadcastReceiver() {
@@ -243,11 +249,13 @@ class ServiceCommunicationHelper(
 
     fun cancelProcessing(onCleanup: () -> Unit): Boolean {
         val pid = serviceProcessPid
+        val imageId = currentProcessingImageId
         unbindFromService()
         if (pid != null && pid > 0) {
             try {
                 android.os.Process.killProcess(pid)
                 onCleanup()
+                mainHandler.post { callbacks.onServiceCrash(imageId) }
                 return true
             } catch (e: Exception) {
                 Log.e("ServiceCommunicationHelper", "Failed to kill service process: ${e.message}")

@@ -261,7 +261,11 @@ class BrisqueViewModel : ViewModel() {
                 viewModelScope.launch {
                     SnackySnackbarController.pushEvent(
                         SnackySnackbarEvents.MessageEvent(
-                            message = context.resources.getQuantityString(R.plurals.image_saved_to_gallery, 1, 1),
+                            message = context.resources.getQuantityString(
+                                R.plurals.image_saved_to_gallery,
+                                1,
+                                1
+                            ),
                             duration = SnackbarDuration.Short
                         )
                     )

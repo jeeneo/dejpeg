@@ -448,21 +448,54 @@ class ProcessingViewModel : ViewModel() {
     }
 
     private fun handleProcessingError(imageId: String?, message: String) {
+        Log.d(
+            "ProcessingViewModel",
+            "handleProcessingError: imageId=$imageId, message=$message, singleCancelId=${queue.singleImageCancelId}, currentProcessingId=${queue.currentProcessingId}"
+        )
+        val resolvedId = imageId ?: queue.singleImageCancelId
         val isCancelled = message.contains(statusCancelled, true)
         val displayMessage = if (isCancelled) statusCancelled else message
-        stopProcessing(imageId, displayMessage, isCancelled)
+        val isSingleCancel = resolvedId != null && resolvedId == queue.singleImageCancelId
+        Log.d(
+            "ProcessingViewModel",
+            "handleProcessingError: resolvedId=$resolvedId, isCancelled=$isCancelled, isSingleCancel=$isSingleCancel"
+        )
+        if (isSingleCancel) queue.singleImageCancelId = null
+        stopProcessing(resolvedId, displayMessage, isCancelled, singleImageCancel = isSingleCancel)
     }
 
     private fun handleServiceCrash(imageId: String?) {
-        stopProcessing(imageId, statusNativeCrash, isCancelled = false, serviceAlreadyDead = true)
+        Log.d(
+            "ProcessingViewModel",
+            "handleServiceCrash: imageId=$imageId, singleCancelId=${queue.singleImageCancelId}, currentProcessingId=${queue.currentProcessingId}"
+        )
+        val resolvedId = imageId ?: queue.singleImageCancelId
+        val isSingleCancel = resolvedId != null && resolvedId == queue.singleImageCancelId
+        Log.d(
+            "ProcessingViewModel",
+            "handleServiceCrash: resolvedId=$resolvedId, isSingleCancel=$isSingleCancel"
+        )
+        if (isSingleCancel) queue.singleImageCancelId = null
+        stopProcessing(
+            resolvedId,
+            statusNativeCrash,
+            isCancelled = isSingleCancel,
+            serviceAlreadyDead = true,
+            singleImageCancel = isSingleCancel
+        )
     }
 
     private fun stopProcessing(
         imageId: String?,
         displayMessage: String,
         isCancelled: Boolean,
-        serviceAlreadyDead: Boolean = false
+        serviceAlreadyDead: Boolean = false,
+        singleImageCancel: Boolean = false
     ) {
+        Log.d(
+            "ProcessingViewModel",
+            "stopProcessing: imageId=$imageId, displayMessage=$displayMessage, isCancelled=$isCancelled, singleImageCancel=$singleImageCancel, currentProcessingId=${queue.currentProcessingId}"
+        )
         if (!imageId.isNullOrEmpty()) {
             imageRepository.updateImageState(imageId) {
                 resetImageProcessingState(
@@ -470,7 +503,6 @@ class ProcessingViewModel : ViewModel() {
                 )
             }
             queue.remove(imageId)
-
             if (isCancelled) {
                 appContext?.let { ctx ->
                     viewModelScope.launch(Dispatchers.IO) {
@@ -485,7 +517,24 @@ class ProcessingViewModel : ViewModel() {
         if (isCancelled && imageId == queue.currentProcessingId) {
             queue.cancelInProgress = false
             queue.setCurrentProcessing(null)
-            advanceQueue(imageId)
+            if (singleImageCancel) {
+                Log.d(
+                    "ProcessingViewModel",
+                    "stopProcessing: single-image cancel path for imageId=$imageId"
+                )
+                advanceQueue(imageId)
+            } else {
+                queue.clear()
+                imageRepository.images.value = imageRepository.images.value.map {
+                    if (it.isProcessing || it.isCancelling) it.copy(
+                        isProcessing = false,
+                        isCancelling = false,
+                        progress = ""
+                    )
+                    else it
+                }
+                uiState.value = ProcessingUiState.Idle
+            }
             return
         }
         if (!serviceAlreadyDead) {
@@ -523,13 +572,24 @@ class ProcessingViewModel : ViewModel() {
 
     fun isCurrentlyProcessing(imageId: String) = queue.isActive(imageId)
 
+    fun isProcessingOrQueueActive(): Boolean {
+        return queue.cancelInProgress || queue.currentProcessingId != null || !queue.isEmpty
+    }
+
     fun cancelProcessingForImage(imageId: String) {
         if (queue.isActive(imageId)) {
             queue.cancelInProgress = true
+            queue.singleImageCancelId = imageId
             imageRepository.updateImageState(imageId) {
                 it.copy(isCancelling = true, progress = statusCanceling)
             }
-            cancelProcessingService(imageId)
+            val ctx = appContext ?: return
+            serviceHelper?.cancelProcessing {
+                viewModelScope.launch(Dispatchers.IO) {
+                    CacheManager.clearChunks(ctx)
+                    CacheManager.clearAbandonedImages(ctx)
+                }
+            }
         } else if (queue.contains(imageId)) {
             queue.remove(imageId)
             queue.decrementActiveTotal()
@@ -578,8 +638,7 @@ class ProcessingViewModel : ViewModel() {
                     )
                     SnackySnackbarController.pushEvent(
                         SnackySnackbarEvents.MessageEvent(
-                            message = message,
-                            duration = SnackbarDuration.Short
+                            message = message, duration = SnackbarDuration.Short
                         )
                     )
                 }

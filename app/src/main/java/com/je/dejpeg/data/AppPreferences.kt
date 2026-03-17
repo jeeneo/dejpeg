@@ -41,12 +41,11 @@ enum class ProcessingMode {
 }
 
 object PreferenceKeys {
-    val SKIP_SAVE_DIALOG = booleanPreferencesKey("skipSaveDialog")
+    val SHOW_SAVE_DIALOG = booleanPreferencesKey("showSaveDialog")
     val DEFAULT_IMAGE_SOURCE = stringPreferencesKey("defaultImageSource")
     val HAPTIC_FEEDBACK_ENABLED = booleanPreferencesKey("hapticFeedbackEnabled")
     val SWAP_SWIPE_ACTIONS = booleanPreferencesKey("swapSwipeActions")
     val COMPAT_MODEL_CLEANUP = booleanPreferencesKey("compatModelCleanup")
-    val COMPAT_BRISQUE_CLEANUP = booleanPreferencesKey("compatBrisqueCleanup")
     val STARTER_MODEL_EXTRACTED = booleanPreferencesKey("starterModelExtracted")
     val ACTIVE_MODEL = stringPreferencesKey("activeModel")
     val CURRENT_PROCESSING_MODEL = stringPreferencesKey("current_processing_model")
@@ -100,8 +99,8 @@ class AppPreferences(private val context: Context) {
         const val DEFAULT_OIDN_INPUT_SCALE = 0f
     }
 
-    val skipSaveDialog: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.SKIP_SAVE_DIALOG] ?: false
+    val showSaveDialog: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[PreferenceKeys.SHOW_SAVE_DIALOG] ?: true
     }
 
     val defaultImageSource: Flow<String?> = context.dataStore.data.map { prefs ->
@@ -118,10 +117,6 @@ class AppPreferences(private val context: Context) {
 
     val compatModelCleanup: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[PreferenceKeys.COMPAT_MODEL_CLEANUP] ?: false
-    }
-
-    val compatBrisqueCleanup: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.COMPAT_BRISQUE_CLEANUP] ?: false
     }
 
     val chunkSize: Flow<Int> = context.dataStore.data.map { prefs ->
@@ -161,9 +156,9 @@ class AppPreferences(private val context: Context) {
         )
     }
 
-    suspend fun setSkipSaveDialog(skip: Boolean) {
+    suspend fun setShowSaveDialog(show: Boolean) {
         context.dataStore.edit { prefs ->
-            prefs[PreferenceKeys.SKIP_SAVE_DIALOG] = skip
+            prefs[PreferenceKeys.SHOW_SAVE_DIALOG] = show
         }
     }
 
@@ -322,10 +317,6 @@ class AppPreferences(private val context: Context) {
 
     suspend fun setOidnQuality(quality: Int) {
         context.dataStore.edit { prefs -> prefs[PreferenceKeys.OIDN_QUALITY] = quality }
-    }
-
-    suspend fun setOidnMaxMemoryMB(maxMemoryMB: Int) {
-        context.dataStore.edit { prefs -> prefs[PreferenceKeys.OIDN_MAX_MEMORY_MB] = maxMemoryMB }
     }
 
     suspend fun setOidnNumThreads(numThreads: Int) {

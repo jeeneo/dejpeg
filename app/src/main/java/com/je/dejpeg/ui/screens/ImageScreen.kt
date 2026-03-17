@@ -99,14 +99,23 @@ fun BeforeAfterScreen(
     val scope = rememberCoroutineScope()
     val haptic = rememberHapticFeedback()
     val appPreferences = remember { AppPreferences(context.applicationContext) }
-    val skipSaveDialog by appPreferences.skipSaveDialog.collectAsState(initial = false)
+    val showSaveDialog by appPreferences.showSaveDialog.collectAsState(initial = true)
 
     val images by imageRepository.images.collectAsState()
     val image = images.firstOrNull { it.id == imageId }
-    var showSaveDialog by remember { mutableStateOf(false) }
-    var overwriteDialogFilename by remember { mutableStateOf<String?>(null) }
+    var saveDialogState by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var overwriteDialogState by remember { mutableStateOf<Pair<String, String>?>(null) }
     var isPreparingShare by remember { mutableStateOf(false) }
     val saveState by viewModel.saveState.collectAsState()
+
+    val saveOrPrompt = rememberSaveOrPrompt(
+        showSaveDialog = showSaveDialog,
+        context = context,
+        viewModel = viewModel,
+        performRemoval = { _ -> /* nom */ },
+        setSaveDialogState = { p -> saveDialogState = p },
+        setOverwriteDialogState = { p -> overwriteDialogState = p }
+    )
 
     if (image == null) {
         LaunchedEffect(Unit) { onBack() }
@@ -198,22 +207,7 @@ fun BeforeAfterScreen(
 
                     Button(
                         modifier = Modifier.height(56.dp),
-                        onClick = {
-                            haptic.medium()
-                            if (skipSaveDialog) {
-                                if (ImageActions.checkFileExists(context, filename)) {
-                                    overwriteDialogFilename = filename
-                                } else {
-                                    viewModel.saveImage(
-                                        context = context,
-                                        imageIds = listOf(imageId),
-                                        baseFilename = filename
-                                    )
-                                }
-                            } else {
-                                showSaveDialog = true
-                            }
-                        },
+                        onClick = { haptic.medium(); saveOrPrompt(imageId, filename) },
                         shapes = ButtonDefaults.shapes(
                             shape = RoundedCornerShape(
                                 topStart = PillInner,
@@ -243,45 +237,45 @@ fun BeforeAfterScreen(
 
         if (isPreparingShare) PreparingShareDialog()
 
-        if (showSaveDialog) {
+        saveDialogState?.let { (id, fn) ->
             SaveImageDialog(
-                filename,
-                showSaveAllOption,
-                false,
+                defaultFilename = fn,
+                showSaveAllOption = showSaveAllOption,
+                initialSaveAll = false,
                 hideOptions = false,
-                onDismissRequest = { showSaveDialog = false }) { name, all, skip ->
-                if (skip) scope.launch { appPreferences.setSkipSaveDialog(true) }
+                onDismissRequest = { saveDialogState = null }) { name, all, skip ->
+                saveDialogState = null
+                if (skip) scope.launch { appPreferences.setShowSaveDialog(false) }
                 if (all) {
                     val imageIds = images.filter { it.outputBitmap != null }.map { it.id }
                     if (imageIds.isNotEmpty()) viewModel.saveImage(context, imageIds)
-                    showSaveDialog = false
                 } else {
                     if (ImageActions.checkFileExists(context, name)) {
-                        overwriteDialogFilename = name
+                        overwriteDialogState = Pair(id, name)
                     } else {
                         viewModel.saveImage(
-                            context,
-                            imageIds = listOf(imageId),
+                            context = context,
+                            imageIds = listOf(id),
                             baseFilename = name
                         )
-                        showSaveDialog = false
                     }
                 }
             }
         }
 
-        overwriteDialogFilename?.let { fname ->
+        overwriteDialogState?.let { (id, fname) ->
             SaveImageDialog(
-                fname,
+                defaultFilename = fname,
                 showSaveAllOption = false,
                 initialSaveAll = false,
                 hideOptions = true,
-                onDismissRequest = { overwriteDialogFilename = null }) { name, _, _ ->
+                onDismissRequest = { overwriteDialogState = null }) { name, _, _ ->
                 viewModel.saveImage(
                     context = context,
-                    imageIds = listOf(imageId),
+                    imageIds = listOf(id),
                     baseFilename = name
                 )
+                overwriteDialogState = null
             }
         }
         (saveState as? SaveState.Error)?.let { err ->

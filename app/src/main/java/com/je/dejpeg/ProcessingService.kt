@@ -137,11 +137,36 @@ class ProcessingService : Service() {
                 val modelName = intent.getStringExtra(EXTRA_MODEL_NAME)
                 val processingMode =
                     ProcessingMode.fromString(intent.getStringExtra(EXTRA_PROCESSING_MODE))
+                if (currentJob?.isActive == true) {
+                    broadcast(
+                        ERROR_ACTION, ERROR_EXTRA_MESSAGE to "Already processing", imageId = imageId
+                    )
+                    return START_NOT_STICKY
+                }
                 currentImageId = imageId
                 if (processingMode == ProcessingMode.ONNX) {
                     if (modelName != null) {
-                        Log.d("ProcessingService", "Using ONNX model from Intent: $modelName")
-                        modelManager?.setActiveModel(modelName)
+                        try {
+                            val currentModel = modelManager?.getCurrentModelName()
+                            if (currentModel == modelName) {
+                                Log.d(
+                                    "ProcessingService",
+                                    "Same model ($modelName), skipping reload"
+                                )
+                            } else {
+                                Log.d(
+                                    "ProcessingService",
+                                    "Using ONNX model from Intent: $modelName (current: $currentModel)"
+                                )
+                                modelManager?.setActiveModel(modelName)
+                            }
+                        } catch (e: Exception) {
+                            Log.e(
+                                "ProcessingService",
+                                "Error checking/loading model: ${e.message}",
+                                e
+                            )
+                        }
                     } else {
                         Log.w("ProcessingService", "No model name in Intent, using DataStore")
                     }
@@ -149,12 +174,6 @@ class ProcessingService : Service() {
                 if (uriString == null) {
                     broadcast(ERROR_ACTION, ERROR_EXTRA_MESSAGE to "Missing uri", imageId = imageId)
                     stopSelf()
-                    return START_NOT_STICKY
-                }
-                if (currentJob != null) {
-                    broadcast(
-                        ERROR_ACTION, ERROR_EXTRA_MESSAGE to "Already processing", imageId = imageId
-                    )
                     return START_NOT_STICKY
                 }
                 Log.d("ProcessingService", "Processing $filename (mode: ${processingMode.name})")
