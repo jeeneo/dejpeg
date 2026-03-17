@@ -9,7 +9,7 @@
     <string name="already_exists">该图像已存在。要覆盖吗？</string>
     <string name="filename">文件名</string>
     <string name="save_all">保存全部</string>
-    <string name="dont_show_dialog">不再显示此对话框</string>
+    <string name="dont_show_dialog">不再显示</string>
     <string name="cancel">取消</string>
     <string name="back_exit_confirm">再按一次返回键退出</string>
     <string name="remove_image_title">移除图像？</string>
@@ -98,7 +98,7 @@
     <plurals name="processing_chunk_range_of_y_threads">
         <item quantity="other">正在处理 %1$d-%2$d/%3$d（%4$d 线程）</item>
     </plurals>
-    <string name="loading_images">加载图像中 ……</string>
+    <string name="loading_images">加载中…</string>
     <string name="loading_image_progress">正在加载 %2$d 项中的第 %1$d 项</string>
     <string name="saving_images">保存……</string>
     <string name="saving_image_progress">正在保存 %2$d 项中的第 %1$d 项</string>
@@ -115,7 +115,7 @@
     <string name="discard">丢弃</string>
     <string name="recovered_image_prefix">已恢复</string>
     <string name="starter_model_title">入门模型</string>
-    <string name="starter_model_message">DeJPEG 现在提供了轻量且快速的通用模型。请不要期待它们能完美处理每一张图像。\n\n您仍可以随时从设置中导入更多模型。\n\n为获得最佳效果，可通过链接获取更多模型。\n\n如果您不需要这些模型，可以将其删除，它们将不再显示。您也可以在偏好设置中重新添加。</string>
+    <string name="starter_model_message">DeJPEG 现在提供了轻量且快速的通用模型。请不要期待它们能完美处理每一张图像。\n\n为获得最佳效果，可通过链接获取更多模型。\n\n如果您不需要这些模型，可以将其删除，它们将不再显示。您也可以在偏好设置中重新添加。</string>
     <string name="got_it">知道了</string>
     <string name="model_info_1x_rgb_max_denoise_fp16">快速，针对噪点与压缩，主要用于动画。也可将照片转换为动画效果。</string>
     <string name="model_info_1x_span_anime_pretrain_fp16">快速，针对一般压缩与噪点。适用于动画、漫画、动漫以及部分照片。</string>
@@ -276,4 +276,14 @@
     <string name="oidn_settings_desc">HDR，sRGB，质量，线程</string>
     <string name="import_tza_model">导入 .tza 模型</string>
     <string name="model_info_1x_jpeg_80_100_fp16">JPEG 压缩（质量 80–100）</string>
+    <plurals name="image_saved_to_gallery">
+        <item quantity="other">已保存 %1$d 张图片</item>
+    </plurals>
+    <string name="info">信息</string>
+    <string name="reprocess">重新处理</string>
+    <string name="processing_threads_desc">并行分块</string>
+    <string name="thread_value_auto">自动模式（%1$d）</string>
+    <string name="extract">提取</string>
+    <string name="extracted_starter_models">入门模型已提取</string>
+    <string name="model_switch_blocked_processing">处理中无法切换模型</string>
 </resources>
