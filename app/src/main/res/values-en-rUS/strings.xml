@@ -287,4 +287,8 @@
     <string name="oidn_settings_desc">HDR, sRGB, quality, threads</string>
     <string name="import_tza_model">Import .tza model</string>
     <string name="model_switch_blocked_processing">You can\'t switch models while procesing</string>
+    <plurals name="image_saved_to_gallery">
+        <item quantity="one">Image saved</item>
+        <item quantity="other">%1$d images saved</item>
+    </plurals>
 </resources>
