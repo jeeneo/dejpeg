@@ -306,9 +306,7 @@ fun ProcessingScreen(
             val existing = images.mapNotNull { it.uri?.toString() }.toSet()
             val toAdd = initialSharedUris.filter { it.toString() !in existing }
             if (toAdd.isNotEmpty()) {
-                imageRepository.addImagesFromUris(
-                    context, toAdd, settingsViewModel.globalStrength.value / 100f
-                )
+                imageRepository.addImagesFromUris(context, toAdd)
             }
             imageRepository.sharedUris.value = emptyList()
         }
@@ -328,9 +326,7 @@ fun ProcessingScreen(
                     uris.add(it)
                     viewModel.clearCameraPhotoUri()
                 }
-                imageRepository.addImagesFromUris(
-                    context, uris, settingsViewModel.globalStrength.value / 100f
-                )
+                imageRepository.addImagesFromUris(context, uris)
             }
         }
     LaunchedEffect(Unit) { viewModel.setImagePickerLauncher(imagePickerLauncher) }

@@ -4,6 +4,8 @@ import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -82,7 +84,6 @@ sealed class Screen(val route: String) {
     object BeforeAfter : Screen("beforeAfter/{imageId}") {
         fun createRoute(imageId: String) = "beforeAfter/$imageId"
     }
-
     object Brisque : Screen("brisque/{imageId}") {
         fun createRoute(imageId: String) = "brisque/$imageId"
     }
@@ -103,47 +104,60 @@ fun MainScreen(
         viewModel.settingsViewModel = settingsViewModel
         settingsViewModel.initialize(context)
     }
+    val decelerate = FastOutSlowInEasing
+    val accelerate = LinearOutSlowInEasing
+    // photosynthesizes the diode
     RecoveryDialog(imageRepository = imageRepository)
     SnackySnackbarBox(snackbarHostState = snackbarHostState) {
         NavHost(
-            navController = navController,
+        navController = navController,
             startDestination = Screen.Home.route,
             enterTransition = {
-                scaleIn(
-                    initialScale = 0.9f,
-                    transformOrigin = TransformOrigin.Center,
-                    animationSpec = tween(300)
+                fadeIn(
+                    animationSpec = tween(durationMillis = 400, easing = decelerate)
                 ) + slideInHorizontally(
-                    initialOffsetX = { it / 4 }, animationSpec = tween(300)
-                ) + fadeIn(tween(300))
+                    initialOffsetX = { (it * 0.20f).toInt() },
+                    animationSpec = tween(durationMillis = 400, easing = decelerate)
+                ) + scaleIn(
+                    initialScale = 0.92f,
+                    transformOrigin = TransformOrigin(pivotFractionX = 0.5f, pivotFractionY = 0.5f),
+                    animationSpec = tween(durationMillis = 400, easing = decelerate)
+                )
             },
             exitTransition = {
-                scaleOut(
-                    targetScale = 0.9f,
-                    transformOrigin = TransformOrigin.Center,
-                    animationSpec = tween(300)
+                fadeOut(
+                    animationSpec = tween(durationMillis = 200, easing = accelerate)
                 ) + slideOutHorizontally(
-                    targetOffsetX = { -it / 4 }, animationSpec = tween(300)
-                ) + fadeOut(tween(300))
+                    targetOffsetX = { -(it * 0.05f).toInt() },
+                    animationSpec = tween(durationMillis = 200, easing = accelerate)
+                ) + scaleOut(
+                    targetScale = 0.95f,
+                    animationSpec = tween(durationMillis = 200, easing = accelerate)
+                )
             },
             popEnterTransition = {
-                scaleIn(
-                    initialScale = 0.9f,
-                    transformOrigin = TransformOrigin.Center,
-                    animationSpec = tween(300)
+                fadeIn(
+                    animationSpec = tween(durationMillis = 300, easing = decelerate)
                 ) + slideInHorizontally(
-                    initialOffsetX = { -it / 4 }, animationSpec = tween(300)
-                ) + fadeIn(tween(300))
+                    initialOffsetX = { -(it * 0.20f).toInt() },
+                    animationSpec = tween(durationMillis = 300, easing = decelerate)
+                ) + scaleIn(
+                    initialScale = 0.96f, // less dramatic than forward enter
+                    animationSpec = tween(durationMillis = 300, easing = decelerate)
+                )
             },
             popExitTransition = {
-                scaleOut(
-                    targetScale = 0.9f,
-                    transformOrigin = TransformOrigin.Center,
-                    animationSpec = tween(300)
+                fadeOut(
+                    animationSpec = tween(durationMillis = 250, easing = accelerate)
                 ) + slideOutHorizontally(
-                    targetOffsetX = { it / 4 }, animationSpec = tween(300)
-                ) + fadeOut(tween(300))
-            }) {
+                    targetOffsetX = { (it * 0.20f).toInt() },
+                    animationSpec = tween(durationMillis = 250, easing = accelerate)
+                ) + scaleOut(
+                    targetScale = 0.92f,
+                    animationSpec = tween(durationMillis = 250, easing = accelerate)
+                )
+            }
+        ) {
             composable(Screen.Home.route) {
                 HomeWrapperScreen(
                     navController = navController,

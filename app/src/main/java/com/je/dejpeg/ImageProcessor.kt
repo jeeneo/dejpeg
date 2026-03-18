@@ -77,13 +77,7 @@ class ImageProcessor(
     ) = withContext(Dispatchers.Default) {
         isCancelled = false
         try {
-            val detectedThreads = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
-            val configuredThreads = deviceThreadCount ?: AppPreferences.DEFAULT_ONNX_DEVICE_THREADS
-            val effectiveDeviceThreads = if (configuredThreads <= 0) {
-                computeAutoParallelThreads(detectedThreads)
-            } else {
-                configuredThreads.coerceIn(1, detectedThreads)
-            }
+            val coresToUse = resolveThreadCount(deviceThreadCount)
             val modelName = modelManager.getActiveModelName()
             val session = modelManager.loadModel()
             val minOverlap = modelManager.getMinOverlapSize(modelName)
@@ -101,7 +95,7 @@ class ImageProcessor(
                 inputBitmap = inputBitmap,
                 callback = callback,
                 info = modelInfo,
-                availableDeviceThreads = effectiveDeviceThreads
+                coresToUse = coresToUse
             )
             withContext(Dispatchers.Main) {
                 callback.onComplete(result)
@@ -128,7 +122,7 @@ class ImageProcessor(
         inputBitmap: Bitmap,
         callback: ProcessCallback,
         info: ModelInfo,
-        availableDeviceThreads: Int
+        coresToUse: Int
     ): Bitmap {
         val width = inputBitmap.width
         val height = inputBitmap.height
@@ -148,7 +142,7 @@ class ImageProcessor(
             processingConfig,
             hasTransparency,
             effectiveMaxChunkSize,
-            availableDeviceThreads
+            coresToUse
         )
         else {
             val bitmapToProcess =
@@ -192,7 +186,7 @@ class ImageProcessor(
         config: Bitmap.Config,
         hasTransparency: Boolean,
         maxChunkSize: Int,
-        availableDeviceThreads: Int
+        coresToUse: Int
     ): Bitmap {
         val width = inputBitmap.width
         val height = inputBitmap.height
@@ -269,10 +263,10 @@ class ImageProcessor(
                 "ImageProcessor", "Saved ${chunkInfoList.size} chunks to ${chunksDir.absolutePath}"
             )
             Log.d("ImageProcessor", "Phase 2: Processing $totalChunks chunks")
-            val parallelWorkers = computeParallelChunkWorkers(availableDeviceThreads, totalChunks)
+            val parallelWorkers = coresToUse.coerceIn(1, totalChunks.coerceAtLeast(1))
             Log.d(
                 "ImageProcessor",
-                "Using $parallelWorkers worker(s) for chunk processing (deviceThreads=$availableDeviceThreads)"
+                "Using $parallelWorkers worker(s) for chunk processing (deviceThreads=$coresToUse)"
             )
             if (totalChunks > 1) {
                 withContext(Dispatchers.Main) {
@@ -584,12 +578,23 @@ class ImageProcessor(
         val expandTop: Int
     )
 
-    private fun computeParallelChunkWorkers(deviceThreads: Int, totalChunks: Int): Int {
-        return deviceThreads.coerceIn(1, totalChunks.coerceAtLeast(1))
-    }
-
-    private fun computeAutoParallelThreads(detectedThreads: Int): Int {
-        return (detectedThreads - 2).coerceAtLeast(1)
+    // outside my expertise, uhm, on my 8 core (16gb ram) device i was running out of ram, i dont know if 10/12 core devices have more ram and would help?
+    // can't really test that
+    // hopefully the manual setter can allow the user to select more if needed
+    // it's also why i don't or haven't implemented parallel processing of non-chunked images (possible ram issues)
+    // sorry this code is a nightmare
+    private fun resolveThreadCount(configuredThreads: Int?): Int {
+        val detected = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
+        val configured = configuredThreads ?: AppPreferences.DEFAULT_ONNX_DEVICE_THREADS
+        return if (configured <= 0) {
+            when {
+                detected >= 8 -> 4
+                detected >= 6 -> 2
+                else          -> 1
+            }
+        } else {
+            configured.coerceIn(1, detected)
+        }
     }
 
     private fun floatToFloat16(value: Float): Short {

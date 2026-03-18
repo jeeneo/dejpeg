@@ -50,7 +50,7 @@ class ImageRepository(private val appContext: Context) {
         sharedUris.value += uri
     }
 
-    fun addImagesFromUris(context: Context, uris: List<Uri>, defaultStrengthFactor: Float = 0.5f) {
+    fun addImagesFromUris(context: Context, uris: List<Uri>) {
         if (uris.isEmpty()) return
         scope.launch {
             isLoadingImages.value = true
@@ -82,7 +82,7 @@ class ImageRepository(private val appContext: Context) {
                                 inputBitmap = bmp,
                                 thumbnailBitmap = ImageLoadingHelper.generateThumbnail(bmp),
                                 size = "${bmp.width}x${bmp.height}",
-                                strengthFactor = defaultStrengthFactor
+                                
                             )
                             withContext(Dispatchers.Main) {
                                 addImage(imageItem)

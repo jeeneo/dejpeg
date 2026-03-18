@@ -899,7 +899,7 @@ fun SettingsScreen(
                             },
                             hapticAction = { haptic.light() })
                         Spacer(modifier = Modifier.height(8.dp))
-
+                        val clearedDefaultSourceMsg = stringResource(R.string.cleared_default_source)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
@@ -919,6 +919,12 @@ fun SettingsScreen(
                             TextButton(onClick = {
                                 scope.launch {
                                     appPreferences.setDefaultImageSource(null)
+                                    SnackySnackbarController.pushEvent(
+                                        SnackySnackbarEvents.MessageEvent(
+                                            message = clearedDefaultSourceMsg,
+                                            duration = SnackbarDuration.Short
+                                        )
+                                    )
                                 }
                                 haptic.light()
                             }) { Text(stringResource(R.string.clear_default_source)) }
@@ -1225,11 +1231,13 @@ fun LabeledSwitch(
             Text(
                 title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold
             )
-            Text(
-                desc,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            if (desc.isNotEmpty()) {
+                Text(
+                    desc,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
         Switch(checked = checked, onCheckedChange = { hapticAction?.invoke(); onCheckedChange(it) })
     }

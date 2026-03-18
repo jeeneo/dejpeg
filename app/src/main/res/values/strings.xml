@@ -102,6 +102,7 @@
     <string name="default_image_source">Default source</string>
     <string name="none">none</string>
     <string name="clear_default_source">Clear</string>
+    <string name="cleared_default_source">Default source cleared</string>
     <string name="error_processing_cancelled">Processing cancelled</string>
     <string name="processing_chunk_x_of_y">Processing chunk %1$d/%2$d</string>
     <plurals name="processing_chunk_range_of_y_threads">

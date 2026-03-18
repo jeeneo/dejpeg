@@ -2,16 +2,16 @@ package com.je.dejpeg.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProgressIndicatorDefaults
@@ -40,6 +41,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -50,17 +52,23 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
+import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 private const val MAX_SNACKBARS = 4
 
 private val snapbackSpec = spring<Float>(
-    dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow
+    dampingRatio = Spring.DampingRatioLowBouncy,
+    stiffness = Spring.StiffnessMediumLow
 )
+
+private const val DISMISS_VELOCITY_THRESHOLD = 600f
 
 @Composable
 fun SnackySnackbarBox(
-    snackbarHostState: SnackySnackbarHostState, content: @Composable () -> Unit
+    snackbarHostState: SnackySnackbarHostState,
+    content: @Composable () -> Unit
 ) {
     Box(Modifier.fillMaxSize()) {
         content()
@@ -76,16 +84,25 @@ fun SnackySnackbarBox(
 
             key(snackbarData) {
                 val animatedOffset by animateDpAsState(
-                    targetValue = (stackDepth * 12).dp, animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                    targetValue = (stackDepth * 10).dp,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioLowBouncy,
                         stiffness = Spring.StiffnessMediumLow
-                    ), label = "snackbar-stack-offset"
+                    ),
+                    label = "snackbar-stack-offset"
                 )
 
                 AnimatedVisibility(
                     visible = snackbarHostState.stack.contains(snackbarData),
-                    enter = slideInVertically { -it } + fadeIn(),
-                    exit = slideOutVertically { -it } + fadeOut(),
+                    enter = slideInVertically(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioLowBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        )
+                    ) { -it } + fadeIn(tween(200)),
+                    exit = slideOutVertically(
+                        animationSpec = tween(180)
+                    ) { -it } + fadeOut(tween(150)),
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .statusBarsPadding()
@@ -93,8 +110,9 @@ fun SnackySnackbarBox(
                         .fillMaxWidth()
                         .zIndex((MAX_SNACKBARS - stackDepth).toFloat())
                         .offset { IntOffset(0, animatedOffset.roundToPx()) }
-                        .scale(1f - stackDepth * 0.05f)
-                        .alpha(1f - stackDepth * 0.2f)) {
+                        .scale(1f - stackDepth * 0.035f)
+                        .alpha(1f - stackDepth * 0.15f)
+                ) {
                     SnackbarContent(
                         snackbarData = snackbarData,
                         onDismiss = snackbarData::dismiss
@@ -125,7 +143,8 @@ sealed interface SnackySnackbarEvents {
 enum class SnackbarDuration { Short, Long }
 
 class SnackySnackbarData(
-    val event: SnackySnackbarEvents, private val cont: CancellableContinuation<Unit>
+    val event: SnackySnackbarEvents,
+    private val cont: CancellableContinuation<Unit>
 ) {
     fun dismiss() {
         if (cont.isActive) cont.resume(Unit)
@@ -153,7 +172,8 @@ class SnackySnackbarHostState {
 
 @Composable
 private fun SnackbarContent(
-    snackbarData: SnackySnackbarData, onDismiss: () -> Unit
+    snackbarData: SnackySnackbarData,
+    onDismiss: () -> Unit
 ) {
     val durationMs: Long? =
         when ((snackbarData.event as? SnackySnackbarEvents.MessageEvent)?.duration) {
@@ -173,42 +193,70 @@ private fun SnackbarContent(
         onDismiss()
     }
 
+    val dragOffsetX = remember(snackbarData) { Animatable(0f) }
     val dragOffsetY = remember(snackbarData) { Animatable(0f) }
     val scope = rememberCoroutineScope()
-    val dismissThresholdPx = with(LocalDensity.current) { 56.dp.toPx() }
+    val density = LocalDensity.current
+    val dismissThresholdPx = with(density) { 60.dp.toPx() }
 
     val dragModifier = Modifier.pointerInput(onDismiss) {
-        detectVerticalDragGestures(onDragEnd = {
-            scope.launch {
-                if (dragOffsetY.value.let { it <= -dismissThresholdPx || it >= dismissThresholdPx }) {
-                    onDismiss()
-                } else {
-                    dragOffsetY.animateTo(0f, snapbackSpec)
+        val velocityTracker = VelocityTracker()
+
+        detectDragGestures(
+            onDragEnd = {
+                val velocity = velocityTracker.calculateVelocity()
+                val speed = sqrt(velocity.x * velocity.x + velocity.y * velocity.y)
+                val distX = abs(dragOffsetX.value)
+                val distY = abs(dragOffsetY.value)
+                val dist = sqrt(distX * distX + distY * distY)
+
+                scope.launch {
+                    when {
+                        speed >= DISMISS_VELOCITY_THRESHOLD -> onDismiss()
+                        dragOffsetY.value <= -dismissThresholdPx -> onDismiss()
+                        dist >= dismissThresholdPx * 1.4f -> onDismiss()
+                        else -> {
+                            launch { dragOffsetX.animateTo(0f, snapbackSpec) }
+                            launch { dragOffsetY.animateTo(0f, snapbackSpec) }
+                        }
+                    }
+                }
+            },
+            onDragCancel = {
+                scope.launch {
+                    launch { dragOffsetX.animateTo(0f, snapbackSpec) }
+                    launch { dragOffsetY.animateTo(0f, snapbackSpec) }
                 }
             }
-        }, onDragCancel = {
-            scope.launch { dragOffsetY.animateTo(0f, snapbackSpec) }
-        }) { change, dragAmount ->
+        ) { change, dragAmount ->
             change.consume()
-            val rawOffset = dragOffsetY.value + dragAmount
-            if (rawOffset <= -dismissThresholdPx || rawOffset >= dismissThresholdPx) {
-                onDismiss()
-                return@detectVerticalDragGestures
-            }
+            velocityTracker.addPosition(change.uptimeMillis, change.position)
+
+            val targetX = dragOffsetX.value + dragAmount.x
+            val targetY = dragOffsetY.value + dragAmount.y
+
             scope.launch {
-                dragOffsetY.snapTo(rawOffset * if (rawOffset < 0f) 0.9f else 0.6f)
+                val resistedX = targetX * 0.75f
+                val resistedY = when {
+                    targetY < 0f -> targetY * 0.95f
+                    else -> targetY * 0.40f
+                }
+                launch { dragOffsetX.snapTo(resistedX) }
+                launch { dragOffsetY.snapTo(resistedY) }
             }
         }
     }
 
     Surface(
         shape = MaterialTheme.shapes.large,
-        shadowElevation = 8.dp,
+        tonalElevation = 3.dp,
+        shadowElevation = 2.dp,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         contentColor = MaterialTheme.colorScheme.onSurface,
         modifier = Modifier
-            .offset { IntOffset(0, dragOffsetY.value.roundToInt()) }
-            .then(dragModifier)) {
+            .offset { IntOffset(dragOffsetX.value.roundToInt(), dragOffsetY.value.roundToInt()) }
+            .then(dragModifier)
+    ) {
         Column {
             Text(
                 text = snackbarData.event.message,
@@ -221,7 +269,7 @@ private fun SnackbarContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(3.dp)
-                        .clip(MaterialTheme.shapes.large),
+                        .clip(CircleShape),
                     color = MaterialTheme.colorScheme.primary,
                     trackColor = Color.Transparent,
                     strokeCap = ProgressIndicatorDefaults.LinearStrokeCap,

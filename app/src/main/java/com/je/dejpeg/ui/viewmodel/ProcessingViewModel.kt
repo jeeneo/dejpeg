@@ -58,7 +58,6 @@ data class ImageItem(
     val size: String,
     val isProcessing: Boolean = false,
     val progress: String = "",
-    val strengthFactor: Float = 0.5f,
     val isCancelling: Boolean = false,
     val completedChunks: Int = 0,
     val totalChunks: Int = 0,
@@ -309,7 +308,7 @@ class ProcessingViewModel : ViewModel() {
             queue.setActiveTotal(1)
             uiState.value = ProcessingUiState.Processing(0, 1)
             queue.setCurrentProcessing(id)
-            startProcessingImage(id, image.strengthFactor * 100f)
+            startProcessingImage(id, settingsViewModel.globalStrength.value)
         }
     }
 
@@ -330,7 +329,7 @@ class ProcessingViewModel : ViewModel() {
 
         queue.setCurrentProcessing(imageId)
         queue.updateIsProcessingQueue()
-        startProcessingImage(imageId, image.strengthFactor * 100f)
+        startProcessingImage(imageId, settingsViewModel.globalStrength.value)
     }
 
     private fun startProcessingImage(imageId: String, strength: Float) {
