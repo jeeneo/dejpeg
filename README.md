@@ -57,7 +57,7 @@ Can use [chaiNNer](https://chainner.app/)
 
 FBCNN:
 
-* install custom node (`chainner/`)
+* install custom node (chainner/)
 * use PyTorch models from the [FBCNN repo](https://github.com/jiaxi-jiang/FBCNN) (not ONNX)
 
 ---
