@@ -1,4 +1,5 @@
-/* SPDX-FileCopyrightText: 2025 - 2026 dryerlint <https://codeberg.org/dryerlint>
+/*
+ * SPDX-FileCopyrightText: 2025 - 2026 dryerlint <https://codeberg.org/dryerlint>
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
