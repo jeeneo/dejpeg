@@ -88,7 +88,7 @@ For building with [Intel® Oidn Denoising](https://www.openimagedenoise.org/), s
 
 This is a GUI for a select amount of `1x` ONNX processing models, used under their respective licenses (Apache 2.0)
 
-You are welcome to embed parts of this app in your own project as long as it remains free as in beer, abides to the GPLv3 license, and credit has been given
+Versions prior to 4.0 were licensed under GPLv3. Starting with version 4.0 onward, this project is licensed under [AGPLv3-or-later](https://spdx.org/licenses/AGPL-3.0-or-later.html).
 
   Credits to [@adrianerrea](https://github.com/adrianerrea/fromPytorchtoMobile) for a starting point, [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and [SCUNet](https://github.com/cszn/SCUNet) creators plus all other model owners.
 

@@ -1,3 +1,7 @@
+/* SPDX-FileCopyrightText: 2025 - 2026 dryerlint <https://codeberg.org/dryerlint>
+ * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
+ */
+
 package com.je.dejpeg.ui
 
 import android.net.Uri
@@ -57,19 +61,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import android.content.Intent
 import androidx.navigation.NavController
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
 import com.je.dejpeg.R
 import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.ui.components.RecoveryDialog
 import com.je.dejpeg.ui.components.SnackySnackbarBox
 import com.je.dejpeg.ui.components.SnackySnackbarHostState
-import com.je.dejpeg.ui.screens.BRISQUEScreen
-import com.je.dejpeg.ui.screens.BeforeAfterScreen
+import com.je.dejpeg.ui.BrisqueActivity
+import com.je.dejpeg.ui.BeforeAfterActivity
 import com.je.dejpeg.ui.screens.ProcessingScreen
 import com.je.dejpeg.ui.screens.SettingsScreen
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
@@ -99,6 +102,11 @@ fun MainScreen(
     val imageRepository = remember { ImageRepository.getInstance(context) }
     val navController = rememberNavController()
     val snackbarHostState = remember { SnackySnackbarHostState() }
+    val snackbarController = remember { com.je.dejpeg.ui.components.ActivitySnackySnackbarController() }
+    androidx.compose.runtime.DisposableEffect(snackbarController) {
+        com.je.dejpeg.ui.components.SnackySnackbarController.bind(snackbarController)
+        onDispose { com.je.dejpeg.ui.components.SnackySnackbarController.unbind(snackbarController) }
+    }
     LaunchedEffect(Unit) {
         viewModel.imageRepository = imageRepository
         viewModel.settingsViewModel = settingsViewModel
@@ -106,57 +114,12 @@ fun MainScreen(
     }
     val decelerate = FastOutSlowInEasing
     val accelerate = LinearOutSlowInEasing
-    // photosynthesizes the diode
+    // no longer photosynthesizes the diode
     RecoveryDialog(imageRepository = imageRepository)
-    SnackySnackbarBox(snackbarHostState = snackbarHostState) {
+    SnackySnackbarBox(snackbarHostState = snackbarHostState, controller = snackbarController) {
         NavHost(
         navController = navController,
             startDestination = Screen.Home.route,
-            enterTransition = {
-                fadeIn(
-                    animationSpec = tween(durationMillis = 400, easing = decelerate)
-                ) + slideInHorizontally(
-                    initialOffsetX = { (it * 0.20f).toInt() },
-                    animationSpec = tween(durationMillis = 400, easing = decelerate)
-                ) + scaleIn(
-                    initialScale = 0.92f,
-                    transformOrigin = TransformOrigin(pivotFractionX = 0.5f, pivotFractionY = 0.5f),
-                    animationSpec = tween(durationMillis = 400, easing = decelerate)
-                )
-            },
-            exitTransition = {
-                fadeOut(
-                    animationSpec = tween(durationMillis = 200, easing = accelerate)
-                ) + slideOutHorizontally(
-                    targetOffsetX = { -(it * 0.05f).toInt() },
-                    animationSpec = tween(durationMillis = 200, easing = accelerate)
-                ) + scaleOut(
-                    targetScale = 0.95f,
-                    animationSpec = tween(durationMillis = 200, easing = accelerate)
-                )
-            },
-            popEnterTransition = {
-                fadeIn(
-                    animationSpec = tween(durationMillis = 300, easing = decelerate)
-                ) + slideInHorizontally(
-                    initialOffsetX = { -(it * 0.20f).toInt() },
-                    animationSpec = tween(durationMillis = 300, easing = decelerate)
-                ) + scaleIn(
-                    initialScale = 0.96f, // less dramatic than forward enter
-                    animationSpec = tween(durationMillis = 300, easing = decelerate)
-                )
-            },
-            popExitTransition = {
-                fadeOut(
-                    animationSpec = tween(durationMillis = 250, easing = accelerate)
-                ) + slideOutHorizontally(
-                    targetOffsetX = { (it * 0.20f).toInt() },
-                    animationSpec = tween(durationMillis = 250, easing = accelerate)
-                ) + scaleOut(
-                    targetScale = 0.92f,
-                    animationSpec = tween(durationMillis = 250, easing = accelerate)
-                )
-            }
         ) {
             composable(Screen.Home.route) {
                 HomeWrapperScreen(
@@ -166,27 +129,6 @@ fun MainScreen(
                     imageRepository = imageRepository,
                     sharedUris = sharedUris
                 )
-            }
-            composable(
-                route = Screen.BeforeAfter.route,
-                arguments = listOf(navArgument("imageId") { type = NavType.StringType })
-            ) { backStackEntry ->
-                val imageId = backStackEntry.arguments?.getString("imageId") ?: ""
-                BeforeAfterScreen(
-                    viewModel = viewModel,
-                    imageRepository = imageRepository,
-                    imageId = imageId,
-                    onBack = { navController.popBackStack() })
-            }
-            composable(
-                route = Screen.Brisque.route,
-                arguments = listOf(navArgument("imageId") { type = NavType.StringType })
-            ) { backStackEntry ->
-                val imageId = backStackEntry.arguments?.getString("imageId") ?: ""
-                BRISQUEScreen(
-                    imageRepository = imageRepository,
-                    imageId = imageId,
-                    onBack = { navController.popBackStack() })
             }
         }
     }
@@ -201,6 +143,7 @@ fun HomeWrapperScreen(
     imageRepository: ImageRepository,
     sharedUris: List<Uri>
 ) {
+    val context = LocalContext.current
     val haptic = rememberHapticFeedback()
     var currentTab by rememberSaveable { mutableStateOf("processing") }
 
@@ -219,11 +162,22 @@ fun HomeWrapperScreen(
                     targetState = currentTab, transitionSpec = {
                         val toSettings = targetState == "settings"
                         (slideInHorizontally(
-                            tween(400)
-                        ) { if (toSettings) it else -it } + fadeIn(tween(400))).togetherWith(
+                            spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessMedium
+                            )
+                        ) { if (toSettings) it else -it } + fadeIn(
+                            spring(stiffness = Spring.StiffnessMedium)
+                        )).togetherWith(
                             slideOutHorizontally(
-                                tween(400)
-                            ) { if (toSettings) -it else it } + fadeOut(tween(400)))
+                                spring(
+                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                    stiffness = Spring.StiffnessMedium
+                                )
+                            ) { if (toSettings) -it else it } + fadeOut(
+                                spring(stiffness = Spring.StiffnessMedium)
+                            )
+                        )
                     }, label = "tab_transition"
                 ) { tab ->
                     if (tab == "processing") {
@@ -232,10 +186,12 @@ fun HomeWrapperScreen(
                             settingsViewModel = settingsViewModel,
                             imageRepository = imageRepository,
                             onNavigateToBeforeAfter = { id ->
-                                navController.navigate(Screen.BeforeAfter.createRoute(id))
+                                val intent = Intent(context, BeforeAfterActivity::class.java).putExtra("imageId", id)
+                                context.startActivity(intent)
                             },
                             onNavigateToBrisque = { id ->
-                                navController.navigate(Screen.Brisque.createRoute(id))
+                                val intent = Intent(context, BrisqueActivity::class.java).putExtra("imageId", id)
+                                context.startActivity(intent)
                             },
                             initialSharedUris = sharedUris,
                             onRemoveSharedUri = { /* handle removal */ },

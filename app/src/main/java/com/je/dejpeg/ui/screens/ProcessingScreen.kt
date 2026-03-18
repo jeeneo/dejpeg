@@ -1,18 +1,5 @@
-/**
- * Copyright (C) 2025/2026 dryerlint <codeberg.org/dryerlint>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+/* SPDX-FileCopyrightText: 2025 - 2026 dryerlint <https://codeberg.org/dryerlint>
+ * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
 @file:Suppress("SpellCheckingInspection")
@@ -284,22 +271,22 @@ fun ProcessingScreen(
 
     var lastBackPressTime by remember { mutableLongStateOf(0L) }
 
-    BackHandler {
-        val currentTime = System.currentTimeMillis()
-        if (currentTime - lastBackPressTime < 2000) {
-            viewModel.cancelProcessing()
-            ExitActivity.exitApplication(context)
-        } else {
-            scope.launch {
-                SnackySnackbarController.pushEvent(
-                    SnackySnackbarEvents.MessageEvent(
-                        message = backExitMessage, duration = SnackbarDuration.Short
-                    )
-                )
-            }
-            lastBackPressTime = currentTime
-        }
-    }
+    // BackHandler {
+    //     val currentTime = System.currentTimeMillis()
+    //     if (currentTime - lastBackPressTime < 2000) {
+    //         viewModel.cancelProcessing()
+    //         ExitActivity.exitApplication(context)
+    //     } else {
+    //         scope.launch {
+    //             SnackySnackbarController.pushEvent(
+    //                 SnackySnackbarEvents.MessageEvent(
+    //                     message = backExitMessage, duration = SnackbarDuration.Short
+    //                 )
+    //             )
+    //         }
+    //         lastBackPressTime = currentTime
+    //     }
+    // }
 
     LaunchedEffect(initialSharedUris) {
         if (initialSharedUris.isNotEmpty()) {

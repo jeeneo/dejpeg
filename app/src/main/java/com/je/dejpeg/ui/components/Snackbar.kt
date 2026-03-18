@@ -1,3 +1,7 @@
+/* SPDX-FileCopyrightText: 2025 - 2026 dryerlint <https://codeberg.org/dryerlint>
+ * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
+ */
+
 package com.je.dejpeg.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
@@ -68,13 +72,14 @@ private const val DISMISS_VELOCITY_THRESHOLD = 600f
 @Composable
 fun SnackySnackbarBox(
     snackbarHostState: SnackySnackbarHostState,
+    controller: ActivitySnackySnackbarController,
     content: @Composable () -> Unit
 ) {
     Box(Modifier.fillMaxSize()) {
         content()
 
-        LaunchedEffect(snackbarHostState) {
-            SnackySnackbarController.events.collect { event ->
+        LaunchedEffect(controller) {
+            controller.events.collect { event ->
                 launch { snackbarHostState.show(event) }
             }
         }
@@ -123,11 +128,31 @@ fun SnackySnackbarBox(
     }
 }
 
-object SnackySnackbarController {
+// Activity-scoped controller: create one per-Activity and bind it to the global
+// dispatcher so existing call sites that call `SnackySnackbarController.pushEvent`
+// continue to work, but events are routed to the currently-bound activity.
+class ActivitySnackySnackbarController {
     private val _events = Channel<SnackySnackbarEvents>(Channel.UNLIMITED)
     val events = _events.receiveAsFlow()
 
     suspend fun pushEvent(event: SnackySnackbarEvents) = _events.send(event)
+}
+
+object SnackySnackbarController {
+    @Volatile
+    private var bound: ActivitySnackySnackbarController? = null
+
+    fun bind(controller: ActivitySnackySnackbarController) {
+        bound = controller
+    }
+
+    fun unbind(controller: ActivitySnackySnackbarController) {
+        if (bound == controller) bound = null
+    }
+
+    suspend fun pushEvent(event: SnackySnackbarEvents) {
+        bound?.pushEvent(event)
+    }
 }
 
 sealed interface SnackySnackbarEvents {
