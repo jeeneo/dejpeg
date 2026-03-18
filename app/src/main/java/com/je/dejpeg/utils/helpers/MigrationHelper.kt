@@ -2,6 +2,8 @@
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
+@file:Suppress("GrazieInspection")
+
 package com.je.dejpeg.utils.helpers
 
 import android.content.Context

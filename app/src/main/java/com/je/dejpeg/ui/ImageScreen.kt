@@ -2,6 +2,8 @@
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
+@file:Suppress("SpellCheckingInspection")
+
 package com.je.dejpeg.ui
 
 import android.graphics.Color
@@ -15,19 +17,19 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.runtime.remember
+import com.je.dejpeg.R
 import com.je.dejpeg.data.ImageRepository
+import com.je.dejpeg.ui.components.SnackySnackbarBox
+import com.je.dejpeg.ui.components.SnackySnackbarHostState
 import com.je.dejpeg.ui.screens.ImageScreen
 import com.je.dejpeg.ui.theme.DeJPEGTheme
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
-import com.je.dejpeg.R
-import com.je.dejpeg.ui.components.SnackySnackbarBox
-import com.je.dejpeg.ui.components.SnackySnackbarHostState
 
 class BeforeAfterActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,9 +38,7 @@ class BeforeAfterActivity : ComponentActivity() {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             overrideActivityTransition(
-                OVERRIDE_TRANSITION_OPEN,
-                R.anim.activity_open_enter,
-                R.anim.activity_open_exit
+                OVERRIDE_TRANSITION_OPEN, R.anim.activity_open_enter, R.anim.activity_open_exit
             )
             overrideActivityTransition(OVERRIDE_TRANSITION_CLOSE, 0, 0)
         }
@@ -63,30 +63,33 @@ class BeforeAfterActivity : ComponentActivity() {
             }
             DeJPEGTheme {
                 Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
                 ) {
                     val viewModel: ProcessingViewModel = viewModel()
                     val imageRepository = remember { ImageRepository.getInstance(this) }
                     val snackbarHostState = remember { SnackySnackbarHostState() }
-                    val snackbarController = remember { com.je.dejpeg.ui.components.ActivitySnackySnackbarController() }
+                    val snackbarController =
+                        remember { com.je.dejpeg.ui.components.ActivitySnackySnackbarController() }
                     DisposableEffect(snackbarController) {
                         com.je.dejpeg.ui.components.SnackySnackbarController.bind(snackbarController)
                         onDispose {
-                            com.je.dejpeg.ui.components.SnackySnackbarController.unbind(snackbarController)
+                            com.je.dejpeg.ui.components.SnackySnackbarController.unbind(
+                                snackbarController
+                            )
                         }
                     }
                     LaunchedEffect(Unit) {
                         viewModel.imageRepository = imageRepository
                         viewModel.initialize(this@BeforeAfterActivity)
                     }
-                    SnackySnackbarBox(snackbarHostState = snackbarHostState, controller = snackbarController) {
+                    SnackySnackbarBox(
+                        snackbarHostState = snackbarHostState, controller = snackbarController
+                    ) {
                         ImageScreen(
                             viewModel = viewModel,
                             imageRepository = imageRepository,
                             imageId = imageId,
-                            onBack = { finish() }
-                        )
+                            onBack = { finish() })
                     }
                 }
             }

@@ -45,10 +45,6 @@
             android:name=".ui.BrisqueActivity"
             android:exported="false"
             android:theme="@style/Theme.DeJPEG" />
-        <activity
-            android:name=".ExitActivity"
-            android:autoRemoveFromRecents="true"
-            android:theme="@android:style/Theme.NoDisplay" />
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.provider"

@@ -307,8 +307,6 @@ class ProcessingViewModel : ViewModel() {
             return
         }
 
-        val image = imageRepository.getImageById(imageId) ?: return processNextInQueue()
-
         val total = if (queue.activeProcessingTotal > 0) queue.activeProcessingTotal
         else imageRepository.images.value.count { it.uri != null }
         queue.setActiveTotal(total)
@@ -513,9 +511,7 @@ class ProcessingViewModel : ViewModel() {
                 queue.clear()
                 imageRepository.images.value = imageRepository.images.value.map {
                     if (it.isProcessing || it.isCancelling) it.copy(
-                        isProcessing = false,
-                        isCancelling = false,
-                        progress = ""
+                        isProcessing = false, isCancelling = false, progress = ""
                     )
                     else it
                 }

@@ -2,6 +2,8 @@
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
+@file:Suppress("GrazieInspection", "SpellCheckingInspection")
+
 package com.je.dejpeg
 
 import ai.onnxruntime.NodeInfo
@@ -577,7 +579,7 @@ class ImageProcessor(
             when {
                 detected >= 8 -> 4
                 detected >= 6 -> 2
-                else          -> 1
+                else -> 1
             }
         } else {
             configured.coerceIn(1, detected)

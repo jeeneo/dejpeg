@@ -156,10 +156,8 @@ fun ErrorAlertDialog(
         confirmButton = {
             MorphButton(
                 label = confirmButtonText ?: stringResource(R.string.ok),
-                onClick = { haptic.light(); onDismiss() }
-            )
-        }
-    )
+                onClick = { haptic.light(); onDismiss() })
+        })
 }
 
 @Composable
@@ -530,8 +528,7 @@ fun PreparingShareDialog() {
                     modifier = Modifier.size(160.dp),
                 ) {
                     Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+                        modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             ContainedLoadingIndicator(modifier = Modifier.size(80.dp))
@@ -545,8 +542,7 @@ fun PreparingShareDialog() {
                     }
                 }
             }
-        }
-    )
+        })
 }
 
 @Composable
@@ -577,12 +573,12 @@ fun RemoveImageDialog(
             ) {
                 DialogTextButton(
                     stringResource(R.string.remove), {
-                        CacheManager.deleteRecoveryPair(
-                            context, imageId, deleteProcessed = true, deleteUnprocessed = true
-                        )
-                        onRemove()
-                        onDismissRequest()
-                    }, { haptic.heavy() }, MaterialTheme.colorScheme.error
+                    CacheManager.deleteRecoveryPair(
+                        context, imageId, deleteProcessed = true, deleteUnprocessed = true
+                    )
+                    onRemove()
+                    onDismissRequest()
+                }, { haptic.heavy() }, MaterialTheme.colorScheme.error
                 )
                 if (hasOutput) {
                     MorphButton(
@@ -1011,9 +1007,6 @@ private fun sanitizeFilename(input: String, fallback: String = "image"): String 
     return input.trim().replace(Regex("[/\\\\:*?\"<>|]"), "_").takeIf { it.isNotBlank() }
         ?: fallback
 }
-
-private fun Context.getClipboard(): ClipboardManager? =
-    getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
 
 private fun Context.openUrl(url: String) {
     try {

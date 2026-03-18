@@ -1,3 +1,5 @@
+@file:Suppress("SpellCheckingInspection")
+
 import java.util.Properties
 
 plugins {
@@ -9,10 +11,10 @@ val localProperties = Properties().apply {
     val propsFile = file("../local.properties")
     if (propsFile.exists()) propsFile.inputStream().use { load(it) }
 }
-val releaseStoreFile = localProperties.getProperty("keystore.path")
-val releaseStorePassword = localProperties.getProperty("keystore.password")
-val releaseKeyAlias = localProperties.getProperty("keystore.alias")
-val releaseKeyPassword = localProperties.getProperty("keystore.keyPassword")
+val releaseStoreFile: String? = localProperties.getProperty("keystore.path")
+val releaseStorePassword: String? = localProperties.getProperty("keystore.password")
+val releaseKeyAlias: String? = localProperties.getProperty("keystore.alias")
+val releaseKeyPassword: String? = localProperties.getProperty("keystore.keyPassword")
 val hasReleaseSigning = listOf(
     releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword
 ).all { !it.isNullOrBlank() }
@@ -96,11 +98,6 @@ android {
         resources.excludes += listOf(
             "DebugProbesKt.bin", "kotlin-tooling-metadata.json"
         )
-    }
-    bundle {
-        abi {
-            enableSplit = true
-        }
     }
 }
 

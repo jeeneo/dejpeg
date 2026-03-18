@@ -2,6 +2,8 @@
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
+@file:Suppress("SpellCheckingInspection")
+
 package com.je.dejpeg.ui.screens
 
 import android.graphics.Bitmap
@@ -101,8 +103,7 @@ fun ImageScreen(
         viewModel = viewModel,
         performRemoval = { _ -> /* nom */ },
         setSaveDialogState = { p -> saveDialogState = p },
-        setOverwriteDialogState = { p -> overwriteDialogState = p }
-    )
+        setOverwriteDialogState = { p -> overwriteDialogState = p })
 
     if (image == null) {
         LaunchedEffect(Unit) { onBack() }
@@ -165,8 +166,7 @@ fun ImageScreen(
                                 context = context,
                                 bitmap = afterBitmap ?: beforeBitmap,
                                 onReady = { isPreparingShare = false },
-                                onError = { isPreparingShare = false }
-                            )
+                                onError = { isPreparingShare = false })
                         },
                         shapes = ButtonDefaults.shapes(
                             shape = RoundedCornerShape(
@@ -241,9 +241,7 @@ fun ImageScreen(
                         overwriteDialogState = Pair(id, name)
                     } else {
                         viewModel.saveImage(
-                            context = context,
-                            imageIds = listOf(id),
-                            baseFilename = name
+                            context = context, imageIds = listOf(id), baseFilename = name
                         )
                     }
                 }
@@ -258,9 +256,7 @@ fun ImageScreen(
                 hideOptions = true,
                 onDismissRequest = { overwriteDialogState = null }) { name, _, _ ->
                 viewModel.saveImage(
-                    context = context,
-                    imageIds = listOf(id),
-                    baseFilename = name
+                    context = context, imageIds = listOf(id), baseFilename = name
                 )
                 overwriteDialogState = null
             }

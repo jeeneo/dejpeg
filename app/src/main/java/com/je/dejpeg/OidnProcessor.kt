@@ -2,6 +2,8 @@
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
+@file:Suppress("SpellCheckingInspection")
+
 package com.je.dejpeg
 
 import android.content.Context
@@ -12,19 +14,13 @@ import kotlinx.coroutines.withContext
 class OidnProcessor(private val context: Context) {
 
     companion object {
-        private const val TAG = "OidnProcessor"
 
         init {
+            @Suppress("KotlinConstantConditions")
             if (BuildConfig.OIDN_ENABLED) {
                 System.loadLibrary("oidn_jni")
             }
         }
-
-        @JvmStatic
-        external fun nativeGetDeviceCount(): Int
-
-        @JvmStatic
-        external fun nativeGetDeviceName(): String
     }
 
     private external fun nativeDenoise(

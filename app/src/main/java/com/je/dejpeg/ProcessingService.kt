@@ -2,6 +2,8 @@
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
+@file:Suppress("SpellCheckingInspection")
+
 package com.je.dejpeg
 
 import android.app.Service
@@ -137,8 +139,7 @@ class ProcessingService : Service() {
                             val currentModel = modelManager?.getCurrentModelName()
                             if (currentModel == modelName) {
                                 Log.d(
-                                    "ProcessingService",
-                                    "Same model ($modelName), skipping reload"
+                                    "ProcessingService", "Same model ($modelName), skipping reload"
                                 )
                             } else {
                                 Log.d(
@@ -149,9 +150,7 @@ class ProcessingService : Service() {
                             }
                         } catch (e: Exception) {
                             Log.e(
-                                "ProcessingService",
-                                "Error checking/loading model: ${e.message}",
-                                e
+                                "ProcessingService", "Error checking/loading model: ${e.message}", e
                             )
                         }
                     } else {

@@ -4,8 +4,6 @@
 
 package com.je.dejpeg.utils
 
-import android.content.Context
-import android.net.Uri
 import java.io.File
 import java.security.MessageDigest
 
@@ -23,17 +21,17 @@ object HashUtils {
         return digest.digest().joinToString("") { "%02x".format(it) }
     }
 
-    fun computeSHA256(fileUri: Uri, context: Context): String {
-        val inputStream = context.contentResolver.openInputStream(fileUri)
-            ?: throw Exception("Could not open file")
-        return inputStream.use { stream ->
-            val digest = MessageDigest.getInstance("SHA-256")
-            val buffer = ByteArray(8192)
-            var read: Int
-            while (stream.read(buffer).also { read = it } != -1) {
-                digest.update(buffer, 0, read)
-            }
-            digest.digest().joinToString("") { "%02x".format(it) }
-        }
-    }
+//    fun computeSHA256(fileUri: Uri, context: Context): String {
+//        val inputStream = context.contentResolver.openInputStream(fileUri)
+//            ?: throw Exception("Could not open file")
+//        return inputStream.use { stream ->
+//            val digest = MessageDigest.getInstance("SHA-256")
+//            val buffer = ByteArray(8192)
+//            var read: Int
+//            while (stream.read(buffer).also { read = it } != -1) {
+//                digest.update(buffer, 0, read)
+//            }
+//            digest.digest().joinToString("") { "%02x".format(it) }
+//        }
+//    }
 }

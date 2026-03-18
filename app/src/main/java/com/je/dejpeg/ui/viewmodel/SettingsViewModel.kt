@@ -2,7 +2,9 @@
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
-@file:Suppress("KotlinConstantConditions", "SimplifyBooleanWithConstants")
+@file:Suppress("KotlinConstantConditions", "SimplifyBooleanWithConstants",
+    "SpellCheckingInspection"
+)
 
 package com.je.dejpeg.ui.viewmodel
 

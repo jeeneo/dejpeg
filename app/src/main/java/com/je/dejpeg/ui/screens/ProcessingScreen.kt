@@ -2,24 +2,29 @@
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
-@file:Suppress("SpellCheckingInspection")
+@file:Suppress("SpellCheckingInspection", "AssignedValueIsNeverRead")
 
 package com.je.dejpeg.ui.screens
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.animateColor
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.animateDp
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -79,14 +84,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -95,9 +98,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
@@ -113,7 +119,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.window.DialogProperties
-import com.je.dejpeg.ExitActivity
 import com.je.dejpeg.ModelType
 import com.je.dejpeg.R
 import com.je.dejpeg.data.AppPreferences
@@ -141,15 +146,19 @@ import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.roundToInt
 
-@Suppress("AssignedValueIsNeverRead")
+private enum class CardState { Idle, Processing, Complete, Stale }
+
 @OptIn(
     ExperimentalMaterial3Api::class,
     ExperimentalFoundationApi::class,
     ExperimentalAnimationApi::class
 )
 
-// im not a real programmer, i throw together things until it works then i move on.
+private val springStandard = spring<Float>(
+    dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium
+)
 
+// im not a real programmer, i throw together things until it works then i move on.
 @Composable
 fun ProcessingScreen(
     viewModel: ProcessingViewModel,
@@ -162,7 +171,6 @@ fun ProcessingScreen(
     lazyListState: androidx.compose.foundation.lazy.LazyListState = androidx.compose.foundation.lazy.rememberLazyListState(),
 ) {
     val context = LocalContext.current
-    val backExitMessage = stringResource(R.string.back_exit_confirm)
     val appPreferences = remember { AppPreferences(context.applicationContext) }
     val defaultImageSource by appPreferences.defaultImageSource.collectAsState(initial = null)
     val swapSwipeActions by appPreferences.swapSwipeActions.collectAsState(initial = false)
@@ -189,64 +197,42 @@ fun ProcessingScreen(
     var overwriteDialogState by remember { mutableStateOf<Pair<String, String>?>(null) }
     val showSaveDialog by appPreferences.showSaveDialog.collectAsState(initial = true)
 
-    DisposableEffect(Unit) {
-        onDispose {
-            imageIdToRemove = null
-            imageIdToCancel = null
-            showImageSourceDialog = false
-            showCancelAllDialog = false
-            saveDialogState = null
-            overwriteDialogState = null
-        }
+    val performRemoval: (String) -> Unit = { imageId ->
+        val targetUri = images.firstOrNull { it.id == imageId }?.uri
+        targetUri?.let { uri -> releaseUri(uri, context, onRemoveSharedUri) }
+        viewModel.removeImage(imageId, force = true, cleanupCache = true)
+        imageIdToRemove = null
+        imageIdToCancel = null
     }
+
     val handleImageRemoval: (String) -> Unit = { imageId ->
         images.firstOrNull { it.id == imageId }?.let { image ->
             when {
                 image.isProcessing && viewModel.isCurrentlyProcessing(imageId) -> imageIdToCancel =
                     imageId
 
-                image.isProcessing && !viewModel.isCurrentlyProcessing(imageId) -> {
-                    viewModel.removeImage(imageId, cleanupCache = true)
-                }
+                image.isProcessing && !viewModel.isCurrentlyProcessing(imageId) -> performRemoval(
+                    imageId
+                )
 
                 image.outputBitmap != null && !image.hasBeenSaved -> imageIdToRemove = imageId
-                else -> {
-                    image.uri?.let { uri ->
-                        try {
-                            context.contentResolver.releasePersistableUriPermission(
-                                uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
-                            )
-                        } catch (_: Exception) {
-                        }
-                        try {
-                            onRemoveSharedUri(uri)
-                        } catch (_: Exception) {
-                        }
-                    }
-                    viewModel.removeImage(imageId, cleanupCache = true)
-                }
+                else -> performRemoval(imageId)
             }
         }
     }
 
-    val performRemoval: (String) -> Unit = { imageId ->
-        val targetUri = images.firstOrNull { it.id == imageId }?.uri
-        targetUri?.let { uri ->
-            try {
-                context.contentResolver.releasePersistableUriPermission(
-                    uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
+    fun tryProcess(block: () -> Unit) {
+        if (!settingsViewModel.hasActiveModel(activeModelType)) scope.launch {
+            SnackySnackbarController.pushEvent(
+                SnackySnackbarEvents.MessageEvent(
+                    message = noModelMessage, duration = SnackbarDuration.Long
                 )
-            } catch (_: Exception) {
-            }
-            try {
-                onRemoveSharedUri(uri)
-            } catch (_: Exception) {
-            }
-        }
-        viewModel.removeImage(imageId, force = true, cleanupCache = true)
-        imageIdToRemove = null
-        imageIdToCancel = null
+            )
+        } else block()
     }
+
+    fun <T> Pair<String, T>?.prune(images: List<ImageItem>): Pair<String, T>? =
+        this?.takeIf { (id, _) -> images.any { it.id == id } }
 
     val saveOrPrompt = rememberSaveOrPrompt(
         showSaveDialog = showSaveDialog,
@@ -259,34 +245,14 @@ fun ProcessingScreen(
     LaunchedEffect(images) {
         imageIdToRemove = imageIdToRemove?.takeIf { id -> images.any { it.id == id } }
         imageIdToCancel = imageIdToCancel?.takeIf { id -> images.any { it.id == id } }
-        overwriteDialogState =
-            overwriteDialogState?.takeIf { (id, _) -> images.any { it.id == id } }
-        saveDialogState = saveDialogState?.takeIf { (id, _) -> images.any { it.id == id } }
+        overwriteDialogState = overwriteDialogState.prune(images)
+        saveDialogState = saveDialogState.prune(images)
     }
 
     LaunchedEffect(Unit) {
         viewModel.initialize(context)
         viewModel.serviceHelperRegister()
     }
-
-    var lastBackPressTime by remember { mutableLongStateOf(0L) }
-
-    // BackHandler {
-    //     val currentTime = System.currentTimeMillis()
-    //     if (currentTime - lastBackPressTime < 2000) {
-    //         viewModel.cancelProcessing()
-    //         ExitActivity.exitApplication(context)
-    //     } else {
-    //         scope.launch {
-    //             SnackySnackbarController.pushEvent(
-    //                 SnackySnackbarEvents.MessageEvent(
-    //                     message = backExitMessage, duration = SnackbarDuration.Short
-    //                 )
-    //             )
-    //         }
-    //         lastBackPressTime = currentTime
-    //     }
-    // }
 
     LaunchedEffect(initialSharedUris) {
         if (initialSharedUris.isNotEmpty()) {
@@ -406,16 +372,7 @@ fun ProcessingScreen(
                                         })
                                 }
                             } else {
-                                if (!settingsViewModel.hasActiveModel(activeModelType)) scope.launch {
-                                    SnackySnackbarController.pushEvent(
-                                        SnackySnackbarEvents.MessageEvent(
-                                            message = noModelMessage,
-                                            duration = SnackbarDuration.Long
-                                        )
-                                    )
-                                } else {
-                                    haptic.medium(); viewModel.processImages()
-                                }
+                                tryProcess { haptic.medium(); viewModel.processImages() }
                             }
                         },
                         containerColor = fabContainerColor,
@@ -622,39 +579,17 @@ fun ProcessingScreen(
                     items(images, { it.id }) { image ->
                         val swipeState = remember { mutableFloatStateOf(0f) }
                         val hasOutput = image.outputBitmap != null
-                        val onRightSwipe: () -> Unit =
-                            remember(image.id) { { handleImageRemoval(image.id) } }
-                        val onProcess: () -> Unit = remember(image.id) {
-                            {
-                                if (!settingsViewModel.hasActiveModel(activeModelType)) scope.launch {
-                                    SnackySnackbarController.pushEvent(
-                                        SnackySnackbarEvents.MessageEvent(
-                                            message = noModelMessage,
-                                            duration = SnackbarDuration.Long
-                                        )
-                                    )
-                                } else viewModel.processImage(
-                                    image.id
-                                )
-                            }
-                        }
-                        val onBrisque: () -> Unit =
-                            remember(image.id) { { haptic.light(); onNavigateToBrisque(image.id) } }
-                        val onClick: () -> Unit =
-                            remember(image.id) { { onNavigateToBeforeAfter(image.id) } }
-                        val onLeftSwipe: () -> Unit = remember(image.id, hasOutput, saveOrPrompt) {
-                            {
-                                if (hasOutput) saveOrPrompt(
-                                    image.id, image.filename
-                                ) else onProcess()
-                            }
-                        }
                         SwipeToDismissWrapper(
                             swipeState,
                             image.isProcessing,
                             hasOutput,
-                            onRightSwipe,
-                            onLeftSwipe,
+                            onRightSwipe = { handleImageRemoval(image.id) },
+                            onLeftSwipe = {
+                                if (image.outputBitmap != null) saveOrPrompt(
+                                    image.id, image.filename
+                                )
+                                else tryProcess { viewModel.processImage(image.id) }
+                            },
                             swapActions = swapSwipeActions,
                             modifier = Modifier.animateItem(
                                 fadeInSpec = spring(
@@ -671,15 +606,15 @@ fun ProcessingScreen(
                             rightSwipeImmediate = !image.isProcessing && !(image.outputBitmap != null && !image.hasBeenSaved),
                         ) {
                             ImageCard(
-                                image,
-                                onRightSwipe,
-                                onProcess,
-                                onBrisque,
-                                onClick,
-                                onClick,
+                                image = image,
+                                onRemove = { handleImageRemoval(image.id) },
+                                onProcess = { tryProcess { viewModel.processImage(image.id) } },
+                                onBrisque = { haptic.light(); onNavigateToBrisque(image.id) },
+                                onClick = { onNavigateToBeforeAfter(image.id) },
+                                onBeforeOnly = { onNavigateToBeforeAfter(image.id) },
                                 onSave = { saveOrPrompt(image.id, image.filename) },
-                                image.isProcessing,
-                                haptic
+                                isProcessing = image.isProcessing,
+                                haptic = haptic
                             )
                         }
                     }
@@ -830,82 +765,77 @@ fun SwipeToDismissWrapper(
     content: @Composable () -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val animatedOffset by animateFloatAsState(
-        targetValue = swipeState.value, animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium
-        ), label = "swipe"
-    )
-    var widthPx by remember { mutableIntStateOf(0) }
-    var heightPx by remember { mutableIntStateOf(0) }
-    val density = LocalDensity.current.density
     val haptic = rememberHapticFeedback()
-    var hasStartedDrag by remember { mutableStateOf(false) }
+    var widthPx by remember { mutableIntStateOf(0) }
     var hasReachedThreshold by remember { mutableStateOf(false) }
     val swipeThreshold = 0.35f
-    val actualRightSwipe = if (swapActions) onLeftSwipe else onRightSwipe
-    val actualLeftSwipe = if (swapActions) onRightSwipe else onLeftSwipe
-    val currentOnRightSwipe by rememberUpdatedState(actualRightSwipe)
-    val currentOnLeftSwipe by rememberUpdatedState(actualLeftSwipe)
-    val allowLeftSwipe = !isProcessing
-
+    val currentAllowLeftSwipe by rememberUpdatedState(!isProcessing)
+    val currentOnRightSwipe by rememberUpdatedState(if (swapActions) onLeftSwipe else onRightSwipe)
+    val currentOnLeftSwipe by rememberUpdatedState(if (swapActions) onRightSwipe else onLeftSwipe)
+    val animatedOffset by animateFloatAsState(
+        targetValue = swipeState.value, animationSpec = if (swipeState.value == 0f) spring(
+            dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium
+        )
+        else springStandard, label = "swipe"
+    )
+    val revealSide = when {
+        widthPx > 0 && animatedOffset > 1f && animatedOffset < widthPx * 0.98f -> 1
+        widthPx > 0 && animatedOffset < -1f && -animatedOffset < widthPx * 0.98f && !isProcessing -> -1
+        else -> 0
+    }
     Box(
         modifier
             .fillMaxWidth()
-            .onSizeChanged { widthPx = it.width; heightPx = it.height }) {
-        if (animatedOffset > 0f) Box(
-            Modifier
-                .width((animatedOffset / density).dp)
-                .height((heightPx / density).dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(if (swapActions) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.errorContainer),
-            Alignment.Center
-        ) {
-            Icon(
-                if (swapActions) (if (hasOutput) Icons.Filled.Save else Icons.Filled.PlayArrow) else (if (isProcessing) Icons.Filled.Close else Icons.Filled.Delete),
-                if (swapActions) (if (hasOutput) "Save" else "Process") else (if (isProcessing) "Cancel" else "Delete"),
-                Modifier.size(28.dp),
-                tint = if (swapActions) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onErrorContainer
+            .onSizeChanged { widthPx = it.width }) {
+        if (revealSide != 0) {
+            val isRight = revealSide == 1
+            val fraction =
+                (kotlin.math.abs(animatedOffset) / (widthPx * swipeThreshold)).coerceIn(0f, 1f)
+            SwipeRevealBackground(
+                fraction = fraction,
+                color = when {
+                    swapActions && isRight -> MaterialTheme.colorScheme.tertiaryContainer
+                    swapActions && !isRight -> MaterialTheme.colorScheme.errorContainer
+                    isRight -> MaterialTheme.colorScheme.errorContainer
+                    else -> MaterialTheme.colorScheme.primaryContainer
+                },
+                icon = when {
+                    swapActions && isRight -> if (hasOutput) Icons.Filled.Save else Icons.Filled.PlayArrow
+                    swapActions && !isRight -> Icons.Filled.Delete
+                    isRight -> if (isProcessing) Icons.Filled.Close else Icons.Filled.Delete
+                    else -> if (hasOutput) Icons.Filled.Save else Icons.Filled.PlayArrow
+                },
+                tint = when {
+                    swapActions && isRight -> MaterialTheme.colorScheme.onTertiaryContainer
+                    swapActions && !isRight -> MaterialTheme.colorScheme.onErrorContainer
+                    isRight -> MaterialTheme.colorScheme.onErrorContainer
+                    else -> MaterialTheme.colorScheme.onPrimaryContainer
+                },
+                alignment = if (isRight) Alignment.CenterStart else Alignment.CenterEnd,
+                startPadding = if (isRight) 20.dp else 0.dp,
+                endPadding = if (isRight) 0.dp else 20.dp,
+                modifier = Modifier.matchParentSize()
             )
         }
-        if (animatedOffset < 0f && allowLeftSwipe) Box(
-            Modifier
-                .fillMaxWidth()
-                .height((heightPx / density).dp),
-            contentAlignment = Alignment.CenterEnd
-        ) {
-            Box(
-                Modifier
-                    .width((-animatedOffset / density).dp)
-                    .height((heightPx / density).dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(if (swapActions) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer),
-                Alignment.Center
-            ) {
-                Icon(
-                    if (swapActions) Icons.Filled.Delete else (if (hasOutput) Icons.Filled.Save else Icons.Filled.PlayArrow),
-                    if (swapActions) "Delete" else (if (hasOutput) "Save" else "Process"),
-                    Modifier.size(28.dp),
-                    tint = if (swapActions) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-        }
+
         Box(
             Modifier
                 .fillMaxWidth()
                 .offset { IntOffset(animatedOffset.roundToInt(), 0) }
-                .pointerInput(widthPx, allowLeftSwipe) {
-                    detectHorizontalDragGestures(onDragStart = {
-                        if (!hasStartedDrag) {
-                            haptic.gestureStart(); hasStartedDrag = true
-                        }
-                    }, onHorizontalDrag = { _, dragAmount ->
+                .pointerInput(widthPx) {
+                    detectHorizontalDragGestures(onHorizontalDrag = { _, dragAmount ->
                         val newValue = swipeState.value + dragAmount
-                        swipeState.value = if (allowLeftSwipe) newValue else maxOf(0f, newValue)
+                        swipeState.value =
+                            if (currentAllowLeftSwipe) newValue else maxOf(0f, newValue)
                         val absOffset = kotlin.math.abs(swipeState.value)
                         val threshold = widthPx * swipeThreshold
-                        if (widthPx > 0 && absOffset > threshold && !hasReachedThreshold) {
-                            haptic.medium(); hasReachedThreshold = true
-                        } else if (absOffset <= threshold) hasReachedThreshold = false
+                        when {
+                            widthPx > 0 && absOffset > threshold && !hasReachedThreshold -> {
+                                haptic.medium(); hasReachedThreshold = true
+                            }
+
+                            absOffset <= threshold -> hasReachedThreshold = false
+                        }
                     }, onDragEnd = {
                         val absOffset = kotlin.math.abs(swipeState.value)
                         val threshold = widthPx * swipeThreshold
@@ -913,30 +843,29 @@ fun SwipeToDismissWrapper(
                             haptic.heavy()
                             val isRight = swipeState.value > 0
                             val willSlideOff =
-                                if (isRight) rightSwipeImmediate else (allowLeftSwipe && leftSwipeImmediate)
+                                if (isRight) rightSwipeImmediate else (currentAllowLeftSwipe && leftSwipeImmediate)
                             scope.launch {
                                 if (willSlideOff) {
-                                    val targetOffset =
-                                        if (isRight) widthPx.toFloat() else -widthPx.toFloat()
                                     animate(
                                         initialValue = swipeState.value,
-                                        targetValue = targetOffset,
+                                        targetValue = if (isRight) widthPx * 2f else -widthPx * 2f,
                                         animationSpec = spring(
                                             dampingRatio = Spring.DampingRatioNoBouncy,
-                                            stiffness = Spring.StiffnessMedium
+                                            stiffness = Spring.StiffnessHigh
                                         )
                                     ) { value, _ -> swipeState.value = value }
+                                    if (isRight) currentOnRightSwipe() else currentOnLeftSwipe()
+                                    swipeState.value = 0f
+                                } else {
+                                    if (isRight) currentOnRightSwipe()
+                                    else if (currentAllowLeftSwipe) currentOnLeftSwipe()
+                                    swipeState.value = 0f
                                 }
-                                if (isRight) currentOnRightSwipe()
-                                else if (allowLeftSwipe) currentOnLeftSwipe()
-                                swipeState.value = 0f
-                                hasStartedDrag = false
                                 hasReachedThreshold = false
                             }
                         } else {
                             scope.launch {
                                 swipeState.value = 0f
-                                hasStartedDrag = false
                                 hasReachedThreshold = false
                             }
                         }
@@ -944,6 +873,105 @@ fun SwipeToDismissWrapper(
                 }) { content() }
     }
 }
+
+@Composable
+fun SwipeRevealBackground(
+    fraction: Float,
+    color: Color,
+    icon: ImageVector,
+    tint: Color,
+    modifier: Modifier = Modifier,
+    alignment: Alignment,
+    startPadding: Dp = 20.dp,
+    endPadding: Dp = 20.dp,
+) {
+    val atThreshold = fraction >= 1f
+    val shakeOffset = remember { Animatable(0f) }
+    val density = LocalDensity.current
+
+    LaunchedEffect(atThreshold) {
+        if (atThreshold) {
+            shakeOffset.animateTo(
+                targetValue = 0f, animationSpec = keyframes {
+                    durationMillis = 350
+                    0f at 0
+                    6f at 60
+                    (-6f) at 130
+                    4f at 200
+                    (-2f) at 260
+                    0f at 350
+                })
+        } else {
+            shakeOffset.snapTo(0f)
+        }
+    }
+
+    Box(
+        modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(color)
+            .graphicsLayer {
+                val f = fraction.coerceIn(0f, 1f)
+                scaleX = lerp(0.6f, 1f, f)
+                scaleY = lerp(0.6f, 1f, f)
+                alpha = lerp(0f, 1f, f)
+            }, contentAlignment = alignment
+    ) {
+        Box(Modifier.padding(start = startPadding, end = endPadding)) {
+            Icon(
+                icon,
+                null,
+                Modifier
+                    .size(28.dp)
+                    .offset { IntOffset((shakeOffset.value * density.density).roundToInt(), 0) },
+                tint = tint
+            )
+        }
+    }
+}
+
+private fun releaseUri(uri: Uri, context: Context, onRemoveSharedUri: (Uri) -> Unit) {
+    runCatching {
+        context.contentResolver.releasePersistableUriPermission(
+            uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
+        )
+    }
+    runCatching { onRemoveSharedUri(uri) }
+}
+
+@Composable
+fun rememberSaveOrPrompt(
+    showSaveDialog: Boolean,
+    context: Context,
+    viewModel: ProcessingViewModel,
+    performRemoval: (String) -> Unit,
+    setSaveDialogState: (Pair<String, String>?) -> Unit,
+    setOverwriteDialogState: (Pair<String, String>?) -> Unit
+): (String, String) -> Unit {
+    val currentShowSaveDialog by rememberUpdatedState(showSaveDialog)
+    val currentViewModel by rememberUpdatedState(viewModel)
+    val currentContext by rememberUpdatedState(context)
+    val currentPerformRemoval by rememberUpdatedState(performRemoval)
+    val currentSetSaveDialog by rememberUpdatedState(setSaveDialogState)
+    val currentSetOverwriteDialog by rememberUpdatedState(setOverwriteDialogState)
+
+    return { imageId, filename ->
+        if (currentShowSaveDialog) {
+            currentSetSaveDialog.invoke(Pair(imageId, filename))
+        } else {
+            if (ImageActions.checkFileExists(currentContext, filename)) {
+                currentSetOverwriteDialog.invoke(Pair(imageId, filename))
+            } else {
+                currentViewModel.saveImage(
+                    context = currentContext,
+                    imageIds = listOf(imageId),
+                    baseFilename = filename,
+                    onComplete = { currentPerformRemoval.invoke(imageId) })
+            }
+        }
+    }
+}
+
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -1078,7 +1106,6 @@ fun ImageCard(
     val removeInteraction = remember { MutableInteractionSource() }
     val brisqueInteraction = remember { MutableInteractionSource() }
     val animatedBadgeCorner = lerp(8f, 24f, cardPress)
-    val animatedCardCorner = lerp(16f, 24f, cardPress)
     val processPress by rememberMaterialPressState(processInteraction)
     val removePress by rememberMaterialPressState(removeInteraction)
     val brisquePress by rememberMaterialPressState(brisqueInteraction)
@@ -1090,33 +1117,51 @@ fun ImageCard(
         dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium
     )
 
-    val isStale = image.outputBitmap != null && image.isOutputStale && !isProcessing
+    val cardState = when {
+        isProcessing -> CardState.Processing
+        image.outputBitmap != null && image.isOutputStale -> CardState.Stale
+        image.outputBitmap != null -> CardState.Complete
+        else -> CardState.Idle
+    }
 
-    val morphContainerColor by animateColorAsState(
-        targetValue = when {
-            isProcessing -> MaterialTheme.colorScheme.errorContainer
-            isStale -> MaterialTheme.colorScheme.tertiaryContainer
-            image.outputBitmap != null -> MaterialTheme.colorScheme.primaryContainer
-            else -> MaterialTheme.colorScheme.secondaryContainer
-        },
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "morph_container"
-    )
-    val morphContentColor by animateColorAsState(
-        targetValue = when {
-            isProcessing -> MaterialTheme.colorScheme.onErrorContainer
-            isStale -> MaterialTheme.colorScheme.onTertiaryContainer
-            image.outputBitmap != null -> MaterialTheme.colorScheme.onPrimaryContainer
-            else -> MaterialTheme.colorScheme.onSecondaryContainer
-        },
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "morph_content"
-    )
+    val transition = updateTransition(targetState = cardState, label = "card_morph")
+
+    val morphContainerColor by transition.animateColor(
+        transitionSpec = { spring(dampingRatio = Spring.DampingRatioMediumBouncy) },
+        label = "container_color"
+    ) { state ->
+        when (state) {
+            CardState.Processing -> MaterialTheme.colorScheme.errorContainer
+            CardState.Stale -> MaterialTheme.colorScheme.tertiaryContainer
+            CardState.Complete -> MaterialTheme.colorScheme.primaryContainer
+            CardState.Idle -> MaterialTheme.colorScheme.secondaryContainer
+        }
+    }
+
+    val morphContentColor by transition.animateColor(
+        transitionSpec = { spring(dampingRatio = Spring.DampingRatioMediumBouncy) },
+        label = "content_color"
+    ) { state ->
+        when (state) {
+            CardState.Processing -> MaterialTheme.colorScheme.onErrorContainer
+            CardState.Stale -> MaterialTheme.colorScheme.onTertiaryContainer
+            CardState.Complete -> MaterialTheme.colorScheme.onPrimaryContainer
+            CardState.Idle -> MaterialTheme.colorScheme.onSecondaryContainer
+        }
+    }
+
+    val cardCorner by transition.animateDp(
+        transitionSpec = {
+            spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium
+            )
+        }, label = "card_corner"
+    ) { state -> if (state == CardState.Processing) 20.dp else 16.dp }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(animatedCardCorner.dp))
+            .clip(RoundedCornerShape(cardCorner))
             .clickable(
                 interactionSource = cardInteractionSource,
                 indication = ripple(),
@@ -1125,7 +1170,7 @@ fun ImageCard(
                 haptic.light()
                 if (image.outputBitmap != null) onClick() else onBeforeOnly()
             },
-        shape = RoundedCornerShape(animatedCardCorner.dp),
+        shape = RoundedCornerShape(cardCorner),
         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceContainer)
     ) {
         Row(
@@ -1226,31 +1271,36 @@ fun ImageCard(
                     targetValue = when {
                         isProcessing -> 1f
                         processPress > 0f -> 1f + pressOffset
-                        removePress > 0f -> 1f - pressOffset * 0.5f
+                        removePress > 0f -> 1f
                         else -> 1f
                     }, animationSpec = bouncySpringFloat, label = "primary_weight"
                 )
 
-                val removeWidth by animateDpAsState(
-                    targetValue = when {
-                        isProcessing -> 0.dp
-                        else -> lerp(145f, 166f, removePress).dp - lerp(0f, 15f, processPress).dp
-                    }, animationSpec = bouncySpringDp, label = "remove_width"
+                val brisqueExpansion by animateFloatAsState(
+                    targetValue = brisquePress,
+                    animationSpec = bouncySpringFloat,
+                    label = "brisque_expansion"
                 )
 
-                val brisqueWidth by animateDpAsState(
-                    targetValue = when {
-                        isProcessing -> 0.dp
-                        brisquePress > 0f -> 56.dp
-                        removePress > 0f -> 32.dp
-                        processPress > 0f -> 32.dp
-                        else -> 40.dp
-                    }, animationSpec = bouncySpringDp, label = "brisque_width"
-                )
+                val removeWidth = when {
+                    isProcessing -> 0.dp
+                    else -> (lerp(145f, 129f, brisqueExpansion) + lerp(0f, -25f, processPress)).dp
+                }
+
+                val brisqueWidth = when {
+                    isProcessing -> 0.dp
+                    else -> lerp(40f, 56f, brisqueExpansion).dp
+                }
 
                 val brisqueCorner by animateDpAsState(
                     targetValue = lerp(28f, 6f, brisquePress).dp,
                     animationSpec = bouncySpringDp,
+                )
+
+                val removeCorner by animateDpAsState(
+                    targetValue = lerp(6f, 28f, removePress).dp,
+                    animationSpec = bouncySpringDp,
+                    label = "remove_corner"
                 )
 
                 val processStartCorner by animateDpAsState(
@@ -1315,7 +1365,7 @@ fun ImageCard(
                         Button(
                             onClick = { haptic.heavy(); onRemove() },
                             modifier = Modifier.width(removeWidth),
-                            shape = RoundedCornerShape(6.dp),
+                            shape = RoundedCornerShape(removeCorner),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.errorContainer,
                                 contentColor = MaterialTheme.colorScheme.onErrorContainer
@@ -1359,32 +1409,6 @@ fun ImageCard(
                         }
                     }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-fun rememberSaveOrPrompt(
-    showSaveDialog: Boolean,
-    context: android.content.Context,
-    viewModel: ProcessingViewModel,
-    performRemoval: (String) -> Unit,
-    setSaveDialogState: (Pair<String, String>?) -> Unit,
-    setOverwriteDialogState: (Pair<String, String>?) -> Unit
-): (String, String) -> Unit = remember(showSaveDialog) {
-    { imageId, filename ->
-        if (showSaveDialog) {
-            setSaveDialogState(Pair(imageId, filename))
-        } else {
-            if (ImageActions.checkFileExists(context, filename)) {
-                setOverwriteDialogState(Pair(imageId, filename))
-            } else {
-                viewModel.saveImage(
-                    context = context,
-                    imageIds = listOf(imageId),
-                    baseFilename = filename,
-                    onComplete = { performRemoval(imageId) })
             }
         }
     }

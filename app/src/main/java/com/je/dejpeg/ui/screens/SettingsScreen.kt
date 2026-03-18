@@ -886,7 +886,8 @@ fun SettingsScreen(
                             },
                             hapticAction = { haptic.light() })
                         Spacer(modifier = Modifier.height(8.dp))
-                        val clearedDefaultSourceMsg = stringResource(R.string.cleared_default_source)
+                        val clearedDefaultSourceMsg =
+                            stringResource(R.string.cleared_default_source)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically

@@ -2,6 +2,8 @@
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
+@file:Suppress("SpellCheckingInspection")
+
 package com.je.dejpeg.utils.helpers
 
 import android.annotation.SuppressLint
@@ -96,12 +98,12 @@ class ServiceCommunicationHelper(
         intentionalDisconnect = true
         try {
             serviceBinder?.unlinkToDeath(deathRecipient, 0)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
         }
         try {
             context.unbindService(serviceConnection)
             Log.d("ServiceCommHelper", "Unbound from service")
-        } catch (e: Exception) {
+        } catch (_: Exception) {
         }
         intentionalDisconnect = false
         cleanupBinding()

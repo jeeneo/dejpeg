@@ -4,19 +4,15 @@
 
 package com.je.dejpeg.ui
 
+import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
@@ -56,13 +52,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import android.content.Intent
-import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -71,8 +64,6 @@ import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.ui.components.RecoveryDialog
 import com.je.dejpeg.ui.components.SnackySnackbarBox
 import com.je.dejpeg.ui.components.SnackySnackbarHostState
-import com.je.dejpeg.ui.BrisqueActivity
-import com.je.dejpeg.ui.BeforeAfterActivity
 import com.je.dejpeg.ui.screens.ProcessingScreen
 import com.je.dejpeg.ui.screens.SettingsScreen
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
@@ -84,12 +75,7 @@ private val PillInner = 6.dp
 
 sealed class Screen(val route: String) {
     object Home : Screen("home")
-    object BeforeAfter : Screen("beforeAfter/{imageId}") {
-        fun createRoute(imageId: String) = "beforeAfter/$imageId"
-    }
-    object Brisque : Screen("brisque/{imageId}") {
-        fun createRoute(imageId: String) = "brisque/$imageId"
-    }
+
 }
 
 @Composable
@@ -102,7 +88,8 @@ fun MainScreen(
     val imageRepository = remember { ImageRepository.getInstance(context) }
     val navController = rememberNavController()
     val snackbarHostState = remember { SnackySnackbarHostState() }
-    val snackbarController = remember { com.je.dejpeg.ui.components.ActivitySnackySnackbarController() }
+    val snackbarController =
+        remember { com.je.dejpeg.ui.components.ActivitySnackySnackbarController() }
     androidx.compose.runtime.DisposableEffect(snackbarController) {
         com.je.dejpeg.ui.components.SnackySnackbarController.bind(snackbarController)
         onDispose { com.je.dejpeg.ui.components.SnackySnackbarController.unbind(snackbarController) }
@@ -112,18 +99,15 @@ fun MainScreen(
         viewModel.settingsViewModel = settingsViewModel
         settingsViewModel.initialize(context)
     }
-    val decelerate = FastOutSlowInEasing
-    val accelerate = LinearOutSlowInEasing
     // no longer photosynthesizes the diode
     RecoveryDialog(imageRepository = imageRepository)
     SnackySnackbarBox(snackbarHostState = snackbarHostState, controller = snackbarController) {
         NavHost(
-        navController = navController,
+            navController = navController,
             startDestination = Screen.Home.route,
         ) {
             composable(Screen.Home.route) {
                 HomeWrapperScreen(
-                    navController = navController,
                     viewModel = viewModel,
                     settingsViewModel = settingsViewModel,
                     imageRepository = imageRepository,
@@ -137,7 +121,6 @@ fun MainScreen(
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun HomeWrapperScreen(
-    navController: NavController,
     viewModel: ProcessingViewModel,
     settingsViewModel: SettingsViewModel,
     imageRepository: ImageRepository,
@@ -170,14 +153,13 @@ fun HomeWrapperScreen(
                             spring(stiffness = Spring.StiffnessMedium)
                         )).togetherWith(
                             slideOutHorizontally(
-                                spring(
-                                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                                    stiffness = Spring.StiffnessMedium
-                                )
-                            ) { if (toSettings) -it else it } + fadeOut(
-                                spring(stiffness = Spring.StiffnessMedium)
+                            spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessMedium
                             )
-                        )
+                        ) { if (toSettings) -it else it } + fadeOut(
+                            spring(stiffness = Spring.StiffnessMedium)
+                        ))
                     }, label = "tab_transition"
                 ) { tab ->
                     if (tab == "processing") {
@@ -186,11 +168,15 @@ fun HomeWrapperScreen(
                             settingsViewModel = settingsViewModel,
                             imageRepository = imageRepository,
                             onNavigateToBeforeAfter = { id ->
-                                val intent = Intent(context, BeforeAfterActivity::class.java).putExtra("imageId", id)
+                                val intent = Intent(
+                                    context, BeforeAfterActivity::class.java
+                                ).putExtra("imageId", id)
                                 context.startActivity(intent)
                             },
                             onNavigateToBrisque = { id ->
-                                val intent = Intent(context, BrisqueActivity::class.java).putExtra("imageId", id)
+                                val intent = Intent(context, BrisqueActivity::class.java).putExtra(
+                                    "imageId", id
+                                )
                                 context.startActivity(intent)
                             },
                             initialSharedUris = sharedUris,
@@ -199,9 +185,7 @@ fun HomeWrapperScreen(
                         )
                     } else {
                         SettingsScreen(
-                            settingsViewModel,
-                            viewModel,
-                            onBack = { currentTab = "processing" })
+                            settingsViewModel, viewModel, onBack = { currentTab = "processing" })
                     }
                 }
             }

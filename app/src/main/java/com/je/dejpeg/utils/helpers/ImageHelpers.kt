@@ -2,6 +2,8 @@
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
+@file:Suppress("SpellCheckingInspection")
+
 package com.je.dejpeg.utils.helpers
 
 import android.content.ClipData
@@ -403,8 +405,7 @@ object ImageActions {
                         val id =
                             cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID))
                         val deleteUri = ContentUris.withAppendedId(
-                            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                            id
+                            MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id
                         )
                         context.contentResolver.delete(deleteUri, null, null)
                     }
@@ -440,10 +441,7 @@ object ImageActions {
                 if (imageId != null) {
                     try {
                         CacheManager.deleteRecoveryPair(
-                            context,
-                            imageId,
-                            deleteProcessed = true,
-                            deleteUnprocessed = false
+                            context, imageId, deleteProcessed = true, deleteUnprocessed = false
                         )
                     } catch (_: Exception) {
                     }
@@ -458,10 +456,7 @@ object ImageActions {
     }
 
     fun shareImage(
-        context: Context,
-        bitmap: Bitmap,
-        onReady: () -> Unit = {},
-        onError: (String) -> Unit = {}
+        context: Context, bitmap: Bitmap, onReady: () -> Unit = {}, onError: (String) -> Unit = {}
     ) {
         @OptIn(DelicateCoroutinesApi::class) GlobalScope.launch(Dispatchers.IO) {
             try {
@@ -469,17 +464,12 @@ object ImageActions {
                 if (cachePath.exists()) cachePath.delete()
                 FileOutputStream(cachePath).use {
                     bitmap.compress(
-                        Bitmap.CompressFormat.PNG,
-                        100,
-                        it
+                        Bitmap.CompressFormat.PNG, 100, it
                     )
                 }
-                val contentUri =
-                    FileProvider.getUriForFile(
-                        context,
-                        "${context.packageName}.provider",
-                        cachePath
-                    )
+                val contentUri = FileProvider.getUriForFile(
+                    context, "${context.packageName}.provider", cachePath
+                )
                 val shareIntent = Intent(Intent.ACTION_SEND).apply {
                     type = "image/png"
                     putExtra(Intent.EXTRA_STREAM, contentUri)
@@ -490,8 +480,7 @@ object ImageActions {
                     onReady()
                     context.startActivity(
                         Intent.createChooser(
-                            shareIntent,
-                            context.getString(R.string.share_image)
+                            shareIntent, context.getString(R.string.share_image)
                         )
                     )
                 }
