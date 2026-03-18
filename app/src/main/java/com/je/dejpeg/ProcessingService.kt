@@ -236,7 +236,7 @@ class ProcessingService : Service() {
                                                 File(cacheDir, "${safeName}_processed.png")
                                             FileOutputStream(outFile).use {
                                                 result.compress(
-                                                    Bitmap.CompressFormat.PNG, 95, it
+                                                    Bitmap.CompressFormat.PNG, 100, it
                                                 )
                                             }
                                             broadcast(
@@ -289,7 +289,7 @@ class ProcessingService : Service() {
                                                 File(cacheDir, "${safeName}_processed.png")
                                             FileOutputStream(outFile).use {
                                                 result.compress(
-                                                    Bitmap.CompressFormat.PNG, 95, it
+                                                    Bitmap.CompressFormat.PNG, 100, it
                                                 )
                                             }
                                             broadcast(
@@ -328,6 +328,8 @@ class ProcessingService : Service() {
 
                                     override fun onProgress(message: String) {
                                         currentProgressMessage = message
+                                        chunkProgressTotal = 0
+                                        chunkProgressCompleted = 0
                                         broadcast(
                                             PROGRESS_ACTION,
                                             PROGRESS_EXTRA_MESSAGE to message,
