@@ -28,7 +28,7 @@ jobs:
       - name: jdk
         run: |
           apt-get update -qq
-          apt-get install -y --no-install-recommends temurin-21-jdk
+          apt-get install -y --no-install-recommends openjdk-21-jdk
         env:
           DEBIAN_FRONTEND: noninteractive
 
