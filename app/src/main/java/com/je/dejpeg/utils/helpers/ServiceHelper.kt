@@ -42,10 +42,11 @@ class ServiceCommunicationHelper(
     private val mainHandler = Handler(Looper.getMainLooper())
     private var intentionalDisconnect = false
     private var crashReported = false
+    @Volatile private var recentlyKilled = false
 
     private val deathRecipient = IBinder.DeathRecipient {
         mainHandler.post {
-            if (crashReported) return@post
+            if (crashReported || recentlyKilled) return@post
             Log.e(
                 "ServiceCommHelper",
                 "Service process died (DeathRecipient triggered) while processing: $currentProcessingImageId"
@@ -72,7 +73,7 @@ class ServiceCommunicationHelper(
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
-            if (intentionalDisconnect) return
+            if (intentionalDisconnect || recentlyKilled) return
             crashReported = true
             Log.w("ServiceCommHelper", "Service disconnected unexpectedly")
             val imageId = currentProcessingImageId
@@ -243,9 +244,11 @@ class ServiceCommunicationHelper(
         unbindFromService()
         if (pid != null && pid > 0) {
             try {
+                recentlyKilled = true
                 android.os.Process.killProcess(pid)
                 onCleanup()
                 mainHandler.post { callbacks.onServiceCrash(imageId) }
+                mainHandler.postDelayed({ recentlyKilled = false }, 2000)
                 return true
             } catch (e: Exception) {
                 Log.e("ServiceCommunicationHelper", "Failed to kill service process: ${e.message}")
