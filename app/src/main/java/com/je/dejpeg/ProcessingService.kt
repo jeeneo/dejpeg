@@ -78,6 +78,9 @@ class ProcessingService : Service() {
     private var chunkProgressParallelWorkers: Int = 1
     private var currentProgressMessage: String = "Processing..."
     private val stopHandler = Handler(Looper.getMainLooper())
+
+    @Volatile
+    private var cancelBroadcastSent = false
     private val autoStopRunnable = Runnable {
         Log.d("ProcessingService", "Auto-stopping service after idle period")
         cleanup()
@@ -190,6 +193,7 @@ class ProcessingService : Service() {
                     PROGRESS_EXTRA_MESSAGE to currentProgressMessage,
                     imageId = imageId
                 )
+                cancelBroadcastSent = false
                 currentJob = serviceScope.launch {
                     try {
                         val unprocessedFile =
@@ -230,6 +234,10 @@ class ProcessingService : Service() {
                                 callback = object : OidnProcessor.ProcessCallback {
                                     override fun onComplete(result: Bitmap) {
                                         try {
+                                            if (cancelBroadcastSent) {
+                                                scheduleAutoStop()
+                                                return
+                                            }
                                             val safeName =
                                                 if (!imageId.isNullOrEmpty()) imageId else filename
                                             val outFile =
@@ -249,25 +257,27 @@ class ProcessingService : Service() {
                                                 getString(R.string.processing_complete_notification)
                                             )
                                         } catch (e: Exception) {
-                                            broadcast(
-                                                ERROR_ACTION,
-                                                ERROR_EXTRA_MESSAGE to "Save error: ${e.message}",
-                                                imageId = imageId
-                                            )
+                                            if (!cancelBroadcastSent) {
+                                                broadcast(
+                                                    ERROR_ACTION,
+                                                    ERROR_EXTRA_MESSAGE to "Save error: ${e.message}",
+                                                    imageId = imageId
+                                                )
+                                            }
                                         } finally {
                                             scheduleAutoStop()
                                         }
                                     }
-
                                     override fun onError(error: String) {
-                                        broadcast(
-                                            ERROR_ACTION,
-                                            ERROR_EXTRA_MESSAGE to error,
-                                            imageId = imageId
-                                        )
+                                        if (!cancelBroadcastSent) {
+                                            broadcast(
+                                                ERROR_ACTION,
+                                                ERROR_EXTRA_MESSAGE to error,
+                                                imageId = imageId
+                                            )
+                                        }
                                         scheduleAutoStop()
                                     }
-
                                     override fun onProgress(message: String) {
                                         currentProgressMessage = message
                                         broadcast(
@@ -283,6 +293,10 @@ class ProcessingService : Service() {
                                 bitmap, strength, object : ImageProcessor.ProcessCallback {
                                     override fun onComplete(result: Bitmap) {
                                         try {
+                                            if (cancelBroadcastSent) {
+                                                scheduleAutoStop()
+                                                return
+                                            }
                                             val safeName =
                                                 if (!imageId.isNullOrEmpty()) imageId else filename
                                             val outFile =
@@ -302,11 +316,13 @@ class ProcessingService : Service() {
                                                 getString(R.string.processing_complete_notification)
                                             )
                                         } catch (e: Exception) {
-                                            broadcast(
-                                                ERROR_ACTION,
-                                                ERROR_EXTRA_MESSAGE to "Save error: ${e.message}",
-                                                imageId = imageId
-                                            )
+                                            if (!cancelBroadcastSent) {
+                                                broadcast(
+                                                    ERROR_ACTION,
+                                                    ERROR_EXTRA_MESSAGE to "Save error: ${e.message}",
+                                                    imageId = imageId
+                                                )
+                                            }
                                         } finally {
                                             Log.d(
                                                 "ProcessingService",
@@ -315,17 +331,17 @@ class ProcessingService : Service() {
                                             scheduleAutoStop()
                                         }
                                     }
-
                                     override fun onError(error: String) {
-                                        broadcast(
-                                            ERROR_ACTION,
-                                            ERROR_EXTRA_MESSAGE to error,
-                                            imageId = imageId
-                                        )
+                                        if (!cancelBroadcastSent) {
+                                            broadcast(
+                                                ERROR_ACTION,
+                                                ERROR_EXTRA_MESSAGE to error,
+                                                imageId = imageId
+                                            )
+                                        }
                                         Log.d("ProcessingService", "processing error: $error")
                                         scheduleAutoStop()
                                     }
-
                                     override fun onProgress(message: String) {
                                         currentProgressMessage = message
                                         chunkProgressTotal = 0
@@ -337,7 +353,6 @@ class ProcessingService : Service() {
                                         )
                                         notifyProgressChange()
                                     }
-
                                     override fun onChunkProgress(
                                         currentChunkIndex: Int,
                                         totalChunks: Int,
@@ -363,9 +378,12 @@ class ProcessingService : Service() {
                                     }
                                 })
                         }
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (e: Exception) {
-                        val msg = if (e is CancellationException) "Cancelled" else "${e.message}"
-                        broadcast(ERROR_ACTION, ERROR_EXTRA_MESSAGE to msg, imageId = imageId)
+                        broadcast(
+                            ERROR_ACTION, ERROR_EXTRA_MESSAGE to "${e.message}", imageId = imageId
+                        )
                         Log.d("ProcessingService", "exception: ${e.message}")
                         scheduleAutoStop()
                     } finally {
@@ -381,12 +399,13 @@ class ProcessingService : Service() {
                 NotificationHelper.show(this, getString(R.string.status_canceling))
                 runCatching { imageProcessor?.cancelProcessing() }
                 runCatching { oidnProcessor?.cancelProcessing() }
+                if (wasRunning) {
+                    cancelBroadcastSent = true
+                    broadcast(ERROR_ACTION, ERROR_EXTRA_MESSAGE to "Cancelled", imageId = id)
+                }
                 runCatching { currentJob?.cancel() }
                 currentJob = null
                 currentImageId = null
-                if (wasRunning) {
-                    broadcast(ERROR_ACTION, ERROR_EXTRA_MESSAGE to "Cancelled", imageId = id)
-                }
                 scheduleAutoStop()
             }
         }
