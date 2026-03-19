@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: docker
+    runs-on: codeberg-small
     container:
       image: eclipse-temurin:21-jdk
 
