@@ -163,6 +163,11 @@ class ProcessingViewModel : ViewModel() {
                 markOutputsStale()
             }
         }
+        viewModelScope.launch {
+            settings.oidnInputScale.collect {
+                markOutputsStale()
+            }
+        }
     }
 
     private fun markOutputsStale() {
