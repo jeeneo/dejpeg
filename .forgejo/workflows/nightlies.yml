@@ -25,6 +25,13 @@ jobs:
       - name: checkout
         uses: actions/checkout@v4
 
+      - name: jdk
+        run: |
+          apt-get update -qq
+          apt-get install -y --no-install-recommends temurin-21-jdk
+        env:
+          DEBIAN_FRONTEND: noninteractive
+
       - name: gradle caches
         uses: actions/cache@v3
         with:
