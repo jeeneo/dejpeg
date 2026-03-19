@@ -1,5 +1,5 @@
 - Material 3 expressive redesign
 - Small bugfixes with processing errors
 - Fixed minor inconsistencies
-- Preferences migration from `skipSaveDialog` to `showSaveDialog`
+- Preferences migration from skipSaveDialog to showSaveDialog
 - Fixes processing race condition between queue cancellation
