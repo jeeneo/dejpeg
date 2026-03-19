@@ -7,7 +7,7 @@
 apks
 opencv
 *.apk
-*.yml
 brsq.py
 *.bin
 oidnroot
+brsq
