@@ -45,10 +45,10 @@ else
 fi
 
 if [[ "$TAG" == prerelease* ]]; then
-  FASTLANE=$'Prerelease changelog\n'"$FASTLANE"
+  FASTLANE=$'Prerelease changelog:\n'"$FASTLANE"
   prerelease=true
 else
-  FASTLANE=$'Release changelog\n'"$FASTLANE"
+  FASTLANE=$'Release changelog:\n'"$FASTLANE"
   prerelease=false
 fi
 
