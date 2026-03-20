@@ -10,13 +10,13 @@ GRADLE="app/build.gradle.kts"
 VERSION=$(grep -oP 'versionName\s*=\s*"\K[^"]+' "$GRADLE")
 VERSIONCODE=$(grep -oP 'versionCode\s*=\s*\K\d+' "$GRADLE")
 FASTLANE_FILE="fastlane/metadata/android/en-US/changelogs/$VERSIONCODE.txt"
-TAG="release-$VERSION"
+TAG="prerelease-$VERSION"
 
 argparse() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --pre)
-        TAG="prerelease-$VERSION"
+      --rel)
+        TAG="release-$VERSION"
         ;;
       *)
         echo "Unknown argument: $1"
