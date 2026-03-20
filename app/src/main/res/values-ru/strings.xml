@@ -292,7 +292,7 @@
     <string name="processing_threads_desc">Параллельные фрагменты</string>
     <string name="thread_value_auto">Авто (%1$d)</string>
     <string name="info">Инфо</string>
-    <string name="reprocess">Повторная обработка</string>
+    <string name="reprocess">Повторить</string>
     <string name="extract">Извлечь</string>
     <string name="extracted_starter_models">Базовые модели извлечены</string>
     <plurals name="image_saved_to_gallery">
@@ -302,4 +302,5 @@
         <item quantity="other">%1$d изображений сохранено</item>
     </plurals>
     <string name="model_switch_blocked_processing">Нельзя переключать модели во время обработки</string>
+    <string name="cleared_default_source">Источник по умолчанию очищен</string>
 </resources>
