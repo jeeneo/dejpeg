@@ -37,59 +37,56 @@ class ServiceCommunicationHelper(
     private var serviceProcessPid: Int? = null
     private var isRegistered = false
     private var currentProcessingImageId: String? = null
-    private var serviceBinder: IBinder? = null
     private var isBound = false
     private val mainHandler = Handler(Looper.getMainLooper())
-    private var intentionalDisconnect = false
-    private var crashReported = false
-    @Volatile private var recentlyKilled = false
-
-    private val deathRecipient = IBinder.DeathRecipient {
-        mainHandler.post {
-            if (crashReported || recentlyKilled) return@post
-            Log.e(
-                "ServiceCommHelper",
-                "Service process died (DeathRecipient triggered) while processing: $currentProcessingImageId"
-            )
-            val imageId = currentProcessingImageId
-            cleanupBinding()
-            if (imageId != null) {
-                callbacks.onServiceCrash(imageId)
-            }
-        }
-    }
-
-    private val serviceConnection = object : ServiceConnection {
-        override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
-            Log.d("ServiceCommHelper", "Service connected, registering DeathRecipient")
-            serviceBinder = binder
-            isBound = true
-            try {
-                binder?.linkToDeath(deathRecipient, 0)
-                Log.d("ServiceCommHelper", "DeathRecipient linked successfully")
-            } catch (e: Exception) {
-                Log.e("ServiceCommHelper", "Failed to link DeathRecipient: ${e.message}")
-            }
-        }
-
-        override fun onServiceDisconnected(name: ComponentName?) {
-            if (intentionalDisconnect || recentlyKilled) return
-            crashReported = true
-            Log.w("ServiceCommHelper", "Service disconnected unexpectedly")
-            val imageId = currentProcessingImageId
-            cleanupBinding()
-            if (imageId != null) {
-                callbacks.onServiceCrash(imageId)
-            }
-        }
-    }
-
+    private var bindingEpoch = 0
+    private var currentEpoch: ServiceConnection? = null
+    private var activeService: IBinder? = null
     private fun bindToService() {
         if (isBound) return
+        val generation = ++bindingEpoch
+        val deathRecipient = IBinder.DeathRecipient {
+            mainHandler.post {
+                if (generation != bindingEpoch) return@post
+                Log.e(
+                    "ServiceCommHelper",
+                    "Service process died (DeathRecipient) while processing: $currentProcessingImageId"
+                )
+                val imageId = currentProcessingImageId
+                cleanupBinding()
+                callbacks.onServiceCrash(imageId)
+            }
+        }
+        val connection = object : ServiceConnection {
+            override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
+                if (generation != bindingEpoch) return
+                Log.d(
+                    "ServiceCommHelper",
+                    "Service connected [gen=$generation], registering DeathRecipient"
+                )
+                activeService = binder
+                isBound = true
+                try {
+                    binder?.linkToDeath(deathRecipient, 0)
+                    Log.d("ServiceCommHelper", "DeathRecipient linked successfully")
+                } catch (e: Exception) {
+                    Log.e("ServiceCommHelper", "Failed to link DeathRecipient: ${e.message}")
+                }
+            }
+
+            override fun onServiceDisconnected(name: ComponentName?) {
+                if (generation != bindingEpoch) return
+                Log.w("ServiceCommHelper", "Service disconnected unexpectedly [gen=$generation]")
+                val imageId = currentProcessingImageId
+                cleanupBinding()
+                callbacks.onServiceCrash(imageId)
+            }
+        }
+        currentEpoch = connection
         try {
             val intent = Intent(context, ProcessingService::class.java)
-            context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
-            Log.d("ServiceCommHelper", "Binding to service...")
+            context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
+            Log.d("ServiceCommHelper", "Binding to service... [gen=$generation]")
         } catch (e: Exception) {
             Log.e("ServiceCommHelper", "Failed to bind to service: ${e.message}")
         }
@@ -97,26 +94,27 @@ class ServiceCommunicationHelper(
 
     private fun unbindFromService() {
         if (!isBound) return
-        intentionalDisconnect = true
+        bindingEpoch++
         try {
-            serviceBinder?.unlinkToDeath(deathRecipient, 0)
+            activeService?.unlinkToDeath(
+                currentEpoch as? IBinder.DeathRecipient ?: return, 0
+            )
         } catch (_: Exception) {
         }
         try {
-            context.unbindService(serviceConnection)
+            currentEpoch?.let { context.unbindService(it) }
             Log.d("ServiceCommHelper", "Unbound from service")
         } catch (_: Exception) {
         }
-        intentionalDisconnect = false
         cleanupBinding()
     }
 
     private fun cleanupBinding() {
-        serviceBinder = null
+        activeService = null
+        currentEpoch = null
         isBound = false
         currentProcessingImageId = null
         serviceProcessPid = null
-        crashReported = false
     }
 
     private val receiver = object : BroadcastReceiver() {
@@ -134,9 +132,7 @@ class ServiceCommunicationHelper(
 
                 ProcessingService.PROGRESS_ACTION -> {
                     intent.getStringExtra(ProcessingService.PROGRESS_EXTRA_MESSAGE)
-                        ?.let { message ->
-                            imageId?.let { callbacks.onProgress(it, message) }
-                        }
+                        ?.let { message -> imageId?.let { callbacks.onProgress(it, message) } }
                     val completed =
                         intent.getIntExtra(ProcessingService.PROGRESS_EXTRA_COMPLETED_CHUNKS, -1)
                     val total =
@@ -244,18 +240,16 @@ class ServiceCommunicationHelper(
         unbindFromService()
         if (pid != null && pid > 0) {
             try {
-                recentlyKilled = true
                 android.os.Process.killProcess(pid)
                 onCleanup()
                 mainHandler.post { callbacks.onServiceCrash(imageId) }
-                mainHandler.postDelayed({ recentlyKilled = false }, 2000)
                 return true
             } catch (e: Exception) {
                 Log.e("ServiceCommunicationHelper", "Failed to kill service process: ${e.message}")
             }
         }
-        Log.w("ServiceCommunicationHelper", "No valid service PID available, sending cancel intent")
-        startService(ProcessingService.ACTION_CANCEL) { }
+        Log.w("ServiceCommunicationHelper", "No valid PID, sending cancel intent")
+        startService(ProcessingService.ACTION_CANCEL) {}
         return false
     }
 
