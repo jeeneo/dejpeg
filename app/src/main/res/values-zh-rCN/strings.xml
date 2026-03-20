@@ -286,4 +286,5 @@
     <string name="extract">提取</string>
     <string name="extracted_starter_models">入门模型已提取</string>
     <string name="model_switch_blocked_processing">处理中无法切换模型</string>
+    <string name="cleared_default_source">默认来源已清除</string>
 </resources>
