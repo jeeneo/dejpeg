@@ -145,22 +145,8 @@ fun HomeWrapperScreen(
                 androidx.compose.animation.AnimatedContent(
                     targetState = currentTab, transitionSpec = {
                         val toSettings = targetState == "settings"
-                        (slideInHorizontally(
-                            spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessMedium
-                            )
-                        ) { if (toSettings) it else -it } + fadeIn(
-                            spring(stiffness = Spring.StiffnessMedium)
-                        )).togetherWith(
-                            slideOutHorizontally(
-                            spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessMedium
-                            )
-                        ) { if (toSettings) -it else it } + fadeOut(
-                            spring(stiffness = Spring.StiffnessMedium)
-                        ))
+                        (slideInHorizontally { if (toSettings) it else -it } + fadeIn()).togetherWith(
+                            slideOutHorizontally { if (toSettings) -it else it } + fadeOut())
                     }, label = "tab_transition"
                 ) { tab ->
                     if (tab == "processing") {
