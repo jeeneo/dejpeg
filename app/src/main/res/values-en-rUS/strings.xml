@@ -291,4 +291,5 @@
         <item quantity="one">Image saved</item>
         <item quantity="other">%1$d images saved</item>
     </plurals>
+    <string name="cleared_default_source">Default source cleared</string>
 </resources>
