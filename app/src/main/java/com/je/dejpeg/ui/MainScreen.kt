@@ -91,9 +91,19 @@ fun MainScreen(
     val snackbarHostState = remember { SnackySnackbarHostState() }
     val snackbarController =
         remember { com.je.dejpeg.ui.components.ActivitySnackySnackbarController() }
-    androidx.compose.runtime.DisposableEffect(snackbarController) {
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner, snackbarController) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                com.je.dejpeg.ui.components.SnackySnackbarController.bind(snackbarController)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
         com.je.dejpeg.ui.components.SnackySnackbarController.bind(snackbarController)
-        onDispose { com.je.dejpeg.ui.components.SnackySnackbarController.unbind(snackbarController) }
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            com.je.dejpeg.ui.components.SnackySnackbarController.unbind(snackbarController)
+        }
     }
     LaunchedEffect(Unit) {
         viewModel.imageRepository = imageRepository
