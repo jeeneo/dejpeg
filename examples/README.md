@@ -1,4 +1,4 @@
-here is are some examples of what DeJPEG can be used for and the model(s) for each type:
+here are some examples of what DeJPEG can be used for and the model(s) for each type:
 
 <img src="cartoon_noise.png" alt="a cartoon with noise" width="240" >
 
