@@ -70,7 +70,7 @@ Translate:
 
 ### Additional details
 
-I'm sure you've heard about Google's restriction of 3rd party apks. I won't bore you with repetition and and just state the affect this has on this app, it will not be on the Play Store.
+I'm sure you've heard about the recent restriction of 3rd party apps. This app will not be on the Play store.
 
 <details>
 <summary><h3>building</h3></summary>
