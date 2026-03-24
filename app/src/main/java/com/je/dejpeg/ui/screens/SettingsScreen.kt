@@ -1014,11 +1014,6 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = { modelInfoDialog = null }) {
-                        Text(stringResource(R.string.ok))
-                    }
-                }
             }
         }
     }

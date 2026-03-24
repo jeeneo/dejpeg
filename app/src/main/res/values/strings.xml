@@ -130,7 +130,7 @@
     <string name="starter_model_title">Starter models</string>
     <string name="starter_model_message">DeJPEG now comes with small fast general purpose models. Don\'t expect them to handle every image perfectly.\n\nFor best results additional models are available through the links.\n\nIf you don\'t want these models, you can delete them and they won\'t show up again. They can also be added back from preferences.</string>
     <string name="got_it">Got it</string>
-    <string name="model_info_1x_rgb_max_denoise_fp16">Fast, noise and compression, mostly for animation. Or can turn photos into cartoons.</string>
+    <string name="model_info_1x_rgb_max_denoise_fp16">Fast, noise and compression, great for animation. Also turns photos into cartoons.</string>
     <string name="model_info_1x_span_anime_pretrain_fp16">Fast, general compression, general noise. Good for animation, comics, anime, and some photos.</string>
     <string name="model_info_fbcnn_color_fp16">Best at general JPEG compression, minor noise, any kind of color images</string>
     <string name="model_info_fbcnn_gray_fp16">General compression and noise, only grayscale images</string>
