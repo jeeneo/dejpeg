@@ -74,8 +74,7 @@ class BRISQUEDescaler(
         private const val DEFAULT_COARSE_STEP = 20           // pixels step for coarse scan
         private const val DEFAULT_FINE_STEP = 5              // pixels step for fine scan
         private const val DEFAULT_FINE_RANGE = 30            // pixels range around coarse best
-        private const val DEFAULT_MIN_WIDTH_RATIO =
-            0.5f     // minimum width as fraction of original
+        private const val DEFAULT_MIN_WIDTH_RATIO = 0.5f     // minimum width as fraction of original
         private const val BRISQUE_WEIGHT = 0.7f              // 70% weight for BRISQUE
         private const val SHARPNESS_WEIGHT = 0.3f            // 30% weight for sharpness
         fun initialize(context: Context) {
@@ -785,8 +784,7 @@ data class BrisqueSVMModel(
 object BrisqueModelLoader {
     private const val TAG = "BrisqueModelLoader"
     private const val MAGIC = "BRSQ"
-    private const val BRISQUE_MDL_HASH =
-        "5e8828abad9dbaefa727de9312371590c6010795fd10f4e2e2a563a2bd988548"
+    private const val BRISQUE_MDL_HASH = "5e8828abad9dbaefa727de9312371590c6010795fd10f4e2e2a563a2bd988548"
 
     @Volatile
     private var cachedModel: BrisqueSVMModel? = null
