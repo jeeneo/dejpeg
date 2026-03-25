@@ -9,7 +9,6 @@
 </div>
 
 <br>
-<br>
 
 <a href="https://apt.izzysoft.de/fdroid/index/apk/com.je.dejpeg"><img src="fastlane/appassets/IzzyOnDroid.png" width="180" alt="IzzyOnDroid"></a>
 <a href="https://codeberg.org/dryerlint/dejpeg/releases/download/latest/dejpeg-arm64-v8a.apk"><img src="fastlane/appassets/codeberg-badge.png" width="180" alt="Codeberg direct apk"></a>
