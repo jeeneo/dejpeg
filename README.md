@@ -3,9 +3,9 @@
 <br>
 <br>
 
-<td><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/01.webp" width="200"></td>
-<td><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/02.webp" width="200"></td>
-<td><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/03.webp" width="200"></td>
+<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/01.webp" width="200">
+<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/02.webp" width="200">
+<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/03.webp" width="200">
 
 <br>
 <br>
