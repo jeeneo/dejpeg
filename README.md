@@ -1,6 +1,7 @@
 <img src="fastlane/appassets/logo/dejpeg_logo_curved.svg" alt="A gray mountain rotated 45 degrees clockwise with a lowercase letter j rotated 90 degrees clockwise" height="72" >
 
 <br>
+<br>
 
 <td><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/01.webp" width="200"></td>
 <td><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/02.webp" width="200"></td>
