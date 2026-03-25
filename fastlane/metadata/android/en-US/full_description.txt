@@ -1,12 +1,5 @@
-<h2>Stuff:</h2>
-<ul>
-  <li>Artifact removal</li>
-  <li>Denoise</li>
-  <li>Offline</li>
-</ul>
+<p>An app for cleaning compressed images and removing noise.</p>
 
-<h2>Limits:</h2>
-<ul>
-  <li>Local processing</li>
-  <li>Standard image formats only and not huge</li>
-</ul>
+<p>Offlne (processed locally), standard image formats only and saves as PNG</p>
+
+<p>See readme on Codeberg for model downloads</p>

@@ -1,94 +1,46 @@
 <div align="center">
 <img src="fastlane/appassets/logo/dejpeg_logo_rounded.svg" height="140" alt="A gray mountain rotated 45 degrees clockwise with a lowercase letter j rotated 90 degrees clockwise">
-<table>
-<tr>
-<td><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/01.png" width="240"></td>
-<td><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/02.png" width="240"></td>
-</tr>
-</table>
+<!-- blank to put centered? -->
+<p></p>
+<td><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/01.png" width="180"></td>
+<td><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/02.png" width="180"></td>
 <p>
 <p align="center">
-<a href="https://apt.izzysoft.de/fdroid/index/apk/com.je.dejpeg"><img src="fastlane/appassets/IzzyOnDroid.png" width="220" alt="IzzyOnDroid"></a>
-<a href="https://codeberg.org/dryerlint/dejpeg/releases/download/latest/dejpeg-arm64-v8a.apk"><img src="fastlane/appassets/codeberg-badge.png" width="220" alt="Codeberg direct apk"></a>
-<a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.je.dejpeg%22%2C%22url%22%3A%22https%3A%2F%2Fcodeberg.org%2Fdryerlint%2Fdejpeg%22%2C%22author%22%3A%22dryerlint%22%2C%22name%22%3A%22DeJPEG%22%2C%22preferredApkIndex%22%3A0%2C%22overrideSource%22%3A%22Codeberg%22%7D"><img src="fastlane/appassets/obtanium.png" width="220" alt="Obtainium config"></a>
+<a href="https://apt.izzysoft.de/fdroid/index/apk/com.je.dejpeg"><img src="fastlane/appassets/IzzyOnDroid.png" width="180" alt="IzzyOnDroid"></a>
+<a href="https://codeberg.org/dryerlint/dejpeg/releases/download/latest/dejpeg-arm64-v8a.apk"><img src="fastlane/appassets/codeberg-badge.png" width="180" alt="Codeberg direct apk"></a>
+<a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.je.dejpeg%22%2C%22url%22%3A%22https%3A%2F%2Fcodeberg.org%2Fdryerlint%2Fdejpeg%22%2C%22author%22%3A%22dryerlint%22%2C%22name%22%3A%22DeJPEG%22%2C%22preferredApkIndex%22%3A0%2C%22overrideSource%22%3A%22Codeberg%22%7D"><img src="fastlane/appassets/obtanium.png" width="180" alt="Obtainium config"></a>
 </div>
 
-Removes JPEG artifacts and noise, not an upscaler.
+An offline compression artifact remover and denoise application for Android
 
-uses:
+[Models list available here](models/), see [examples](examples/) for how to use them.
 
-* [FBCNN](https://github.com/jiaxi-jiang/FBCNN)
-* [SCUNet](https://github.com/cszn/SCUNet)
-
-(and others)
-
----
-
-### Features
-
-* Artifact removal
-* Denoise
-* Offline
-
----
-
-### Models
-
-[models](models/)
-
----
-
-### Examples
-
-[examples](examples/)
-
----
-
-### Limits
-
-* Local processing
-* Standard image formats only and not huge
-
----
-
-### Desktop
-
-Can use [chaiNNer](https://chainner.app/)
-
-FBCNN:
-
-* install this [custom node](chainner/)
-* use PyTorch models from the [FBCNN repo](https://github.com/jiaxi-jiang/FBCNN) (not ONNX)
-
----
-
-### Contributing
+**Contributing**
 
 Translate:
 [https://translate.codeberg.org/projects/dejpeg](https://translate.codeberg.org/projects/dejpeg)
 
+**Additional details** 
 
-### Additional details
+If you'd like to use models on PCs (Linux/Mac/Windows), look at [chaiNNer](https://chainner.app/)
+(for FBCNN, install this [custom node](chainner/) and use PyTorch models from the [FBCNN repo](https://github.com/jiaxi-jiang/FBCNN))
 
-I'm sure you've heard about the recent restriction of 3rd party apps. This app will not be on the Play store.
+Regarding the recent restriction of 3rd party apps, this won't be on the Play Store and I will not be involved with [Developer Verification](https://developer.android.com/developer-verification).
 
 <details>
 <summary><h3>building</h3></summary>
 
-Standard gradle build proceses
-
-For building with [Intel® Oidn Denoising](https://www.openimagedenoise.org/), see [oidn/readme.md](oidn/readme.md)
+Standard gradle build proceses. For building with [Intel® Oidn Denoising](https://www.openimagedenoise.org/), see [oidn/readme.md](oidn/readme.md)
 
 </details>
 
 <details>
 <summary><h3>credits and license</h3></summary>
 
-### disclaimer:
-
 This is a GUI for a select amount of `1x` ONNX processing models, used under their respective licenses (Apache 2.0)
 
-Versions prior to 4.0 were licensed under GPLv3. Starting with version 4.0 onward, this project is licensed under [AGPLv3-or-later](https://spdx.org/licenses/AGPL-3.0-or-later.html).
+DeJPEG v4 and onward is licensed under [AGPLv3-or-later](https://spdx.org/licenses/AGPL-3.0-or-later.html)
+Older versions (v3 and under) are under GPLv3-only.
 
   Credits to [@adrianerrea](https://github.com/adrianerrea/fromPytorchtoMobile) for a starting point, [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and [SCUNet](https://github.com/cszn/SCUNet) creators plus all other model owners.
 

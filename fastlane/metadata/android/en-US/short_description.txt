@@ -1,1 +1,1 @@
-Removes JPEG artifacts and noise, not an upscaler.
+An offline compression artifact remover and denoiser

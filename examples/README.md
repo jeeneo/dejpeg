@@ -6,7 +6,7 @@ models: `1x-span-anime-pretrain`, `1x-RGB-max-Denoise`, `SCUNet`
 
 <img src="cartoon_doublecompression.png" alt="a double compressed cartoon" width="240">
 
-model: `1x-RGB-max-Denoise`
+model: `1x-RGB-max-Denoise`, or brisque descale + `FBCNN`
 
 <img src="figs.jpg" alt="the original figs" width="240" >
 <img src="tulips.png" alt="the original tuilps" width="240" >
