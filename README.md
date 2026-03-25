@@ -15,12 +15,12 @@ An offline compression artifact remover and denoise application for Android
 
 [Models list available here](models/), see [examples](examples/) for how to use them.
 
-**Contributing**
+### Contributing
 
 Translate:
 [https://translate.codeberg.org/projects/dejpeg](https://translate.codeberg.org/projects/dejpeg)
 
-**Additional details** 
+### Additional details
 
 If you'd like to use models on PCs (Linux/Mac/Windows), look at [chaiNNer](https://chainner.app/)
 (for FBCNN, install this [custom node](chainner/) and use PyTorch models from the [FBCNN repo](https://github.com/jiaxi-jiang/FBCNN))
