@@ -40,11 +40,17 @@ class ServiceCommunicationHelper(
     private var isBound = false
     private val mainHandler = Handler(Looper.getMainLooper())
     private var bindingEpoch = 0
-    private var currentEpoch: ServiceConnection? = null
-    private var activeService: IBinder? = null
+    private data class Binding(
+        val connection: ServiceConnection,
+        val deathRecipient: IBinder.DeathRecipient,
+        val binder: IBinder?
+    )
+
+    private var activeBinding: Binding? = null
     private fun bindToService() {
         if (isBound) return
         val generation = ++bindingEpoch
+
         val deathRecipient = IBinder.DeathRecipient {
             mainHandler.post {
                 if (generation != bindingEpoch) return@post
@@ -57,6 +63,7 @@ class ServiceCommunicationHelper(
                 callbacks.onServiceCrash(imageId)
             }
         }
+
         val connection = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
                 if (generation != bindingEpoch) return
@@ -64,8 +71,8 @@ class ServiceCommunicationHelper(
                     "ServiceCommHelper",
                     "Service connected [gen=$generation], registering DeathRecipient"
                 )
-                activeService = binder
                 isBound = true
+                activeBinding = Binding(this, deathRecipient, binder)
                 try {
                     binder?.linkToDeath(deathRecipient, 0)
                     Log.d("ServiceCommHelper", "DeathRecipient linked successfully")
@@ -82,7 +89,7 @@ class ServiceCommunicationHelper(
                 callbacks.onServiceCrash(imageId)
             }
         }
-        currentEpoch = connection
+
         try {
             val intent = Intent(context, ProcessingService::class.java)
             context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
@@ -95,14 +102,17 @@ class ServiceCommunicationHelper(
     private fun unbindFromService() {
         if (!isBound) return
         bindingEpoch++
+        val binding = activeBinding
+        if (binding == null) {
+            cleanupBinding()
+            return
+        }
         try {
-            activeService?.unlinkToDeath(
-                currentEpoch as? IBinder.DeathRecipient ?: return, 0
-            )
+            binding.binder?.unlinkToDeath(binding.deathRecipient, 0)
         } catch (_: Exception) {
         }
         try {
-            currentEpoch?.let { context.unbindService(it) }
+            context.unbindService(binding.connection)
             Log.d("ServiceCommHelper", "Unbound from service")
         } catch (_: Exception) {
         }
@@ -110,8 +120,7 @@ class ServiceCommunicationHelper(
     }
 
     private fun cleanupBinding() {
-        activeService = null
-        currentEpoch = null
+        activeBinding = null
         isBound = false
         currentProcessingImageId = null
         serviceProcessPid = null
