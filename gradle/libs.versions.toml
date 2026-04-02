@@ -22,6 +22,7 @@ zoomable = "0.18.0"
 exifinterface = "1.4.2"
 datastore = "1.2.1"
 animationCore = "1.10.5"
+uiGraphics = "1.10.6"
 
 [libraries]
 androidx-compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "foundation" }
@@ -47,6 +48,7 @@ zoomable = { module = "me.saket.telephoto:zoomable", version.ref = "zoomable" }
 androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 androidx-compose-animation-core = { group = "androidx.compose.animation", name = "animation-core", version.ref = "animationCore" }
+androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics", version.ref = "uiGraphics" }
 #androidx-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3Version" }
 
 [plugins]

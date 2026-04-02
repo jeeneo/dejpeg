@@ -1,5 +1,5 @@
 <p>An app for cleaning compressed images and removing noise.</p>
 
-<p>Offline (processed locally), standard image formats only and saves as PNG</p>
+<p>Processed locally, saves as png</p>
 
-<p>See readme on Codeberg for model downloads</p>
+<p>See readme on Codeberg for additional model downloads</p>

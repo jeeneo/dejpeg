@@ -1,0 +1,3 @@
+- fixes recents dismiss bug
+- dynamic about logo
+- updated screenshots

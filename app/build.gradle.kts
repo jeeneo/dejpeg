@@ -28,19 +28,17 @@ android {
             minorApiLevel = 1
         }
     }
-
     defaultConfig {
         applicationId = "com.je.dejpeg"
         minSdk = 24
         targetSdk = 36
-        versionCode = 400
-        versionName = "4.0"
+        versionCode = 401
+        versionName = "4.0.1"
         ndk {
             abiFilters += "arm64-v8a"
         }
         buildConfigField("boolean", "OIDN_ENABLED", "false")
     }
-
     if (buildOidn) {
         externalNativeBuild {
             cmake {
@@ -49,7 +47,6 @@ android {
             }
         }
     }
-
     signingConfigs {
         if (hasReleaseSigning) {
             create("release") {
@@ -121,6 +118,7 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.compose.animation.core)
+    implementation(libs.androidx.ui.graphics)
 }
 
 androidComponents {

@@ -72,6 +72,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -199,6 +200,10 @@ fun AboutDialog(onDismiss: () -> Unit) {
     }
     var spawnTrigger by remember { mutableLongStateOf(0L) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val density = LocalDensity.current
+    val logoSizePx = with(density) { 128.dp.roundToPx() }
+    val logoBitmap = rememberThemedLogoBitmap(sizePx = logoSizePx)
+    val logoPainter: Painter = remember(logoBitmap) { BitmapPainter(logoBitmap) }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -215,7 +220,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
                         .height(128.dp), contentAlignment = Alignment.Center
                 ) {
                     Image(
-                        painter = painterResource(R.drawable.dejpeg_logo_rounded),
+                        painter = logoPainter,
                         contentDescription = stringResource(R.string.app_icon),
                         modifier = Modifier
                             .size(128.dp)
@@ -243,11 +248,8 @@ fun AboutDialog(onDismiss: () -> Unit) {
                         { haptic.light() })
                 }
             }
-            val painter = painterResource(R.drawable.dejpeg_logo_rounded)
-            val density = LocalDensity.current
-            val logoSizePx = with(density) { 128.dp.roundToPx() }
             RainingLogoEffect(
-                painter = painter,
+                painter = logoPainter,
                 logoSize = IntSize(logoSizePx, logoSizePx),
                 modifier = Modifier.matchParentSize(),
                 particleCount = 15,
