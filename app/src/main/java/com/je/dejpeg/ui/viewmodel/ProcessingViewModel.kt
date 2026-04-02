@@ -593,6 +593,7 @@ class ProcessingViewModel : ViewModel() {
         context: Context,
         imageIds: List<String>,
         baseFilename: String? = null,
+        overwrite: Boolean = false,
         onComplete: () -> Unit = {}
     ) {
         viewModelScope.launch {
@@ -608,6 +609,7 @@ class ProcessingViewModel : ViewModel() {
                             context = context,
                             bitmap = image.outputBitmap ?: return@suspendCancellableCoroutine,
                             filename = name,
+                            overwrite = overwrite,
                             imageId = id,
                             onSuccess = {
                                 imageRepository.markImageAsSaved(id)
@@ -638,8 +640,12 @@ class ProcessingViewModel : ViewModel() {
     }
 
     private fun resolveFilename(original: String, base: String?, index: Int, total: Int): String {
-        val raw = if (total > 1) original.ifBlank { "${base ?: "DeJPEG"}_${index + 1}" }
-        else original.ifBlank { base ?: "DeJPEG" }
+        val chosenBase = base?.takeIf { it.isNotBlank() }
+        val raw = when {
+            total == 1 && chosenBase != null -> chosenBase
+            total > 1 -> original.ifBlank { "${chosenBase ?: "DeJPEG"}_${index + 1}" }
+            else -> original.ifBlank { chosenBase ?: "DeJPEG" }
+        }
         return raw.substringBeforeLast('.', raw)
     }
 }

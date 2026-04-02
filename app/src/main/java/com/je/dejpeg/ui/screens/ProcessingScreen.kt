@@ -360,17 +360,8 @@ fun ProcessingScreen(
                             } else if (allComplete) {
                                 val imageIds =
                                     images.filter { it.outputBitmap != null }.map { it.id }
-                                val conflicting =
-                                    images.filter { it.outputBitmap != null }.firstOrNull {
-                                        ImageActions.checkFileExists(context, it.filename)
-                                    }
-                                if (conflicting != null) {
-                                    saveOrPrompt(conflicting.id, conflicting.filename)
-                                } else {
-                                    viewModel.saveImage(
-                                        context = context, imageIds = imageIds, onComplete = {
-                                            imageIds.forEach { id -> performRemoval(id) }
-                                        })
+                                if (imageIds.isNotEmpty()) {
+                                    saveOrPrompt(imageIds.first(), images.first { it.id == imageIds.first() }.filename)
                                 }
                             } else {
                                 tryProcess { haptic.medium(); viewModel.processImages() }
@@ -697,6 +688,7 @@ fun ProcessingScreen(
                     context = context,
                     imageIds = listOf(id),
                     baseFilename = name,
+                    overwrite = true,
                     onComplete = { performRemoval(id); overwriteDialogState = null })
             })
     }

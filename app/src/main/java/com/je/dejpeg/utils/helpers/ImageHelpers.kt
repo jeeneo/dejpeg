@@ -354,30 +354,40 @@ class ImagePickerHelper(
 }
 
 object ImageActions {
-    fun checkFileExists(context: Context, filename: String): Boolean {
-        val fileNameRaw = filename.takeIf { it.isNotBlank() } ?: return false
-        val fileName = fileNameRaw.substringBeforeLast('.', fileNameRaw)
-        val finalName = "$fileName.png"
-        val projection = arrayOf(MediaStore.Images.Media._ID)
+    private fun findExistingImageIds(context: Context, finalName: String): List<Long> {
         val selection = "${MediaStore.Images.Media.DISPLAY_NAME} = ?"
         val selectionArgs = arrayOf(finalName)
         return try {
             context.contentResolver.query(
                 MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                projection,
+                arrayOf(MediaStore.Images.Media._ID),
                 selection,
                 selectionArgs,
                 null
-            )?.use { cursor -> cursor.moveToFirst() } ?: false
+            )?.use { cursor ->
+                buildList {
+                    while (cursor.moveToNext()) {
+                        add(cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)))
+                    }
+                }
+            } ?: emptyList()
         } catch (_: Exception) {
-            false
+            emptyList()
         }
+    }
+
+    fun checkFileExists(context: Context, filename: String): Boolean {
+        val fileNameRaw = filename.takeIf { it.isNotBlank() } ?: return false
+        val fileName = fileNameRaw.substringBeforeLast('.', fileNameRaw)
+        val finalName = "$fileName.png"
+        return findExistingImageIds(context, finalName).isNotEmpty()
     }
 
     fun saveImage(
         context: Context,
         bitmap: Bitmap,
         filename: String? = null,
+        overwrite: Boolean = false,
         imageId: String? = null,
         onSuccess: () -> Unit = {},
         onError: (String) -> Unit = {}
@@ -391,20 +401,14 @@ object ImageActions {
                 }"
                 val fileName = fileNameRaw.substringBeforeLast('.', fileNameRaw)
                 val finalName = "$fileName.png"
+                val existingIds = findExistingImageIds(context, finalName)
+                if (existingIds.isNotEmpty() && !overwrite) {
+                    withContext(Dispatchers.Main) { onError(context.getString(R.string.already_exists)) }
+                    return@launch
+                }
 
-                // overwrite is needed or should always append?
-                val selection = "${MediaStore.Images.Media.DISPLAY_NAME} = ?"
-                val selectionArgs = arrayOf(finalName)
-                context.contentResolver.query(
-                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                    arrayOf(MediaStore.Images.Media._ID),
-                    selection,
-                    selectionArgs,
-                    null
-                )?.use { cursor ->
-                    while (cursor.moveToNext()) {
-                        val id =
-                            cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID))
+                if (overwrite) {
+                    existingIds.forEach { id ->
                         val deleteUri = ContentUris.withAppendedId(
                             MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id
                         )

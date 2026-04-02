@@ -438,8 +438,8 @@ fun SaveImageDialog(
     onSave: (String, Boolean, Boolean) -> Unit
 ) {
     val fileExt = defaultFilename.substringBeforeLast('.')
-    var textState by remember { mutableStateOf(fileExt) }
-    var saveAll by remember { mutableStateOf(initialSaveAll) }
+    var textState by remember(defaultFilename) { mutableStateOf(fileExt) }
+    var saveAll by remember(initialSaveAll) { mutableStateOf(initialSaveAll) }
     var skipNext by remember { mutableStateOf(false) }
     val haptic = rememberHapticFeedback()
     StyledAlertDialog(onDismissRequest = onDismissRequest, title = {

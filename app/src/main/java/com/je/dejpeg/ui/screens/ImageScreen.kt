@@ -257,7 +257,7 @@ fun ImageScreen(
                 hideOptions = true,
                 onDismissRequest = { overwriteDialogState = null }) { name, _, _ ->
                 viewModel.saveImage(
-                    context = context, imageIds = listOf(id), baseFilename = name
+                    context = context, imageIds = listOf(id), baseFilename = name, overwrite = true
                 )
                 overwriteDialogState = null
             }
