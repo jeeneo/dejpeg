@@ -118,7 +118,6 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.compose.animation.core)
-    implementation(libs.androidx.ui.graphics)
 }
 
 androidComponents {
