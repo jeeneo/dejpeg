@@ -25,47 +25,6 @@ import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-class BRISQUEAssessor {
-    companion object {
-        private const val TAG = "BRISQUEAssessor"
-        private var contextRef: WeakReference<Context>? = null
-        fun initialize(context: Context) {
-            contextRef = WeakReference(context.applicationContext)
-        }
-
-        private fun getModel(): BrisqueSVMModel? {
-            val ctx = contextRef?.get() ?: return null
-            return BrisqueModelLoader.loadFromAssets(ctx)
-        }
-    }
-
-    fun assessImageQualityFromBitmap(bitmap: Bitmap): Float {
-        return try {
-            val model = getModel()
-            if (model == null) {
-                Log.e(TAG, "Failed to load BRISQUE model - call initialize(context) first")
-                return -2.0f
-            }
-            Log.d(TAG, "Computing BRISQUE score for bitmap (${bitmap.width}x${bitmap.height})")
-            when (val result = BrisqueCore.computeScore(bitmap, model)) {
-                is BrisqueResult.Success -> {
-                    Log.d(TAG, "BRISQUE score computed: ${result.score}")
-                    result.score
-                }
-
-                is BrisqueResult.Error -> {
-                    Log.e(TAG, "BRISQUE computation error: ${result.message}")
-                    -1.0f
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error computing BRISQUE score: ${e.message}", e)
-            -1.0f
-        }
-    }
-}
-
-
 class BRISQUEDescaler(
     private val brisqueAssessor: BRISQUEAssessor
 ) {
@@ -400,477 +359,48 @@ class BRISQUEDescaler(
     }
 }
 
-/**
- *
- * attempt at a pure Kotlin implementation of BRISQUE
- * primarily based on `qualitybrisque.cpp` in opencv_contrib (https://github.com/opencv/opencv_contrib/blob/master/modules/quality/src/qualitybrisque.cpp)
- * 
- * AI transparency: LLMs were used to help with algorithm reimplementation and porting.
- * it's not a direct 1-to-1 translation of the original C++, but aims to follow the same algorithmic steps.
- *
- */
-
-sealed class BrisqueResult {
-    data class Success(val score: Float) : BrisqueResult()
-    data class Error(val message: String, val exception: Exception? = null) : BrisqueResult()
-}
-
-object BrisqueCore {
-    private const val TAG = "BrisqueCore"
-    private const val GAUSSIAN_KERNEL_SIZE = 7
-    private const val GAUSSIAN_SIGMA = 7.0 / 6.0
-    private val gaussianKernel: DoubleArray by lazy {
-        createGKernel()
-    }
-
-    private fun createGKernel(): DoubleArray {
-        val kernel = DoubleArray(GAUSSIAN_KERNEL_SIZE)
-        val half = GAUSSIAN_KERNEL_SIZE / 2
-        var sum = 0.0
-        for (i in 0 until GAUSSIAN_KERNEL_SIZE) {
-            val x = i - half
-            kernel[i] = exp(-x * x / (2 * GAUSSIAN_SIGMA * GAUSSIAN_SIGMA))
-            sum += kernel[i]
-        }
-        for (i in 0 until GAUSSIAN_KERNEL_SIZE) {
-            kernel[i] = kernel[i] / sum
-        }
-        return kernel
-    }
-
-    fun bitmapToGrayscaleFloat(bitmap: Bitmap): FloatArray {
-        val width = bitmap.width
-        val height = bitmap.height
-        val gray = FloatArray(width * height)
-        val chunkRows = 64
-        val rowPixels = IntArray(width * chunkRows)
-        var y = 0
-        while (y < height) {
-            val rows = minOf(chunkRows, height - y)
-            bitmap.getPixels(rowPixels, 0, width, 0, y, width, rows)
-            val baseIdx = y * width
-            val count = rows * width
-            for (i in 0 until count) {
-                val pixel = rowPixels[i]
-                val r = (pixel shr 16) and 0xFF
-                val g = (pixel shr 8) and 0xFF
-                val b = pixel and 0xFF
-                // match OpenCV's cvtColor(BGR2GRAY) for 8-bit input:
-                // Y = (R*4899 + G*9617 + B*1868 + 8192) >> 14
-                // rounds to an 8-bit integer, then divide by 255
-                // to match the convertTo(CV_32F, 1./255.) step.
-                val yInt = (r * 4899 + g * 9617 + b * 1868 + 8192) shr 14
-                gray[baseIdx + i] = yInt / 255.0f
-            }
-            y += rows
-        }
-        return gray
-    }
-
-    /**
-     * computes the Mean Subtracted Contrast Normalized (MSCN) coefficients.
-     *
-     * [buf1] and [buf2] are used as scratch space during Gaussian blur.
-     * on return, [buf1] contains the MSCN output image,
-     * [buf2] is left in an undefined state and should not be read after this call
-     */
-    fun computeMSCN(
-        image: FloatArray, buf1: FloatArray, buf2: FloatArray, width: Int, height: Int
-    ) {
-        val n = width * height
-        val kernel = gaussianKernel
-        val half = GAUSSIAN_KERNEL_SIZE / 2
-        for (i in 0 until n) {
-            buf1[i] = image[i]
-            buf2[i] = image[i] * image[i]
-        }
-        val rowBuf1 = FloatArray(width)
-        val rowBuf2 = FloatArray(width)
-        for (y in 0 until height) {
-            val rowOff = y * width
-            for (x in 0 until width) {
-                var s1 = 0.0
-                var s2 = 0.0
-                for (k in -half..half) {
-                    val nx = (x + k).coerceIn(0, width - 1)
-                    val w = kernel[k + half]
-                    s1 += buf1[rowOff + nx] * w
-                    s2 += buf2[rowOff + nx] * w
-                }
-                rowBuf1[x] = s1.toFloat()
-                rowBuf2[x] = s2.toFloat()
-            }
-            System.arraycopy(rowBuf1, 0, buf1, rowOff, width)
-            System.arraycopy(rowBuf2, 0, buf2, rowOff, width)
-        }
-        val colBuf1 = FloatArray(height)
-        val colBuf2 = FloatArray(height)
-        for (x in 0 until width) {
-            for (y in 0 until height) {
-                val idx = y * width + x
-                colBuf1[y] = buf1[idx]
-                colBuf2[y] = buf2[idx]
-            }
-            for (y in 0 until height) {
-                var s1 = 0.0
-                var s2 = 0.0
-                for (k in -half..half) {
-                    val ny = (y + k).coerceIn(0, height - 1)
-                    val w = kernel[k + half]
-                    s1 += colBuf1[ny] * w
-                    s2 += colBuf2[ny] * w
-                }
-                val idx = y * width + x
-                buf1[idx] = s1.toFloat()
-                buf2[idx] = s2.toFloat()
-            }
-        }
-        // compute MSCN = (image - mu) / (sigma + eps)
-        // after this, buf1 holds the MSCN coefficients.
-        val eps = 1.0f / 255.0f
-        for (i in 0 until n) {
-            val mu = buf1[i]
-            val variance = buf2[i].toDouble() - mu.toDouble() * mu.toDouble()
-            if (variance <= 0.0) {
-                buf1[i] = 0.0f
-            } else {
-                val sigma = sqrt(variance) + eps
-                buf1[i] = ((image[i].toDouble() - mu.toDouble()) / sigma).toFloat()
-            }
-        }
-    }
-
-    /**
-     * Lanczos approximation of gamma function (tgamma)
-     */
-    fun tgamma(x: Double): Double {
-        if (x <= 0.0) return Double.NaN
-        if (x < 0.5) {
-            return PI / (sin(PI * x) * tgamma(1.0 - x)) // reflection formula: Gamma(x) * Gamma(1-x) = PI / sin(PI*x)
-        }
-        val g = 7.0
-        val coefficients = doubleArrayOf( // Lanczos coefficients for g=7, n=9
-            0.9999999999998099,
-            676.5203681218851,
-            -1259.1392167224028,
-            771.3234287776531,
-            -176.6150291621406,
-            12.507343278686905,
-            -0.13857109526572012,
-            9.984369578019572E-6,
-            1.5056327351493116e-7
-        )
-        val z = x - 1.0
-        var ag = coefficients[0]
-        for (i in 1 until coefficients.size) {
-            ag += coefficients[i] / (z + i)
-        }
-        val t = z + g + 0.5
-        return sqrt(2.0 * PI) * t.pow(z + 0.5) * exp(-t) * ag
-    }
-
-    private class AGGDStats {
-        var posCount = 0L
-        var negCount = 0L
-        var posSqSum = 0.0
-        var negSqSum = 0.0
-        var absSum = 0.0
-        var totalCount = 0L
-        fun add(value: Float) {
-            totalCount++
-            // all accumulation in AGGD uses double precision for the pixel value.
-            val dv = value.toDouble()
-            if (value > 0) {
-                posCount++
-                posSqSum += dv * dv
-                absSum += dv
-            } else if (value < 0) {
-                negCount++
-                negSqSum += dv * dv
-                absSum -= dv
-            }
-        }
-
-        fun compute(): Triple<Double, Double, Double> {
-            if (totalCount == 0L || posCount == 0L || negCount == 0L) {
-                return Triple(0.0, 0.0, 1.0)
-            }
-            val sumSq = negSqSum + posSqSum
-            if (sumSq == 0.0) {
-                return Triple(0.0, 0.0, 1.0)
-            }
-            val leftSigma = sqrt(negSqSum / negCount)
-            val rightSigmaRaw = sqrt(posSqSum / posCount)
-            val epsilon = 1e-10
-            val rightSigma = if (rightSigmaRaw == 0.0) epsilon else rightSigmaRaw
-            val gammaHat = leftSigma / rightSigma
-            val rHat = (absSum / totalCount).pow(2) / (sumSq / totalCount)
-            val rHatNorm =
-                rHat * (gammaHat.pow(3) + 1) * (gammaHat + 1) / (gammaHat.pow(2) + 1).pow(2)
-            var prevGamma = 0.0
-            var prevDiff = 1e10
-            val sampling = 0.001
-            var gam = 0.2
-            while (gam < 10.0) {
-                val rGam = tgamma(2.0 / gam).pow(2) / (tgamma(1.0 / gam) * tgamma(3.0 / gam))
-                val diff = abs(rGam - rHatNorm)
-                if (diff > prevDiff) break
-                prevDiff = diff
-                prevGamma = gam
-                gam += sampling
-            }
-            return Triple(leftSigma, rightSigma, prevGamma)
-        }
-    }
-
-    fun fitAGGD(data: FloatArray, count: Int = data.size): Triple<Double, Double, Double> {
-        val stats = AGGDStats()
-        for (i in 0 until count) {
-            stats.add(data[i])
-        }
-        return stats.compute()
-    }
-
-    fun computeForScale(mscn: FloatArray, width: Int, height: Int): FloatArray {
-        val n = width * height
-        val features = FloatArray(18)
-        val (leftSigma, rightSigma, gamma) = fitAGGD(mscn, n)
-        features[0] = gamma.toFloat()
-        features[1] = ((leftSigma * leftSigma + rightSigma * rightSigma) / 2).toFloat()
-        val shifts = arrayOf(
-            intArrayOf(0, 1), intArrayOf(1, 0), intArrayOf(1, 1), intArrayOf(-1, 1)
-        )
-        val pairProduct = FloatArray(n)
-        for (shiftIdx in shifts.indices) {
-            val dy = shifts[shiftIdx][0]
-            val dx = shifts[shiftIdx][1]
-            for (y in 0 until height) {
-                val ny = y + dy
-                val rowOff = y * width
-                // use the unilateral phase detractors to compute the size of verticies in a given planar graph
-                for (x in 0 until width) {
-                    val nx = x + dx
-                    pairProduct[rowOff + x] = if (ny in 0 until height && nx in 0 until width) {
-                        mscn[rowOff + x] * mscn[ny * width + nx]
-                    } else {
-                        0.0f
-                    }
-                }
-            }
-            val (ls, rs, g) = fitAGGD(pairProduct, n)
-            val constant = sqrt(tgamma(1.0 / g)) / sqrt(tgamma(3.0 / g))
-            val meanParam = (rs - ls) * (tgamma(2.0 / g) / tgamma(1.0 / g)) * constant
-            val baseIdx = 2 + shiftIdx * 4
-            features[baseIdx] = g.toFloat()
-            features[baseIdx + 1] = meanParam.toFloat()
-            features[baseIdx + 2] = (ls * ls).toFloat()
-            features[baseIdx + 3] = (rs * rs).toFloat()
-        }
-        return features
-    }
-
-    fun calcBrisqueFeatures(bitmap: Bitmap): FloatArray {
-        val features = FloatArray(36)
-        val width = bitmap.width
-        val height = bitmap.height
-        val n = width * height
-        val gray = bitmapToGrayscaleFloat(bitmap)
-        val buf1 = FloatArray(n)
-        val buf2 = FloatArray(n)
-        computeMSCN(gray, buf1, buf2, width, height)
-        val features1 = computeForScale(buf1, width, height)
-        System.arraycopy(features1, 0, features, 0, 18)
-        val halfWidth = width / 2
-        val halfHeight = height / 2
-        if (halfWidth > 0 && halfHeight > 0) {
-            val scale2 = FloatArray(halfWidth * halfHeight)
-            ImageResampler.resizeInterCubic(gray, width, height, scale2, halfWidth, halfHeight)
-            computeMSCN(scale2, buf1, buf2, halfWidth, halfHeight)
-            val features2 = computeForScale(buf1, halfWidth, halfHeight)
-            System.arraycopy(features2, 0, features, 18, 18)
-        }
-        return features
-    }
-
-    fun scaleFeatures(
-        features: FloatArray, rangeMin: FloatArray, rangeMax: FloatArray
-    ): FloatArray {
-        val scaled = FloatArray(features.size)
-        for (i in features.indices) {
-            val min = rangeMin[i]
-            val max = rangeMax[i]
-            val range = max - min
-            scaled[i] = if (range != 0f) {
-                2.0f * (features[i] - min) / range - 1.0f
-            } else {
-                0.0f
-            }
-        }
-        return scaled
-    }
-
-    fun predictSVM(features: FloatArray, model: BrisqueSVMModel): Float {
-        val numFeatures = BrisqueSVMModel.NUM_FEATURES
-        val numSV = BrisqueSVMModel.NUM_SUPPORT_VECTORS
-        require(model.supportVectors.size == numSV * numFeatures) { "Support vector array size (${model.supportVectors.size}) " + "doesn't match expected ${numSV}x${numFeatures}" }
-        require(model.alphas.size == numSV) { "Alphas array size (${model.alphas.size}) doesn't match expected $numSV" }
-        var sum = 0.0
-        val svData = model.supportVectors
-        val gamma = model.gamma
-        for (i in 0 until BrisqueSVMModel.NUM_SUPPORT_VECTORS) {
-            val svStart = i * numFeatures
-            var distSq = 0.0
-            for (j in 0 until numFeatures) {
-                val diff = features[j].toDouble() - svData[svStart + j].toDouble()
-                distSq += diff * diff
-            }
-            val preExp = (-gamma * distSq).toFloat()
-            sum += model.alphas[i] * exp(preExp.toDouble())
-        }
-        val rawScore = sum - model.rho
-        return rawScore.coerceIn(0.0, 100.0).toFloat()
-    }
-
-    fun computeScore(bitmap: Bitmap, model: BrisqueSVMModel): BrisqueResult {
-        return try {
-            val features = calcBrisqueFeatures(bitmap)
-            val scaledFeatures = scaleFeatures(features, model.rangeMin, model.rangeMax)
-            BrisqueResult.Success(predictSVM(scaledFeatures, model))
-        } catch (e: Exception) {
-            Log.e(TAG, "Error computing BRISQUE score: ${e.message}")
-            BrisqueResult.Error(e.message ?: "Unknown error", e)
-        }
-    }
-}
-
-
-data class BrisqueSVMModel(
-    val supportVectors: FloatArray,
-    val alphas: FloatArray,
-    val rho: Float,
-    val gamma: Float,
-    val rangeMin: FloatArray,
-    val rangeMax: FloatArray
-) {
+class BRISQUEAssessor {
     companion object {
-        const val NUM_FEATURES = 36
-        const val NUM_SUPPORT_VECTORS = 774
-    }
+        private const val TAG = "BRISQUEAssessor"
+        private var libraryLoaded = false
 
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-        other as BrisqueSVMModel
-        if (!supportVectors.contentEquals(other.supportVectors)) return false
-        if (!alphas.contentEquals(other.alphas)) return false
-        if (rho != other.rho) return false
-        if (gamma != other.gamma) return false
-        if (!rangeMin.contentEquals(other.rangeMin)) return false
-        if (!rangeMax.contentEquals(other.rangeMax)) return false
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = supportVectors.contentHashCode()
-        result = 31 * result + alphas.contentHashCode()
-        result = 31 * result + rho.hashCode()
-        result = 31 * result + gamma.hashCode()
-        result = 31 * result + rangeMin.contentHashCode()
-        result = 31 * result + rangeMax.contentHashCode()
-        return result
-    }
-}
-
-object BrisqueModelLoader {
-    private const val TAG = "BrisqueModelLoader"
-    private const val MAGIC = "BRSQ"
-    private const val BRISQUE_MDL_HASH = "5e8828abad9dbaefa727de9312371590c6010795fd10f4e2e2a563a2bd988548"
-
-    @Volatile
-    private var cachedModel: BrisqueSVMModel? = null
-
-    fun loadFromAssets(context: Context): BrisqueSVMModel? {
-        cachedModel?.let { return it }
-        return synchronized(this) {
-            cachedModel?.let { return it }
-            try {
-                val startTime = System.currentTimeMillis()
-                val inputFile = File(context.cacheDir, "brisque_model.bin")
-                if (!inputFile.exists() || inputFile.length() == 0L) {
-                    context.assets.open("brisque_model.bin").use { input ->
-                        inputFile.outputStream().use { output ->
-                            input.copyTo(output)
-                        }
-                    }
+        fun loadLibrary() {
+            synchronized(this) {
+                if (libraryLoaded) return
+                try {
+                    System.loadLibrary("brisque_jni")
+                    libraryLoaded = true
+                    Log.i(TAG, "BRISQUE library loaded")
+                } catch (e: UnsatisfiedLinkError) {
+                    Log.e(TAG, "Failed to load brisque_jni: ${e.message}")
                 }
-                val realHash = HashUtils.computeSHA256(inputFile)
-                if (realHash != BRISQUE_MDL_HASH) {
-                    Log.e(
-                        TAG,
-                        "BRISQUE model SHA256 verification failed. Expected: $BRISQUE_MDL_HASH, Actual: $realHash"
-                    )
-                    inputFile.delete()
-                    return null
-                }
-                val model = loadFromBinary(inputFile)
-                val elapsed = System.currentTimeMillis() - startTime
-                if (model != null) {
-                    cachedModel = model
-                    Log.i(TAG, "BRISQUE model loaded in ${elapsed}ms")
-                }
-                model
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to load BRISQUE model: ${e.message}")
-                null
             }
         }
+        init {
+            loadLibrary()
+        }
     }
-
-    private fun loadFromBinary(file: File): BrisqueSVMModel? {
+    external fun computeBRISQUEFromFile(imagePath: String, modelPath: String, rangePath: String): Float
+    fun assessImageQuality(imagePath: String, modelPath: String, rangePath: String): Float {
+        if (!libraryLoaded) {
+            Log.e(TAG, "Library not loaded")
+            return -2.0f
+        }
+        if (!File(imagePath).exists() || !File(modelPath).exists() || !File(rangePath).exists()) {
+            Log.e(TAG, "One or more files do not exist")
+            return -1.0f
+        }
         return try {
-            val bytes = file.readBytes()
-            val buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
-            val magic = ByteArray(4)
-            buffer.get(magic)
-            if (String(magic) != MAGIC) {
-                Log.e(TAG, "Invalid magic number")
-                return null
+            Log.d(TAG, "Computing BRISQUE score for image: $imagePath")
+            computeBRISQUEFromFile(imagePath, modelPath, rangePath).also {
+                Log.d(TAG, "BRISQUE score computed: $it")
             }
-            buffer.int // version
-            val numFeatures = buffer.int
-            buffer.int // numSupportVectors
-            val gamma = buffer.float
-            val rho = buffer.float
-            val numSvValues = buffer.int
-            val supportVectors = FloatArray(numSvValues)
-            for (i in 0 until numSvValues) {
-                supportVectors[i] = buffer.float
-            }
-            val numAlphas = buffer.int
-            val alphas = FloatArray(numAlphas)
-            for (i in 0 until numAlphas) {
-                alphas[i] = buffer.float
-            }
-            val rangeMin = FloatArray(numFeatures)
-            val rangeMax = FloatArray(numFeatures)
-            for (i in 0 until numFeatures) {
-                rangeMin[i] = buffer.float
-            }
-            for (i in 0 until numFeatures) {
-                rangeMax[i] = buffer.float
-            }
-            BrisqueSVMModel(
-                supportVectors = supportVectors,
-                alphas = alphas,
-                rho = rho,
-                gamma = gamma,
-                rangeMin = rangeMin,
-                rangeMax = rangeMax
-            )
+        } catch (e: UnsatisfiedLinkError) {
+            Log.e(TAG, "Native method not found: ${e.message}", e)
+            -2.0f
         } catch (e: Exception) {
-            Log.e(TAG, "Error loading binary model: ${e.message}")
-            null
+            Log.e(TAG, "Error computing BRISQUE score: ${e.message}", e)
+            -1.0f
         }
     }
-
 }
