@@ -143,6 +143,7 @@ import com.je.dejpeg.ui.viewmodel.SettingsViewModel
 import com.je.dejpeg.utils.HapticFeedbackPerformer
 import com.je.dejpeg.utils.helpers.ImageActions
 import com.je.dejpeg.utils.rememberHapticFeedback
+import com.je.dejpeg.BuildConfig
 import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -1295,6 +1296,11 @@ fun ImageCard(
                     animationSpec = bouncySpringDp,
                     label = "remove_corner"
                 )
+                val removeEndCorner by animateDpAsState(
+                    targetValue = if (BuildConfig.NATIVE_ENABLED) lerp(6f, 28f, removePress).dp else lerp(28f, 28f, removePress).dp,
+                    animationSpec = bouncySpringDp,
+                    label = "remove_end_corner"
+                )
 
                 val processStartCorner by animateDpAsState(
                     targetValue = lerp(28f, 6f, processPress).dp,
@@ -1358,7 +1364,12 @@ fun ImageCard(
                         Button(
                             onClick = { haptic.heavy(); onRemove() },
                             modifier = Modifier.width(removeWidth),
-                            shape = RoundedCornerShape(removeCorner),
+                            shape = RoundedCornerShape(
+                                topStart = removeCorner,
+                                bottomStart = removeCorner,
+                                topEnd = removeEndCorner,
+                                bottomEnd = removeEndCorner,
+                            ),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.errorContainer,
                                 contentColor = MaterialTheme.colorScheme.onErrorContainer
@@ -1374,31 +1385,32 @@ fun ImageCard(
                             )
                         }
                     }
-
-                    Box(Modifier.width(brisqueWidth)) {
-                        Button(
-                            onClick = { haptic.light(); onBrisque() },
-                            modifier = Modifier.width(brisqueWidth),
-                            shape = RoundedCornerShape(
-                                topStart = 6.dp,
-                                bottomStart = 6.dp,
-                                topEnd = brisqueCorner,
-                                bottomEnd = brisqueCorner
-                            ),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            ),
-                            contentPadding = PaddingValues(0.dp),
-                            interactionSource = brisqueInteraction
-                        ) {
-                            Text(
-                                "B",
-                                fontStyle = FontStyle.Italic,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                    if (BuildConfig.NATIVE_ENABLED) {
+                        Box(Modifier.width(brisqueWidth)) {
+                            Button(
+                                onClick = { haptic.light(); onBrisque() },
+                                modifier = Modifier.width(brisqueWidth),
+                                shape = RoundedCornerShape(
+                                    topStart = 6.dp,
+                                    bottomStart = 6.dp,
+                                    topEnd = brisqueCorner,
+                                    bottomEnd = brisqueCorner
+                                ),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                ),
+                                contentPadding = PaddingValues(0.dp),
+                                interactionSource = brisqueInteraction
+                            ) {
+                                Text(
+                                    "B",
+                                    fontStyle = FontStyle.Italic,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
                     }
                 }

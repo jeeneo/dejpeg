@@ -1,6 +1,3 @@
-// Simplified BRISQUE JNI for static linking
-// All OpenCV code is embedded - no dlopen needed!
-
 #include <jni.h>
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
@@ -16,7 +13,7 @@
 extern "C" JNIEXPORT jfloat JNICALL
 Java_com_je_dejpeg_utils_brisque_BRISQUEAssessor_computeBRISQUEFromFile(
         JNIEnv *env,
-        jobject
+        jobject,
         jstring imagePath,
         jstring modelPath,
         jstring rangePath) {

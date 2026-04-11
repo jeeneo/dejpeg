@@ -102,3 +102,42 @@ object ModelMigrationHelper {
         false
     }
 }
+
+object AssetExtractor {
+    private const val TAG = "AssetExtractor"
+    fun extractZipAsset(
+        context: Context,
+        assetZipName: String,
+        targetDir: File,
+        overwrite: Boolean = false
+    ): Boolean {
+        if (!targetDir.exists() && !targetDir.mkdirs()) {
+            Log.e(TAG, "Failed to create target dir: ${targetDir.absolutePath}")
+            return false
+        }
+        return try {
+            context.assets.open(assetZipName).use { inputStream ->
+                java.util.zip.ZipInputStream(inputStream.buffered()).use { zip ->
+                    var entry = zip.nextEntry
+                    while (entry != null) {
+                        if (!entry.isDirectory && !entry.name.contains('/')) {
+                            val outFile = File(targetDir, entry.name)
+                            if (overwrite || !outFile.exists()) {
+                                outFile.outputStream().buffered().use { zip.copyTo(it) }
+                                Log.d(TAG, "Extracted: ${entry.name} to ${outFile.absolutePath}")
+                            } else {
+                                Log.d(TAG, "Skipped (exists): ${entry.name}")
+                            }
+                        }
+                        zip.closeEntry()
+                        entry = zip.nextEntry
+                    }
+                }
+            }
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to extract $assetZipName: ${e.message}", e)
+            false
+        }
+    }
+}

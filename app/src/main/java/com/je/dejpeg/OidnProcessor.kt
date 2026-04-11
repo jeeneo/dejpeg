@@ -18,7 +18,7 @@ class OidnProcessor(private val context: Context) {
 
         init {
             @Suppress("KotlinConstantConditions")
-            if (BuildConfig.OIDN_ENABLED) {
+            if (BuildConfig.NATIVE_ENABLED) {
                 System.loadLibrary("oidn_jni")
             }
         }

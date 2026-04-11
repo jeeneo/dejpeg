@@ -106,7 +106,6 @@ class BrisqueViewModel : ViewModel() {
         imageState.value = state.copy(isAssessing = true, assessError = null)
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                BRISQUEDescaler.initialize(context.applicationContext)
                 val descaler = checkDescaleInit(context)
                 val bmp = state.descaledBitmap ?: state.originalBitmap
                 val score = brisqueAssessor.assessImageQualityFromBitmap(bmp)
@@ -147,7 +146,6 @@ class BrisqueViewModel : ViewModel() {
         )
         descaleJob = viewModelScope.launch(Dispatchers.IO) {
             try {
-                BRISQUEDescaler.initialize(context.applicationContext)
                 val descaler = checkDescaleInit(context)
                 val bmp = state.descaledBitmap ?: state.originalBitmap
                 val currentSettings = settings.value

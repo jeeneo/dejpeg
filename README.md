@@ -39,7 +39,9 @@ Regarding the recent restriction of 3rd party apps, this won't be on the Play St
 <details>
 <summary><h3>building</h3></summary>
 
-Standard gradle build proceses. For building with [Intel® Oidn Denoising](https://www.openimagedenoise.org/), see [oidn/readme.md](oidn/readme.md)
+Standard gradle build proceses. For building with [Intel® Oidn Denoising](https://www.openimagedenoise.org/) and brisque, see [building.md](building.md)
+
+To build with 
 
 </details>
 

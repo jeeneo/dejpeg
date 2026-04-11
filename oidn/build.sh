@@ -1,6 +1,9 @@
+#!/bin/sh
+
 set -euo pipefail
 
-NDK_ROOT="$(realpath "${ANDROID_NDK_ROOT:-${ANDROID_HOME}/ndk/29.0.14206865}")"
+SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+NDK_ROOT="$(realpath "${ANDROID_NDK_ROOT:-${ANDROID_NDK_HOME:-${ANDROID_NDK:-"${SDK_ROOT}/ndk/29.0.14206865"}}}")"
 ISPC="$(realpath "${ISPC_EXECUTABLE:-./oidnroot/ispc/ispc-v1.30.0-linux/bin/ispc}")"
 TBB_SRC="$(realpath "${TBB_SOURCE_DIR:-./oidnroot/oneTBB}")"
 OIDN_SRC="$(realpath "${OIDN_SOURCE_DIR:-./oidnroot/oidn}")"

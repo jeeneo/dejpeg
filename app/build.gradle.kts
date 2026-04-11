@@ -19,10 +19,11 @@ val hasReleaseSigning = listOf(
     releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword
 ).all { !it.isNullOrBlank() }
 
-val buildOidn = gradle.startParameter.taskNames.any { "oidn" in it.lowercase() }
+val buildNative = gradle.startParameter.taskNames.any { "native" in it.lowercase() }
 
 android {
     namespace = "com.je.dejpeg"
+    ndkVersion = "29.0.14206865"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -32,14 +33,14 @@ android {
         applicationId = "com.je.dejpeg"
         minSdk = 24
         targetSdk = 36
-        versionCode = 401
-        versionName = "4.0.1"
+        versionCode = 402
+        versionName = "4.0.2"
         ndk {
             abiFilters += "arm64-v8a"
         }
-        buildConfigField("boolean", "OIDN_ENABLED", "false")
+        buildConfigField("boolean", "NATIVE_ENABLED", "false")
     }
-    if (buildOidn) {
+    if (buildNative) {
         externalNativeBuild {
             cmake {
                 path = file("src/main/cpp/CMakeLists.txt")
@@ -74,13 +75,13 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
             )
         }
-        create("oidnDebug") {
+        create("nativeDebug") {
             initWith(getByName("debug"))
-            buildConfigField("boolean", "OIDN_ENABLED", "true")
+            buildConfigField("boolean", "NATIVE_ENABLED", "true")
         }
-        create("oidnRelease") {
+        create("nativeRelease") {
             initWith(getByName("release"))
-            buildConfigField("boolean", "OIDN_ENABLED", "true")
+            buildConfigField("boolean", "NATIVE_ENABLED", "true")
         }
     }
     compileOptions {

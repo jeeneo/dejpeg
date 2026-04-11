@@ -24,6 +24,7 @@ import kotlin.math.exp
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
+import com.je.dejpeg.utils.helpers.AssetExtractor
 
 class BRISQUEDescaler(
     private val brisqueAssessor: BRISQUEAssessor
@@ -363,6 +364,9 @@ class BRISQUEAssessor {
     companion object {
         private const val TAG = "BRISQUEAssessor"
         private var libraryLoaded = false
+        private var appContextRef: WeakReference<Context>? = null
+        private var modelFileRef: WeakReference<File>? = null
+        private var rangeFileRef: WeakReference<File>? = null
 
         fun loadLibrary() {
             synchronized(this) {
@@ -376,6 +380,30 @@ class BRISQUEAssessor {
                 }
             }
         }
+
+        fun initialize(context: Context) {
+            loadLibrary()
+            appContextRef = WeakReference(context.applicationContext)
+            val brisqueDir = File(context.applicationContext.filesDir, "models/brisque")
+            AssetExtractor.extractZipAsset(context.applicationContext, "embedbrisque.zip", brisqueDir)
+            modelFileRef = WeakReference(File(brisqueDir, "brisque_model_live.yml"))
+            rangeFileRef = WeakReference(File(brisqueDir, "brisque_range_live.yml"))
+        }
+
+        private fun getModelFile(context: Context): File? {
+            val cached = modelFileRef?.get()
+            if (cached?.exists() == true) return cached
+            initialize(context)
+            return modelFileRef?.get()
+        }
+
+        private fun getRangeFile(context: Context): File? {
+            val cached = rangeFileRef?.get()
+            if (cached?.exists() == true) return cached
+            initialize(context)
+            return rangeFileRef?.get()
+        }
+
         init {
             loadLibrary()
         }
@@ -401,6 +429,41 @@ class BRISQUEAssessor {
         } catch (e: Exception) {
             Log.e(TAG, "Error computing BRISQUE score: ${e.message}", e)
             -1.0f
+        }
+    }
+
+    fun assessImageQualityFromBitmap(bitmap: Bitmap): Float {
+        val context = appContextRef?.get()
+        if (context == null) {
+            Log.e(TAG, "BRISQUEAssessor not initialized with application context")
+            return -2.0f
+        }
+
+        val modelFile = getModelFile(context)
+        val rangeFile = getRangeFile(context)
+        if (modelFile == null || rangeFile == null) {
+            Log.e(TAG, "BRISQUE support files are unavailable")
+            return -2.0f
+        }
+
+        val tempFile = File.createTempFile("brisque_assess_", ".png", context.cacheDir)
+        return try {
+            tempFile.outputStream().use { output ->
+                if (!bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)) {
+                    Log.e(TAG, "Failed to encode bitmap for BRISQUE assessment")
+                    return -1.0f
+                }
+            }
+            assessImageQuality(
+                imagePath = tempFile.absolutePath,
+                modelPath = modelFile.absolutePath,
+                rangePath = rangeFile.absolutePath
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Error preparing bitmap for BRISQUE assessment: ${e.message}", e)
+            -1.0f
+        } finally {
+            tempFile.delete()
         }
     }
 }

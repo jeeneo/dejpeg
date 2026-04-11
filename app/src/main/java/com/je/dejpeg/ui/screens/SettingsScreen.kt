@@ -257,7 +257,7 @@ fun SettingsScreen(
                 ExtendedFloatingActionButton(
                     onClick = {
                     haptic.light() // huh wonky, reformatting doesn't like you
-                    if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN) {
+                    if (BuildConfig.NATIVE_ENABLED && processingMode == ProcessingMode.OIDN) {
                         oidnModelPickerLauncher.launch("*/*")
                     } else {
                         modelPickerLauncher.launch("*/*")
@@ -266,7 +266,7 @@ fun SettingsScreen(
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = {
                         Text(
-                            if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN) stringResource(
+                            if (BuildConfig.NATIVE_ENABLED && processingMode == ProcessingMode.OIDN) stringResource(
                                 R.string.import_tza_model
                             )
                             else stringResource(R.string.import_model_text)
@@ -291,7 +291,7 @@ fun SettingsScreen(
         ) {
             PreferenceGroupHeading(stringResource(R.string.processing))
 
-            if (BuildConfig.OIDN_ENABLED) {
+            if (BuildConfig.NATIVE_ENABLED) {
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -769,14 +769,14 @@ fun SettingsScreen(
                 }
             }
 
-            val isOidn = BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN
+            val isOidn = BuildConfig.NATIVE_ENABLED && processingMode == ProcessingMode.OIDN
 
             Box(modifier = Modifier
                 .fillMaxWidth()
                 .onSizeChanged { containerWidth = it.width }
                 .clip(MaterialTheme.shapes.large)
                 .pointerInput(processingMode) {
-                    if (!BuildConfig.OIDN_ENABLED) return@pointerInput
+                    if (!BuildConfig.NATIVE_ENABLED) return@pointerInput
                     detectHorizontalDragGestures(onDragEnd = {
                         val threshold = containerWidth * 0.35f
                         scope.launch {
@@ -921,7 +921,7 @@ fun SettingsScreen(
                     }
                 }
 
-                AnimatedVisibility(visible = processingMode == ProcessingMode.ONNX || !BuildConfig.OIDN_ENABLED) {
+                AnimatedVisibility(visible = processingMode == ProcessingMode.ONNX || !BuildConfig.NATIVE_ENABLED) {
                     Column {
                         PreferenceItem(
                             icon = Icons.Filled.QuestionAnswer,

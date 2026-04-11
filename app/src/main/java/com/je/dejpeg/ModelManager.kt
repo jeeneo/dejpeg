@@ -22,6 +22,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.io.FileOutputStream
+import com.je.dejpeg.utils.helpers.AssetExtractor
 
 enum class ModelType(val extensions: List<String>, val invalidFileTypeResId: Int) {
     ONNX(listOf(".onnx", ".ort"), R.string.invalid_file_type), OIDN(
@@ -499,28 +500,10 @@ class ModelManager(
     }
 
     private fun copyStarterModelsFromAssets(targetDir: File): Boolean {
-        return try {
-            if (!targetDir.exists()) targetDir.mkdirs()
-            val assetFiles = context.assets.list(STARTER_MODELS_ASSET_DIR) ?: emptyArray()
-            if (assetFiles.isEmpty()) {
-                Log.w(
-                    "ModelManager",
-                    "No starter model files found in assets/$STARTER_MODELS_ASSET_DIR"
-                )
-                return false
-            }
-            for (filename in assetFiles) {
-                val outFile = File(targetDir, filename)
-                context.assets.open("$STARTER_MODELS_ASSET_DIR/$filename").use { input ->
-                    FileOutputStream(outFile).use { output -> input.copyTo(output) }
-                }
-                Log.d("ModelManager", "Copied starter model: $filename")
-            }
-            Log.d("ModelManager", "Successfully copied ${assetFiles.size} starter model(s)")
-            true
-        } catch (e: Exception) {
-            Log.e("ModelManager", "Error copying starter models from assets: ${e.message}", e)
-            false
-        }
+        return AssetExtractor.extractZipAsset(
+            context = context,
+            assetZipName = "embedonnx.zip",
+            targetDir = targetDir
+        )
     }
 }

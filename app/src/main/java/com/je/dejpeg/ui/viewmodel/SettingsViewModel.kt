@@ -44,7 +44,7 @@ class SettingsViewModel : ViewModel() {
     val globalStrength = MutableStateFlow(AppPreferences.DEFAULT_GLOBAL_STRENGTH)
     private val _processingMode = MutableStateFlow(ProcessingMode.ONNX)
     val processingMode: StateFlow<ProcessingMode> =
-        _processingMode.map { saved -> if (!BuildConfig.OIDN_ENABLED && saved == ProcessingMode.OIDN) ProcessingMode.ONNX else saved }
+        _processingMode.map { saved -> if (!BuildConfig.NATIVE_ENABLED && saved == ProcessingMode.OIDN) ProcessingMode.ONNX else saved }
             .stateIn(viewModelScope, SharingStarted.Eagerly, ProcessingMode.ONNX)
     val oidnHdr = MutableStateFlow(false)
     val oidnSrgb = MutableStateFlow(false)
