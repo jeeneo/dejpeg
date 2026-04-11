@@ -23,17 +23,20 @@ An offline compression artifact remover and denoise application for Android
 Translate:
 [https://translate.codeberg.org/projects/dejpeg](https://translate.codeberg.org/projects/dejpeg)
 
-### AI transparency
-
-Previously, the kotlin implementation of brisque was created with the use of LLMs (Generative AI). Due to changes in my personal opinion of Generative AI, I have made the decision to remove this code in its entirety and replace it with the original brisque implementation from OpenCV. Both of these will be merged into a `native` release with the store release lacking brisque.
-All future usages of Generative AI will be ceased moving forward. Regarding language translation, I personally want to still use human translation, or classical translation, with LLMs being the last choice.
-
 ### Additional details
 
 If you'd like to use models on PCs (Linux/Mac/Windows), look at [chaiNNer](https://chainner.app/)
 (for FBCNN, install this [custom node](chainner/) and use PyTorch models from the [FBCNN repo](https://github.com/jiaxi-jiang/FBCNN))
 
 Regarding the recent restriction of 3rd party apps, this won't be on the Play Store and I will not be involved with [Developer Verification](https://developer.android.com/developer-verification).
+
+<details>
+<summary><h4>AI transparency</h3></summary>
+
+Previously, the kotlin implementation of brisque was created with the use of LLMs (Generative AI). Due to changes in my personal opinion of Generative AI, I have made the decision to remove this code in its entirety and replace it with the original brisque implementation from OpenCV. Both of these will be merged into a `native` release with the store release lacking brisque.
+All future usages of Generative AI will be ceased moving forward. Regarding language translation, I personally want to still use human translation, or classical translation, with LLMs being the last choice.
+
+</details>
 
 <details>
 <summary><h3>building</h3></summary>
