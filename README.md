@@ -23,6 +23,12 @@ An offline compression artifact remover and denoise application for Android
 Translate:
 [https://translate.codeberg.org/projects/dejpeg](https://translate.codeberg.org/projects/dejpeg)
 
+### AI transparency
+
+Currently, the kotlin implementation of brisque was created with the use of LLMs (Generative AI). Due to changes in my personal opinion of generative AI, I have made the decision to remove this code in it's entirety and replace it with the original OpenCV brisque implementation. This release will be merged with the Oidn release builds.
+
+All current and future usages of Generative AI will be not be used, even in the use of translation.
+
 ### Additional details
 
 If you'd like to use models on PCs (Linux/Mac/Windows), look at [chaiNNer](https://chainner.app/)
