@@ -40,8 +40,6 @@ Regarding the recent restriction of 3rd party apps, this won't be on the Play St
 
 Standard gradle build proceses. For building with [Intel® Oidn Denoising](https://www.openimagedenoise.org/) and brisque, see [building.md](building.md)
 
-To build with 
-
 </details>
 
 <details>
