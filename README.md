@@ -25,7 +25,7 @@ Translate:
 
 ### AI transparency
 
-Currently, the kotlin implementation of brisque was created with the use of LLMs (Generative AI). Due to changes in my personal opinion of generative AI, I have made the decision to remove this code in it's entirety and replace it with the original OpenCV brisque implementation. This release will be merged with the Oidn release builds.
+Currently, the kotlin implementation of brisque was created with the use of LLMs (Generative AI). Due to changes in my personal opinion of generative AI, I have made the decision to remove this code in its entirety and replace it with the original OpenCV brisque implementation. This release will be merged with the Oidn release builds.
 
 All current and future usages of Generative AI will be not be used, even in the use of translation.
 
