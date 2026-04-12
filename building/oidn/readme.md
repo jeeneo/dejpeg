@@ -23,12 +23,10 @@ choose a patch config and run in the repos root:
 
 (patches the repo with android fixes)
 
-`bash oidn/patch_all.sh`: all models embedded
+`bash building/oidn/patch_all.sh`: all models embedded
 
-`bash oidn/patch_min.sh`: only small models embedded
+`bash building/oidn/patch_min.sh`: only small models embedded
 
-`bash oidn/patch_none.sh`: no models embedded (requires importing `.tza` models available [here](https://github.com/RenderKit/oidn-weights))
+`bash building/oidn/patch_none.sh`: no models embedded (requires importing `.tza` models available [here](https://github.com/RenderKit/oidn-weights))
 
-then run the build script `bash oidn/build.sh`
-
-and finally run gradlew `./gradlew clean assembleOidnDebug` (or `./gradlew clean assembleOidnRelease`)
+then run the build script `bash building/oidn/build.sh`
