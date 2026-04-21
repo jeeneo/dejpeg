@@ -33,8 +33,9 @@ Regarding the recent restriction of 3rd party apps, this won't be on the Play St
 <details>
 <summary><h4>AI transparency</h3></summary>
 
-Previously, the kotlin implementation of brisque was created with the use of LLMs (Generative AI). Due to changes in my personal opinion of Generative AI, I have made the decision to remove this code in its entirety and replace it with the original brisque implementation from OpenCV. Both Oidn and Brisque will be merged into a `native` release with the store release only supporting ONNX.
-All future usages of Generative AI will be ceased moving forward. Regarding language translation, I personally want to still use human translation, or classical translation, with LLMs being the last choice.
+Previously, the kotlin implementation of brisque was created with the use of LLMs (Generative AI).
+
+This branch was created for use in a later date if it is decided to remove this port and use the original OpenCV implementation.
 
 </details>
 
