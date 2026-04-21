@@ -1,8 +1,3 @@
-/*
- * SPDX-FileCopyrightText: 2025 - 2026 dryerlint <https://codeberg.org/dryerlint>
- * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
- */
-
 @file:Suppress("SpellCheckingInspection")
 
 package com.je.dejpeg.utils.brisque
@@ -401,15 +396,13 @@ class BRISQUEDescaler(
 }
 
 /**
- *
- * attempt at a pure Kotlin implementation of BRISQUE
- * primarily based on `qualitybrisque.cpp` in opencv_contrib (https://github.com/opencv/opencv_contrib/blob/master/modules/quality/src/qualitybrisque.cpp)
- * 
- * AI transparency: LLMs were used to help with algorithm reimplementation and porting.
- * it's not a direct 1-to-1 translation of the original C++, but aims to follow the same algorithmic steps.
- *
+ * An attempt at a pure Kotlin implementation of BRISQUE
+ * Primarily based on `qualitybrisque.cpp` in opencv_contrib (https://github.com/opencv/opencv_contrib/blob/master/modules/quality/src/qualitybrisque.cpp)
+ * ---
+ * AI transparency: LLMs were used in the creation of the Kotlin implementation of BRISQUE, which is in a legal grey area because of the use of LLM-based tools and therefore
+ * (I would guess?) subject to Public Domain licenses? (IANAL)
+ * Full credit is the OpenCV contributors, et. al. for the original C++ implementation, which was used as a reference for this Kotlin code.
  */
-
 sealed class BrisqueResult {
     data class Success(val score: Float) : BrisqueResult()
     data class Error(val message: String, val exception: Exception? = null) : BrisqueResult()
@@ -540,16 +533,13 @@ object BrisqueCore {
         }
     }
 
-    /**
-     * Lanczos approximation of gamma function (tgamma)
-     */
     fun tgamma(x: Double): Double {
         if (x <= 0.0) return Double.NaN
         if (x < 0.5) {
-            return PI / (sin(PI * x) * tgamma(1.0 - x)) // reflection formula: Gamma(x) * Gamma(1-x) = PI / sin(PI*x)
+            return PI / (sin(PI * x) * tgamma(1.0 - x))
         }
         val g = 7.0
-        val coefficients = doubleArrayOf( // Lanczos coefficients for g=7, n=9
+        val coefficients = doubleArrayOf(
             0.9999999999998099,
             676.5203681218851,
             -1259.1392167224028,
