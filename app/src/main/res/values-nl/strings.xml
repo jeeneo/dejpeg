@@ -1,3 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="image">Afbeelding</string>
+    <string name="save">Opslaan</string>
+    <string name="before">Voor</string>
+    <string name="after">Na</string>
+    <string name="save_image">Afbeelding opslaan</string>
+    <string name="overwrite_image">Afbeelding overschrijven?</string>
+    <string name="already_exists">Deze afbeelding bestaat al. Wil je hem overschrijven?</string>
+    <string name="filename">Bestandsnaam</string>
+    <string name="save_all">Alles opslaan</string>
+    <string name="dont_show_dialog">Niet meer tonen</string>
+    <string name="cancel">Annuleren</string>
+    <string name="back_exit_confirm">Druk nogmaals op de terugknop om af te sluiten</string>
+    <string name="remove_image_title">Afbeelding verwijderen?</string>
+    <string name="remove_image_question">Je hebt ‘%1$s’ nog niet opgeslagen. Wil je de afbeelding verwijderen?</string>
+    <string name="remove">Verwijderen</string>
+    <string name="stop_processing_title">Verwerken stopzetten?</string>
+    <string name="stop_processing_question">Weet je zeker dat je het verwerken van ‘%1$s’ wilt stopzetten?</string>
+    <string name="stop_processing_all_question">Weet je zeker dat je het verwerken van alle afbeeldingen wilt stopzetten?</string>
+    <string name="nope">Nee</string>
+    <string name="yes_stop">Ja</string>
+    <string name="error_saving_image_title">Fout tijdens opslaan</string>
+    <string name="error_saving_image">De afbeelding kan niet worden opgeslagen: %1$s</string>
+    <plurals name="image_saved_to_gallery">
+        <item quantity="one">Afbeelding opgeslagen</item>
+        <item quantity="other">%1$d afbeeldingen opgeslagen</item>
+    </plurals>
+    <string name="share_image">Afbeelding delen</string>
+    <string name="error_sharing_image">Fout tijdens delen van afbeelding: %1$s</string>
+    <string name="select_image_source">Afbeeldingsbron kiezen</string>
+    <string name="gallery">Galerij</string>
+    <string name="gallery_picker_title">Galerijkiezer</string>
+    <string name="gallery_picker_desc">Maak gebruik van de standaard galerij-app van je apparaat of een andere app. Deze methode wordt aanbevolen, omdat die op de meeste apparaten en met de meeste formaten werkt.</string>
+    <string name="internal_picker">Fotokiezer</string>
+    <string name="internal_picker_title">Interne fotokiezer</string>
+    <string name="internal_picker_desc">Maakt gebruik van de fotokiezer van Android zelf. Beter voor je privacy, maar met meer beperkingen.</string>
+    <string name="documents">Documenten</string>
+    <string name="documents_picker_title">Documentbron</string>
+    <string name="documents_picker_desc">Opent de standaard documentkiezer. Handig voor afbeeldingen die in mappen of op andere locaties/diensten staan.</string>
+    <string name="camera">Camera</string>
+    <string name="camera_title">Camera</string>
+    <string name="camera_desc">Opent de camera van je apparaat. Gemaakte foto\'s worden direct geïmporteerd.</string>
+    <string name="set_as_default">Instellen als standaard</string>
+    <string name="info">Informatie</string>
+    <string name="faq_what_is_this_title">Waar dient deze app voor?</string>
+    <string name="faq_what_is_this_content">Met behulp van deze app kun je compressie, ruis en andere ongewenste zaken uit afbeeldingen verwijderen.\n\nLet op: er wordt geen gebruikgemaakt van AI of vergroting — je afbeeldingen behouden de oorspronkelijke resolutie.\nHet doel is louter om een betere afbeelding aan te leveren, eventueel voor verdere naverwerking met AI-apps.</string>
+    <string name="faq_which_models_title">Uit welke modellen kan ik kiezen?</string>
+    <string name="faq_fbcnn_title">FBCNN</string>
 </resources>
