@@ -119,4 +119,29 @@
         <item quantity="one">%1$d afbeelding herstellen</item>
         <item quantity="other">%1$d afbeeldingen herstellen</item>
     </plurals>
+    <plurals name="recover_images_message">
+        <item quantity="one">Er is %1$d verwerkte afbeelding aangetroffen die voor het sluiten niet is opgeslagen. Wil je deze herstellen?</item>
+        <item quantity="other">Er zijn %1$d verwerkten afbeelding aangetroffen die voor het sluiten niet zijn opgeslagen. Wil je deze herstellen?</item>
+    </plurals>
+    <string name="recover">Herstellen</string>
+    <string name="discard">Negeren</string>
+    <string name="recovered_image_prefix">Hersteld</string>
+    <string name="starter_model_title">Basismodellen</string>
+    <string name="starter_model_message">DeJPEG wordt geleverd met snelle modellen voor algemeen gebruik. Verwacht hier echter geen wonderen van.\n\nDe beste resultaten kunnen worden behaald met behulp van de modellen in de links.\n\nAls je deze modellen niet wilt, kun je ze verwijderen, waarna ze niet meer worden getoond. Opnieuw tonen kan via de instellingen.</string>
+    <string name="got_it">Ik begrijp het</string>
+    <string name="model_info_1x_rgb_max_denoise_fp16">Snel, en verwijdert ruis en compressie. Handig voor animaties of het transformeren van foto\'s in strips.</string>
+    <string name="model_info_1x_span_anime_pretrain_fp16">Snel, verwijdert ruis en doet aan generieke compressie. Handig voor animaties, strips, anime en sommige foto\'s.</string>
+    <string name="model_info_fbcnn_color_fp16">Vooral bedoeld voor generieke jpeg-compressie, enige ruisverwijdering en kleurenfoto\'s</string>
+    <string name="model_info_fbcnn_gray_fp16">Biedt generieke compressie en ruisverwijdering, maar alleen voor zwart-witfoto\'s</string>
+    <string name="model_info_fbcnn_gray_double_fp16">Vooral bedoeld voor generieke compressie en ruisverwijdering, en alleen voor zwart-witfoto\'s</string>
+    <string name="model_info_scunet_color_real_gan_fp16">Verwijdert ruis op gemiddeld niveau, is gebaseerd op GAN, detailgericht en bedoeld voor kleurenfoto\'s</string>
+    <string name="model_info_scunet_color_real_psnr_fp16">Geschikt voor generieke ruisverwijdering, gebaseerd op PSNR, voor kleurenfoto\'s, maar met minder details</string>
+    <string name="model_info_scunet_color_15_fp16">Enige ruisverwijdering op kleurenfoto\'s</string>
+    <string name="model_info_scunet_color_25_fp16">Enige ruisverwijdering op kleurenfoto\'s, maar sterker</string>
+    <string name="model_info_scunet_color_50_fp16">Enige ruisverwijdering op kleurenfoto\'s, sterktste variant</string>
+    <string name="model_info_scunet_gray_15_fp16">Enige ruisverwijdering op zwart-witfoto\'s</string>
+    <string name="model_info_scunet_gray_25_fp16">Enige ruisverwijdering op zwart-witfoto\'s, maar sterker</string>
+    <string name="model_info_scunet_gray_50_fp16">Enige ruisverwijdering op zwart-witfoto\'s, sterkste variant</string>
+    <string name="model_info_deblurring_nafnet_2025may">Om vervaging en ruis weg te halen, en foto\'s te herstellen. Voor algemeen gebruik, maar gericht op foto\'s.</string>
+    <string name="model_info_1x_anime_undeint_compact_fp16">Compressie, maar met zichtbare lijnen</string>
 </resources>
