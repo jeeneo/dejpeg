@@ -242,4 +242,19 @@
     <string name="brisque_fine_stepping">İnce adımlar</string>
     <string name="brisque_fine_range">İnce aralık</string>
     <string name="brisque_minimum_image_size">Minimum resim boyutu</string>
+    <string name="brisque_descaled">Yeniden ölçeklendi</string>
+    <string name="brisque_descaling">Yeniden ölçekleniyor…</string>
+    <string name="brisque_descale">Yeniden ölçekle</string>
+    <string name="brisque_descale_error">Yeniden ölçekleme hatası:</string>
+    <string name="brisque_score_poor">fakir</string>
+    <string name="brisque_descale_again_title">Yeniden ölçeklensin mi?</string>
+    <string name="brisque_weight">BRISQUE ağırlığı</string>
+    <string name="brisque_sharpness_weight">Keskinlik ağırlığı</string>
+    <string name="brisque_coarse_stepping_info">İlk taramada yineleme başına adım sayısı (piksel)</string>
+    <string name="brisque_fine_stepping_info">İkinci taramada yineleme başına adım sayısı (piksel)</string>
+    <string name="brisque_fine_range_info">Kaba sonucun etrafında dolaşarak keşfedin</string>
+    <string name="brisque_minimum_image_size_info">Algoritmanın küçültmeye razı olduğu nihai görüntünün minimum boyutu</string>
+    <string name="brisque_weight_info">Hesaplamada BRISQUE güveni</string>
+    <string name="brisque_sharpness_weight_info">Hesaplamada keskinlik güveni</string>
+    <string name="brisque_analyzing_original">Orijinal görüntü analiz ediliyor…</string>
 </resources>

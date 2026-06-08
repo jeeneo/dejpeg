@@ -10,7 +10,6 @@ model: `1x-RGB-max-Denoise`, or brisque descale + `FBCNN`
 
 <img src="figs.jpg" alt="the original figs" width="240" >
 <img src="tulips.png" alt="the original tuilps" width="240" >
-<img src="fireworks_compression.jpg" alt="an image of fireworks in a night sky" width="240">
 
 models: `FBCNN`, `1x-span-anime-pretrain`
 
