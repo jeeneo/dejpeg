@@ -24,9 +24,7 @@ val buildOidn = gradle.startParameter.taskNames.any { "oidn" in it.lowercase() }
 android {
     namespace = "com.je.dejpeg"
     compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
+        version = release(36)
     }
     defaultConfig {
         applicationId = "com.je.dejpeg"
