@@ -292,7 +292,7 @@ private fun SnackbarContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(12.dp),
-                    amplitude = { 0.5f },
+                    amplitude = { 0.4f },
                     trackColor = Color.Transparent,
                 )
             }

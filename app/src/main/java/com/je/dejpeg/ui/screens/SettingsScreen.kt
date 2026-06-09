@@ -1269,19 +1269,20 @@ fun LabeledSwitch(
 
 enum class CardPosition { Leading, Center, Trailing, Solo }
 
-fun cardShape(position: CardPosition, large: Dp = 16.dp, small: Dp = 6.dp): RoundedCornerShape =
-    when (position) {
-        CardPosition.Leading -> RoundedCornerShape(
-            topStart = large, topEnd = large, bottomStart = small, bottomEnd = small
-        )
+fun cardShape(
+    position: CardPosition, outer: Dp = 16.dp, inner: Dp = 6.dp
+): RoundedCornerShape = when (position) {
+    CardPosition.Leading -> RoundedCornerShape(
+        topStart = outer, topEnd = outer, bottomStart = inner, bottomEnd = inner
+    )
 
-        CardPosition.Center -> RoundedCornerShape(large / 2)
-        CardPosition.Trailing -> RoundedCornerShape(
-            topStart = small, topEnd = small, bottomStart = large, bottomEnd = large
-        )
+    CardPosition.Center -> RoundedCornerShape(6.dp)
+    CardPosition.Trailing -> RoundedCornerShape(
+        topStart = inner, topEnd = inner, bottomStart = outer, bottomEnd = outer
+    )
 
-        CardPosition.Solo -> RoundedCornerShape(large)
-    }
+    CardPosition.Solo -> RoundedCornerShape(outer)
+}
 
 @Composable
 fun PreferenceItem(

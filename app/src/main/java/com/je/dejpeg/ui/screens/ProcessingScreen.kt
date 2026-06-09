@@ -20,7 +20,6 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animate
-import androidx.compose.animation.core.animateDp
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.keyframes
@@ -56,7 +55,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -159,6 +159,13 @@ private val springStandard = spring<Float>(
     dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium
 )
 
+private fun cardPosition(index: Int, count: Int): CardPosition = when {
+    count <= 1 -> CardPosition.Solo
+    index == 0 -> CardPosition.Leading
+    index == count - 1 -> CardPosition.Trailing
+    else -> CardPosition.Center
+}
+
 @Composable
 fun ProcessingScreen(
     viewModel: ProcessingViewModel,
@@ -210,7 +217,7 @@ fun ProcessingScreen(
                 image.isProcessing && viewModel.isCurrentlyProcessing(imageId) -> imageIdToCancel =
                     imageId
 
-                image.isProcessing && !viewModel.isCurrentlyProcessing(imageId) -> performRemoval(
+                image.isProcessing && !viewModel.isCurrentlyProcessing(imageId) -> viewModel.cancelProcessingForImage(
                     imageId
                 )
 
@@ -563,15 +570,19 @@ fun ProcessingScreen(
                 LazyColumn(
                     state = lazyListState,
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp), // main spacing
                     contentPadding = PaddingValues(
                         bottom = WindowInsets.navigationBars.asPaddingValues()
                             .calculateBottomPadding() + 8.dp
                     )
                 ) {
-                    items(images, { it.id }) { image ->
+                    itemsIndexed(
+                        items = images, key = { _, image -> image.id }) { index, image ->
                         val swipeState = remember { mutableFloatStateOf(0f) }
                         val hasOutput = image.outputBitmap != null
+
+                        val position = cardPosition(index, images.size)
+
                         SwipeToDismissWrapper(
                             swipeState,
                             image.isProcessing,
@@ -600,6 +611,7 @@ fun ProcessingScreen(
                         ) {
                             ImageCard(
                                 image = image,
+                                position = position,
                                 onRemove = { handleImageRemoval(image.id) },
                                 onProcess = { tryProcess { viewModel.processImage(image.id) } },
                                 onBrisque = { HapticFeedbacks.light(); onNavigateToBrisque(image.id) },
@@ -771,154 +783,136 @@ fun SwipeToDismissWrapper(
         )
         else springStandard, label = "swipe"
     )
-    val revealSide = when {
-        widthPx > 0 && animatedOffset > 1f && animatedOffset < widthPx * 0.98f -> 1
-        widthPx > 0 && animatedOffset < -1f && -animatedOffset < widthPx * 0.98f && !isProcessing -> -1
-        else -> 0
+    val fraction = if (widthPx > 0) {
+        (kotlin.math.abs(animatedOffset) / (widthPx * swipeThreshold)).coerceIn(0f, 1f)
+    } else 0f
+
+    val rightFraction = if (animatedOffset > 0f) fraction else 0f
+    val leftFraction = if (animatedOffset < 0f && currentAllowLeftSwipe) fraction else 0f
+    val rightIcon = if (swapActions) {
+        if (hasOutput) Icons.Filled.Save else Icons.Filled.PlayArrow
+    } else {
+        if (isProcessing) Icons.Filled.Close else Icons.Filled.Delete
     }
+    val rightContainerColor =
+        if (swapActions) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.errorContainer
+    val rightTint =
+        if (swapActions) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onErrorContainer
+    val leftIcon = if (swapActions) {
+        Icons.Filled.Delete
+    } else {
+        if (hasOutput) Icons.Filled.Save else Icons.Filled.PlayArrow
+    }
+    val leftContainerColor =
+        if (swapActions) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer
+    val leftTint =
+        if (swapActions) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer
+
     Box(
         modifier
             .fillMaxWidth()
             .onSizeChanged { widthPx = it.width }) {
-        if (revealSide != 0) {
-            val isRight = revealSide == 1
-            val fraction =
-                (kotlin.math.abs(animatedOffset) / (widthPx * swipeThreshold)).coerceIn(0f, 1f)
-            SwipeRevealBackground(
-                fraction = fraction,
-                color = when {
-                    swapActions && isRight -> MaterialTheme.colorScheme.tertiaryContainer
-                    swapActions && !isRight -> MaterialTheme.colorScheme.errorContainer
-                    isRight -> MaterialTheme.colorScheme.errorContainer
-                    else -> MaterialTheme.colorScheme.primaryContainer
-                },
-                icon = when {
-                    swapActions && isRight -> if (hasOutput) Icons.Filled.Save else Icons.Filled.PlayArrow
-                    swapActions && !isRight -> Icons.Filled.Delete
-                    isRight -> if (isProcessing) Icons.Filled.Close else Icons.Filled.Delete
-                    else -> if (hasOutput) Icons.Filled.Save else Icons.Filled.PlayArrow
-                },
-                tint = when {
-                    swapActions && isRight -> MaterialTheme.colorScheme.onTertiaryContainer
-                    swapActions && !isRight -> MaterialTheme.colorScheme.onErrorContainer
-                    isRight -> MaterialTheme.colorScheme.onErrorContainer
-                    else -> MaterialTheme.colorScheme.onPrimaryContainer
-                },
-                alignment = if (isRight) Alignment.CenterStart else Alignment.CenterEnd,
-                startPadding = if (isRight) 20.dp else 0.dp,
-                endPadding = if (isRight) 0.dp else 20.dp,
-                modifier = Modifier.matchParentSize()
-            )
-        }
-
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .offset { IntOffset(animatedOffset.roundToInt(), 0) }
-                .pointerInput(widthPx) {
-                    detectHorizontalDragGestures(onHorizontalDrag = { _, dragAmount ->
-                        val newValue = swipeState.value + dragAmount
-                        swipeState.value =
-                            if (currentAllowLeftSwipe) newValue else maxOf(0f, newValue)
-                        val absOffset = kotlin.math.abs(swipeState.value)
-                        val threshold = widthPx * swipeThreshold
-                        when {
-                            widthPx > 0 && absOffset > threshold && !hasReachedThreshold -> {
-                                HapticFeedbacks.medium(); hasReachedThreshold = true
-                            }
-
-                            absOffset <= threshold -> hasReachedThreshold = false
+        ActionPill(
+            fraction = rightFraction,
+            icon = rightIcon,
+            tint = rightTint,
+            containerColor = rightContainerColor,
+            alignment = Alignment.CenterStart,
+            modifier = Modifier.matchParentSize()
+        )
+        ActionPill(
+            fraction = leftFraction,
+            icon = leftIcon,
+            tint = leftTint,
+            containerColor = leftContainerColor,
+            alignment = Alignment.CenterEnd,
+            modifier = Modifier.matchParentSize()
+        )
+        Box(Modifier
+            .fillMaxWidth()
+            .offset { IntOffset(animatedOffset.roundToInt(), 0) }
+            .pointerInput(widthPx) {
+                detectHorizontalDragGestures(onHorizontalDrag = { _, dragAmount ->
+                    val newValue = swipeState.value + dragAmount
+                    swipeState.value = if (currentAllowLeftSwipe) newValue else maxOf(0f, newValue)
+                    val absOffset = kotlin.math.abs(swipeState.value)
+                    val threshold = widthPx * swipeThreshold
+                    when {
+                        widthPx > 0 && absOffset > threshold && !hasReachedThreshold -> {
+                            HapticFeedbacks.medium(); hasReachedThreshold = true
                         }
-                    }, onDragEnd = {
-                        val absOffset = kotlin.math.abs(swipeState.value)
-                        val threshold = widthPx * swipeThreshold
-                        if (widthPx > 0 && absOffset > threshold) {
-                            HapticFeedbacks.heavy()
-                            val isRight = swipeState.value > 0
-                            val willSlideOff =
-                                if (isRight) rightSwipeImmediate else (currentAllowLeftSwipe && leftSwipeImmediate)
-                            scope.launch {
-                                if (willSlideOff) {
-                                    animate(
-                                        initialValue = swipeState.value,
-                                        targetValue = if (isRight) widthPx * 2f else -widthPx * 2f,
-                                        animationSpec = spring(
-                                            dampingRatio = Spring.DampingRatioNoBouncy,
-                                            stiffness = Spring.StiffnessHigh
-                                        )
-                                    ) { value, _ -> swipeState.value = value }
-                                    if (isRight) currentOnRightSwipe() else currentOnLeftSwipe()
-                                    swipeState.value = 0f
-                                } else {
-                                    if (isRight) currentOnRightSwipe()
-                                    else if (currentAllowLeftSwipe) currentOnLeftSwipe()
-                                    swipeState.value = 0f
-                                }
-                                hasReachedThreshold = false
-                            }
-                        } else {
-                            scope.launch {
+
+                        absOffset <= threshold -> hasReachedThreshold = false
+                    }
+                }, onDragEnd = {
+                    val absOffset = kotlin.math.abs(swipeState.value)
+                    val threshold = widthPx * swipeThreshold
+                    if (widthPx > 0 && absOffset > threshold) {
+                        HapticFeedbacks.heavy()
+                        val isRight = swipeState.value > 0
+                        val willSlideOff =
+                            if (isRight) rightSwipeImmediate else (currentAllowLeftSwipe && leftSwipeImmediate)
+                        scope.launch {
+                            if (willSlideOff) {
+                                animate(
+                                    initialValue = swipeState.value,
+                                    targetValue = if (isRight) widthPx * 2f else -widthPx * 2f,
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioNoBouncy,
+                                        stiffness = Spring.StiffnessHigh
+                                    )
+                                ) { value, _ -> swipeState.value = value }
+                                if (isRight) currentOnRightSwipe() else currentOnLeftSwipe()
                                 swipeState.value = 0f
-                                hasReachedThreshold = false
+                            } else {
+                                if (isRight) currentOnRightSwipe()
+                                else if (currentAllowLeftSwipe) currentOnLeftSwipe()
+                                swipeState.value = 0f
                             }
+                            hasReachedThreshold = false
                         }
-                    })
-                }) { content() }
+                    } else {
+                        scope.launch {
+                            swipeState.value = 0f
+                            hasReachedThreshold = false
+                        }
+                    }
+                })
+            }) { content() }
     }
 }
 
 @Composable
-fun SwipeRevealBackground(
+fun ActionPill(
     fraction: Float,
-    color: Color,
     icon: ImageVector,
     tint: Color,
-    modifier: Modifier = Modifier,
+    containerColor: Color,
     alignment: Alignment,
-    startPadding: Dp = 20.dp,
-    endPadding: Dp = 20.dp,
+    modifier: Modifier = Modifier,
 ) {
     val atThreshold = fraction >= 1f
-    val shakeOffset = remember { Animatable(0f) }
-    val density = LocalDensity.current
-
+    val pulse = remember { Animatable(1f) }
     LaunchedEffect(atThreshold) {
-        if (atThreshold) {
-            shakeOffset.animateTo(
-                targetValue = 0f, animationSpec = keyframes {
-                    durationMillis = 350
-                    0f at 0
-                    6f at 60
-                    (-6f) at 130
-                    4f at 200
-                    (-2f) at 260
-                    0f at 350
-                })
-        } else {
-            shakeOffset.snapTo(0f)
-        }
+        if (atThreshold) pulse.animateTo(1f, keyframes {
+            durationMillis = 280; 1.15f at 90; 0.95f at 170; 1f at 280
+        }) else pulse.snapTo(1f)
     }
-
     Box(
-        modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(color)
-            .graphicsLayer {
-                val f = fraction.coerceIn(0f, 1f)
-                scaleX = lerp(0.6f, 1f, f)
-                scaleY = lerp(0.6f, 1f, f)
-                alpha = lerp(0f, 1f, f)
-            }, contentAlignment = alignment
+        modifier.padding(
+            start = if (alignment == Alignment.CenterStart) 20.dp else 0.dp,
+            end = if (alignment == Alignment.CenterEnd) 20.dp else 0.dp
+        ), contentAlignment = alignment
     ) {
-        Box(Modifier.padding(start = startPadding, end = endPadding)) {
-            Icon(
-                icon,
-                null,
-                Modifier
-                    .size(28.dp)
-                    .offset { IntOffset((shakeOffset.value * density.density).roundToInt(), 0) },
-                tint = tint
-            )
+        val f = fraction.coerceIn(0f, 1f)
+        Box(modifier = Modifier
+            .size(48.dp)
+            .graphicsLayer {
+                val scale = lerp(0.5f, 1f, f) * pulse.value
+                scaleX = scale; scaleY = scale; alpha = lerp(0f, 1f, f)
+            }
+            .background(containerColor, CircleShape), contentAlignment = Alignment.Center) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(24.dp), tint = tint)
         }
     }
 }
@@ -1084,6 +1078,7 @@ fun SaveProgressDialog(saveState: SaveState.Saving) {
 @Composable
 fun ImageCard(
     image: ImageItem,
+    position: CardPosition = CardPosition.Solo,
     onRemove: () -> Unit,
     onProcess: () -> Unit,
     onBrisque: () -> Unit,
@@ -1102,23 +1097,19 @@ fun ImageCard(
     val processPress by rememberMaterialPressState(processInteraction)
     val removePress by rememberMaterialPressState(removeInteraction)
     val brisquePress by rememberMaterialPressState(brisqueInteraction)
-
     val bouncySpringFloat = spring<Float>(
         dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium
     )
     val bouncySpringDp = spring<Dp>(
         dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium
     )
-
     val cardState = when {
         isProcessing -> CardState.Processing
         image.outputBitmap != null && image.isOutputStale -> CardState.Stale
         image.outputBitmap != null -> CardState.Complete
         else -> CardState.Idle
     }
-
     val transition = updateTransition(targetState = cardState, label = "card_morph")
-
     val morphContainerColor by transition.animateColor(
         transitionSpec = { spring(dampingRatio = Spring.DampingRatioMediumBouncy) },
         label = "container_color"
@@ -1130,7 +1121,6 @@ fun ImageCard(
             CardState.Idle -> MaterialTheme.colorScheme.secondaryContainer
         }
     }
-
     val morphContentColor by transition.animateColor(
         transitionSpec = { spring(dampingRatio = Spring.DampingRatioMediumBouncy) },
         label = "content_color"
@@ -1142,19 +1132,10 @@ fun ImageCard(
             CardState.Idle -> MaterialTheme.colorScheme.onSecondaryContainer
         }
     }
-
-    val cardCorner by transition.animateDp(
-        transitionSpec = {
-            spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium
-            )
-        }, label = "card_corner"
-    ) { state -> if (state == CardState.Processing) 20.dp else 16.dp }
-
+    val shape = cardShape(position)
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(cardCorner))
             .clickable(
                 interactionSource = cardInteractionSource,
                 indication = ripple(),
@@ -1163,7 +1144,7 @@ fun ImageCard(
                 haptic.light()
                 if (image.outputBitmap != null) onClick() else onBeforeOnly()
             },
-        shape = RoundedCornerShape(cardCorner),
+        shape = shape,
         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceContainer)
     ) {
         Row(
