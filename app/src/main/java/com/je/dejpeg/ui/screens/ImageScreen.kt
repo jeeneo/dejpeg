@@ -56,16 +56,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import com.je.dejpeg.App
+import com.je.dejpeg.AppPreferences
+import com.je.dejpeg.ImageRepository
 import com.je.dejpeg.R
-import com.je.dejpeg.data.AppPreferences
-import com.je.dejpeg.data.ImageRepository
+import com.je.dejpeg.rememberHaptics
 import com.je.dejpeg.ui.components.BeforeAfterSlider
 import com.je.dejpeg.ui.components.PreparingShareDialog
 import com.je.dejpeg.ui.components.SaveImageDialog
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SaveState
-import com.je.dejpeg.utils.helpers.ImageActions
-import com.je.dejpeg.utils.rememberHapticFeedback
+import com.je.dejpeg.utils.ImageActions
 import kotlinx.coroutines.launch
 import me.saket.telephoto.zoomable.OverzoomEffect
 import me.saket.telephoto.zoomable.ZoomLimit
@@ -85,10 +86,10 @@ fun ImageScreen(
     onBack: () -> Unit = {},
     showAfter: Boolean = true
 ) {
-    val context = LocalContext.current
+    val context = App.ctx
     val scope = rememberCoroutineScope()
-    val haptic = rememberHapticFeedback()
-    val appPreferences = remember { AppPreferences(context.applicationContext) }
+    val haptic = rememberHaptics()
+    val appPreferences = remember { AppPreferences() }
     val showSaveDialog by appPreferences.showSaveDialog.collectAsState(initial = true)
 
     val images by imageRepository.images.collectAsState()
@@ -280,15 +281,10 @@ fun ImageScreen(
     }
 }
 
-// yeah but you're leaking memory everywhere
-// ill just restart apache every 20 requests
-
 @Composable
 private fun SingleImageView(bitmap: Bitmap) {
-    val context = LocalContext.current
-    val appPreferences = remember { AppPreferences(context.applicationContext) }
+    val appPreferences = remember { AppPreferences() }
     val isHapticEnabled by appPreferences.hapticFeedbackEnabled.collectAsState(initial = true)
-
     val zoomableState = rememberZoomableState(
         ZoomSpec(
             maximum = ZoomLimit(
@@ -300,7 +296,6 @@ private fun SingleImageView(bitmap: Bitmap) {
             )
         )
     )
-
     Box(
         Modifier
             .fillMaxSize()

@@ -60,8 +60,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.je.dejpeg.ImageRepository
 import com.je.dejpeg.R
-import com.je.dejpeg.data.ImageRepository
+import com.je.dejpeg.rememberHaptics
 import com.je.dejpeg.ui.components.RecoveryDialog
 import com.je.dejpeg.ui.components.SnackySnackbarBox
 import com.je.dejpeg.ui.components.SnackySnackbarHostState
@@ -69,7 +70,6 @@ import com.je.dejpeg.ui.screens.ProcessingScreen
 import com.je.dejpeg.ui.screens.SettingsScreen
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
-import com.je.dejpeg.utils.rememberHapticFeedback
 
 private val PillOuter = 50.dp
 private val PillInner = 6.dp
@@ -86,7 +86,7 @@ fun MainScreen(
     val context = LocalContext.current
     val viewModel: ProcessingViewModel = viewModel()
     val settingsViewModel: SettingsViewModel = viewModel()
-    val imageRepository = remember { ImageRepository.getInstance(context) }
+    val imageRepository = remember { ImageRepository.getInstance() }
     val navController = rememberNavController()
     val snackbarHostState = remember { SnackySnackbarHostState() }
     val snackbarController =
@@ -108,7 +108,7 @@ fun MainScreen(
     LaunchedEffect(Unit) {
         viewModel.imageRepository = imageRepository
         viewModel.settingsViewModel = settingsViewModel
-        settingsViewModel.initialize(context)
+        settingsViewModel.initialize()
     }
     // no longer photosynthesizes the diode
     RecoveryDialog(imageRepository = imageRepository)
@@ -138,7 +138,7 @@ fun HomeWrapperScreen(
     sharedUris: List<Uri>
 ) {
     val context = LocalContext.current
-    val haptic = rememberHapticFeedback()
+    val haptic = rememberHaptics()
     var currentTab by rememberSaveable { mutableStateOf("processing") }
 
     val lazyListState = androidx.compose.foundation.lazy.rememberLazyListState()

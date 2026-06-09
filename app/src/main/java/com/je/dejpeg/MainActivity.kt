@@ -30,7 +30,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.ui.MainScreen
 import com.je.dejpeg.ui.components.StarterModelDialog
 import com.je.dejpeg.ui.theme.DeJPEGTheme
@@ -39,7 +38,7 @@ import com.je.dejpeg.ui.viewmodel.SettingsViewModel
 class MainActivity : ComponentActivity() {
     private var handledIntentHash: Int? = null
     private val settingsViewModel: SettingsViewModel by viewModels()
-    private val imageRepository by lazy { ImageRepository.getInstance(this) }
+    private val imageRepository by lazy { ImageRepository.getInstance() }
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->

@@ -43,7 +43,6 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -52,9 +51,9 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.get
+import com.je.dejpeg.AppPreferences
 import com.je.dejpeg.R
-import com.je.dejpeg.data.AppPreferences
-import com.je.dejpeg.utils.rememberHapticFeedback
+import com.je.dejpeg.rememberHaptics
 import me.saket.telephoto.zoomable.OverzoomEffect
 import me.saket.telephoto.zoomable.ZoomLimit
 import me.saket.telephoto.zoomable.ZoomSpec
@@ -73,11 +72,9 @@ fun BeforeAfterSlider(
     labelPadding: Dp = 24.dp,
     maxZoomFactor: Float = 20f
 ) {
-    val haptic = rememberHapticFeedback()
-    val context = LocalContext.current
-    val appPreferences = remember { AppPreferences(context.applicationContext) }
+    val haptic = rememberHaptics()
+    val appPreferences = remember { AppPreferences() }
     val isHapticEnabled by appPreferences.hapticFeedbackEnabled.collectAsState(initial = true)
-
     val zoomableState = if (enableZoom) {
         rememberZoomableState(
             ZoomSpec(
@@ -91,15 +88,12 @@ fun BeforeAfterSlider(
             )
         )
     } else null
-
     var sliderPosition by remember { mutableFloatStateOf(0.5f) }
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
     val density = LocalDensity.current
-
     val (sliderColor, iconColor) = remember(beforeBitmap) {
         calculateSliderColors(beforeBitmap)
     }
-
     val beforeLabel = stringResource(R.string.before)
     val afterLabel = stringResource(R.string.after)
 
@@ -232,11 +226,10 @@ private fun ImageHalf(
 }
 
 private fun calculateSliderColors(bitmap: Bitmap): Pair<Color, Color> {
-    val luminances = mutableListOf<Int>()
+    @Suppress("SpellCheckingInspection") val luminances = mutableListOf<Int>()
     val cx = bitmap.width / 2
     val cy = bitmap.height / 2
     val sample = 10
-
     for (dy in -sample..sample) {
         for (dx in -sample..sample) {
             val x = (cx + dx).coerceIn(0, bitmap.width - 1)
@@ -249,18 +242,14 @@ private fun calculateSliderColors(bitmap: Bitmap): Pair<Color, Color> {
             luminances.add(luminance)
         }
     }
-
     val median = luminances.sorted()[luminances.size / 2]
     val inverted = 255 - median
-
     val sliderColor = if (kotlin.math.abs(inverted - median) < 30) {
         if (median > 127) Color.Black else Color.White
     } else {
         Color(inverted, inverted, inverted)
     }
-
     val sliderLuminance = (sliderColor.red + sliderColor.green + sliderColor.blue) / 3f
     val iconColor = if (sliderLuminance < 0.7f) Color.White else Color.Black
-
     return sliderColor to iconColor
 }

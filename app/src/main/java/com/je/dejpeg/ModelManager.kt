@@ -14,8 +14,7 @@ import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Log
-import com.je.dejpeg.data.AppPreferences
-import com.je.dejpeg.utils.helpers.ModelMigrationHelper
+import com.je.dejpeg.utils.ModelMigrationHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -42,7 +41,7 @@ class ModelManager(
     private var ortEnv: OrtEnvironment? = null
     private var currentModelName: String? = null
     private val cachedActiveModels = mutableMapOf<ModelType, String?>()
-    private val appPreferences = AppPreferences(context)
+    private val appPreferences = AppPreferences()
 
     private fun getModelsDir(type: ModelType = ModelType.ONNX): File = when (type) {
         ModelType.ONNX -> ModelMigrationHelper.getOnnxModelsDir(context)

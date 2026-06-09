@@ -5,15 +5,16 @@
 
 @file:Suppress("GrazieInspection")
 
-package com.je.dejpeg.utils.helpers
+package com.je.dejpeg.utils
 
 import android.content.Context
 import android.util.Log
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
-import com.je.dejpeg.data.AppPreferences
-import com.je.dejpeg.data.PreferenceKeys
-import com.je.dejpeg.data.dataStore
+import com.je.dejpeg.App
+import com.je.dejpeg.AppPreferences
+import com.je.dejpeg.PreferenceKeys
+import com.je.dejpeg.dataStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -25,8 +26,9 @@ object ModelMigrationHelper {
     fun getTzaModelsDir(context: Context): File = File(context.filesDir, "models/tza")
     fun getBrisqueModelsDir(context: Context): File = File(context.filesDir, "models/brisque")
 
-    suspend fun migrateModelsIfNeeded(context: Context): Boolean = withContext(Dispatchers.IO) {
-        val prefs = AppPreferences(context.applicationContext)
+    suspend fun migrateModelsIfNeeded(): Boolean = withContext(Dispatchers.IO) {
+        val prefs = AppPreferences()
+        val context = App.ctx
         context.dataStore.edit { store ->
             val oldKey = booleanPreferencesKey("skipSaveDialog")
             if (store[oldKey] != null) {

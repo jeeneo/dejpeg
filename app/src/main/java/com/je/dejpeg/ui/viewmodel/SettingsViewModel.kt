@@ -3,23 +3,23 @@
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
-@file:Suppress("KotlinConstantConditions", "SimplifyBooleanWithConstants",
-    "SpellCheckingInspection"
+@file:Suppress(
+    "KotlinConstantConditions", "SimplifyBooleanWithConstants", "SpellCheckingInspection"
 )
 
 package com.je.dejpeg.ui.viewmodel
 
-import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.je.dejpeg.App
+import com.je.dejpeg.AppPreferences
 import com.je.dejpeg.BuildConfig
 import com.je.dejpeg.ModelManager
 import com.je.dejpeg.ModelType
-import com.je.dejpeg.data.AppPreferences
-import com.je.dejpeg.data.ProcessingMode
-import com.je.dejpeg.utils.helpers.ModelMigrationHelper
+import com.je.dejpeg.ProcessingMode
+import com.je.dejpeg.utils.ModelMigrationHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -67,11 +67,11 @@ class SettingsViewModel : ViewModel() {
         viewModelScope.launch { save(value) }
     }
 
-    fun initialize(context: Context) {
+    fun initialize() {
         if (isInitialized) return
         isInitialized = true
-        val appCtx = context.applicationContext
-        appPreferences = AppPreferences(appCtx)
+        val context = App.ctx
+        appPreferences = AppPreferences()
         modelManager = ModelManager(context)
 
         val prefs = appPreferences!!
@@ -88,9 +88,7 @@ class SettingsViewModel : ViewModel() {
         syncPref(oidnInputScale, prefs.oidnInputScale)
 
         viewModelScope.launch {
-            appCtx.let { ctx ->
-                ModelMigrationHelper.migrateModelsIfNeeded(ctx)
-            }
+            ModelMigrationHelper.migrateModelsIfNeeded()
             installedModels.value = withContext(Dispatchers.IO) {
                 modelManager?.getInstalledModels(ModelType.ONNX) ?: emptyList()
             }

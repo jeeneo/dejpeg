@@ -8,9 +8,10 @@ package com.je.dejpeg.ui.components
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.content.Intent
-import androidx.compose.foundation.Canvas
+import android.graphics.BitmapFactory
+import android.util.Log
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -56,42 +58,41 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.rotate
-import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.core.net.toUri
+import androidx.core.content.FileProvider
+import com.je.dejpeg.AppPreferences
+import com.je.dejpeg.ImageRepository
 import com.je.dejpeg.R
-import com.je.dejpeg.data.AppPreferences
+import com.je.dejpeg.rememberHaptics
+import com.je.dejpeg.ui.viewmodel.ImageItem
 import com.je.dejpeg.utils.CacheManager
-import com.je.dejpeg.utils.rememberHapticFeedback
+import com.je.dejpeg.utils.ImageLoadingHelper
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlin.random.Random
+import kotlinx.coroutines.withContext
 
 @Composable
 fun StyledAlertDialog(
@@ -130,7 +131,7 @@ fun ErrorAlertDialog(
     context: Context,
     confirmButtonText: String? = null
 ) {
-    val haptic = rememberHapticFeedback()
+    val haptic = rememberHaptics()
     val clipboardManager =
         remember(context) { context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager }
 
@@ -173,7 +174,7 @@ fun SimpleAlertDialog(
     icon: ImageVector? = null,
     content: (@Composable () -> Unit)? = null
 ) {
-    val haptic = rememberHapticFeedback()
+    val haptic = rememberHaptics()
     val resolvedText = confirmButtonText ?: stringResource(R.string.ok)
     StyledAlertDialog(
         onDismissRequest = { haptic.light(); onDismiss() },
@@ -188,78 +189,6 @@ fun SimpleAlertDialog(
         })
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AboutDialog(onDismiss: () -> Unit) {
-    val context = LocalContext.current
-    val haptic = rememberHapticFeedback()
-    val versionName = try {
-        context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "Unknown"
-    } catch (_: Exception) {
-        "Unknown"
-    }
-    var spawnTrigger by remember { mutableLongStateOf(0L) }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val density = LocalDensity.current
-    val logoSizePx = with(density) { 128.dp.roundToPx() }
-    val logoBitmap = rememberThemedLogoBitmap(sizePx = logoSizePx)
-    val logoPainter: Painter = remember(logoBitmap) { BitmapPainter(logoBitmap) }
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        dragHandle = { BottomSheetDefaults.DragHandle() }) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 24.dp, end = 24.dp, bottom = 32.dp)
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(128.dp), contentAlignment = Alignment.Center
-                ) {
-                    Image(
-                        painter = logoPainter,
-                        contentDescription = stringResource(R.string.app_icon),
-                        modifier = Modifier
-                            .size(128.dp)
-                            .clickable(
-                                indication = null,
-                                interactionSource = remember { MutableInteractionSource() }) {
-                                haptic.light(); spawnTrigger = System.currentTimeMillis()
-                            })
-                }
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "${stringResource(R.string.app_name)} v$versionName",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(Modifier.height(16.dp))
-                Text(stringResource(R.string.open_source_app_description))
-                Spacer(Modifier.height(16.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End
-                ) {
-                    DialogTextButton(
-                        stringResource(R.string.source_code),
-                        { context.openUrl("https://codeberg.org/dryerlint/dejpeg") },
-                        { haptic.light() })
-                }
-            }
-            RainingLogoEffect(
-                painter = logoPainter,
-                logoSize = IntSize(logoSizePx, logoSizePx),
-                modifier = Modifier.matchParentSize(),
-                particleCount = 15,
-                onTap = { haptic.light() },
-                spawnTrigger = spawnTrigger
-            )
-        }
-    }
-}
-
 data class FallingLogo(
     val id: Int,
     val startX: Float,
@@ -271,109 +200,6 @@ data class FallingLogo(
     val scale: Float,
     val startTime: Long
 )
-
-@Composable
-fun RainingLogoEffect(
-    painter: Painter,
-    logoSize: IntSize,
-    modifier: Modifier = Modifier,
-    particleCount: Int = 12,
-    onTap: () -> Unit = {},
-    spawnTrigger: Long = 0
-) {
-    var logos by remember { mutableStateOf<List<FallingLogo>>(emptyList()) }
-    var nextId by remember { mutableIntStateOf(0) }
-    var canvasSize by remember { mutableStateOf(IntSize.Zero) }
-    var frameTime by remember { mutableLongStateOf(0L) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            withFrameNanos { nanos ->
-                frameTime = nanos / 1_000_000L
-            }
-        }
-    }
-    LaunchedEffect(frameTime) {
-        logos = logos.filter { logo ->
-            val elapsed = (frameTime - logo.startTime).toFloat()
-            val elapsedSeconds = elapsed / 1000f
-            val y = logo.startY + logo.velocityY * elapsedSeconds
-            val scaledHeight = logoSize.height * logo.scale
-            y < canvasSize.height + scaledHeight * 2f
-        }
-    }
-    LaunchedEffect(spawnTrigger) {
-        if (spawnTrigger > 0) {
-            onTap()
-            val newLogos = if (logos.size > 50) {
-                val currentHugeCount = logos.count { it.scale >= 1.0f }
-                val scale = 1.0f + (currentHugeCount * 0.2f)
-                listOf(
-                    FallingLogo(
-                        id = nextId++,
-                        startX = Random.nextFloat() * canvasSize.width,
-                        startY = -logoSize.height * scale,
-                        velocityX = (Random.nextFloat() - 0.5f) * 2f,
-                        velocityY = 100f,
-                        rotation = Random.nextFloat() * 360f,
-                        rotationSpeed = Random.nextFloat() * 180f - 90f,
-                        scale = scale,
-                        startTime = frameTime
-                    )
-                )
-            } else {
-                (0 until particleCount).map {
-                    val startX = Random.nextFloat() * canvasSize.width
-                    val startY = -(logoSize.height * (Random.nextFloat() * 0.25f + 0.15f))
-                    val velocityX = (Random.nextFloat() - 0.5f) * 2f
-                    val velocityY = Random.nextFloat() * 100f + 150f
-
-                    FallingLogo(
-                        id = nextId++,
-                        startX = startX,
-                        startY = startY,
-                        velocityX = velocityX,
-                        velocityY = velocityY,
-                        rotation = Random.nextFloat() * 360f,
-                        rotationSpeed = Random.nextFloat() * 180f - 90f,
-                        scale = Random.nextFloat() * 0.25f + 0.15f,
-                        startTime = frameTime
-                    )
-                }
-            }
-            logos = logos + newLogos
-        }
-    }
-    Box(modifier = modifier) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            if (canvasSize.width == 0 || canvasSize.height == 0) {
-                canvasSize = IntSize(size.width.toInt(), size.height.toInt())
-            }
-            logos.forEach { logo ->
-                val elapsed = (frameTime - logo.startTime).toFloat()
-                val elapsedSeconds = elapsed / 1000f
-                val x = logo.startX + logo.velocityX * elapsedSeconds
-                val y = logo.startY + logo.velocityY * elapsedSeconds
-                val rotation = logo.rotation + logo.rotationSpeed * elapsedSeconds
-                val alpha = 1f
-                val scaledWidth = logoSize.width * logo.scale
-                val scaledHeight = logoSize.height * logo.scale
-                translate(x - scaledWidth / 2f, y - scaledHeight / 2f) {
-                    rotate(
-                        degrees = rotation, pivot = Offset(scaledWidth / 2f, scaledHeight / 2f)
-                    ) {
-                        with(painter) {
-                            draw(
-                                size = androidx.compose.ui.geometry.Size(scaledWidth, scaledHeight),
-                                alpha = alpha
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
 
 @Composable
 fun LoadingDialog(
@@ -441,7 +267,7 @@ fun SaveImageDialog(
     var textState by remember(defaultFilename) { mutableStateOf(fileExt) }
     var saveAll by remember(initialSaveAll) { mutableStateOf(initialSaveAll) }
     var skipNext by remember { mutableStateOf(false) }
-    val haptic = rememberHapticFeedback()
+    val haptic = rememberHaptics()
     StyledAlertDialog(onDismissRequest = onDismissRequest, title = {
         Text(stringResource(if (hideOptions) R.string.overwrite_image else R.string.save_image))
     }, text = {
@@ -558,7 +384,7 @@ fun RemoveImageDialog(
     onRemove: () -> Unit,
     onSaveAndRemove: () -> Unit
 ) {
-    val haptic = rememberHapticFeedback()
+    val haptic = rememberHaptics()
     StyledAlertDialog(
         onDismissRequest = onDismissRequest,
         title = { Text(stringResource(R.string.remove_image_title)) },
@@ -597,7 +423,7 @@ fun RemoveImageDialog(
 fun CancelProcessingDialog(
     imageFilename: String? = null, onDismissRequest: () -> Unit, onConfirm: () -> Unit
 ) {
-    val haptic = rememberHapticFeedback()
+    val haptic = rememberHaptics()
     StyledAlertDialog(
         onDismissRequest = onDismissRequest,
         title = { Text(stringResource(R.string.stop_processing_title)) },
@@ -627,7 +453,7 @@ fun CancelProcessingDialog(
 
 @Composable
 fun StarterModelDialog(onDismiss: () -> Unit) {
-    val haptic = rememberHapticFeedback()
+    val haptic = rememberHaptics()
     StyledAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.starter_model_title)) },
@@ -693,10 +519,9 @@ fun ImageSourceDialog(
     onDocumentsSelected: () -> Unit,
     onCameraSelected: () -> Unit
 ) {
-    val context = LocalContext.current
-    val appPreferences = remember { AppPreferences(context.applicationContext) }
+    val appPreferences = remember { AppPreferences() }
     val scope = rememberCoroutineScope()
-    val haptic = rememberHapticFeedback()
+    val haptic = rememberHaptics()
     var setAsDefault by remember { mutableStateOf(false) }
     var helpTarget by remember { mutableStateOf<HelpTarget?>(null) }
 
@@ -963,16 +788,15 @@ fun HelpDialog(title: String, text: String, onDismiss: () -> Unit) {
     }
 }
 
-private fun hapticAnd(action: () -> Unit, hapticAction: () -> Unit) {
-    hapticAction()
-    action()
-}
-
 @Composable
 private fun DialogTextButton(
     label: String, onClick: () -> Unit, hapticAction: () -> Unit, textColor: Color? = null
 ) {
-    TextButton(onClick = { hapticAnd(onClick, hapticAction) }) {
+    TextButton(
+        onClick = {
+            hapticAction()
+            onClick()
+        }) {
         if (textColor != null) Text(label, color = textColor) else Text(label)
     }
 }
@@ -981,7 +805,12 @@ private fun DialogTextButton(
 private fun DialogPrimaryButton(
     label: String, onClick: () -> Unit, hapticAction: () -> Unit, enabled: Boolean = true
 ) {
-    MorphButton(label = label, onClick = { hapticAnd(onClick, hapticAction) }, enabled = enabled)
+    MorphButton(
+        label = label, onClick = {
+            hapticAction()
+            onClick()
+        }, enabled = enabled
+    )
 }
 
 @Composable
@@ -1011,9 +840,182 @@ private fun sanitizeFilename(input: String, fallback: String = "image"): String 
         ?: fallback
 }
 
-private fun Context.openUrl(url: String) {
-    try {
-        startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
-    } catch (_: Exception) {
+@Composable
+fun RecoveryDialog(
+    imageRepository: ImageRepository
+) {
+    data class RecoveryImage(
+        val imageId: String,
+        val label: String,
+        val processedBitmap: android.graphics.Bitmap,
+        val unprocessedBitmap: android.graphics.Bitmap?
+    )
+
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val haptic = rememberHaptics()
+    val recoveryImages = remember { mutableStateOf<List<RecoveryImage>>(emptyList()) }
+    val showDialog = remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        CacheManager.clearChunks(context)
+        CacheManager.clearAbandonedImages(context)
+        val cachedRecoveryImages = CacheManager.getRecoveryImages(context)
+        if (cachedRecoveryImages.isNotEmpty()) {
+            val existingIds = imageRepository.images.value.map { it.id }.toSet()
+            val newRecoveryImages = cachedRecoveryImages.filter { (id, _) -> id !in existingIds }
+            if (newRecoveryImages.isNotEmpty()) {
+                val loadedImages = mutableListOf<RecoveryImage>()
+                for ((imageId, file) in newRecoveryImages) {
+                    val processedBitmap = withContext(Dispatchers.IO) {
+                        BitmapFactory.decodeFile(file.absolutePath)
+                    }
+                    if (processedBitmap != null) {
+                        val unprocessedFile = CacheManager.getUnprocessedImage(context, imageId)
+                        val unprocessedBitmap = if (unprocessedFile != null) {
+                            withContext(Dispatchers.IO) {
+                                BitmapFactory.decodeFile(unprocessedFile.absolutePath)
+                            }
+                        } else null
+                        loadedImages.add(
+                            RecoveryImage(
+                                imageId,
+                                "Recovered_${imageId.take(8)}",
+                                processedBitmap,
+                                unprocessedBitmap
+                            )
+                        )
+                    }
+                }
+                recoveryImages.value = loadedImages
+                showDialog.value = loadedImages.isNotEmpty()
+            }
+        }
+    }
+
+    if (showDialog.value && recoveryImages.value.isNotEmpty()) {
+        val count = recoveryImages.value.size
+        val recoveredImagePrefix = stringResource(R.string.recovered_image_prefix)
+        val recoverButtonText = stringResource(R.string.recover)
+        val discardButtonText = stringResource(R.string.discard)
+
+        fun clearCache() {
+            Log.d("RecoveryDialog", "User chose to discard recovery images")
+            showDialog.value = false
+            scope.launch(Dispatchers.IO) {
+                CacheManager.getRecoveryImages(context).forEach { (id, _) ->
+                    CacheManager.deleteRecoveryPair(
+                        context, id, deleteProcessed = true, deleteUnprocessed = true
+                    )
+                }
+            }
+        }
+
+        StyledAlertDialog(
+            onDismissRequest = {},
+            title = { Text(pluralStringResource(R.plurals.recover_images_title, count, count)) },
+            text = {
+                Column {
+                    Text(pluralStringResource(R.plurals.recover_images_message, count, count))
+                    if (count <= 3) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            recoveryImages.value.take(3).forEach { img ->
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .aspectRatio(1f)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceContainer)
+                                ) {
+                                    Image(
+                                        bitmap = img.processedBitmap.asImageBitmap(),
+                                        contentDescription = stringResource(R.string.image),
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            recoveryImages.value.take(3).forEach { img ->
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .aspectRatio(1f)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceContainer)
+                                ) {
+                                    Image(
+                                        bitmap = img.processedBitmap.asImageBitmap(),
+                                        contentDescription = stringResource(R.string.image),
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .aspectRatio(1f)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceContainer),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "+${count - 3}",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    haptic.light()
+                    clearCache()
+                }) { Text(discardButtonText) }
+            },
+            confirmButton = {
+                MorphButton(
+                    label = recoverButtonText, onClick = {
+                        haptic.medium()
+                        recoveryImages.value.forEach { img ->
+                            val processed = img.processedBitmap
+                            val unprocessedFile =
+                                CacheManager.getUnprocessedImage(context, img.imageId)
+                            val uri = unprocessedFile?.let {
+                                FileProvider.getUriForFile(
+                                    context, "${context.packageName}.provider", it
+                                )
+                            }
+                            imageRepository.addImage(
+                                ImageItem(
+                                    id = img.imageId,
+                                    uri = uri,
+                                    filename = recoveredImagePrefix,
+                                    inputBitmap = img.unprocessedBitmap ?: processed,
+                                    outputBitmap = processed,
+                                    thumbnailBitmap = ImageLoadingHelper.generateThumbnail(processed),
+                                    size = "${processed.width}x${processed.height}",
+                                    hasBeenSaved = false
+                                )
+                            )
+                        }
+                        showDialog.value = false
+                    })
+            })
     }
 }
+

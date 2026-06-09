@@ -16,10 +16,8 @@ import android.os.IBinder
 import android.os.Looper
 import android.os.Process
 import android.util.Log
-import com.je.dejpeg.data.AppPreferences
-import com.je.dejpeg.data.ProcessingMode
 import com.je.dejpeg.utils.CacheManager
-import com.je.dejpeg.utils.helpers.ImageLoadingHelper
+import com.je.dejpeg.utils.ImageLoadingHelper
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -268,6 +266,7 @@ class ProcessingService : Service() {
                                             scheduleAutoStop()
                                         }
                                     }
+
                                     override fun onError(error: String) {
                                         if (!cancelBroadcastSent) {
                                             broadcast(
@@ -278,6 +277,7 @@ class ProcessingService : Service() {
                                         }
                                         scheduleAutoStop()
                                     }
+
                                     override fun onProgress(message: String) {
                                         currentProgressMessage = message
                                         broadcast(
@@ -331,6 +331,7 @@ class ProcessingService : Service() {
                                             scheduleAutoStop()
                                         }
                                     }
+
                                     override fun onError(error: String) {
                                         if (!cancelBroadcastSent) {
                                             broadcast(
@@ -342,6 +343,7 @@ class ProcessingService : Service() {
                                         Log.d("ProcessingService", "processing error: $error")
                                         scheduleAutoStop()
                                     }
+
                                     override fun onProgress(message: String) {
                                         currentProgressMessage = message
                                         chunkProgressTotal = 0
@@ -353,6 +355,7 @@ class ProcessingService : Service() {
                                         )
                                         notifyProgressChange()
                                     }
+
                                     override fun onChunkProgress(
                                         currentChunkIndex: Int,
                                         totalChunks: Int,

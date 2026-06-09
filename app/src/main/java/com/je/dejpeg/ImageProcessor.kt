@@ -20,7 +20,6 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.util.Log
 import androidx.core.graphics.createBitmap
-import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.utils.CacheManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope

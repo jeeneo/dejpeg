@@ -1,13 +1,12 @@
 @file:Suppress("SpellCheckingInspection")
 
-package com.je.dejpeg.utils.brisque
+package com.je.dejpeg.utils
 
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
 import androidx.core.graphics.scale
 import com.je.dejpeg.R
-import com.je.dejpeg.utils.HashUtils
 import kotlinx.coroutines.yield
 import java.io.File
 import java.lang.ref.WeakReference
@@ -16,6 +15,7 @@ import java.nio.ByteOrder
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.exp
+import kotlin.math.floor
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -69,7 +69,8 @@ class BRISQUEDescaler(
         private const val DEFAULT_COARSE_STEP = 20           // pixels step for coarse scan
         private const val DEFAULT_FINE_STEP = 5              // pixels step for fine scan
         private const val DEFAULT_FINE_RANGE = 30            // pixels range around coarse best
-        private const val DEFAULT_MIN_WIDTH_RATIO = 0.5f     // minimum width as fraction of original
+        private const val DEFAULT_MIN_WIDTH_RATIO =
+            0.5f     // minimum width as fraction of original
         private const val BRISQUE_WEIGHT = 0.7f              // 70% weight for BRISQUE
         private const val SHARPNESS_WEIGHT = 0.3f            // 30% weight for sharpness
         fun initialize(context: Context) {
@@ -774,7 +775,6 @@ data class BrisqueSVMModel(
 object BrisqueModelLoader {
     private const val TAG = "BrisqueModelLoader"
     private const val MAGIC = "BRSQ"
-    private const val BRISQUE_MDL_HASH = "5e8828abad9dbaefa727de9312371590c6010795fd10f4e2e2a563a2bd988548"
 
     @Volatile
     private var cachedModel: BrisqueSVMModel? = null
@@ -792,15 +792,6 @@ object BrisqueModelLoader {
                             input.copyTo(output)
                         }
                     }
-                }
-                val realHash = HashUtils.computeSHA256(inputFile)
-                if (realHash != BRISQUE_MDL_HASH) {
-                    Log.e(
-                        TAG,
-                        "BRISQUE model SHA256 verification failed. Expected: $BRISQUE_MDL_HASH, Actual: $realHash"
-                    )
-                    inputFile.delete()
-                    return null
                 }
                 val model = loadFromBinary(inputFile)
                 val elapsed = System.currentTimeMillis() - startTime
@@ -864,3 +855,82 @@ object BrisqueModelLoader {
     }
 
 }
+
+internal object ImageResampler {
+    fun reflect101(index: Int, length: Int): Int {
+        if (length <= 1) return 0
+        return when {
+            index < 0 -> minOf(-index, length - 1)
+            index >= length -> maxOf(2 * length - index - 2, 0)
+            else -> index
+        }
+    }
+
+    fun cubicWeight(x: Double): Double {
+        val a = -0.75
+        val ax = abs(x)
+        return when {
+            ax <= 1.0 -> ((a + 2.0) * ax - (a + 3.0)) * ax * ax + 1.0
+            ax < 2.0 -> (((a * ax - 5.0 * a) * ax + 8.0 * a) * ax) - 4.0 * a
+            else -> 0.0
+        }
+    }
+
+    fun resizeInterCubic(
+        src: FloatArray,
+        srcWidth: Int,
+        srcHeight: Int,
+        dst: FloatArray,
+        dstWidth: Int,
+        dstHeight: Int
+    ) {
+        val scaleX = srcWidth.toDouble() / dstWidth
+        val scaleY = srcHeight.toDouble() / dstHeight
+        val xWeights = DoubleArray(dstWidth * 4)
+        val xSrcCols = IntArray(dstWidth * 4)
+
+        for (dx in 0 until dstWidth) {
+            val fx = (dx + 0.5) * scaleX - 0.5
+            val sx = floor(fx).toInt()
+            val tx = fx - sx
+            val base = dx * 4
+            xWeights[base] = cubicWeight(1.0 + tx)
+            xWeights[base + 1] = cubicWeight(tx)
+            xWeights[base + 2] = cubicWeight(1.0 - tx)
+            xWeights[base + 3] = cubicWeight(2.0 - tx)
+            for (n in 0..3) xSrcCols[base + n] = reflect101(sx + n - 1, srcWidth)
+        }
+
+        val yWeights = DoubleArray(dstHeight * 4)
+        val ySrcRowOffs = IntArray(dstHeight * 4)
+        for (dy in 0 until dstHeight) {
+            val fy = (dy + 0.5) * scaleY - 0.5
+            val sy = floor(fy).toInt()
+            val ty = fy - sy
+            val base = dy * 4
+            yWeights[base] = cubicWeight(1.0 + ty)
+            yWeights[base + 1] = cubicWeight(ty)
+            yWeights[base + 2] = cubicWeight(1.0 - ty)
+            yWeights[base + 3] = cubicWeight(2.0 - ty)
+            for (m in 0..3) ySrcRowOffs[base + m] = reflect101(sy + m - 1, srcHeight) * srcWidth
+        }
+
+        for (dy in 0 until dstHeight) {
+            val yBase = dy * 4
+            val dstRowOff = dy * dstWidth
+            for (dx in 0 until dstWidth) {
+                val xBase = dx * 4
+                var sum = 0.0
+                for (m in 0..3) {
+                    val rowOff = ySrcRowOffs[yBase + m]
+                    val wY = yWeights[yBase + m]
+                    for (n in 0..3) {
+                        sum += src[rowOff + xSrcCols[xBase + n]] * wY * xWeights[xBase + n]
+                    }
+                }
+                dst[dstRowOff + dx] = sum.toFloat()
+            }
+        }
+    }
+}
+

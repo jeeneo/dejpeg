@@ -5,7 +5,7 @@
 
 @file:Suppress("SpellCheckingInspection")
 
-package com.je.dejpeg.utils.helpers
+package com.je.dejpeg.utils
 
 import android.content.ClipData
 import android.content.ContentUris
@@ -14,6 +14,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.graphics.Matrix
 import android.media.MediaScannerConnection
 import android.net.Uri
@@ -27,7 +28,6 @@ import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
 import androidx.exifinterface.media.ExifInterface
 import com.je.dejpeg.R
-import com.je.dejpeg.utils.CacheManager
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -118,7 +118,7 @@ object ImageLoadingHelper {
         val y = (bitmap.height - cropSize) / 2
         val croppedBitmap =
             createBitmap(cropSize, cropSize, bitmap.config ?: Bitmap.Config.ARGB_8888)
-        val canvas = android.graphics.Canvas(croppedBitmap)
+        val canvas = Canvas(croppedBitmap)
         canvas.drawBitmap(bitmap, -x.toFloat(), -y.toFloat(), null)
         val resizedBitmap = croppedBitmap.scale(size, size)
         croppedBitmap.recycle()

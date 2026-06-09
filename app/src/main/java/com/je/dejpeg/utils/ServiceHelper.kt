@@ -5,7 +5,7 @@
 
 @file:Suppress("SpellCheckingInspection")
 
-package com.je.dejpeg.utils.helpers
+package com.je.dejpeg.utils
 
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
@@ -18,6 +18,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.Process
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.je.dejpeg.ProcessingService
@@ -40,6 +41,7 @@ class ServiceCommunicationHelper(
     private var isBound = false
     private val mainHandler = Handler(Looper.getMainLooper())
     private var bindingEpoch = 0
+
     private data class Binding(
         val connection: ServiceConnection,
         val deathRecipient: IBinder.DeathRecipient,
@@ -249,7 +251,7 @@ class ServiceCommunicationHelper(
         unbindFromService()
         if (pid != null && pid > 0) {
             try {
-                android.os.Process.killProcess(pid)
+                Process.killProcess(pid)
                 onCleanup()
                 mainHandler.post { callbacks.onServiceCrash(imageId) }
                 return true

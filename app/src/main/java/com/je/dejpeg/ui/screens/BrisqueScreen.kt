@@ -83,15 +83,15 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.je.dejpeg.BrisqueSettings
+import com.je.dejpeg.ImageRepository
 import com.je.dejpeg.R
-import com.je.dejpeg.data.BrisqueSettings
-import com.je.dejpeg.data.ImageRepository
+import com.je.dejpeg.rememberHaptics
 import com.je.dejpeg.ui.components.ErrorAlertDialog
 import com.je.dejpeg.ui.components.SimpleAlertDialog
 import com.je.dejpeg.ui.viewmodel.BrisqueViewModel
 import com.je.dejpeg.ui.viewmodel.SaveState
-import com.je.dejpeg.utils.brisque.BRISQUEDescaler
-import com.je.dejpeg.utils.rememberHapticFeedback
+import com.je.dejpeg.utils.BRISQUEDescaler
 import kotlinx.coroutines.launch
 import me.saket.telephoto.zoomable.ZoomSpec
 import me.saket.telephoto.zoomable.rememberZoomableState
@@ -106,7 +106,7 @@ fun BRISQUEScreen(
     imageRepository: ImageRepository, imageId: String, onBack: () -> Unit = {},
 ) {
     val context = LocalContext.current
-    val haptic = rememberHapticFeedback()
+    val haptic = rememberHaptics()
     rememberCoroutineScope()
     stringResource(R.string.brisque_image_saved)
     stringResource(R.string.brisque_failed_to_save)
@@ -134,11 +134,11 @@ fun BRISQUEScreen(
     ) {
         TopAppBar(
             title = {
-            Text(
-                stringResource(R.string.brisque_analysis),
-                style = MaterialTheme.typography.titleMedium
-            )
-        },
+                Text(
+                    stringResource(R.string.brisque_analysis),
+                    style = MaterialTheme.typography.titleMedium
+                )
+            },
             navigationIcon = {
                 IconButton(onClick = { haptic.light(); onBack() }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back_desc))
@@ -533,7 +533,7 @@ private fun InfoDialog(onDismiss: () -> Unit) {
 private fun DescaleProgressDialog(
     progress: BRISQUEDescaler.ProgressUpdate, logMessages: List<String>, onCancel: () -> Unit
 ) {
-    val haptic = rememberHapticFeedback()
+    val haptic = rememberHaptics()
     val logListState = rememberLazyListState()
     LaunchedEffect(logMessages.size) {
         if (logMessages.isNotEmpty()) logListState.animateScrollToItem(
@@ -692,7 +692,7 @@ private fun LogEntry(text: String, isActive: Boolean = false) {
 private fun ImageViewerModal(
     bitmap: Bitmap, filename: String, sheetState: SheetState, onDismiss: () -> Unit
 ) {
-    val haptic = rememberHapticFeedback()
+    val haptic = rememberHaptics()
     val scope = rememberCoroutineScope()
 
     ModalBottomSheet(
@@ -750,7 +750,7 @@ private fun BRISQUESettings(
     imageHeight: Int,
     onDismiss: () -> Unit
 ) {
-    val haptic = rememberHapticFeedback()
+    val haptic = rememberHaptics()
     var coarseStep by remember { mutableFloatStateOf(settings.coarseStep.toFloat()) }
     var fineStep by remember { mutableFloatStateOf(settings.fineStep.toFloat()) }
     var fineRange by remember { mutableFloatStateOf(settings.fineRange.toFloat()) }
@@ -770,7 +770,7 @@ private fun BRISQUESettings(
         format: (Float) -> String = { "${it.toInt()}px" },
         infoText: String = ""
     ) {
-        val haptic = rememberHapticFeedback()
+        val haptic = rememberHaptics()
         val steps = ((range.endInclusive - range.start) / stepSize).toInt()
         var index by remember(value) {
             mutableIntStateOf(

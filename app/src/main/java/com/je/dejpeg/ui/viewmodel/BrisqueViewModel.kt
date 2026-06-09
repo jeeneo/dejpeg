@@ -10,15 +10,16 @@ import android.graphics.Bitmap
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.je.dejpeg.App
+import com.je.dejpeg.AppPreferences
+import com.je.dejpeg.BrisqueSettings
 import com.je.dejpeg.R
-import com.je.dejpeg.data.AppPreferences
-import com.je.dejpeg.data.BrisqueSettings
 import com.je.dejpeg.ui.components.SnackbarDuration
 import com.je.dejpeg.ui.components.SnackySnackbarController
 import com.je.dejpeg.ui.components.SnackySnackbarEvents
-import com.je.dejpeg.utils.brisque.BRISQUEAssessor
-import com.je.dejpeg.utils.brisque.BRISQUEDescaler
-import com.je.dejpeg.utils.helpers.ImageActions
+import com.je.dejpeg.utils.BRISQUEAssessor
+import com.je.dejpeg.utils.BRISQUEDescaler
+import com.je.dejpeg.utils.ImageActions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -78,8 +79,8 @@ class BrisqueViewModel : ViewModel() {
     }
 
     fun initialize(context: Context, bitmap: Bitmap, filename: String) {
-        appContext = context.applicationContext
-        appPreferences = AppPreferences(context.applicationContext)
+        appContext = App.ctx
+        appPreferences = AppPreferences()
 
         BRISQUEAssessor.initialize(context.applicationContext)
         viewModelScope.launch {

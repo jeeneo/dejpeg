@@ -4,7 +4,9 @@
  */
 
 
-@file:Suppress("KotlinConstantConditions", "SimplifyBooleanWithConstants")
+@file:Suppress(
+    "KotlinConstantConditions", "SimplifyBooleanWithConstants", "SpellCheckingInspection"
+)
 
 package com.je.dejpeg.ui.screens
 
@@ -85,19 +87,22 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import androidx.core.net.toUri
+import com.je.dejpeg.App
+import com.je.dejpeg.AppPreferences
 import com.je.dejpeg.BuildConfig
+import com.je.dejpeg.HapticPatterns
 import com.je.dejpeg.ModelManager
 import com.je.dejpeg.ModelType
+import com.je.dejpeg.ProcessingMode
 import com.je.dejpeg.R
-import com.je.dejpeg.data.ProcessingMode
-import com.je.dejpeg.ui.components.AboutDialog
+import com.je.dejpeg.rememberHaptics
 import com.je.dejpeg.ui.components.ErrorAlertDialog
 import com.je.dejpeg.ui.components.SnackbarDuration
 import com.je.dejpeg.ui.components.SnackySnackbarController
@@ -106,7 +111,6 @@ import com.je.dejpeg.ui.components.loadFAQSections
 import com.je.dejpeg.ui.components.rememberMaterialPressState
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
-import com.je.dejpeg.utils.rememberHapticFeedback
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -119,13 +123,12 @@ import kotlin.math.roundToInt
 fun SettingsScreen(
     viewModel: SettingsViewModel, processingViewModel: ProcessingViewModel, onBack: () -> Unit = {}
 ) {
-    val context = LocalContext.current
+    val context = App.ctx
     val modelManager = remember { ModelManager(context) }
-    val appPreferences = remember { com.je.dejpeg.data.AppPreferences(context) }
+    val appPreferences = remember { AppPreferences() }
     val scope = rememberCoroutineScope()
     val installedModels by viewModel.installedModels.collectAsState()
     var showImportProgress by remember { mutableStateOf(false) }
-    var showAbout by remember { mutableStateOf(false) }
     var expandedSection by remember { mutableStateOf<SettingsSection?>(null) }
     fun toggle(section: SettingsSection) {
         expandedSection = if (expandedSection == section) null else section
@@ -159,13 +162,13 @@ fun SettingsScreen(
     var activeOidnModelName by remember {
         mutableStateOf(runBlocking { viewModel.getActiveModelName(ModelType.OIDN) })
     }
+    val uriHandler = LocalUriHandler.current
 
     fun threadLabel(value: Int, autoString: String) = if (value == 0) autoString else "$value"
 
     DisposableEffect(Unit) {
         onDispose {
             showImportProgress = false
-            showAbout = false
             warningState = null
             pendingModelSelection = null
             pendingImportUri = null
@@ -249,14 +252,14 @@ fun SettingsScreen(
     Scaffold(
         floatingActionButton = {
             Box(Modifier.padding(bottom = 100.dp)) {
-                val haptic = rememberHapticFeedback()
+                val haptic = rememberHaptics()
                 val fabInteractionSource = remember { MutableInteractionSource() }
                 val fabPress by rememberMaterialPressState(fabInteractionSource)
                 val animatedFabCorner = lerp(16f, 28f, fabPress)
 
                 ExtendedFloatingActionButton(
                     onClick = {
-                    haptic.light() // huh wonky, reformatting doesn't like you
+                    haptic.light()
                     if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN) {
                         oidnModelPickerLauncher.launch("*/*")
                     } else {
@@ -319,7 +322,7 @@ fun SettingsScreen(
                         SingleChoiceSegmentedButtonRow(
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            val haptic = rememberHapticFeedback()
+                            val haptic = rememberHaptics()
                             SegmentedButton(
                                 selected = processingMode == ProcessingMode.ONNX, onClick = {
                                     haptic.light()
@@ -362,7 +365,7 @@ fun SettingsScreen(
                             toggle(SettingsSection.ModelManagement)
                         })
                     AnimatedVisibility(visible = expandedSection == SettingsSection.ModelManagement) {
-                        val haptic = rememberHapticFeedback()
+                        val haptic = rememberHaptics()
                         val extractedMsg = stringResource(R.string.extracted_starter_models)
                         val failedMsg = stringResource(R.string.failed_to_extract_starter_models)
                         Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
@@ -515,7 +518,7 @@ fun SettingsScreen(
                         expanded = expandedSection == SettingsSection.Chunk,
                         onClick = { toggle(SettingsSection.Chunk) })
                     AnimatedVisibility(visible = expandedSection == SettingsSection.Chunk) {
-                        val haptic = rememberHapticFeedback()
+                        val haptic = rememberHaptics()
                         val maxThreads = remember {
                             Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
                         }
@@ -579,7 +582,7 @@ fun SettingsScreen(
                             toggle(SettingsSection.OidnModelManagement)
                         })
                     AnimatedVisibility(visible = expandedSection == SettingsSection.OidnModelManagement) {
-                        val haptic = rememberHapticFeedback()
+                        val haptic = rememberHaptics()
                         Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                             installedOidnModels.forEach { modelName ->
                                 val isActive = modelName == activeOidnModelName
@@ -684,7 +687,7 @@ fun SettingsScreen(
                         })
 
                     AnimatedVisibility(visible = expandedSection == SettingsSection.OidnSettings) {
-                        val haptic = rememberHapticFeedback()
+                        val haptic = rememberHaptics()
                         val maxThreads = remember {
                             Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
                         }
@@ -846,7 +849,7 @@ fun SettingsScreen(
 
                 AnimatedVisibility(visible = expandedSection == SettingsSection.Preferences) {
                     Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
-                        val haptic = rememberHapticFeedback()
+                        val haptic = rememberHaptics()
                         val localView = androidx.compose.ui.platform.LocalView.current
                         LabeledSwitch(
                             title = stringResource(R.string.vibration_on_touch),
@@ -854,7 +857,7 @@ fun SettingsScreen(
                             checked = hapticFeedbackEnabled,
                             onCheckedChange = { new ->
                                 if (new) {
-                                    com.je.dejpeg.utils.HapticFeedback.light(
+                                    HapticPatterns.light(
                                         localView, true
                                     )
                                 }
@@ -949,10 +952,10 @@ fun SettingsScreen(
                     icon = Icons.Filled.Info,
                     iconBackgroundColor = MaterialTheme.colorScheme.primaryContainer,
                     iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    title = stringResource(R.string.about),
-                    subtitle = stringResource(R.string.version_info_and_credits),
+                    title = "About",
+                    subtitle = "Source code",
                     trailing = { },
-                    onClick = { showAbout = true })
+                    onClick = { uriHandler.openUri("https://codeberg.org/deyerlint/dejpeg") })
             }
 
             Spacer(modifier = Modifier.height(100.dp))
@@ -996,9 +999,6 @@ fun SettingsScreen(
             }
         }
     }
-
-    if (showAbout) AboutDialog { showAbout = false }
-
     modelInfoDialog?.let { (modelName, infoText) ->
         ModalBottomSheet(onDismissRequest = { modelInfoDialog = null }) {
             Column(Modifier.padding(16.dp)) {
@@ -1019,7 +1019,7 @@ fun SettingsScreen(
     }
 
     warningState?.let { state ->
-        val haptic = rememberHapticFeedback()
+        val haptic = rememberHaptics()
         when (state) {
             is ModelWarningState.ModelWarning -> {
 
@@ -1240,7 +1240,7 @@ fun PreferenceItem(
     trailing: (@Composable () -> Unit)? = null,
     onClick: () -> Unit
 ) {
-    val haptic = rememberHapticFeedback()
+    val haptic = rememberHaptics()
     val interactionSource = remember { MutableInteractionSource() }
     val press by rememberMaterialPressState(interactionSource)
     val animatedIconCorner = lerp(14f, 22f, press)
@@ -1330,7 +1330,7 @@ fun PreferenceItem(
 @Composable
 fun FAQSection(title: String, content: String?, subSections: List<Pair<String, String>>? = null) {
     var expanded by remember { mutableStateOf(false) }
-    val haptic = rememberHapticFeedback()
+    val haptic = rememberHaptics()
     val chevronRotation by animateFloatAsState(
         targetValue = if (expanded) 90f else 0f, animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium

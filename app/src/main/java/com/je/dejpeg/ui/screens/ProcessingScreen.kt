@@ -120,11 +120,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.window.DialogProperties
+import com.je.dejpeg.App
+import com.je.dejpeg.AppPreferences
+import com.je.dejpeg.HapticFeedbacks
+import com.je.dejpeg.ImageRepository
 import com.je.dejpeg.ModelType
+import com.je.dejpeg.ProcessingMode
 import com.je.dejpeg.R
-import com.je.dejpeg.data.AppPreferences
-import com.je.dejpeg.data.ImageRepository
-import com.je.dejpeg.data.ProcessingMode
+import com.je.dejpeg.rememberHaptics
 import com.je.dejpeg.ui.components.CancelProcessingDialog
 import com.je.dejpeg.ui.components.ErrorAlertDialog
 import com.je.dejpeg.ui.components.ImageSourceDialog
@@ -140,9 +143,7 @@ import com.je.dejpeg.ui.viewmodel.ProcessingUiState
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SaveState
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
-import com.je.dejpeg.utils.HapticFeedbackPerformer
-import com.je.dejpeg.utils.helpers.ImageActions
-import com.je.dejpeg.utils.rememberHapticFeedback
+import com.je.dejpeg.utils.ImageActions
 import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -159,7 +160,6 @@ private val springStandard = spring<Float>(
     dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium
 )
 
-// im not a real programmer, i throw together things until it works then i move on.
 @Composable
 fun ProcessingScreen(
     viewModel: ProcessingViewModel,
@@ -171,8 +171,8 @@ fun ProcessingScreen(
     onRemoveSharedUri: (Uri) -> Unit = {},
     lazyListState: androidx.compose.foundation.lazy.LazyListState = androidx.compose.foundation.lazy.rememberLazyListState(),
 ) {
-    val context = LocalContext.current
-    val appPreferences = remember { AppPreferences(context.applicationContext) }
+    val context = App.ctx
+    val appPreferences = remember { AppPreferences() }
     val defaultImageSource by appPreferences.defaultImageSource.collectAsState(initial = null)
     val swapSwipeActions by appPreferences.swapSwipeActions.collectAsState(initial = false)
 
@@ -184,7 +184,7 @@ fun ProcessingScreen(
     val activeModelType = if (isOidnMode) ModelType.OIDN else ModelType.ONNX
     val supportsStrength = if (isOidnMode) true else settingsViewModel.getActiveModelName()
         ?.contains("fbcnn", ignoreCase = true) == true && processingMode == ProcessingMode.ONNX
-    val haptic = rememberHapticFeedback()
+    val haptic = rememberHaptics()
     val noModelMessage = stringResource(R.string.no_model_installed_title)
     val scope = rememberCoroutineScope()
     val isLoadingImages by imageRepository.isLoadingImages.collectAsState()
@@ -361,7 +361,10 @@ fun ProcessingScreen(
                                 val imageIds =
                                     images.filter { it.outputBitmap != null }.map { it.id }
                                 if (imageIds.isNotEmpty()) {
-                                    saveOrPrompt(imageIds.first(), images.first { it.id == imageIds.first() }.filename)
+                                    saveOrPrompt(
+                                        imageIds.first(),
+                                        images.first { it.id == imageIds.first() }.filename
+                                    )
                                 }
                             } else {
                                 tryProcess { haptic.medium(); viewModel.processImages() }
@@ -758,7 +761,7 @@ fun SwipeToDismissWrapper(
     content: @Composable () -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val haptic = rememberHapticFeedback()
+    val haptic = rememberHaptics()
     var widthPx by remember { mutableIntStateOf(0) }
     var hasReachedThreshold by remember { mutableStateOf(false) }
     val swipeThreshold = 0.35f
@@ -1091,7 +1094,7 @@ fun ImageCard(
     onBeforeOnly: () -> Unit,
     onSave: () -> Unit,
     isProcessing: Boolean = false,
-    haptic: HapticFeedbackPerformer
+    haptic: HapticFeedbacks
 ) {
     val cardInteractionSource = remember { MutableInteractionSource() }
     val cardPress by rememberMaterialPressState(cardInteractionSource)
