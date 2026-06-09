@@ -28,7 +28,7 @@ android {
     }
     defaultConfig {
         applicationId = "com.je.dejpeg"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 36
         versionCode = 401
         versionName = "4.0.1"

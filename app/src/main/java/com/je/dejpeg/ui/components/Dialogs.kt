@@ -84,9 +84,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.FileProvider
 import com.je.dejpeg.AppPreferences
+import com.je.dejpeg.HapticFeedbacks
 import com.je.dejpeg.ImageRepository
 import com.je.dejpeg.R
-import com.je.dejpeg.rememberHaptics
 import com.je.dejpeg.ui.viewmodel.ImageItem
 import com.je.dejpeg.utils.CacheManager
 import com.je.dejpeg.utils.ImageLoadingHelper
@@ -131,7 +131,6 @@ fun ErrorAlertDialog(
     context: Context,
     confirmButtonText: String? = null
 ) {
-    val haptic = rememberHaptics()
     val clipboardManager =
         remember(context) { context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager }
 
@@ -142,7 +141,7 @@ fun ErrorAlertDialog(
         dismissButton = {
             val scope = rememberCoroutineScope()
             TextButton(onClick = {
-                haptic.light()
+                HapticFeedbacks.light()
                 clipboardManager?.setPrimaryClip(
                     ClipData.newPlainText(context.getString(R.string.error), errorMessage)
                 )
@@ -159,7 +158,7 @@ fun ErrorAlertDialog(
         confirmButton = {
             MorphButton(
                 label = confirmButtonText ?: stringResource(R.string.ok),
-                onClick = { haptic.light(); onDismiss() })
+                onClick = { HapticFeedbacks.light(); onDismiss() })
         })
 }
 
@@ -174,18 +173,17 @@ fun SimpleAlertDialog(
     icon: ImageVector? = null,
     content: (@Composable () -> Unit)? = null
 ) {
-    val haptic = rememberHaptics()
     val resolvedText = confirmButtonText ?: stringResource(R.string.ok)
     StyledAlertDialog(
-        onDismissRequest = { haptic.light(); onDismiss() },
+        onDismissRequest = { HapticFeedbacks.light(); onDismiss() },
         icon = icon,
         title = { Text(title) },
         text = content ?: message?.let { { Text(it) } },
         dismissButton = dismissButtonText?.let {
-            { DialogTextButton(it, { onDismiss() }, { haptic.light() }) }
+            { DialogTextButton(it, { onDismiss() }, { HapticFeedbacks.light() }) }
         },
         confirmButton = {
-            DialogPrimaryButton(resolvedText, { onConfirm() }, { haptic.light() })
+            DialogPrimaryButton(resolvedText, { onConfirm() }, { HapticFeedbacks.light() })
         })
 }
 
@@ -267,7 +265,6 @@ fun SaveImageDialog(
     var textState by remember(defaultFilename) { mutableStateOf(fileExt) }
     var saveAll by remember(initialSaveAll) { mutableStateOf(initialSaveAll) }
     var skipNext by remember { mutableStateOf(false) }
-    val haptic = rememberHaptics()
     StyledAlertDialog(onDismissRequest = onDismissRequest, title = {
         Text(stringResource(if (hideOptions) R.string.overwrite_image else R.string.save_image))
     }, text = {
@@ -288,12 +285,12 @@ fun SaveImageDialog(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { haptic.light(); saveAll = !saveAll }
+                                .clickable { HapticFeedbacks.light(); saveAll = !saveAll }
                                 .padding(vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(
                                 checked = saveAll,
-                                onCheckedChange = { haptic.light(); saveAll = it },
+                                onCheckedChange = { HapticFeedbacks.light(); saveAll = it },
                                 modifier = Modifier.size(32.dp)
                             )
                             Spacer(Modifier.width(8.dp))
@@ -306,12 +303,12 @@ fun SaveImageDialog(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { haptic.light(); skipNext = !skipNext }
+                            .clickable { HapticFeedbacks.light(); skipNext = !skipNext }
                             .padding(vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(
                             checked = skipNext,
-                            onCheckedChange = { haptic.light(); skipNext = it },
+                            onCheckedChange = { HapticFeedbacks.light(); skipNext = it },
                             modifier = Modifier.size(32.dp)
                         )
                         Spacer(Modifier.width(8.dp))
@@ -324,12 +321,12 @@ fun SaveImageDialog(
             }
         }
     }, dismissButton = {
-        DialogTextButton(stringResource(R.string.cancel), onDismissRequest, { haptic.light() })
+        DialogTextButton(stringResource(R.string.cancel), onDismissRequest, { HapticFeedbacks.light() })
     }, confirmButton = {
         DialogPrimaryButton(stringResource(R.string.save), {
             onSave(sanitizeFilename(textState), saveAll, skipNext)
             onDismissRequest()
-        }, { haptic.light() })
+        }, { HapticFeedbacks.light() })
     })
 }
 
@@ -384,7 +381,6 @@ fun RemoveImageDialog(
     onRemove: () -> Unit,
     onSaveAndRemove: () -> Unit
 ) {
-    val haptic = rememberHaptics()
     StyledAlertDialog(
         onDismissRequest = onDismissRequest,
         title = { Text(stringResource(R.string.remove_image_title)) },
@@ -393,7 +389,7 @@ fun RemoveImageDialog(
             DialogTextButton(
                 stringResource(R.string.nope),
                 { onDismissRequest() },
-                { haptic.light() })
+                { HapticFeedbacks.light() })
         },
         confirmButton = {
             Row(
@@ -407,12 +403,12 @@ fun RemoveImageDialog(
                     )
                     onRemove()
                     onDismissRequest()
-                }, { haptic.heavy() }, MaterialTheme.colorScheme.error
+                }, { HapticFeedbacks.heavy() }, MaterialTheme.colorScheme.error
                 )
                 if (hasOutput) {
                     MorphButton(
                         label = stringResource(R.string.save),
-                        onClick = { haptic.medium(); onSaveAndRemove(); onDismissRequest() })
+                        onClick = { HapticFeedbacks.medium(); onSaveAndRemove(); onDismissRequest() })
 
                 }
             }
@@ -423,7 +419,6 @@ fun RemoveImageDialog(
 fun CancelProcessingDialog(
     imageFilename: String? = null, onDismissRequest: () -> Unit, onConfirm: () -> Unit
 ) {
-    val haptic = rememberHaptics()
     StyledAlertDialog(
         onDismissRequest = onDismissRequest,
         title = { Text(stringResource(R.string.stop_processing_title)) },
@@ -440,12 +435,12 @@ fun CancelProcessingDialog(
             DialogTextButton(
                 stringResource(R.string.nope),
                 { onDismissRequest() },
-                { haptic.light() })
+                { HapticFeedbacks.light() })
         },
         confirmButton = {
             MorphButton(
                 label = stringResource(R.string.yes_stop),
-                onClick = { haptic.heavy(); onConfirm(); onDismissRequest() },
+                onClick = { HapticFeedbacks.heavy(); onConfirm(); onDismissRequest() },
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
             )
         })
@@ -453,7 +448,6 @@ fun CancelProcessingDialog(
 
 @Composable
 fun StarterModelDialog(onDismiss: () -> Unit) {
-    val haptic = rememberHaptics()
     StyledAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.starter_model_title)) },
@@ -464,7 +458,7 @@ fun StarterModelDialog(onDismiss: () -> Unit) {
         },
         confirmButton = {
             MorphButton(
-                label = stringResource(R.string.got_it), onClick = { haptic.light(); onDismiss() })
+                label = stringResource(R.string.got_it), onClick = { HapticFeedbacks.light(); onDismiss() })
         })
 }
 
@@ -521,7 +515,6 @@ fun ImageSourceDialog(
 ) {
     val appPreferences = remember { AppPreferences() }
     val scope = rememberCoroutineScope()
-    val haptic = rememberHaptics()
     var setAsDefault by remember { mutableStateOf(false) }
     var helpTarget by remember { mutableStateOf<HelpTarget?>(null) }
 
@@ -567,9 +560,9 @@ fun ImageSourceDialog(
                         topEnd = 16f,
                         bottomStart = 16f,
                         bottomEnd = 16f,
-                        onHelpClick = { haptic.light(); helpTarget = HelpTarget.Gallery },
+                        onHelpClick = { HapticFeedbacks.light(); helpTarget = HelpTarget.Gallery },
                         onClick = {
-                            haptic.medium()
+                            HapticFeedbacks.medium()
                             scope.launch { handleSelection("gallery", onGallerySelected) }
                         })
                     GroupedSourceTile(
@@ -582,9 +575,9 @@ fun ImageSourceDialog(
                         topEnd = 28f,
                         bottomStart = 16f,
                         bottomEnd = 16f,
-                        onHelpClick = { haptic.light(); helpTarget = HelpTarget.Internal },
+                        onHelpClick = { HapticFeedbacks.light(); helpTarget = HelpTarget.Internal },
                         onClick = {
-                            haptic.medium()
+                            HapticFeedbacks.medium()
                             scope.launch { handleSelection("internal", onInternalSelected) }
                         })
                 }
@@ -602,9 +595,9 @@ fun ImageSourceDialog(
                         topEnd = 16f,
                         bottomStart = 28f,
                         bottomEnd = 16f,
-                        onHelpClick = { haptic.light(); helpTarget = HelpTarget.Documents },
+                        onHelpClick = { HapticFeedbacks.light(); helpTarget = HelpTarget.Documents },
                         onClick = {
-                            haptic.medium()
+                            HapticFeedbacks.medium()
                             scope.launch { handleSelection("documents", onDocumentsSelected) }
                         })
                     GroupedSourceTile(
@@ -617,9 +610,9 @@ fun ImageSourceDialog(
                         topEnd = 16f,
                         bottomStart = 16f,
                         bottomEnd = 28f,
-                        onHelpClick = { haptic.light(); helpTarget = HelpTarget.Camera },
+                        onHelpClick = { HapticFeedbacks.light(); helpTarget = HelpTarget.Camera },
                         onClick = {
-                            haptic.medium()
+                            HapticFeedbacks.medium()
                             scope.launch { handleSelection("camera", onCameraSelected) }
                         })
                 }
@@ -629,13 +622,13 @@ fun ImageSourceDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .clickable { haptic.light(); setAsDefault = !setAsDefault }
+                    .clickable { HapticFeedbacks.light(); setAsDefault = !setAsDefault }
                     .padding(horizontal = 4.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Checkbox(
                     checked = setAsDefault,
-                    onCheckedChange = { haptic.light(); setAsDefault = it },
+                    onCheckedChange = { HapticFeedbacks.light(); setAsDefault = it },
                     modifier = Modifier.size(32.dp)
                 )
                 Text(
@@ -853,7 +846,6 @@ fun RecoveryDialog(
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val haptic = rememberHaptics()
     val recoveryImages = remember { mutableStateOf<List<RecoveryImage>>(emptyList()) }
     val showDialog = remember { mutableStateOf(false) }
 
@@ -983,14 +975,14 @@ fun RecoveryDialog(
             },
             dismissButton = {
                 TextButton(onClick = {
-                    haptic.light()
+                    HapticFeedbacks.light()
                     clearCache()
                 }) { Text(discardButtonText) }
             },
             confirmButton = {
                 MorphButton(
                     label = recoverButtonText, onClick = {
-                        haptic.medium()
+                        HapticFeedbacks.medium()
                         recoveryImages.value.forEach { img ->
                             val processed = img.processedBitmap
                             val unprocessedFile =

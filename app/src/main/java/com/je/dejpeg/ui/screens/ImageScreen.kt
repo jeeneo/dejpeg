@@ -58,9 +58,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.je.dejpeg.App
 import com.je.dejpeg.AppPreferences
+import com.je.dejpeg.HapticFeedbacks
 import com.je.dejpeg.ImageRepository
 import com.je.dejpeg.R
-import com.je.dejpeg.rememberHaptics
 import com.je.dejpeg.ui.components.BeforeAfterSlider
 import com.je.dejpeg.ui.components.PreparingShareDialog
 import com.je.dejpeg.ui.components.SaveImageDialog
@@ -88,7 +88,6 @@ fun ImageScreen(
 ) {
     val context = App.ctx
     val scope = rememberCoroutineScope()
-    val haptic = rememberHaptics()
     val appPreferences = remember { AppPreferences() }
     val showSaveDialog by appPreferences.showSaveDialog.collectAsState(initial = true)
 
@@ -125,7 +124,7 @@ fun ImageScreen(
         TopAppBar(
             title = { Text(filename, style = MaterialTheme.typography.titleMedium) },
             navigationIcon = {
-                IconButton(onClick = { haptic.light(); onBack() }) {
+                IconButton(onClick = { HapticFeedbacks.light(); onBack() }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                 }
             },
@@ -162,7 +161,7 @@ fun ImageScreen(
                     Button(
                         modifier = Modifier.height(56.dp),
                         onClick = {
-                            haptic.light()
+                            HapticFeedbacks.light()
                             isPreparingShare = true
                             ImageActions.shareImage(
                                 context = context,
@@ -196,7 +195,7 @@ fun ImageScreen(
 
                     Button(
                         modifier = Modifier.height(56.dp),
-                        onClick = { haptic.medium(); saveOrPrompt(imageId, filename) },
+                        onClick = { HapticFeedbacks.medium(); saveOrPrompt(imageId, filename) },
                         shapes = ButtonDefaults.shapes(
                             shape = RoundedCornerShape(
                                 topStart = PillInner,

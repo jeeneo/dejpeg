@@ -127,7 +127,6 @@ import com.je.dejpeg.ImageRepository
 import com.je.dejpeg.ModelType
 import com.je.dejpeg.ProcessingMode
 import com.je.dejpeg.R
-import com.je.dejpeg.rememberHaptics
 import com.je.dejpeg.ui.components.CancelProcessingDialog
 import com.je.dejpeg.ui.components.ErrorAlertDialog
 import com.je.dejpeg.ui.components.ImageSourceDialog
@@ -184,7 +183,6 @@ fun ProcessingScreen(
     val activeModelType = if (isOidnMode) ModelType.OIDN else ModelType.ONNX
     val supportsStrength = if (isOidnMode) true else settingsViewModel.getActiveModelName()
         ?.contains("fbcnn", ignoreCase = true) == true && processingMode == ProcessingMode.ONNX
-    val haptic = rememberHaptics()
     val noModelMessage = stringResource(R.string.no_model_installed_title)
     val scope = rememberCoroutineScope()
     val isLoadingImages by imageRepository.isLoadingImages.collectAsState()
@@ -286,7 +284,7 @@ fun ProcessingScreen(
     LaunchedEffect(Unit) { viewModel.setImagePickerLauncher(imagePickerLauncher) }
 
     fun importImage() {
-        haptic.light()
+        HapticFeedbacks.light()
         when (defaultImageSource) {
             "gallery" -> viewModel.launchGalleryPicker()
             "internal" -> viewModel.launchInternalPhotoPicker()
@@ -354,7 +352,7 @@ fun ProcessingScreen(
                 if (images.isNotEmpty()) {
                     FloatingActionButton(
                         onClick = {
-                            haptic.medium()
+                            HapticFeedbacks.medium()
                             if (isProcessing) {
                                 showCancelAllDialog = true
                             } else if (allComplete) {
@@ -367,7 +365,7 @@ fun ProcessingScreen(
                                     )
                                 }
                             } else {
-                                tryProcess { haptic.medium(); viewModel.processImages() }
+                                tryProcess { HapticFeedbacks.medium(); viewModel.processImages() }
                             }
                         },
                         containerColor = fabContainerColor,
@@ -465,7 +463,7 @@ fun ProcessingScreen(
                             value = oidnInputScale,
                             onValueChange = {
                                 val v = (it * 2).roundToInt() / 2f; if (v != prevScale) {
-                                haptic.light(); prevScale = v
+                                HapticFeedbacks.light(); prevScale = v
                             }; settingsViewModel.setOidnInputScale(v)
                             },
                             valueRange = 0f..10f,
@@ -486,7 +484,7 @@ fun ProcessingScreen(
                             value = globalStrength,
                             onValueChange = {
                                 val v = (it / 5).roundToInt() * 5f; if (v != prevStrength) {
-                                haptic.light(); prevStrength = v
+                                HapticFeedbacks.light(); prevStrength = v
                             }; settingsViewModel.setGlobalStrength(v)
                             },
                             valueRange = 0f..100f,
@@ -604,12 +602,12 @@ fun ProcessingScreen(
                                 image = image,
                                 onRemove = { handleImageRemoval(image.id) },
                                 onProcess = { tryProcess { viewModel.processImage(image.id) } },
-                                onBrisque = { haptic.light(); onNavigateToBrisque(image.id) },
+                                onBrisque = { HapticFeedbacks.light(); onNavigateToBrisque(image.id) },
                                 onClick = { onNavigateToBeforeAfter(image.id) },
                                 onBeforeOnly = { onNavigateToBeforeAfter(image.id) },
                                 onSave = { saveOrPrompt(image.id, image.filename) },
                                 isProcessing = image.isProcessing,
-                                haptic = haptic
+                                haptic = HapticFeedbacks
                             )
                         }
                     }
@@ -761,7 +759,6 @@ fun SwipeToDismissWrapper(
     content: @Composable () -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val haptic = rememberHaptics()
     var widthPx by remember { mutableIntStateOf(0) }
     var hasReachedThreshold by remember { mutableStateOf(false) }
     val swipeThreshold = 0.35f
@@ -827,7 +824,7 @@ fun SwipeToDismissWrapper(
                         val threshold = widthPx * swipeThreshold
                         when {
                             widthPx > 0 && absOffset > threshold && !hasReachedThreshold -> {
-                                haptic.medium(); hasReachedThreshold = true
+                                HapticFeedbacks.medium(); hasReachedThreshold = true
                             }
 
                             absOffset <= threshold -> hasReachedThreshold = false
@@ -836,7 +833,7 @@ fun SwipeToDismissWrapper(
                         val absOffset = kotlin.math.abs(swipeState.value)
                         val threshold = widthPx * swipeThreshold
                         if (widthPx > 0 && absOffset > threshold) {
-                            haptic.heavy()
+                            HapticFeedbacks.heavy()
                             val isRight = swipeState.value > 0
                             val willSlideOff =
                                 if (isRight) rightSwipeImmediate else (currentAllowLeftSwipe && leftSwipeImmediate)

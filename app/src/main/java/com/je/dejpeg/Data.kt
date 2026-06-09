@@ -10,14 +10,11 @@ package com.je.dejpeg
 import android.content.Context
 import android.net.Uri
 import android.os.Build
+import android.os.VibrationAttributes
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.provider.Settings
 import android.util.Log
-import android.view.HapticFeedbackConstants
-import android.view.View
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalView
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -40,68 +37,57 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
 
-object HapticPatterns {
+object HapticFeedbacks {
+    private val vibrator by lazy {
+        App.ctx.getSystemService(Vibrator::class.java)
+    }
 
-    fun light(view: View, isEnabled: Boolean) {
-        if (!isEnabled) return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            view.performHapticFeedback(HapticFeedbackConstants.GESTURE_START)
+    private fun isEnabled() = Settings.System.getInt(
+        App.ctx.contentResolver, Settings.System.HAPTIC_FEEDBACK_ENABLED, 1
+    ) != 0
+
+    private var appHapticsEnabled = true
+
+    private fun vibrate(effect: VibrationEffect, force: Boolean = false) {
+        if (!force && (!isEnabled() || !appHapticsEnabled)) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            vibrator.vibrate(
+                effect,
+                VibrationAttributes.Builder().setUsage(VibrationAttributes.USAGE_TOUCH).build()
+            )
         } else {
-            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+            @Suppress("DEPRECATION") vibrator.vibrate(effect)
         }
     }
 
-    fun medium(view: View, isEnabled: Boolean) {
-        if (!isEnabled) return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-        } else {
-            view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
-        }
+    fun light(force: Boolean = false) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) vibrate(
+            VibrationEffect.createPredefined(
+                VibrationEffect.EFFECT_TICK
+            ), force
+        )
+        else vibrate(VibrationEffect.createOneShot(10, 80), force)
     }
 
-    fun heavy(view: View, isEnabled: Boolean) {
-        if (!isEnabled) return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            view.performHapticFeedback(HapticFeedbackConstants.REJECT)
-        } else {
-            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-        }
+    fun medium(force: Boolean = false) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) vibrate(
+            VibrationEffect.createPredefined(
+                VibrationEffect.EFFECT_CLICK
+            ), force
+        )
+        else vibrate(VibrationEffect.createOneShot(20, 120), force)
     }
 
-    fun error(view: View, isEnabled: Boolean) {
-        if (!isEnabled) return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            view.performHapticFeedback(HapticFeedbackConstants.REJECT)
-        } else {
-            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-        }
+    fun heavy(force: Boolean = false) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) vibrate(
+            VibrationEffect.createPredefined(
+                VibrationEffect.EFFECT_HEAVY_CLICK
+            ), force
+        )
+        else vibrate(VibrationEffect.createOneShot(40, 200), force)
     }
 
-    fun gestureStart(view: View, isEnabled: Boolean) {
-        if (!isEnabled) return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            view.performHapticFeedback(HapticFeedbackConstants.GESTURE_START)
-        } else {
-            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-        }
-    }
-}
-
-@Composable
-fun rememberHaptics(): HapticFeedbacks {
-    val view = LocalView.current
-    val appPreferences = remember { AppPreferences() }
-    val isEnabled by appPreferences.hapticFeedbackEnabled.collectAsState(initial = true)
-    return remember(view, isEnabled) { HapticFeedbacks(view, isEnabled) }
-}
-
-class HapticFeedbacks(private val view: View, private val isEnabled: Boolean) {
-    fun light() = HapticPatterns.light(view, isEnabled)
-    fun medium() = HapticPatterns.medium(view, isEnabled)
-    fun heavy() = HapticPatterns.heavy(view, isEnabled)
-    fun error() = HapticPatterns.error(view, isEnabled)
-    fun gestureStart() = HapticPatterns.gestureStart(view, isEnabled)
+    fun gestureStart(force: Boolean = false) = light(force)
 }
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "app_prefs")

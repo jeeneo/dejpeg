@@ -52,8 +52,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.get
 import com.je.dejpeg.AppPreferences
+import com.je.dejpeg.HapticFeedbacks
 import com.je.dejpeg.R
-import com.je.dejpeg.rememberHaptics
 import me.saket.telephoto.zoomable.OverzoomEffect
 import me.saket.telephoto.zoomable.ZoomLimit
 import me.saket.telephoto.zoomable.ZoomSpec
@@ -72,7 +72,6 @@ fun BeforeAfterSlider(
     labelPadding: Dp = 24.dp,
     maxZoomFactor: Float = 20f
 ) {
-    val haptic = rememberHaptics()
     val appPreferences = remember { AppPreferences() }
     val isHapticEnabled by appPreferences.hapticFeedbackEnabled.collectAsState(initial = true)
     val zoomableState = if (enableZoom) {
@@ -135,7 +134,7 @@ fun BeforeAfterSlider(
                         .offset(x = with(density) { sliderX.toDp() - 32.dp })
                         .pointerInput(Unit) {
                             detectDragGestures(
-                                onDragStart = { haptic.gestureStart() },
+                                onDragStart = { HapticFeedbacks.gestureStart() },
                                 onDrag = { change, dragAmount ->
                                     change.consume()
                                     sliderPosition =

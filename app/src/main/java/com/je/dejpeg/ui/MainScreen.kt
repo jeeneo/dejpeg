@@ -60,9 +60,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.je.dejpeg.HapticFeedbacks
 import com.je.dejpeg.ImageRepository
 import com.je.dejpeg.R
-import com.je.dejpeg.rememberHaptics
 import com.je.dejpeg.ui.components.RecoveryDialog
 import com.je.dejpeg.ui.components.SnackySnackbarBox
 import com.je.dejpeg.ui.components.SnackySnackbarHostState
@@ -138,7 +138,6 @@ fun HomeWrapperScreen(
     sharedUris: List<Uri>
 ) {
     val context = LocalContext.current
-    val haptic = rememberHaptics()
     var currentTab by rememberSaveable { mutableStateOf("processing") }
 
     val lazyListState = androidx.compose.foundation.lazy.rememberLazyListState()
@@ -232,7 +231,7 @@ fun HomeWrapperScreen(
                                 label = "processing_content"
                             )
                             Button(
-                                onClick = { haptic.light(); currentTab = "processing" },
+                                onClick = { HapticFeedbacks.light(); currentTab = "processing" },
                                 shapes = ButtonDefaults.shapes(
                                     shape = RoundedCornerShape(
                                         topStart = PillOuter,
@@ -288,7 +287,7 @@ fun HomeWrapperScreen(
                                 label = "settings_content"
                             )
                             Button(
-                                onClick = { haptic.light(); currentTab = "settings" },
+                                onClick = { HapticFeedbacks.light(); currentTab = "settings" },
                                 shapes = ButtonDefaults.shapes(
                                     shape = RoundedCornerShape(
                                         topStart = PillInner,
