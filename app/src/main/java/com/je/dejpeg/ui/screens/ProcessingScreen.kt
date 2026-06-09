@@ -124,7 +124,7 @@ import com.je.dejpeg.App
 import com.je.dejpeg.AppPreferences
 import com.je.dejpeg.HapticFeedbacks
 import com.je.dejpeg.ImageRepository
-import com.je.dejpeg.ModelType
+import com.je.dejpeg.utils.ModelType
 import com.je.dejpeg.ProcessingMode
 import com.je.dejpeg.R
 import com.je.dejpeg.ui.components.CancelProcessingDialog

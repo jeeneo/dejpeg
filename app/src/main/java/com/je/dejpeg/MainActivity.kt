@@ -34,6 +34,7 @@ import com.je.dejpeg.ui.MainScreen
 import com.je.dejpeg.ui.components.StarterModelDialog
 import com.je.dejpeg.ui.theme.DeJPEGTheme
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
+import com.je.dejpeg.utils.ModelManager
 
 class MainActivity : ComponentActivity() {
     private var handledIntentHash: Int? = null

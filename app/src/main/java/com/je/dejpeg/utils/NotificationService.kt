@@ -1,9 +1,4 @@
-/*
- * SPDX-FileCopyrightText: 2025 - 2026 dryerlint <https://codeberg.org/dryerlint>
- * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
- */
-
-package com.je.dejpeg
+package com.je.dejpeg.utils
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -13,8 +8,11 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import com.je.dejpeg.MainActivity
+import com.je.dejpeg.R
+import com.je.dejpeg.processing.ProcessingService
 
-object NotificationHelper {
+object NotificationService {
     const val CHANNEL_ID = "processing_channel"
     const val NOTIFICATION_ID = 1001
 

@@ -5,7 +5,7 @@
 
 @file:Suppress("GrazieInspection", "SpellCheckingInspection")
 
-package com.je.dejpeg
+package com.je.dejpeg.processing
 
 import ai.onnxruntime.NodeInfo
 import ai.onnxruntime.OnnxJavaType
@@ -20,7 +20,11 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.util.Log
 import androidx.core.graphics.createBitmap
+import com.je.dejpeg.AppPreferences
+import com.je.dejpeg.R
+import com.je.dejpeg.ThreadUtils
 import com.je.dejpeg.utils.CacheManager
+import com.je.dejpeg.utils.ModelManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -66,7 +70,7 @@ class ImageProcessor(
     ) = withContext(Dispatchers.Default) {
         isCancelled = false
         try {
-            val coresToUse = resolveThreadCount(deviceThreadCount)
+            val coresToUse = ThreadUtils.resolveThreadCount(deviceThreadCount)
             val modelName = modelManager.getActiveModelName()
             val session = modelManager.loadModel()
             val minOverlap = modelManager.getMinOverlapSize(modelName)
@@ -566,20 +570,6 @@ class ImageProcessor(
         val expandLeft: Int,
         val expandTop: Int
     )
-
-    private fun resolveThreadCount(configuredThreads: Int?): Int {
-        val detected = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
-        val configured = configuredThreads ?: AppPreferences.DEFAULT_ONNX_DEVICE_THREADS
-        return if (configured <= 0) {
-            when {
-                detected >= 8 -> 4
-                detected >= 6 -> 2
-                else -> 1
-            }
-        } else {
-            configured.coerceIn(1, detected)
-        }
-    }
 
     private fun floatToFloat16(value: Float): Short {
         val bits = java.lang.Float.floatToIntBits(value)

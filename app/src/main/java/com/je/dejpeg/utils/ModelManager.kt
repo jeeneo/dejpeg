@@ -5,7 +5,7 @@
 
 @file:Suppress("SpellCheckingInspection")
 
-package com.je.dejpeg
+package com.je.dejpeg.utils
 
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtException
@@ -14,13 +14,16 @@ import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Log
-import com.je.dejpeg.utils.ModelMigrationHelper
+import com.je.dejpeg.AppPreferences
+import com.je.dejpeg.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.io.FileOutputStream
+import java.io.InputStream
+import java.io.OutputStream
 
 enum class ModelType(val extensions: List<String>, val invalidFileTypeResId: Int) {
     ONNX(listOf(".onnx", ".ort"), R.string.invalid_file_type), OIDN(
@@ -393,8 +396,8 @@ class ModelManager(
     }
 
     private fun copyWithProgress(
-        input: java.io.InputStream,
-        output: java.io.OutputStream,
+        input: InputStream,
+        output: OutputStream,
         totalSize: Long,
         onProgress: (Int) -> Unit
     ) {

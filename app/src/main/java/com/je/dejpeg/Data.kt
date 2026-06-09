@@ -38,6 +38,22 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
 
+object ThreadUtils {
+    fun resolveThreadCount(configuredThreads: Int?): Int {
+        val detected = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
+        val configured = configuredThreads ?: AppPreferences.DEFAULT_ONNX_DEVICE_THREADS
+        return if (configured <= 0) {
+            when {
+                detected >= 8 -> 4
+                detected >= 6 -> 2
+                else -> 1
+            }
+        } else {
+            configured.coerceIn(1, detected)
+        }
+    }
+}
+
 object HapticFeedbacks {
     private val vibrator by lazy {
         App.ctx.getSystemService(Vibrator::class.java)

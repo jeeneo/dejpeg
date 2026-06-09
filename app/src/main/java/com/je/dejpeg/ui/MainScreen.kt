@@ -10,15 +10,17 @@ import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -47,12 +49,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -70,6 +78,7 @@ import com.je.dejpeg.ui.screens.ProcessingScreen
 import com.je.dejpeg.ui.screens.SettingsScreen
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
+import kotlinx.coroutines.launch
 
 private val PillOuter = 50.dp
 private val PillInner = 6.dp
@@ -83,7 +92,6 @@ sealed class Screen(val route: String) {
 fun MainScreen(
     sharedUris: List<Uri> = emptyList()
 ) {
-    val context = LocalContext.current
     val viewModel: ProcessingViewModel = viewModel()
     val settingsViewModel: SettingsViewModel = viewModel()
     val imageRepository = remember { ImageRepository.getInstance() }
@@ -138,7 +146,6 @@ fun HomeWrapperScreen(
 ) {
     val context = LocalContext.current
     var currentTab by rememberSaveable { mutableStateOf("processing") }
-
     val lazyListState = androidx.compose.foundation.lazy.rememberLazyListState()
     val isScrollingUp = remember {
         derivedStateOf {
@@ -146,45 +153,97 @@ fun HomeWrapperScreen(
         }
     }
     val toolbarVisible by remember { derivedStateOf { isScrollingUp.value } }
-
+    val scope = rememberCoroutineScope()
+    var containerWidthPx by remember { mutableIntStateOf(0) }
+    val pageOffset = remember { Animatable(0f) }
+    val settleSpec = tween<Float>(durationMillis = 250, easing = LinearOutSlowInEasing)
     Scaffold { paddingValues ->
-        Box(Modifier.fillMaxSize()) {
-            Box(Modifier.padding(paddingValues)) {
-                androidx.compose.animation.AnimatedContent(
-                    targetState = currentTab, transitionSpec = {
-                        val toSettings = targetState == "settings"
-                        (slideInHorizontally { if (toSettings) it else -it } + fadeIn()).togetherWith(
-                            slideOutHorizontally { if (toSettings) -it else it } + fadeOut())
-                    }, label = "tab_transition"
-                ) { tab ->
-                    if (tab == "processing") {
-                        ProcessingScreen(
-                            viewModel = viewModel,
-                            settingsViewModel = settingsViewModel,
-                            imageRepository = imageRepository,
-                            onNavigateToBeforeAfter = { id ->
-                                val intent = Intent(
-                                    context, BeforeAfterActivity::class.java
-                                ).putExtra("imageId", id)
-                                context.startActivity(intent)
-                            },
-                            onNavigateToBrisque = { id ->
-                                val intent = Intent(context, BrisqueActivity::class.java).putExtra(
-                                    "imageId", id
-                                )
-                                context.startActivity(intent)
-                            },
-                            initialSharedUris = sharedUris,
-                            onRemoveSharedUri = { /* handle removal */ },
-                            lazyListState = lazyListState
-                        )
-                    } else {
-                        SettingsScreen(
-                            settingsViewModel, viewModel, onBack = { currentTab = "processing" })
+        Box(
+            Modifier
+                .fillMaxSize()
+                .onSizeChanged { containerWidthPx = it.width }
+                .padding(paddingValues)
+                .pointerInput(Unit) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = true)
+                        var velocity = 0f
+                        var lastTime = down.uptimeMillis
+                        var lastX = down.position.x
+                        var totalDx = 0f
+
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Main)
+                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                            if (!change.pressed) break
+
+                            val now = change.uptimeMillis
+                            val dt = (now - lastTime).coerceAtLeast(1L)
+                            val dx = change.position.x - lastX
+                            totalDx += dx
+                            velocity = dx / dt * 1000f
+                            lastTime = now
+                            lastX = change.position.x
+
+                            if (containerWidthPx > 0 && kotlin.math.abs(totalDx) > 10f) {
+                                val delta = -dx / containerWidthPx
+                                scope.launch {
+                                    pageOffset.snapTo((pageOffset.value + delta).coerceIn(0f, 1f))
+                                }
+                            }
+                        }
+                        if (kotlin.math.abs(totalDx) < 16f) return@awaitEachGesture
+                        scope.launch {
+                            val target = when {
+                                velocity > 10f -> 0f
+                                velocity < -10f -> 1f
+                                pageOffset.value > 0.5f -> 1f
+                                else -> 0f
+                            }
+                            pageOffset.animateTo(target, settleSpec)
+                            currentTab = if (target == 0f) "processing" else "settings"
+                        }
                     }
-                }
+                }) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        translationX = -pageOffset.value * containerWidthPx
+                    }) {
+                ProcessingScreen(
+                    viewModel = viewModel,
+                    settingsViewModel = settingsViewModel,
+                    imageRepository = imageRepository,
+                    onNavigateToBeforeAfter = { id ->
+                        context.startActivity(
+                            Intent(context, BeforeAfterActivity::class.java).putExtra("imageId", id)
+                        )
+                    },
+                    onNavigateToBrisque = { id ->
+                        context.startActivity(
+                            Intent(context, BrisqueActivity::class.java).putExtra("imageId", id)
+                        )
+                    },
+                    initialSharedUris = sharedUris,
+                    onRemoveSharedUri = { },
+                    lazyListState = lazyListState
+                )
             }
 
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        translationX = containerWidthPx - (pageOffset.value * containerWidthPx)
+                    }) {
+                SettingsScreen(
+                    settingsViewModel, viewModel, onBack = {
+                        scope.launch {
+                            pageOffset.animateTo(0f, settleSpec)
+                            currentTab = "processing"
+                        }
+                    })
+            }
             AnimatedVisibility(
                 visible = toolbarVisible,
                 enter = fadeIn(spring(stiffness = Spring.StiffnessMedium)) + slideInVertically(
@@ -201,8 +260,7 @@ fun HomeWrapperScreen(
                 Box(
                     Modifier
                         .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(bottom = 30.dp),
+                        .navigationBarsPadding(),
                     contentAlignment = Alignment.Center
                 ) {
                     HorizontalFloatingToolbar(
@@ -210,7 +268,7 @@ fun HomeWrapperScreen(
                         colors = FloatingToolbarDefaults.standardFloatingToolbarColors(),
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            val processingActive = currentTab == "processing"
+                            val processingActive = pageOffset.value < 0.5f
                             val processingIconColor by animateColorAsState(
                                 targetValue = if (processingActive) MaterialTheme.colorScheme.onSecondaryContainer
                                 else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
@@ -230,7 +288,13 @@ fun HomeWrapperScreen(
                                 label = "processing_content"
                             )
                             Button(
-                                onClick = { HapticFeedbacks.light(); currentTab = "processing" },
+                                onClick = {
+                                    HapticFeedbacks.light()
+                                    scope.launch {
+                                        pageOffset.animateTo(0f, settleSpec)
+                                        currentTab = "processing"
+                                    }
+                                },
                                 shapes = ButtonDefaults.shapes(
                                     shape = RoundedCornerShape(
                                         topStart = PillOuter,
@@ -266,7 +330,7 @@ fun HomeWrapperScreen(
 
                             Spacer(Modifier.width(2.dp))
 
-                            val settingsActive = currentTab == "settings"
+                            val settingsActive = pageOffset.value >= 0.5f
                             val settingsIconColor by animateColorAsState(
                                 targetValue = if (settingsActive) MaterialTheme.colorScheme.onSecondaryContainer
                                 else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
@@ -286,7 +350,13 @@ fun HomeWrapperScreen(
                                 label = "settings_content"
                             )
                             Button(
-                                onClick = { HapticFeedbacks.light(); currentTab = "settings" },
+                                onClick = {
+                                    HapticFeedbacks.light()
+                                    scope.launch {
+                                        pageOffset.animateTo(1f, settleSpec)
+                                        currentTab = "settings"
+                                    }
+                                },
                                 shapes = ButtonDefaults.shapes(
                                     shape = RoundedCornerShape(
                                         topStart = PillInner,

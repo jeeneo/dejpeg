@@ -91,7 +91,7 @@ import com.je.dejpeg.ui.components.ErrorAlertDialog
 import com.je.dejpeg.ui.components.SimpleAlertDialog
 import com.je.dejpeg.ui.viewmodel.BrisqueViewModel
 import com.je.dejpeg.ui.viewmodel.SaveState
-import com.je.dejpeg.utils.BRISQUEDescaler
+import com.je.dejpeg.processing.BRISQUEDescaler
 import kotlinx.coroutines.launch
 import me.saket.telephoto.zoomable.ZoomSpec
 import me.saket.telephoto.zoomable.rememberZoomableState

@@ -1,23 +1,29 @@
-/*
- * SPDX-FileCopyrightText: 2025 - 2026 dryerlint <https://codeberg.org/dryerlint>
- * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
- */
+package com.je.dejpeg.processing
 
-@file:Suppress("SpellCheckingInspection")
-
-package com.je.dejpeg
-
+import android.annotation.SuppressLint
 import android.app.Service
+import android.content.BroadcastReceiver
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.content.ServiceConnection
 import android.graphics.Bitmap
 import android.os.Binder
+import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.os.Process
 import android.util.Log
+import androidx.core.content.ContextCompat
+import com.je.dejpeg.AppPreferences
+import com.je.dejpeg.ProcessingMode
+import com.je.dejpeg.R
 import com.je.dejpeg.utils.CacheManager
 import com.je.dejpeg.utils.ImageLoadingHelper
+import com.je.dejpeg.utils.ModelManager
+import com.je.dejpeg.utils.NotificationService
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -86,11 +92,11 @@ class ProcessingService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        NotificationHelper.checkChannel(this)
+        NotificationService.checkChannel(this)
         try {
             startForeground(
-                NotificationHelper.NOTIFICATION_ID,
-                NotificationHelper.build(this, "Initializing...")
+                NotificationService.NOTIFICATION_ID,
+                NotificationService.build(this, "Initializing...")
             )
         } catch (e: Exception) {
             Log.e("ProcessingService", "Failed to start foreground service: ${e.message}", e)
@@ -109,7 +115,8 @@ class ProcessingService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         try {
             startForeground(
-                NotificationHelper.NOTIFICATION_ID, NotificationHelper.build(this, "Processing...")
+                NotificationService.NOTIFICATION_ID,
+                NotificationService.build(this, "Processing...")
             )
         } catch (e: Exception) {
             Log.e(
@@ -165,10 +172,12 @@ class ProcessingService : Service() {
                     return START_NOT_STICKY
                 }
                 Log.d("ProcessingService", "Processing $filename (mode: ${processingMode.name})")
-                val chunkSize =
-                    intent.getIntExtra(EXTRA_CHUNK_SIZE, AppPreferences.DEFAULT_CHUNK_SIZE)
-                val overlapSize =
-                    intent.getIntExtra(EXTRA_OVERLAP_SIZE, AppPreferences.DEFAULT_OVERLAP_SIZE)
+                val chunkSize = intent.getIntExtra(
+                    EXTRA_CHUNK_SIZE, AppPreferences.DEFAULT_CHUNK_SIZE
+                )
+                val overlapSize = intent.getIntExtra(
+                    EXTRA_OVERLAP_SIZE, AppPreferences.DEFAULT_OVERLAP_SIZE
+                )
                 val onnxDeviceThreads = intent.getIntExtra(
                     EXTRA_ONNX_DEVICE_THREADS, AppPreferences.DEFAULT_ONNX_DEVICE_THREADS
                 )
@@ -250,7 +259,7 @@ class ProcessingService : Service() {
                                                 COMPLETE_EXTRA_PATH to outFile.absolutePath,
                                                 imageId = imageId
                                             )
-                                            NotificationHelper.show(
+                                            NotificationService.show(
                                                 this@ProcessingService,
                                                 getString(R.string.processing_complete_notification)
                                             )
@@ -311,7 +320,7 @@ class ProcessingService : Service() {
                                                 COMPLETE_EXTRA_PATH to outFile.absolutePath,
                                                 imageId = imageId
                                             )
-                                            NotificationHelper.show(
+                                            NotificationService.show(
                                                 this@ProcessingService,
                                                 getString(R.string.processing_complete_notification)
                                             )
@@ -399,7 +408,7 @@ class ProcessingService : Service() {
                 Log.d("ProcessingService", "Cancel action received")
                 val id = currentImageId
                 val wasRunning = currentJob != null
-                NotificationHelper.show(this, getString(R.string.status_canceling))
+                NotificationService.show(this, getString(R.string.status_canceling))
                 runCatching { imageProcessor?.cancelProcessing() }
                 runCatching { oidnProcessor?.cancelProcessing() }
                 if (wasRunning) {
@@ -441,7 +450,7 @@ class ProcessingService : Service() {
 
     private fun notifyProgressChange() {
         val determinateChunks = chunkProgressTotal > 1
-        NotificationHelper.showProgress(
+        NotificationService.showProgress(
             context = this,
             message = currentProgressMessage,
             currentChunkIndex = if (determinateChunks) chunkProgressCompleted else null,
@@ -475,7 +484,7 @@ class ProcessingService : Service() {
         Log.d("ProcessingService", "cleanup() from $source")
         stopHandler.removeCallbacks(autoStopRunnable)
         runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
-        runCatching { NotificationHelper.cancel(this) }
+        runCatching { NotificationService.cancel(this) }
         stopSelf()
     }
 
@@ -510,7 +519,266 @@ class ProcessingService : Service() {
         Log.d("ProcessingService", "onTaskRemoved() -> cancelling")
         cancelAndCleanupResources()
         runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
-        runCatching { NotificationHelper.cancel(this) }
+        runCatching { NotificationService.cancel(this) }
         stopSelf()
+    }
+}
+
+class ServiceCommunicationHelper(
+    private val context: Context, private val callbacks: ServiceCallbacks
+) {
+    interface ServiceCallbacks {
+        fun onPidReceived(pid: Int)
+        fun onProgress(imageId: String, message: String)
+        fun onChunkProgress(imageId: String, completedChunks: Int, totalChunks: Int)
+        fun onComplete(imageId: String, path: String)
+        fun onError(imageId: String?, message: String)
+        fun onServiceCrash(imageId: String?)
+    }
+
+    private var serviceProcessPid: Int? = null
+    private var isRegistered = false
+    private var currentProcessingImageId: String? = null
+    private var isBound = false
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var bindingEpoch = 0
+
+    private data class Binding(
+        val connection: ServiceConnection,
+        val deathRecipient: IBinder.DeathRecipient,
+        val binder: IBinder?
+    )
+
+    private var activeBinding: Binding? = null
+    private fun bindToService() {
+        if (isBound) return
+        val generation = ++bindingEpoch
+
+        val deathRecipient = IBinder.DeathRecipient {
+            mainHandler.post {
+                if (generation != bindingEpoch) return@post
+                Log.e(
+                    "ServiceCommHelper",
+                    "Service process died (DeathRecipient) while processing: $currentProcessingImageId"
+                )
+                val imageId = currentProcessingImageId
+                cleanupBinding()
+                callbacks.onServiceCrash(imageId)
+            }
+        }
+
+        val connection = object : ServiceConnection {
+            override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
+                if (generation != bindingEpoch) return
+                Log.d(
+                    "ServiceCommHelper",
+                    "Service connected [gen=$generation], registering DeathRecipient"
+                )
+                isBound = true
+                activeBinding = Binding(this, deathRecipient, binder)
+                try {
+                    binder?.linkToDeath(deathRecipient, 0)
+                    Log.d("ServiceCommHelper", "DeathRecipient linked successfully")
+                } catch (e: Exception) {
+                    Log.e("ServiceCommHelper", "Failed to link DeathRecipient: ${e.message}")
+                }
+            }
+
+            override fun onServiceDisconnected(name: ComponentName?) {
+                if (generation != bindingEpoch) return
+                Log.w("ServiceCommHelper", "Service disconnected unexpectedly [gen=$generation]")
+                val imageId = currentProcessingImageId
+                cleanupBinding()
+                callbacks.onServiceCrash(imageId)
+            }
+        }
+
+        try {
+            val intent = Intent(context, ProcessingService::class.java)
+            context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
+            Log.d("ServiceCommHelper", "Binding to service... [gen=$generation]")
+        } catch (e: Exception) {
+            Log.e("ServiceCommHelper", "Failed to bind to service: ${e.message}")
+        }
+    }
+
+    private fun unbindFromService() {
+        if (!isBound) return
+        bindingEpoch++
+        val binding = activeBinding
+        if (binding == null) {
+            cleanupBinding()
+            return
+        }
+        try {
+            binding.binder?.unlinkToDeath(binding.deathRecipient, 0)
+        } catch (_: Exception) {
+        }
+        try {
+            context.unbindService(binding.connection)
+            Log.d("ServiceCommHelper", "Unbound from service")
+        } catch (_: Exception) {
+        }
+        cleanupBinding()
+    }
+
+    private fun cleanupBinding() {
+        activeBinding = null
+        isBound = false
+        currentProcessingImageId = null
+        serviceProcessPid = null
+    }
+
+    private val receiver = object : BroadcastReceiver() {
+        override fun onReceive(ctx: Context?, intent: Intent?) {
+            val action = intent?.action ?: return
+            val imageId = intent.getStringExtra(ProcessingService.EXTRA_IMAGE_ID)
+            when (action) {
+                ProcessingService.PID_ACTION -> {
+                    intent.getIntExtra(ProcessingService.PID_EXTRA_VALUE, -1).takeIf { it != -1 }
+                        ?.let { pid ->
+                            serviceProcessPid = pid
+                            callbacks.onPidReceived(pid)
+                        }
+                }
+
+                ProcessingService.PROGRESS_ACTION -> {
+                    intent.getStringExtra(ProcessingService.PROGRESS_EXTRA_MESSAGE)
+                        ?.let { message -> imageId?.let { callbacks.onProgress(it, message) } }
+                    val completed =
+                        intent.getIntExtra(ProcessingService.PROGRESS_EXTRA_COMPLETED_CHUNKS, -1)
+                    val total =
+                        intent.getIntExtra(ProcessingService.PROGRESS_EXTRA_TOTAL_CHUNKS, -1)
+                    if (completed >= 0 && total > 0 && imageId != null) {
+                        callbacks.onChunkProgress(imageId, completed, total)
+                    }
+                }
+
+                ProcessingService.COMPLETE_ACTION -> {
+                    unbindFromService()
+                    val path = intent.getStringExtra(ProcessingService.COMPLETE_EXTRA_PATH)
+                    if (path != null && !imageId.isNullOrEmpty()) {
+                        callbacks.onComplete(imageId, path)
+                    }
+                }
+
+                ProcessingService.ERROR_ACTION -> {
+                    unbindFromService()
+                    val message =
+                        intent.getStringExtra(ProcessingService.ERROR_EXTRA_MESSAGE) ?: "Error"
+                    callbacks.onError(imageId, message)
+                }
+            }
+        }
+    }
+
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
+    fun register() {
+        if (isRegistered) return
+        try {
+            val filter = IntentFilter().apply {
+                addAction(ProcessingService.PID_ACTION)
+                addAction(ProcessingService.PROGRESS_ACTION)
+                addAction(ProcessingService.COMPLETE_ACTION)
+                addAction(ProcessingService.ERROR_ACTION)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            } else {
+                context.registerReceiver(receiver, filter)
+            }
+            isRegistered = true
+            Log.d("ServiceCommHelper", "Receiver registered successfully")
+        } catch (e: Exception) {
+            Log.e("ServiceCommHelper", "Failed to register receiver: ${e.message}")
+        }
+    }
+
+    fun unregister() {
+        if (!isRegistered) return
+        unbindFromService()
+        try {
+            context.unregisterReceiver(receiver)
+            Log.d("ServiceCommHelper", "Receiver unregistered successfully")
+        } catch (e: Exception) {
+            Log.e("ServiceCommHelper", "Failed to unregister receiver: ${e.message}")
+        }
+        isRegistered = false
+    }
+
+    fun startProcessing(
+        imageId: String,
+        uriString: String,
+        filename: String,
+        strength: Float,
+        chunkSize: Int,
+        overlapSize: Int,
+        onnxDeviceThreads: Int,
+        modelName: String?,
+        processingMode: String = "ONNX",
+        oidnWeightsPath: String? = null,
+        oidnHdr: Boolean = false,
+        oidnSrgb: Boolean = false,
+        oidnQuality: Int = 0,
+        oidnMaxMemoryMB: Int = 0,
+        oidnNumThreads: Int = 0,
+        oidnInputScale: Float = 0f
+    ) {
+        currentProcessingImageId = imageId
+        bindToService()
+        startService(ProcessingService.ACTION_PROCESS) {
+            putExtra(ProcessingService.EXTRA_URI, uriString)
+            putExtra(ProcessingService.EXTRA_FILENAME, filename)
+            putExtra(ProcessingService.EXTRA_IMAGE_ID, imageId)
+            putExtra(ProcessingService.EXTRA_STRENGTH, strength)
+            putExtra(ProcessingService.EXTRA_CHUNK_SIZE, chunkSize)
+            putExtra(ProcessingService.EXTRA_OVERLAP_SIZE, overlapSize)
+            putExtra(ProcessingService.EXTRA_ONNX_DEVICE_THREADS, onnxDeviceThreads)
+            putExtra(ProcessingService.EXTRA_PROCESSING_MODE, processingMode)
+            modelName?.let { putExtra(ProcessingService.EXTRA_MODEL_NAME, it) }
+            oidnWeightsPath?.let { putExtra(ProcessingService.EXTRA_OIDN_WEIGHTS_PATH, it) }
+            putExtra(ProcessingService.EXTRA_OIDN_HDR, oidnHdr)
+            putExtra(ProcessingService.EXTRA_OIDN_SRGB, oidnSrgb)
+            putExtra(ProcessingService.EXTRA_OIDN_QUALITY, oidnQuality)
+            putExtra(ProcessingService.EXTRA_OIDN_MAX_MEMORY_MB, oidnMaxMemoryMB)
+            putExtra(ProcessingService.EXTRA_OIDN_NUM_THREADS, oidnNumThreads)
+            putExtra(ProcessingService.EXTRA_OIDN_INPUT_SCALE, oidnInputScale)
+        }
+    }
+
+    fun cancelProcessing(onCleanup: () -> Unit): Boolean {
+        val pid = serviceProcessPid
+        val imageId = currentProcessingImageId
+        unbindFromService()
+        if (pid != null && pid > 0) {
+            try {
+                Process.killProcess(pid)
+                onCleanup()
+                mainHandler.post { callbacks.onServiceCrash(imageId) }
+                return true
+            } catch (e: Exception) {
+                Log.e("ServiceCommunicationHelper", "Failed to kill service process: ${e.message}")
+            }
+        }
+        Log.w("ServiceCommunicationHelper", "No valid PID, sending cancel intent")
+        startService(ProcessingService.ACTION_CANCEL) {}
+        return false
+    }
+
+    private fun startService(action: String, configure: Intent.() -> Unit): Boolean {
+        val intent = Intent(context, ProcessingService::class.java).apply {
+            this.action = action
+            configure()
+        }
+        return try {
+            ContextCompat.startForegroundService(context, intent)
+            true
+        } catch (e: Exception) {
+            Log.e(
+                "ServiceCommunicationHelper",
+                "Failed to start service: ${e.javaClass.simpleName} - ${e.message}"
+            )
+            false
+        }
     }
 }

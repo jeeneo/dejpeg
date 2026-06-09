@@ -55,6 +55,8 @@ import androidx.compose.material.icons.filled.GridOn
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -106,10 +108,11 @@ import com.je.dejpeg.App
 import com.je.dejpeg.AppPreferences
 import com.je.dejpeg.BuildConfig
 import com.je.dejpeg.HapticFeedbacks
-import com.je.dejpeg.ModelManager
-import com.je.dejpeg.ModelType
+import com.je.dejpeg.utils.ModelManager
+import com.je.dejpeg.utils.ModelType
 import com.je.dejpeg.ProcessingMode
 import com.je.dejpeg.R
+import com.je.dejpeg.ThreadUtils
 import com.je.dejpeg.ui.components.ErrorAlertDialog
 import com.je.dejpeg.ui.components.SnackbarDuration
 import com.je.dejpeg.ui.components.SnackySnackbarController
@@ -171,7 +174,7 @@ fun SettingsScreen(
     }
     val uriHandler = LocalUriHandler.current
 
-    fun threadLabel(value: Int, autoString: String) = if (value == 0) autoString else "$value"
+//    fun threadLabel(value: Int, autoString: String) = if (value == 0) autoString else "$value"
 
     DisposableEffect(Unit) {
         onDispose {
@@ -256,6 +259,11 @@ fun SettingsScreen(
         }
     }
 
+    val selectedColor = MaterialTheme.colorScheme.primary
+    val selectedContentColor = MaterialTheme.colorScheme.onPrimary
+    val unselectedColor = MaterialTheme.colorScheme.surfaceVariant
+    val unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+
     Scaffold(
         floatingActionButton = {
             Box(Modifier.padding(bottom = 100.dp)) {
@@ -316,35 +324,57 @@ fun SettingsScreen(
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
-                            if (processingMode == ProcessingMode.OIDN) {
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    stringResource(R.string.mode_oidn_desc),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(12.dp))
-                            SingleChoiceSegmentedButtonRow(
-                                modifier = Modifier.fillMaxWidth()
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                SegmentedButton(
-                                    selected = processingMode == ProcessingMode.ONNX,
+                                Button(
                                     onClick = {
                                         HapticFeedbacks.light()
                                         viewModel.setProcessingMode(ProcessingMode.ONNX)
-                                    },
-                                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                                    }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(
+                                        topStart = 24.dp,
+                                        bottomStart = 24.dp,
+                                        topEnd = 8.dp,
+                                        bottomEnd = 8.dp
+                                    ), colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (processingMode == ProcessingMode.ONNX) {
+                                            selectedColor
+                                        } else {
+                                            unselectedColor
+                                        },
+                                        contentColor = if (processingMode == ProcessingMode.ONNX) {
+                                            selectedContentColor
+                                        } else {
+                                            unselectedContentColor
+                                        }
+                                    )
                                 ) {
                                     Text(stringResource(R.string.mode_onnx))
                                 }
-                                SegmentedButton(
-                                    selected = processingMode == ProcessingMode.OIDN,
+
+                                Button(
                                     onClick = {
                                         HapticFeedbacks.light()
                                         viewModel.setProcessingMode(ProcessingMode.OIDN)
-                                    },
-                                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                                    }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(
+                                        topStart = 8.dp,
+                                        bottomStart = 8.dp,
+                                        topEnd = 24.dp,
+                                        bottomEnd = 24.dp
+                                    ), colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (processingMode == ProcessingMode.OIDN) {
+                                            selectedColor
+                                        } else {
+                                            unselectedColor
+                                        },
+                                        contentColor = if (processingMode == ProcessingMode.OIDN) {
+                                            selectedContentColor
+                                        } else {
+                                            unselectedContentColor
+                                        }
+                                    )
                                 ) {
                                     Text(stringResource(R.string.mode_oidn))
                                 }
@@ -373,16 +403,29 @@ fun SettingsScreen(
                                 val failedMsg =
                                     stringResource(R.string.failed_to_extract_starter_models)
                                 Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                                    installedModels.forEach { modelName ->
+                                    installedModels.forEachIndexed { index, modelName ->
                                         val isActive = modelName == activeModelName
+                                        val position = when {
+                                            installedModels.size == 1 -> CardPosition.Solo
+                                            index == 0 -> CardPosition.Leading
+                                            index == installedModels.lastIndex -> CardPosition.Trailing
+                                            else -> CardPosition.Center
+                                        }
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .clip(RoundedCornerShape(8.dp))
+                                                .clip(
+                                                    cardShape(
+                                                        position, outer = 12.dp, inner = 4.dp
+                                                    )
+                                                )
                                                 .background(
                                                     if (isActive) MaterialTheme.colorScheme.primaryContainer.copy(
                                                         alpha = 0.4f
-                                                    ) else Color.Transparent
+                                                    )
+                                                    else MaterialTheme.colorScheme.surfaceContainerHigh.copy(
+                                                        alpha = 0.5f
+                                                    )
                                                 )
                                                 .clickable {
                                                     HapticFeedbacks.light()
@@ -450,6 +493,11 @@ fun SettingsScreen(
                                                 )
                                             }
                                         }
+                                        if (index < installedModels.lastIndex) Spacer(
+                                            Modifier.height(
+                                                4.dp
+                                            )
+                                        )
                                     }
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
@@ -518,7 +566,6 @@ fun SettingsScreen(
                                         }
                                     }
                                 }
-
                             },
                             onClick = {
                                 toggle(SettingsSection.ModelManagement)
@@ -553,30 +600,25 @@ fun SettingsScreen(
                                         onChange = { viewModel.setOverlapSize(it) },
                                         hapticAction = { HapticFeedbacks.light() })
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        stringResource(R.string.processing_threads_desc),
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Medium,
-                                    )
-                                    Slider(
-                                        value = onnxDeviceThreads.toFloat(),
-                                        onValueChange = { value ->
-                                            HapticFeedbacks.light(); viewModel.setOnnxDeviceThreads(
-                                            value.roundToInt()
-                                        )
-                                        },
-                                        valueRange = 0f..maxThreads.toFloat(),
-                                        steps = (maxThreads - 1).coerceAtLeast(0),
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                    Text(
-                                        threadLabel(
-                                            onnxDeviceThreads,
-                                            stringResource(R.string.thread_value_auto, maxThreads)
-                                        ),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        modifier = Modifier.align(Alignment.End)
-                                    )
+
+                                    val resolvedThreads =
+                                        ThreadUtils.resolveThreadCount(onnxDeviceThreads)
+
+                                    val threadValue = if (onnxDeviceThreads == 0) {
+                                        stringResource(R.string.thread_value_auto, resolvedThreads)
+                                    } else {
+                                        onnxDeviceThreads.toString()
+                                    }
+                                    val threadLabel =
+                                        "${stringResource(R.string.processing_threads_desc)} • $threadValue"
+
+                                    PowerSlider(
+                                        label = threadLabel,
+                                        value = onnxDeviceThreads,
+                                        hideValue = true,
+                                        powers = (0..maxThreads).toList(),
+                                        onChange = { viewModel.setOnnxDeviceThreads(it) },
+                                        hapticAction = { HapticFeedbacks.light() })
                                 }
                             },
                             onClick = { toggle(SettingsSection.Chunk) },
@@ -599,12 +641,30 @@ fun SettingsScreen(
                             expanded = expandedSection == SettingsSection.OidnModelManagement,
                             expandedContent = {
                                 Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                                    installedOidnModels.forEach { modelName ->
+                                    installedOidnModels.forEachIndexed { index, modelName ->
                                         val isActive = modelName == activeOidnModelName
+                                        val position = when {
+                                            installedOidnModels.size == 1 -> CardPosition.Solo
+                                            index == 0 -> CardPosition.Leading
+                                            index == installedOidnModels.lastIndex -> CardPosition.Trailing
+                                            else -> CardPosition.Center
+                                        }
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .clip(RoundedCornerShape(8.dp))
+                                                .clip(
+                                                    cardShape(
+                                                        position, outer = 12.dp, inner = 4.dp
+                                                    )
+                                                )
+                                                .background(
+                                                    if (isActive) MaterialTheme.colorScheme.primaryContainer.copy(
+                                                        alpha = 0.4f
+                                                    )
+                                                    else MaterialTheme.colorScheme.surfaceContainerHigh.copy(
+                                                        alpha = 0.5f
+                                                    )
+                                                )
                                                 .clickable {
                                                     HapticFeedbacks.light()
                                                     if (processingViewModel.isProcessingOrQueueActive()) {
@@ -663,6 +723,11 @@ fun SettingsScreen(
                                                 )
                                             }
                                         }
+                                        if (index < installedOidnModels.lastIndex) Spacer(
+                                            Modifier.height(
+                                                4.dp
+                                            )
+                                        )
                                     }
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
@@ -699,7 +764,7 @@ fun SettingsScreen(
                             position = CardPosition.Leading
                         )
                         PreferenceItem(
-                            icon = Icons.Filled.Settings,
+                            icon = Icons.Filled.GridOn,
                             iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
                             iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
                             title = stringResource(R.string.oidn_settings),
@@ -752,37 +817,26 @@ fun SettingsScreen(
                                         }
                                         Spacer(modifier = Modifier.height(8.dp))
                                     }
+                                    val resolvedOidnThreads =
+                                        ThreadUtils.resolveThreadCount(oidnNumThreads)
 
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        stringResource(R.string.oidn_num_threads),
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                    Text(
-                                        stringResource(R.string.oidn_num_threads_desc),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Slider(
-                                        value = oidnNumThreads.toFloat(),
-                                        onValueChange = {
-                                            HapticFeedbacks.light(); viewModel.setOidnNumThreadsPref(
-                                            it.roundToInt().coerceIn(0, maxThreads)
+                                    val threadValue = if (oidnNumThreads == 0) {
+                                        stringResource(
+                                            R.string.thread_value_auto, resolvedOidnThreads
                                         )
-                                        },
-                                        valueRange = 0f..maxThreads.toFloat(),
-                                        steps = (maxThreads - 1).coerceAtLeast(0),
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                    Text(
-                                        threadLabel(
-                                            oidnNumThreads,
-                                            stringResource(R.string.thread_value_auto, maxThreads)
-                                        ),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        modifier = Modifier.align(Alignment.End)
-                                    )
+                                    } else {
+                                        oidnNumThreads.toString()
+                                    }
+                                    val threadLabel =
+                                        "${stringResource(R.string.oidn_num_threads)} • $threadValue"
+                                    PowerSlider(
+                                        label = threadLabel,
+                                        hideValue = true,
+                                        value = oidnNumThreads,
+                                        powers = (0..maxThreads).toList(),
+                                        onChange = { viewModel.setOidnNumThreadsPref(it) },
+                                        hapticAction = { HapticFeedbacks.light() })
                                 }
 
                             },
@@ -1168,48 +1222,53 @@ fun PreferenceGroupCard(modifier: Modifier = Modifier, content: @Composable () -
 @Composable
 fun PowerSlider(
     label: String,
-    value: Int,
+    value: Int? = null,
     powers: List<Int>,
     maxAllowed: Int = Int.MAX_VALUE,
     onChange: (Int) -> Unit,
-    hapticAction: () -> Unit
+    hapticAction: () -> Unit,
+    hideValue: Boolean = true,
 ) {
-    val availablePowers = remember(powers, maxAllowed) { powers.filter { it < maxAllowed } }
-    val effectivePowers = availablePowers.ifEmpty { listOf(powers.first()) }
-    val clampedValue = value.coerceAtMost(effectivePowers.last())
-    var index by remember(
-        clampedValue, effectivePowers
-    ) { mutableIntStateOf(effectivePowers.indexOf(clampedValue).coerceAtLeast(0)) }
+    val effectivePowers = remember(powers, maxAllowed) {
+        powers.filter { it <= maxAllowed }.ifEmpty { listOf(powers.first()) }
+    }
+    val clampedValue = value?.coerceAtMost(effectivePowers.last())
+    var index by remember(clampedValue, effectivePowers) {
+        mutableIntStateOf(maxOf(effectivePowers.indexOf(clampedValue), 0))
+    }
     LaunchedEffect(maxAllowed) {
-        if (value >= maxAllowed && effectivePowers.isNotEmpty()) {
+        if (value != null && value >= maxAllowed && effectivePowers.isNotEmpty()) {
             onChange(effectivePowers.last())
         }
     }
     Column {
-        Text(label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium)
-        Slider(
-            value = index.toFloat(),
-            onValueChange = {
-                val newIdx = it.roundToInt().coerceIn(effectivePowers.indices)
-                if (newIdx != index) {
-                    index = newIdx
-                    hapticAction()
-                    onChange(effectivePowers[newIdx])
-                }
-            },
-            valueRange = 0f..(effectivePowers.lastIndex.toFloat().coerceAtLeast(0f)),
-            steps = (effectivePowers.size - 2).coerceAtLeast(0),
-            enabled = effectivePowers.size > 1
-        )
         Row {
             Text(
-                "${effectivePowers[index]}px",
+                label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium
+            )
+            if (!hideValue) Text(
+                " • ${effectivePowers[index]}",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary
             )
         }
+
     }
+    Slider(
+        value = index.toFloat(),
+        onValueChange = {
+            val newIdx = it.roundToInt().coerceIn(effectivePowers.indices)
+            if (newIdx != index) {
+                index = newIdx
+                hapticAction()
+                onChange(effectivePowers[newIdx])
+            }
+        },
+        valueRange = 0f..(effectivePowers.lastIndex.toFloat().coerceAtLeast(0f)),
+        steps = (effectivePowers.size - 2).coerceAtLeast(0),
+        enabled = effectivePowers.size > 1
+    )
 }
 
 @Composable

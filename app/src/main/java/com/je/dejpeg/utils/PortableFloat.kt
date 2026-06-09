@@ -7,7 +7,7 @@
  * Adapted for Android/Kotlin use.
  */
 
-package com.je.dejpeg
+package com.je.dejpeg.utils
 
 import android.graphics.Bitmap
 import android.graphics.Color

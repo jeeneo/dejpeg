@@ -16,8 +16,8 @@ import androidx.lifecycle.viewModelScope
 import com.je.dejpeg.App
 import com.je.dejpeg.AppPreferences
 import com.je.dejpeg.BuildConfig
-import com.je.dejpeg.ModelManager
-import com.je.dejpeg.ModelType
+import com.je.dejpeg.utils.ModelManager
+import com.je.dejpeg.utils.ModelType
 import com.je.dejpeg.ProcessingMode
 import com.je.dejpeg.utils.ModelMigrationHelper
 import kotlinx.coroutines.Dispatchers

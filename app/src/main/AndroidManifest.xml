@@ -59,7 +59,7 @@
                 android:resource="@xml/file_paths" />
         </provider>
         <service
-            android:name=".ProcessingService"
+            android:name=".processing.ProcessingService"
             android:exported="false"
             android:foregroundServiceType="dataSync"
             android:process=":processor"

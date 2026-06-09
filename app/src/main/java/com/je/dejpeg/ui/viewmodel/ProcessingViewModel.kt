@@ -16,9 +16,9 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.je.dejpeg.ImageRepository
-import com.je.dejpeg.ModelType
+import com.je.dejpeg.utils.ModelType
 import com.je.dejpeg.ProcessingMode
-import com.je.dejpeg.ProcessingService
+import com.je.dejpeg.processing.ProcessingService
 import com.je.dejpeg.R
 import com.je.dejpeg.ui.components.SnackbarDuration
 import com.je.dejpeg.ui.components.SnackySnackbarController
@@ -27,7 +27,7 @@ import com.je.dejpeg.utils.CacheManager
 import com.je.dejpeg.utils.ImageActions
 import com.je.dejpeg.utils.ImagePickerHelper
 import com.je.dejpeg.utils.ProcessingQueueManager
-import com.je.dejpeg.utils.ServiceCommunicationHelper
+import com.je.dejpeg.processing.ServiceCommunicationHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch

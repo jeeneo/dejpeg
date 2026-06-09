@@ -1,21 +1,15 @@
-/*
- * SPDX-FileCopyrightText: 2026 dryerlint <https://codeberg.org/dryerlint>
- * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
- */
-
-@file:Suppress("SpellCheckingInspection")
-
-package com.je.dejpeg
+package com.je.dejpeg.processing
 
 import android.content.Context
 import android.graphics.Bitmap
+import com.je.dejpeg.BuildConfig
+import com.je.dejpeg.R
+import com.je.dejpeg.utils.PortableFloatMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class OidnProcessor(private val context: Context) {
-
     companion object {
-
         init {
             @Suppress("KotlinConstantConditions")
             if (BuildConfig.OIDN_ENABLED) {

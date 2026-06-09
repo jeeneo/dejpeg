@@ -1,6 +1,6 @@
 @file:Suppress("SpellCheckingInspection")
 
-package com.je.dejpeg.utils
+package com.je.dejpeg.processing
 
 import android.content.Context
 import android.graphics.Bitmap
