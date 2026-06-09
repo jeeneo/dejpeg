@@ -23,6 +23,7 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.je.dejpeg.HapticFeedbacks.appHapticsEnabled
 import com.je.dejpeg.ui.viewmodel.ImageItem
 import com.je.dejpeg.utils.ImageLoadingHelper
 import kotlinx.coroutines.CoroutineScope
@@ -46,7 +47,7 @@ object HapticFeedbacks {
         App.ctx.contentResolver, Settings.System.HAPTIC_FEEDBACK_ENABLED, 1
     ) != 0
 
-    private var appHapticsEnabled = true
+    var appHapticsEnabled = true
 
     private fun vibrate(effect: VibrationEffect, force: Boolean = false) {
         if (!force && (!isEnabled() || !appHapticsEnabled)) return
@@ -236,6 +237,7 @@ class AppPreferences {
         App.ctx.dataStore.edit { prefs ->
             prefs[PreferenceKeys.HAPTIC_FEEDBACK_ENABLED] = enabled
         }
+        appHapticsEnabled = enabled
     }
 
     suspend fun setSwapSwipeActions(swap: Boolean) {

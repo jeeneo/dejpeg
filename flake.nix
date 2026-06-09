@@ -46,6 +46,9 @@
               (android-studio.withSdk androidSdk)
               androidSdk
               jdk21
+              wget
+              cmake
+              ispc
             ];
           };
       });

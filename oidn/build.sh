@@ -1,7 +1,14 @@
 set -euo pipefail
 
 NDK_ROOT="$(realpath "${ANDROID_NDK_ROOT:-${ANDROID_HOME}/ndk/29.0.14206865}")"
-ISPC="$(realpath "${ISPC_EXECUTABLE:-./oidnroot/ispc/ispc-v1.30.0-linux/bin/ispc}")"
+
+if command -v ispc >/dev/null 2>&1; then
+    ISPC="${ISPC_EXECUTABLE:-$(command -v ispc)}"
+else
+    ISPC="${ISPC_EXECUTABLE:-./oidnroot/ispc/ispc-v1.30.0-linux/bin/ispc}"
+fi
+ISPC="$(realpath "$ISPC")"
+
 TBB_SRC="$(realpath "${TBB_SOURCE_DIR:-./oidnroot/oneTBB}")"
 OIDN_SRC="$(realpath "${OIDN_SOURCE_DIR:-./oidnroot/oidn}")"
 BUILD="$(mkdir -p "${1:-./oidnroot/build/build-android-static}" && realpath "${1:-./oidnroot/build/build-android-static}")"

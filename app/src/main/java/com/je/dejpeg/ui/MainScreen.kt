@@ -110,7 +110,6 @@ fun MainScreen(
         viewModel.settingsViewModel = settingsViewModel
         settingsViewModel.initialize()
     }
-    // no longer photosynthesizes the diode
     RecoveryDialog(imageRepository = imageRepository)
     SnackySnackbarBox(snackbarHostState = snackbarHostState, controller = snackbarController) {
         NavHost(

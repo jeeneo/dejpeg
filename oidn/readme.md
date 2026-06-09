@@ -2,21 +2,23 @@ an experimental version of Intel® Open Image Denoise for Android
 
 intended to process raster images
 
-this guide assumes your build system is linux-based and you have the Android NDK installed
+this guide assumes your build system is linux-based and you have the Android NDK installed along with CMake
+
+or if using **NixOS**, `nix develop` installs the dependencies automatically, just clone the two repos below and skip ispc
 
 clone oidn:
 ```shell
 git clone --recurse-submodules https://github.com/RenderKit/oidn.git oidnroot/oidn && cd oidnroot
 ```
 
+clone oneTBB
+```shell
+git clone https://github.com/uxlfoundation/oneTBB.git && cd ..
+```
+
 create a subfolder called `ispc`, inside that download and extract ispc version `1.30.0` from [here](https://github.com/ispc/ispc/releases/download/v1.30.0/ispc-v1.30.0-linux.tar.gz) into `ispc`:
 ```shell
 mkdir ispc && wget https://github.com/ispc/ispc/releases/download/v1.30.0/ispc-v1.30.0-linux.tar.gz && tar -xzf ispc-v1.30.0-linux.tar.gz -C ispc && rm ispc-v1.30.0-linux.tar.gz
-```
-
-then clone oneTBB
-```shell
-git clone https://github.com/uxlfoundation/oneTBB.git && cd ..
 ```
 
 choose a patch config and run in the repos root:

@@ -567,11 +567,6 @@ class ImageProcessor(
         val expandTop: Int
     )
 
-    // outside my expertise, uhm, on my 8 core (16gb ram) device i was running out of ram, i dont know if 10/12 core devices have more ram and would help?
-    // can't really test that
-    // hopefully the manual setter can allow the user to select more if needed
-    // it's also why i don't or haven't implemented parallel processing of non-chunked images (possible ram issues)
-    // sorry this code is a nightmare
     private fun resolveThreadCount(configuredThreads: Int?): Int {
         val detected = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
         val configured = configuredThreads ?: AppPreferences.DEFAULT_ONNX_DEVICE_THREADS

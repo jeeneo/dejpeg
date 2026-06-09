@@ -14,10 +14,6 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,24 +23,24 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -55,19 +51,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
-import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 private const val MAX_SNACKBARS = 4
 
 private val snapbackSpec = spring<Float>(
-    dampingRatio = Spring.DampingRatioLowBouncy,
-    stiffness = Spring.StiffnessMediumLow
+    dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMediumLow
 )
 
 private const val DISMISS_VELOCITY_THRESHOLD = 600f
@@ -92,25 +87,14 @@ fun SnackySnackbarBox(
 
             key(snackbarData) {
                 val animatedOffset by animateDpAsState(
-                    targetValue = (stackDepth * 10).dp,
-                    animationSpec = spring(
+                    targetValue = (stackDepth * 10).dp, animationSpec = spring(
                         dampingRatio = Spring.DampingRatioLowBouncy,
                         stiffness = Spring.StiffnessMediumLow
-                    ),
-                    label = "snackbar-stack-offset"
+                    ), label = "snackbar-stack-offset"
                 )
 
                 AnimatedVisibility(
                     visible = snackbarHostState.stack.contains(snackbarData),
-                    enter = slideInVertically(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioLowBouncy,
-                            stiffness = Spring.StiffnessMedium
-                        )
-                    ) { -it } + fadeIn(tween(200)),
-                    exit = slideOutVertically(
-                        animationSpec = tween(180)
-                    ) { -it } + fadeOut(tween(150)),
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .statusBarsPadding()
@@ -119,11 +103,9 @@ fun SnackySnackbarBox(
                         .zIndex((MAX_SNACKBARS - stackDepth).toFloat())
                         .offset { IntOffset(0, animatedOffset.roundToPx()) }
                         .scale(1f - stackDepth * 0.035f)
-                        .alpha(1f - stackDepth * 0.15f)
-                ) {
+                        .alpha(1f - stackDepth * 0.15f)) {
                     SnackbarContent(
-                        snackbarData = snackbarData,
-                        onDismiss = snackbarData::dismiss
+                        snackbarData = snackbarData, onDismiss = snackbarData::dismiss
                     )
                 }
             }
@@ -131,9 +113,6 @@ fun SnackySnackbarBox(
     }
 }
 
-// Activity-scoped controller: create one per-Activity and bind it to the global
-// dispatcher so existing call sites that call `SnackySnackbarController.pushEvent`
-// continue to work, but events are routed to the currently-bound activity.
 class ActivitySnackySnackbarController {
     private val _events = Channel<SnackySnackbarEvents>(Channel.UNLIMITED)
     val events = _events.receiveAsFlow()
@@ -171,8 +150,7 @@ sealed interface SnackySnackbarEvents {
 enum class SnackbarDuration { Short, Long }
 
 class SnackySnackbarData(
-    val event: SnackySnackbarEvents,
-    private val cont: CancellableContinuation<Unit>
+    val event: SnackySnackbarEvents, private val cont: CancellableContinuation<Unit>
 ) {
     fun dismiss() {
         if (cont.isActive) cont.resume(Unit)
@@ -198,10 +176,10 @@ class SnackySnackbarHostState {
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun SnackbarContent(
-    snackbarData: SnackySnackbarData,
-    onDismiss: () -> Unit
+    snackbarData: SnackySnackbarData, onDismiss: () -> Unit
 ) {
     val durationMs: Long? =
         when ((snackbarData.event as? SnackySnackbarEvents.MessageEvent)?.duration) {
@@ -210,67 +188,81 @@ private fun SnackbarContent(
             else -> null
         }
 
-    val progress = remember(snackbarData) { Animatable(1f) }
-    LaunchedEffect(snackbarData) {
-        durationMs ?: return@LaunchedEffect
-        progress.snapTo(1f)
-        progress.animateTo(
-            targetValue = 0f,
-            animationSpec = tween(durationMillis = durationMs.toInt(), easing = LinearEasing)
-        )
+    val offsetX = remember(snackbarData) { Animatable(0f) }
+    val offsetY = remember(snackbarData) { Animatable(-120f) } // starts off-screen
+    val progress = remember(snackbarData) { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+    var isDismissing by remember { mutableStateOf(false) }
+
+    suspend fun dismissInDirection(dx: Float, dy: Float) {
+        if (isDismissing) return
+        isDismissing = true
+        val dist = sqrt(dx * dx + dy * dy).coerceAtLeast(1f)
+        val exitX = offsetX.value + (dx / dist) * 1200f
+        val exitY = offsetY.value + (dy / dist) * 1200f
+        coroutineScope {
+            launch { offsetX.animateTo(exitX, tween(220)) }
+            launch { offsetY.animateTo(exitY, tween(220)) }
+        }
         onDismiss()
     }
 
-    val dragOffsetX = remember(snackbarData) { Animatable(0f) }
-    val dragOffsetY = remember(snackbarData) { Animatable(0f) }
-    val scope = rememberCoroutineScope()
+    LaunchedEffect(snackbarData) {
+        offsetY.animateTo(
+            0f,
+            spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium)
+        )
+        durationMs ?: return@LaunchedEffect
+        progress.animateTo(
+            1f, tween(durationMillis = durationMs.toInt(), easing = LinearEasing)
+        )
+        dismissInDirection(0f, -1f)
+    }
+
     val density = LocalDensity.current
     val dismissThresholdPx = with(density) { 60.dp.toPx() }
 
     val dragModifier = Modifier.pointerInput(onDismiss) {
         val velocityTracker = VelocityTracker()
 
-        detectDragGestures(
-            onDragEnd = {
-                val velocity = velocityTracker.calculateVelocity()
-                val speed = sqrt(velocity.x * velocity.x + velocity.y * velocity.y)
-                val distX = abs(dragOffsetX.value)
-                val distY = abs(dragOffsetY.value)
-                val dist = sqrt(distX * distX + distY * distY)
+        detectDragGestures(onDragEnd = {
+            val velocity = velocityTracker.calculateVelocity()
+            val velX = velocity.x
+            val velY = velocity.y
+            val speed = sqrt(velX * velX + velY * velY)
+            val dist = sqrt(offsetX.value * offsetX.value + offsetY.value * offsetY.value)
 
-                scope.launch {
-                    when {
-                        speed >= DISMISS_VELOCITY_THRESHOLD -> onDismiss()
-                        dragOffsetY.value <= -dismissThresholdPx -> onDismiss()
-                        dist >= dismissThresholdPx * 1.4f -> onDismiss()
-                        else -> {
-                            launch { dragOffsetX.animateTo(0f, snapbackSpec) }
-                            launch { dragOffsetY.animateTo(0f, snapbackSpec) }
-                        }
+            scope.launch {
+                when {
+                    speed >= DISMISS_VELOCITY_THRESHOLD -> dismissInDirection(velX, velY)
+
+                    dist >= dismissThresholdPx -> dismissInDirection(
+                        offsetX.value, offsetY.value
+                    )
+
+                    else -> {
+                        launch { offsetX.animateTo(0f, snapbackSpec) }
+                        launch { offsetY.animateTo(0f, snapbackSpec) }
                     }
                 }
-            },
-            onDragCancel = {
-                scope.launch {
-                    launch { dragOffsetX.animateTo(0f, snapbackSpec) }
-                    launch { dragOffsetY.animateTo(0f, snapbackSpec) }
-                }
             }
-        ) { change, dragAmount ->
+        }, onDragCancel = {
+            scope.launch {
+                launch { offsetX.animateTo(0f, snapbackSpec) }
+                launch { offsetY.animateTo(0f, snapbackSpec) }
+            }
+        }) { change, dragAmount ->
             change.consume()
             velocityTracker.addPosition(change.uptimeMillis, change.position)
 
-            val targetX = dragOffsetX.value + dragAmount.x
-            val targetY = dragOffsetY.value + dragAmount.y
-
             scope.launch {
-                val resistedX = targetX * 0.75f
-                val resistedY = when {
-                    targetY < 0f -> targetY * 0.95f
-                    else -> targetY * 0.40f
-                }
-                launch { dragOffsetX.snapTo(resistedX) }
-                launch { dragOffsetY.snapTo(resistedY) }
+                offsetX.snapTo(offsetX.value + dragAmount.x)
+                offsetY.snapTo(
+                    offsetY.value + when {
+                        offsetY.value + dragAmount.y > 0f -> dragAmount.y * 0.4f
+                        else -> dragAmount.y
+                    }
+                )
             }
         }
     }
@@ -282,9 +274,12 @@ private fun SnackbarContent(
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         contentColor = MaterialTheme.colorScheme.onSurface,
         modifier = Modifier
-            .offset { IntOffset(dragOffsetX.value.roundToInt(), dragOffsetY.value.roundToInt()) }
-            .then(dragModifier)
-    ) {
+            .offset {
+                IntOffset(
+                    offsetX.value.roundToInt(), offsetY.value.roundToInt()
+                )
+            }
+            .then(dragModifier)) {
         Column {
             Text(
                 text = snackbarData.event.message,
@@ -292,15 +287,13 @@ private fun SnackbarContent(
                 style = MaterialTheme.typography.bodyLarge
             )
             if (durationMs != null) {
-                LinearProgressIndicator(
+                LinearWavyProgressIndicator(
                     progress = { progress.value },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(3.dp)
-                        .clip(CircleShape),
-                    color = MaterialTheme.colorScheme.primary,
+                        .height(12.dp),
+                    amplitude = { 0.5f },
                     trackColor = Color.Transparent,
-                    strokeCap = ProgressIndicatorDefaults.LinearStrokeCap,
                 )
             }
         }

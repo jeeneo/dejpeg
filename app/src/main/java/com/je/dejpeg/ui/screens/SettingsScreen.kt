@@ -57,7 +57,6 @@ import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -99,6 +98,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import androidx.core.net.toUri
@@ -137,7 +137,7 @@ fun SettingsScreen(
     var showImportProgress by remember { mutableStateOf(false) }
     var expandedSection by remember { mutableStateOf<SettingsSection?>(null) }
     fun toggle(section: SettingsSection) {
-        HapticFeedbacks.heavy()
+        HapticFeedbacks.light()
         expandedSection = if (expandedSection == section) null else section
     }
 
@@ -265,13 +265,13 @@ fun SettingsScreen(
 
                 ExtendedFloatingActionButton(
                     onClick = {
-                        HapticFeedbacks.light()
-                        if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN) {
-                            oidnModelPickerLauncher.launch("*/*")
-                        } else {
-                            modelPickerLauncher.launch("*/*")
-                        }
-                    },
+                    HapticFeedbacks.light()
+                    if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN) {
+                        oidnModelPickerLauncher.launch("*/*")
+                    } else {
+                        modelPickerLauncher.launch("*/*")
+                    }
+                },
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = {
                         Text(
@@ -351,7 +351,6 @@ fun SettingsScreen(
                             }
                         }
                     }
-
                     Spacer(modifier = Modifier.height(8.dp))
                 }
 
@@ -368,159 +367,164 @@ fun SettingsScreen(
                             title = "Models",
                             subtitle = activeModelName ?: stringResource(R.string.no_model_loaded),
                             ellipsizeSubtitle = true,
-                            showDivider = true,
                             expanded = expandedSection == SettingsSection.ModelManagement,
-                            onClick = {
-                                toggle(SettingsSection.ModelManagement)
-                            })
-                        AnimatedVisibility(visible = expandedSection == SettingsSection.ModelManagement) {
-                            val extractedMsg = stringResource(R.string.extracted_starter_models)
-                            val failedMsg =
-                                stringResource(R.string.failed_to_extract_starter_models)
-                            Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                                installedModels.forEach { modelName ->
-                                    val isActive = modelName == activeModelName
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(
-                                                if (isActive) MaterialTheme.colorScheme.primaryContainer.copy(
-                                                    alpha = 0.4f
-                                                ) else Color.Transparent
+                            expandedContent = {
+                                val extractedMsg = stringResource(R.string.extracted_starter_models)
+                                val failedMsg =
+                                    stringResource(R.string.failed_to_extract_starter_models)
+                                Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                                    installedModels.forEach { modelName ->
+                                        val isActive = modelName == activeModelName
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(
+                                                    if (isActive) MaterialTheme.colorScheme.primaryContainer.copy(
+                                                        alpha = 0.4f
+                                                    ) else Color.Transparent
+                                                )
+                                                .clickable {
+                                                    HapticFeedbacks.light()
+                                                    if (processingViewModel.isProcessingOrQueueActive()) {
+                                                        scope.launch {
+                                                            SnackySnackbarController.pushEvent(
+                                                                SnackySnackbarEvents.MessageEvent(
+                                                                    message = blockedSwitchingMessage,
+                                                                    duration = SnackbarDuration.Short
+                                                                )
+                                                            )
+                                                        }
+                                                    } else {
+                                                        viewModel.setActiveModelByName(modelName)
+                                                        activeModelName = modelName
+                                                    }
+                                                }
+                                                .padding(horizontal = 8.dp, vertical = 10.dp),
+                                            verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                modelName,
+                                                modifier = Modifier.weight(1f),
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                maxLines = 1,
+                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                             )
-                                            .clickable {
-                                                HapticFeedbacks.light()
-                                                if (processingViewModel.isProcessingOrQueueActive()) {
+                                            modelManager.getModelInfo(modelName)?.let {
+                                                IconButton(onClick = {
+                                                    HapticFeedbacks.light(); modelInfoDialog =
+                                                    modelName to it
+                                                }, modifier = Modifier.size(32.dp)) {
+                                                    Icon(
+                                                        Icons.Filled.Info,
+                                                        contentDescription = stringResource(R.string.info),
+                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                }
+                                            }
+                                            IconButton(
+                                                onClick = {
+                                                    HapticFeedbacks.light(); viewModel.deleteModels(
+                                                    listOf(
+                                                        modelName
+                                                    )
+                                                ) {
                                                     scope.launch {
                                                         SnackySnackbarController.pushEvent(
                                                             SnackySnackbarEvents.MessageEvent(
-                                                                message = blockedSwitchingMessage,
-                                                                duration = SnackbarDuration.Short
+                                                                message = deletedModelMessage.format(
+                                                                    it
+                                                                ), duration = SnackbarDuration.Short
                                                             )
                                                         )
                                                     }
-                                                } else {
-                                                    viewModel.setActiveModelByName(modelName)
-                                                    activeModelName = modelName
                                                 }
-                                            }
-                                            .padding(horizontal = 8.dp, vertical = 10.dp),
-                                        verticalAlignment = Alignment.CenterVertically) {
-                                        Text(
-                                            modelName,
-                                            modifier = Modifier.weight(1f),
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            maxLines = 1,
-                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                        )
-                                        modelManager.getModelInfo(modelName)?.let {
-                                            IconButton(onClick = {
-                                                HapticFeedbacks.light(); modelInfoDialog =
-                                                modelName to it
-                                            }, modifier = Modifier.size(32.dp)) {
+                                                }, modifier = Modifier.size(32.dp)
+                                            ) {
                                                 Icon(
-                                                    Icons.Filled.Info,
-                                                    contentDescription = stringResource(R.string.info),
-                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    Icons.Filled.Delete,
+                                                    contentDescription = stringResource(R.string.delete),
+                                                    tint = MaterialTheme.colorScheme.error,
                                                     modifier = Modifier.size(18.dp)
                                                 )
                                             }
                                         }
-                                        IconButton(
-                                            onClick = {
-                                                HapticFeedbacks.heavy(); viewModel.deleteModels(
-                                                listOf(
-                                                    modelName
-                                                )
-                                            ) {
-                                                scope.launch {
+                                    }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Spacer(Modifier.weight(1f))
+                                        TextButton(onClick = {
+                                            HapticFeedbacks.light()
+                                            modelPickerLauncher.launch("*/*")
+                                        }) {
+                                            Icon(
+                                                Icons.Filled.Add,
+                                                null,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Spacer(Modifier.width(4.dp))
+                                            Text(stringResource(R.string.import_model_text))
+                                        }
+                                        TextButton(onClick = {
+                                            HapticFeedbacks.light()
+                                            scope.launch {
+                                                val extracted = withContext(Dispatchers.IO) {
+                                                    modelManager.extractStarterModel(setAsActive = true)
+                                                }
+                                                if (extracted) {
+                                                    viewModel.refreshInstalledModels(ModelType.ONNX)
                                                     SnackySnackbarController.pushEvent(
                                                         SnackySnackbarEvents.MessageEvent(
-                                                            message = deletedModelMessage.format(it),
+                                                            message = extractedMsg,
+                                                            duration = SnackbarDuration.Short
+                                                        )
+                                                    )
+                                                } else {
+                                                    SnackySnackbarController.pushEvent(
+                                                        SnackySnackbarEvents.MessageEvent(
+                                                            message = failedMsg,
                                                             duration = SnackbarDuration.Short
                                                         )
                                                     )
                                                 }
                                             }
-                                            }, modifier = Modifier.size(32.dp)
-                                        ) {
+                                        }) {
                                             Icon(
-                                                Icons.Filled.Delete,
-                                                contentDescription = stringResource(R.string.delete),
-                                                tint = MaterialTheme.colorScheme.error,
-                                                modifier = Modifier.size(18.dp)
+                                                Icons.Filled.Archive,
+                                                null,
+                                                modifier = Modifier.size(16.dp)
                                             )
+                                            Spacer(Modifier.width(4.dp))
+                                            Text(stringResource(R.string.extract))
+                                        }
+                                        TextButton(onClick = {
+                                            HapticFeedbacks.light()
+                                            val intent = Intent(
+                                                Intent.ACTION_VIEW,
+                                                "https://codeberg.org/dryerlint/dejpeg/src/branch/main/models".toUri()
+                                            ); context.startActivity(intent)
+                                        }) {
+                                            Icon(
+                                                Icons.Filled.Download,
+                                                null,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Spacer(Modifier.width(4.dp))
+                                            Text(stringResource(R.string.download))
                                         }
                                     }
                                 }
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Spacer(Modifier.weight(1f))
-                                    TextButton(onClick = {
-                                        HapticFeedbacks.light()
-                                        modelPickerLauncher.launch("*/*")
-                                    }) {
-                                        Icon(
-                                            Icons.Filled.Add, null, modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(Modifier.width(4.dp))
-                                        Text(stringResource(R.string.import_model_text))
-                                    }
-                                    TextButton(onClick = {
-                                        HapticFeedbacks.light()
-                                        scope.launch {
-                                            val extracted = withContext(Dispatchers.IO) {
-                                                modelManager.extractStarterModel(setAsActive = true)
-                                            }
-                                            if (extracted) {
-                                                viewModel.refreshInstalledModels(ModelType.ONNX)
-                                                SnackySnackbarController.pushEvent(
-                                                    SnackySnackbarEvents.MessageEvent(
-                                                        message = extractedMsg,
-                                                        duration = SnackbarDuration.Short
-                                                    )
-                                                )
-                                            } else {
-                                                SnackySnackbarController.pushEvent(
-                                                    SnackySnackbarEvents.MessageEvent(
-                                                        message = failedMsg,
-                                                        duration = SnackbarDuration.Short
-                                                    )
-                                                )
-                                            }
-                                        }
-                                    }) {
-                                        Icon(
-                                            Icons.Filled.Archive,
-                                            null,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(Modifier.width(4.dp))
-                                        Text(stringResource(R.string.extract))
-                                    }
-                                    TextButton(onClick = {
-                                        HapticFeedbacks.light()
-                                        val intent = Intent(
-                                            Intent.ACTION_VIEW,
-                                            "https://codeberg.org/dryerlint/dejpeg/src/branch/main/models".toUri()
-                                        ); context.startActivity(intent)
-                                    }) {
-                                        Icon(
-                                            Icons.Filled.Download,
-                                            null,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(Modifier.width(4.dp))
-                                        Text(stringResource(R.string.download))
-                                    }
-                                }
-                            }
-                        }
+
+                            },
+                            onClick = {
+                                toggle(SettingsSection.ModelManagement)
+                            },
+                            position = CardPosition.Leading,
+                        )
                         PreferenceItem(
                             icon = Icons.Filled.GridOn,
                             iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -530,52 +534,54 @@ fun SettingsScreen(
                                 R.string.chunk_size_px, chunkSize
                             ) + " • " + stringResource(R.string.overlap_size_px, overlapSize),
                             expanded = expandedSection == SettingsSection.Chunk,
-                            onClick = { toggle(SettingsSection.Chunk) })
-                        AnimatedVisibility(visible = expandedSection == SettingsSection.Chunk) {
-                            val maxThreads = remember {
-                                Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
-                            }
-                            Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
-                                PowerSlider(
-                                    label = stringResource(R.string.chunk_size),
-                                    value = chunkSize,
-                                    powers = listOf(512, 1024, 2048),
-                                    onChange = { viewModel.setChunkSize(it) },
-                                    hapticAction = { HapticFeedbacks.light() })
-                                Spacer(modifier = Modifier.height(8.dp))
-                                PowerSlider(
-                                    label = stringResource(R.string.overlap_size),
-                                    value = overlapSize,
-                                    powers = listOf(16, 32, 64, 128),
-                                    onChange = { viewModel.setOverlapSize(it) },
-                                    hapticAction = { HapticFeedbacks.light() })
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    stringResource(R.string.processing_threads_desc),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Medium,
-                                )
-                                Slider(
-                                    value = onnxDeviceThreads.toFloat(),
-                                    onValueChange = { value ->
-                                        HapticFeedbacks.light(); viewModel.setOnnxDeviceThreads(
-                                        value.roundToInt()
+                            expandedContent = {
+                                val maxThreads = remember {
+                                    Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
+                                }
+                                Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
+                                    PowerSlider(
+                                        label = stringResource(R.string.chunk_size),
+                                        value = chunkSize,
+                                        powers = listOf(512, 1024, 2048),
+                                        onChange = { viewModel.setChunkSize(it) },
+                                        hapticAction = { HapticFeedbacks.light() })
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    PowerSlider(
+                                        label = stringResource(R.string.overlap_size),
+                                        value = overlapSize,
+                                        powers = listOf(16, 32, 64, 128),
+                                        onChange = { viewModel.setOverlapSize(it) },
+                                        hapticAction = { HapticFeedbacks.light() })
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        stringResource(R.string.processing_threads_desc),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Medium,
                                     )
-                                    },
-                                    valueRange = 0f..maxThreads.toFloat(),
-                                    steps = (maxThreads - 1).coerceAtLeast(0),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                Text(
-                                    threadLabel(
-                                        onnxDeviceThreads,
-                                        stringResource(R.string.thread_value_auto, maxThreads)
-                                    ),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    modifier = Modifier.align(Alignment.End)
-                                )
-                            }
-                        }
+                                    Slider(
+                                        value = onnxDeviceThreads.toFloat(),
+                                        onValueChange = { value ->
+                                            HapticFeedbacks.light(); viewModel.setOnnxDeviceThreads(
+                                            value.roundToInt()
+                                        )
+                                        },
+                                        valueRange = 0f..maxThreads.toFloat(),
+                                        steps = (maxThreads - 1).coerceAtLeast(0),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                    Text(
+                                        threadLabel(
+                                            onnxDeviceThreads,
+                                            stringResource(R.string.thread_value_auto, maxThreads)
+                                        ),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        modifier = Modifier.align(Alignment.End)
+                                    )
+                                }
+                            },
+                            onClick = { toggle(SettingsSection.Chunk) },
+                            position = CardPosition.Trailing
+                        )
                     }
                 }
 
@@ -590,104 +596,108 @@ fun SettingsScreen(
                             subtitle = activeOidnModelName
                                 ?: stringResource(R.string.no_model_loaded),
                             ellipsizeSubtitle = true,
-                            showDivider = true,
                             expanded = expandedSection == SettingsSection.OidnModelManagement,
-                            onClick = {
-                                toggle(SettingsSection.OidnModelManagement)
-                            })
-                        AnimatedVisibility(visible = expandedSection == SettingsSection.OidnModelManagement) {
-                            Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                                installedOidnModels.forEach { modelName ->
-                                    val isActive = modelName == activeOidnModelName
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .clickable {
-                                                HapticFeedbacks.light()
-                                                if (processingViewModel.isProcessingOrQueueActive()) {
+                            expandedContent = {
+                                Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                                    installedOidnModels.forEach { modelName ->
+                                        val isActive = modelName == activeOidnModelName
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .clickable {
+                                                    HapticFeedbacks.light()
+                                                    if (processingViewModel.isProcessingOrQueueActive()) {
+                                                        scope.launch {
+                                                            SnackySnackbarController.pushEvent(
+                                                                SnackySnackbarEvents.MessageEvent(
+                                                                    message = blockedSwitchingMessage,
+                                                                    duration = SnackbarDuration.Short
+                                                                )
+                                                            )
+                                                        }
+                                                    } else {
+                                                        viewModel.setActiveModelByName(
+                                                            modelName, ModelType.OIDN
+                                                        )
+                                                        activeOidnModelName = modelName
+                                                    }
+                                                }
+                                                .padding(horizontal = 8.dp, vertical = 10.dp),
+                                            verticalAlignment = Alignment.CenterVertically) {
+                                            Spacer(Modifier.width(12.dp))
+                                            Text(
+                                                modelName,
+                                                modifier = Modifier.weight(1f),
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+                                                color = if (isActive) MaterialTheme.colorScheme.primary
+                                                else MaterialTheme.colorScheme.onSurface,
+                                                maxLines = 1,
+                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                            )
+                                            IconButton(
+                                                onClick = {
+                                                    HapticFeedbacks.light(); viewModel.deleteModels(
+                                                    listOf(
+                                                        modelName
+                                                    ), ModelType.OIDN
+                                                ) {
                                                     scope.launch {
                                                         SnackySnackbarController.pushEvent(
                                                             SnackySnackbarEvents.MessageEvent(
-                                                                message = blockedSwitchingMessage,
-                                                                duration = SnackbarDuration.Short
+                                                                message = deletedModelMessage.format(
+                                                                    it
+                                                                ), duration = SnackbarDuration.Short
                                                             )
                                                         )
                                                     }
-                                                } else {
-                                                    viewModel.setActiveModelByName(
-                                                        modelName, ModelType.OIDN
-                                                    )
-                                                    activeOidnModelName = modelName
                                                 }
-                                            }
-                                            .padding(horizontal = 8.dp, vertical = 10.dp),
-                                        verticalAlignment = Alignment.CenterVertically) {
-                                        Spacer(Modifier.width(12.dp))
-                                        Text(
-                                            modelName,
-                                            modifier = Modifier.weight(1f),
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
-                                            color = if (isActive) MaterialTheme.colorScheme.primary
-                                            else MaterialTheme.colorScheme.onSurface,
-                                            maxLines = 1,
-                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                        )
-                                        IconButton(
-                                            onClick = {
-                                                HapticFeedbacks.heavy(); viewModel.deleteModels(
-                                                listOf(
-                                                    modelName
-                                                ), ModelType.OIDN
+                                                }, modifier = Modifier.size(32.dp)
                                             ) {
-                                                scope.launch {
-                                                    SnackySnackbarController.pushEvent(
-                                                        SnackySnackbarEvents.MessageEvent(
-                                                            message = deletedModelMessage.format(it),
-                                                            duration = SnackbarDuration.Short
-                                                        )
-                                                    )
-                                                }
+                                                Icon(
+                                                    Icons.Filled.Delete,
+                                                    contentDescription = stringResource(R.string.delete),
+                                                    tint = MaterialTheme.colorScheme.error,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
                                             }
-                                            }, modifier = Modifier.size(32.dp)
-                                        ) {
-                                            Icon(
-                                                Icons.Filled.Delete,
-                                                contentDescription = stringResource(R.string.delete),
-                                                tint = MaterialTheme.colorScheme.error,
-                                                modifier = Modifier.size(18.dp)
+                                        }
+                                    }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        if (installedOidnModels.isEmpty()) {
+                                            Text(
+                                                stringResource(R.string.no_model_loaded),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.padding(
+                                                    horizontal = 8.dp, vertical = 4.dp
+                                                )
                                             )
+                                        } else {
+                                            Spacer(Modifier.weight(1f))
+                                        }
+                                        TextButton(onClick = { oidnModelPickerLauncher.launch("*/*") }) {
+                                            Icon(
+                                                Icons.Filled.Add,
+                                                null,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Spacer(Modifier.width(4.dp))
+                                            Text(stringResource(R.string.import_tza_model))
                                         }
                                     }
                                 }
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    if (installedOidnModels.isEmpty()) {
-                                        Text(
-                                            stringResource(R.string.no_model_loaded),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.padding(
-                                                horizontal = 8.dp, vertical = 4.dp
-                                            )
-                                        )
-                                    } else {
-                                        Spacer(Modifier.weight(1f))
-                                    }
-                                    TextButton(onClick = { oidnModelPickerLauncher.launch("*/*") }) {
-                                        Icon(
-                                            Icons.Filled.Add, null, modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(Modifier.width(4.dp))
-                                        Text(stringResource(R.string.import_tza_model))
-                                    }
-                                }
-                            }
-                        }
+                            },
+                            onClick = {
+                                toggle(SettingsSection.OidnModelManagement)
+                            },
+                            position = CardPosition.Leading
+                        )
                         PreferenceItem(
                             icon = Icons.Filled.Settings,
                             iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -695,131 +705,132 @@ fun SettingsScreen(
                             title = stringResource(R.string.oidn_settings),
                             subtitle = stringResource(R.string.oidn_settings_desc),
                             expanded = expandedSection == SettingsSection.OidnSettings,
-                            onClick = {
-                                toggle(SettingsSection.OidnSettings)
-                            })
-
-                        AnimatedVisibility(visible = expandedSection == SettingsSection.OidnSettings) {
-                            val maxThreads = remember {
-                                Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
-                            }
-
-                            Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
-                                LabeledSwitch(
-                                    title = stringResource(R.string.oidn_hdr),
-                                    desc = stringResource(R.string.oidn_hdr_desc),
-                                    checked = oidnHdr,
-                                    onCheckedChange = { viewModel.setOidnHdrPref(it) })
-                                Spacer(modifier = Modifier.height(8.dp))
-                                LabeledSwitch(
-                                    title = stringResource(R.string.oidn_srgb),
-                                    desc = stringResource(R.string.oidn_srgb_desc),
-                                    checked = oidnSrgb,
-                                    onCheckedChange = { viewModel.setOidnSrgbPref(it) })
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    stringResource(R.string.oidn_quality),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                val qualityOptions = listOf(
-                                    0 to stringResource(R.string.oidn_quality_default),
-                                    4 to stringResource(R.string.oidn_quality_fast),
-                                    5 to stringResource(R.string.oidn_quality_balanced),
-                                    6 to stringResource(R.string.oidn_quality_high)
-                                )
-                                qualityOptions.chunked(2).forEach { rowOptions ->
-                                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                                        rowOptions.forEachIndexed { index, (value, label) ->
-                                            SegmentedButton(
-                                                selected = oidnQuality == value, onClick = {
-                                                    HapticFeedbacks.light(); viewModel.setOidnQualityPref(
-                                                    value
-                                                )
-                                                }, shape = SegmentedButtonDefaults.itemShape(
-                                                    index = index, count = rowOptions.size
-                                                )
-                                            ) { Text(label) }
-                                        }
-                                    }
-                                    Spacer(modifier = Modifier.height(8.dp))
+                            expandedContent = {
+                                val maxThreads = remember {
+                                    Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
                                 }
 
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    stringResource(R.string.oidn_num_threads),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Text(
-                                    stringResource(R.string.oidn_num_threads_desc),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Slider(
-                                    value = oidnNumThreads.toFloat(),
-                                    onValueChange = {
-                                        HapticFeedbacks.light(); viewModel.setOidnNumThreadsPref(
-                                        it.roundToInt().coerceIn(0, maxThreads)
+                                Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
+                                    LabeledSwitch(
+                                        title = stringResource(R.string.oidn_hdr),
+                                        desc = stringResource(R.string.oidn_hdr_desc),
+                                        checked = oidnHdr,
+                                        onCheckedChange = { viewModel.setOidnHdrPref(it) })
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    LabeledSwitch(
+                                        title = stringResource(R.string.oidn_srgb),
+                                        desc = stringResource(R.string.oidn_srgb_desc),
+                                        checked = oidnSrgb,
+                                        onCheckedChange = { viewModel.setOidnSrgbPref(it) })
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        stringResource(R.string.oidn_quality),
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.SemiBold
                                     )
-                                    },
-                                    valueRange = 0f..maxThreads.toFloat(),
-                                    steps = (maxThreads - 1).coerceAtLeast(0),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                Text(
-                                    threadLabel(
-                                        oidnNumThreads,
-                                        stringResource(R.string.thread_value_auto, maxThreads)
-                                    ),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    modifier = Modifier.align(Alignment.End)
-                                )
-                            }
-                        }
+                                    Spacer(modifier = Modifier.height(8.dp))
+
+                                    val qualityOptions = listOf(
+                                        0 to stringResource(R.string.oidn_quality_default),
+                                        4 to stringResource(R.string.oidn_quality_fast),
+                                        5 to stringResource(R.string.oidn_quality_balanced),
+                                        6 to stringResource(R.string.oidn_quality_high)
+                                    )
+                                    qualityOptions.chunked(2).forEach { rowOptions ->
+                                        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                                            rowOptions.forEachIndexed { index, (value, label) ->
+                                                SegmentedButton(
+                                                    selected = oidnQuality == value, onClick = {
+                                                        HapticFeedbacks.light(); viewModel.setOidnQualityPref(
+                                                        value
+                                                    )
+                                                    }, shape = SegmentedButtonDefaults.itemShape(
+                                                        index = index, count = rowOptions.size
+                                                    )
+                                                ) { Text(label) }
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                    }
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        stringResource(R.string.oidn_num_threads),
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    Text(
+                                        stringResource(R.string.oidn_num_threads_desc),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Slider(
+                                        value = oidnNumThreads.toFloat(),
+                                        onValueChange = {
+                                            HapticFeedbacks.light(); viewModel.setOidnNumThreadsPref(
+                                            it.roundToInt().coerceIn(0, maxThreads)
+                                        )
+                                        },
+                                        valueRange = 0f..maxThreads.toFloat(),
+                                        steps = (maxThreads - 1).coerceAtLeast(0),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                    Text(
+                                        threadLabel(
+                                            oidnNumThreads,
+                                            stringResource(R.string.thread_value_auto, maxThreads)
+                                        ),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        modifier = Modifier.align(Alignment.End)
+                                    )
+                                }
+
+                            },
+                            onClick = {
+                                toggle(SettingsSection.OidnSettings)
+                            },
+                            position = CardPosition.Trailing
+                        )
                     }
                 }
 
                 val isOidn = BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .onSizeChanged { containerWidth = it.width }
-                        .clip(MaterialTheme.shapes.large)
-                        .pointerInput(processingMode) {
-                            if (!BuildConfig.OIDN_ENABLED) return@pointerInput
-                            detectHorizontalDragGestures(onDragEnd = {
-                                val threshold = containerWidth * 0.35f
-                                scope.launch {
-                                    if (animatedOffset.value > threshold && processingMode == ProcessingMode.OIDN) {
-                                        animatedOffset.animateTo(containerWidth.toFloat(), spring())
-                                        viewModel.setProcessingMode(ProcessingMode.ONNX)
-                                        animatedOffset.snapTo(0f)
-                                    } else if (animatedOffset.value < -threshold && processingMode == ProcessingMode.ONNX) {
-                                        animatedOffset.animateTo(
-                                            -containerWidth.toFloat(), spring()
-                                        )
-                                        viewModel.setProcessingMode(ProcessingMode.OIDN)
-                                        animatedOffset.snapTo(0f)
-                                    } else {
-                                        animatedOffset.animateTo(0f, spring())
-                                    }
+                Box(modifier = Modifier
+                    .fillMaxWidth()
+                    .onSizeChanged { containerWidth = it.width }
+                    .clip(MaterialTheme.shapes.large)
+                    .pointerInput(processingMode) {
+                        if (!BuildConfig.OIDN_ENABLED) return@pointerInput
+                        detectHorizontalDragGestures(onDragEnd = {
+                            val threshold = containerWidth * 0.35f
+                            scope.launch {
+                                if (animatedOffset.value > threshold && processingMode == ProcessingMode.OIDN) {
+                                    animatedOffset.animateTo(containerWidth.toFloat(), spring())
+                                    viewModel.setProcessingMode(ProcessingMode.ONNX)
+                                    animatedOffset.snapTo(0f)
+                                } else if (animatedOffset.value < -threshold && processingMode == ProcessingMode.ONNX) {
+                                    animatedOffset.animateTo(
+                                        -containerWidth.toFloat(), spring()
+                                    )
+                                    viewModel.setProcessingMode(ProcessingMode.OIDN)
+                                    animatedOffset.snapTo(0f)
+                                } else {
+                                    animatedOffset.animateTo(0f, spring())
                                 }
-                            }, onDragCancel = {
-                                scope.launch { animatedOffset.animateTo(0f, spring()) }
-                            }, onHorizontalDrag = { change, dragAmount ->
-                                change.consume()
-                                val newOffset = animatedOffset.value + dragAmount
-                                val clamped = when (processingMode) {
-                                    ProcessingMode.OIDN -> newOffset.coerceAtLeast(0f)
-                                    ProcessingMode.ONNX -> newOffset.coerceAtMost(0f)
-                                }
-                                scope.launch { animatedOffset.snapTo(clamped) }
-                            })
-                        }) {
+                            }
+                        }, onDragCancel = {
+                            scope.launch { animatedOffset.animateTo(0f, spring()) }
+                        }, onHorizontalDrag = { change, dragAmount ->
+                            change.consume()
+                            val newOffset = animatedOffset.value + dragAmount
+                            val clamped = when (processingMode) {
+                                ProcessingMode.OIDN -> newOffset.coerceAtLeast(0f)
+                                ProcessingMode.ONNX -> newOffset.coerceAtMost(0f)
+                            }
+                            scope.launch { animatedOffset.snapTo(clamped) }
+                        })
+                    }) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -848,79 +859,79 @@ fun SettingsScreen(
                         iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                         title = "Options",
                         subtitle = "Other settings",
-                        showDivider = true,
                         expanded = expandedSection == SettingsSection.Preferences,
-                        onClick = {
-                            toggle(SettingsSection.Preferences)
-                        })
+                        expandedContent = {
+                            Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
+                                LabeledSwitch(
+                                    title = stringResource(R.string.vibration_on_touch),
+                                    desc = "",
+                                    checked = hapticFeedbackEnabled,
+                                    onCheckedChange = { new ->
+                                        scope.launch {
+                                            appPreferences.setHapticFeedbackEnabled(new)
+                                        }
+                                    })
+                                Spacer(modifier = Modifier.height(8.dp))
 
-                    AnimatedVisibility(visible = expandedSection == SettingsSection.Preferences) {
-                        Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
-                            LabeledSwitch(
-                                title = stringResource(R.string.vibration_on_touch),
-                                desc = "",
-                                checked = hapticFeedbackEnabled,
-                                onCheckedChange = { new ->
-                                    scope.launch {
-                                        appPreferences.setHapticFeedbackEnabled(new)
-                                    }
-                                })
-                            Spacer(modifier = Modifier.height(8.dp))
+                                LabeledSwitch(
+                                    title = stringResource(R.string.show_save_dialog),
+                                    desc = "",
+                                    checked = showSaveDialog,
+                                    onCheckedChange = { new ->
+                                        scope.launch {
+                                            appPreferences.setShowSaveDialog(new)
+                                        }
+                                    })
+                                Spacer(modifier = Modifier.height(8.dp))
 
-                            LabeledSwitch(
-                                title = stringResource(R.string.show_save_dialog),
-                                desc = "",
-                                checked = showSaveDialog,
-                                onCheckedChange = { new ->
-                                    scope.launch {
-                                        appPreferences.setShowSaveDialog(new)
-                                    }
-                                })
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            LabeledSwitch(
-                                title = stringResource(R.string.swap_swipe_actions),
-                                desc = "",
-                                checked = swapSwipeActions,
-                                onCheckedChange = { new ->
-                                    scope.launch {
-                                        appPreferences.setSwapSwipeActions(new)
-                                    }
-                                })
-                            Spacer(modifier = Modifier.height(8.dp))
-                            val clearedDefaultSourceMsg =
-                                stringResource(R.string.cleared_default_source)
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        stringResource(R.string.default_image_source),
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                    Text(
-                                        defaultImageSource ?: stringResource(R.string.none),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                TextButton(onClick = {
-                                    scope.launch {
-                                        appPreferences.setDefaultImageSource(null)
-                                        SnackySnackbarController.pushEvent(
-                                            SnackySnackbarEvents.MessageEvent(
-                                                message = clearedDefaultSourceMsg,
-                                                duration = SnackbarDuration.Short
-                                            )
+                                LabeledSwitch(
+                                    title = stringResource(R.string.swap_swipe_actions),
+                                    desc = "",
+                                    checked = swapSwipeActions,
+                                    onCheckedChange = { new ->
+                                        scope.launch {
+                                            appPreferences.setSwapSwipeActions(new)
+                                        }
+                                    })
+                                Spacer(modifier = Modifier.height(8.dp))
+                                val clearedDefaultSourceMsg =
+                                    stringResource(R.string.cleared_default_source)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            stringResource(R.string.default_image_source),
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        Text(
+                                            defaultImageSource ?: stringResource(R.string.none),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
-                                    HapticFeedbacks.light()
-                                }) { Text(stringResource(R.string.clear_default_source)) }
+                                    TextButton(onClick = {
+                                        scope.launch {
+                                            appPreferences.setDefaultImageSource(null)
+                                            SnackySnackbarController.pushEvent(
+                                                SnackySnackbarEvents.MessageEvent(
+                                                    message = clearedDefaultSourceMsg,
+                                                    duration = SnackbarDuration.Short
+                                                )
+                                            )
+                                        }
+                                        HapticFeedbacks.light()
+                                    }) { Text(stringResource(R.string.clear_default_source)) }
+                                }
                             }
-                        }
-                    }
+                        },
+                        onClick = {
+                            toggle(SettingsSection.Preferences)
+                        },
+                        position = CardPosition.Leading,
+                    )
 
                     AnimatedVisibility(visible = processingMode == ProcessingMode.ONNX || !BuildConfig.OIDN_ENABLED) {
                         Column {
@@ -930,21 +941,22 @@ fun SettingsScreen(
                                 iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
                                 title = "Help",
                                 subtitle = "Show FAQs",
-                                showDivider = true,
                                 expanded = expandedSection == SettingsSection.FAQ,
+                                expandedContent = {
+                                    val faqSections = remember { loadFAQSections(context) }
+                                    Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
+                                        faqSections.forEach { section ->
+                                            FAQSection(
+                                                section.title, section.content, section.subSections
+                                            )
+                                        }
+                                    }
+                                },
                                 onClick = {
                                     toggle(SettingsSection.FAQ)
-                                })
-                            AnimatedVisibility(visible = expandedSection == SettingsSection.FAQ) {
-                                val faqSections = remember { loadFAQSections(context) }
-                                Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
-                                    faqSections.forEach { section ->
-                                        FAQSection(
-                                            section.title, section.content, section.subSections
-                                        )
-                                    }
-                                }
-                            }
+                                },
+                                position = CardPosition.Center
+                            )
                         }
                     }
 
@@ -963,7 +975,9 @@ fun SettingsScreen(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                         },
-                        onClick = { uriHandler.openUri("https://codeberg.org/dryerlint/dejpeg") })
+                        onClick = { uriHandler.openUri("https://codeberg.org/dryerlint/dejpeg") },
+                        position = CardPosition.Trailing
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(100.dp))
@@ -1141,17 +1155,13 @@ fun PreferenceGroupHeading(title: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun PreferenceGroupCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Surface(
+    Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        shape = MaterialTheme.shapes.large,
-        tonalElevation = 0.dp,
-        color = MaterialTheme.colorScheme.surfaceContainer
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Column {
-            content()
-        }
+        content()
     }
 }
 
@@ -1229,32 +1239,49 @@ fun LabeledSwitch(
         }
         Switch(
             checked = checked, onCheckedChange = {
-                onCheckedChange(it)
-                HapticFeedbacks.heavy()
-            }, thumbContent = if (checked) {
-                {
-                    Icon(
-                        imageVector = Icons.Filled.Check,
-                        contentDescription = null,
-                        modifier = Modifier.size(SwitchDefaults.IconSize),
-                    )
-                }
-            } else {
-                {
-                    Icon(
-                        imageVector = Icons.Filled.Close,
-                        contentDescription = null,
-                        modifier = Modifier.size(SwitchDefaults.IconSize),
-                    )
-                }
-            }, colors = SwitchDefaults.colors(
-                checkedThumbColor = MaterialTheme.colorScheme.primaryContainer,
-                checkedTrackColor = MaterialTheme.colorScheme.onSurface,
-                uncheckedThumbColor = MaterialTheme.colorScheme.secondary,
-                uncheckedTrackColor = MaterialTheme.colorScheme.secondaryContainer,
-            ))
+            onCheckedChange(it)
+            HapticFeedbacks.light()
+        }, thumbContent = if (checked) {
+            {
+                Icon(
+                    imageVector = Icons.Filled.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                )
+            }
+        } else {
+            {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = null,
+                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                )
+            }
+        }, colors = SwitchDefaults.colors(
+            checkedThumbColor = MaterialTheme.colorScheme.primaryContainer,
+            checkedTrackColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            uncheckedThumbColor = MaterialTheme.colorScheme.secondary,
+            uncheckedTrackColor = MaterialTheme.colorScheme.secondaryContainer,
+            uncheckedBorderColor = Color.Transparent,
+        ))
     }
 }
+
+enum class CardPosition { Leading, Center, Trailing, Solo }
+
+fun cardShape(position: CardPosition, large: Dp = 16.dp, small: Dp = 6.dp): RoundedCornerShape =
+    when (position) {
+        CardPosition.Leading -> RoundedCornerShape(
+            topStart = large, topEnd = large, bottomStart = small, bottomEnd = small
+        )
+
+        CardPosition.Center -> RoundedCornerShape(large / 2)
+        CardPosition.Trailing -> RoundedCornerShape(
+            topStart = small, topEnd = small, bottomStart = large, bottomEnd = large
+        )
+
+        CardPosition.Solo -> RoundedCornerShape(large)
+    }
 
 @Composable
 fun PreferenceItem(
@@ -1264,94 +1291,93 @@ fun PreferenceItem(
     title: String,
     subtitle: String,
     ellipsizeSubtitle: Boolean = false,
-    showDivider: Boolean = false,
     expanded: Boolean = false,
     trailing: (@Composable () -> Unit)? = null,
-    onClick: () -> Unit
+    expandedContent: (@Composable () -> Unit)? = null,
+    onClick: () -> Unit,
+    position: CardPosition = CardPosition.Solo,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val press by rememberMaterialPressState(interactionSource)
     val animatedIconCorner = lerp(14f, 22f, press)
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(interactionSource = interactionSource, indication = ripple()) {
-                HapticFeedbacks.light()
-                onClick()
-            }
-            .padding(horizontal = 16.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(48.dp)
-                .background(iconBackgroundColor, RoundedCornerShape(animatedIconCorner.dp))
-        ) {
-            when (icon) {
-                is ImageVector -> Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(24.dp)
-                )
-
-                is Painter -> Icon(
-                    painter = icon,
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(3.dp))
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = if (ellipsizeSubtitle) 1 else Int.MAX_VALUE,
-                overflow = if (ellipsizeSubtitle) androidx.compose.ui.text.style.TextOverflow.Ellipsis else androidx.compose.ui.text.style.TextOverflow.Clip
-            )
-        }
-
-        if (trailing != null) {
-            trailing()
-        } else {
-            val chevronRotation by animateFloatAsState(
-                targetValue = if (expanded) 90f else 0f, animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMedium
-                ), label = "chevron"
-            )
-            Icon(
-                Icons.Filled.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+    Surface(
+        shape = cardShape(position),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column {
+            Row(
                 modifier = Modifier
-                    .size(24.dp)
-                    .rotate(chevronRotation)
-            )
-        }
-    }
+                    .fillMaxWidth()
+                    .clickable(interactionSource = interactionSource, indication = ripple()) {
+                        HapticFeedbacks.light()
+                        onClick()
+                    }
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(iconBackgroundColor, RoundedCornerShape(animatedIconCorner.dp))
+                ) {
+                    when (icon) {
+                        is ImageVector -> Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = iconTint,
+                            modifier = Modifier.size(24.dp)
+                        )
 
-    if (showDivider) { // possibly redundant
-        HorizontalDivider(
-            modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .fillMaxWidth(),
-            thickness = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant
-        )
+                        is Painter -> Icon(
+                            painter = icon,
+                            contentDescription = null,
+                            tint = iconTint,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        title,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(3.dp))
+                    Text(
+                        subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = if (ellipsizeSubtitle) 1 else Int.MAX_VALUE,
+                        overflow = if (ellipsizeSubtitle) androidx.compose.ui.text.style.TextOverflow.Ellipsis else androidx.compose.ui.text.style.TextOverflow.Clip
+                    )
+                }
+                if (trailing != null) {
+                    trailing()
+                } else {
+                    val chevronRotation by animateFloatAsState(
+                        targetValue = if (expanded) 90f else 0f, animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        ), label = "chevron"
+                    )
+                    Icon(
+                        Icons.Filled.ChevronRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier
+                            .size(24.dp)
+                            .rotate(chevronRotation)
+                    )
+                }
+            }
+            AnimatedVisibility(visible = expanded) {
+                expandedContent?.invoke()
+            }
+        }
     }
 }
 
@@ -1368,7 +1394,7 @@ fun FAQSection(title: String, content: String?, subSections: List<Pair<String, S
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { HapticFeedbacks.heavy(); expanded = !expanded }
+                .clickable { HapticFeedbacks.light(); expanded = !expanded }
                 .padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically) {
@@ -1407,6 +1433,6 @@ fun FAQSection(title: String, content: String?, subSections: List<Pair<String, S
                 }
             }
         }
-        HorizontalDivider()
+        Spacer(modifier = Modifier.height(10.dp))
     }
 }
