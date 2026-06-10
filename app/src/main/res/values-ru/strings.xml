@@ -172,7 +172,7 @@
     <string name="model_info_1x_gainres_v4_fp16">Сглаживание, артефакты, CGI</string>
     <string name="model_info_1x_debandurh_fs_ultra_lite_fp16">Дебандинг</string>
     <string name="model_info_1x_nmkd_brighten_redux_200k_fp16">Уменьшение яркости</string>
-    <string name="model_info_1x_nmkd_detoon_97500_g_fp16">Удаление тона</string>
+    <string name="model_info_1x_nmkd_detoon_97500_g_fp16">снятие мультяшного эффекта</string>
     <string name="model_info_1x_noise_toner_poisson_detailed_108000_g_fp16">Тонирование шума Пуассона (детально)</string>
     <string name="model_info_1x_noise_toner_poisson_soft_101000_g_fp16">Тонирование шума Пуассона (мягко)</string>
     <string name="model_info_1x_noise_toner_uniform_detailed_100000_g_fp16">Тонирование равномерного шума (детально)</string>
