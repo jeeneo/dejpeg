@@ -69,7 +69,7 @@ speed:
 
 - ✚ ➠ [1x-Debandurh-FS-Ultra-lite-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x-Debandurh-FS-Ultra-lite-fp16.onnx) ([source](https://openmodeldb.info/models/1x-Debandurh-FS-Ultra-lite)) - usage: debanding
 - ✚ ➽ [1x_NMKD-BrightenRedux_200k-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_NMKD-BrightenRedux_200k-fp16.onnx) - usage: brightness reduction
-- ✚ ➽ [1x_NMKDDetoon_97500_G-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_NMKDDetoon_97500_G-fp16.onnx) - usage: detoning
+- ✚ ➽ [1x_NMKDDetoon_97500_G-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_NMKDDetoon_97500_G-fp16.onnx) - usage: detooning
 - ✚ ➽ [1x_NoiseToner-Poisson-Detailed_108000_G-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_NoiseToner-Poisson-Detailed_108000_G-fp16.onnx) - usage: poisson noise toning (detailed)
 - ✚ ➽ [1x_NoiseToner-Poisson-Soft_101000_G-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_NoiseToner-Poisson-Soft_101000_G-fp16.onnx) - usage: poisson noise toning (soft)
 - ✚ ➽ [1x_NoiseToner-Uniform-Detailed_100000_G-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_NoiseToner-Uniform-Detailed_100000_G-fp16.onnx) - usage: uniform noise toning (detailed)
