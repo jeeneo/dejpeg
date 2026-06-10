@@ -15,6 +15,8 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.provider.Settings
 import android.util.Log
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -24,6 +26,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.je.dejpeg.HapticFeedbacks.appHapticsEnabled
+import com.je.dejpeg.ui.theme.AppTheme
 import com.je.dejpeg.ui.viewmodel.ImageItem
 import com.je.dejpeg.utils.ImageLoadingHelper
 import kotlinx.coroutines.CoroutineScope
@@ -37,6 +40,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
+
+class AppState(prefs: AppPreferences) {
+    val appTheme: MutableState<AppTheme> = mutableStateOf(prefs.loadAppTheme())
+}
 
 object ThreadUtils {
     fun resolveThreadCount(configuredThreads: Int?): Int {
@@ -145,6 +152,7 @@ object PreferenceKeys {
     val OIDN_MAX_MEMORY_MB = intPreferencesKey("oidn_max_memory_mb")
     val OIDN_NUM_THREADS = intPreferencesKey("oidn_num_threads")
     val OIDN_INPUT_SCALE = floatPreferencesKey("oidn_input_scale")
+    val APP_THEME = stringPreferencesKey("app_theme")
 }
 
 data class BrisqueSettings(
@@ -174,6 +182,7 @@ class AppPreferences {
         const val DEFAULT_OIDN_MAX_MEMORY_MB = 0
         const val DEFAULT_OIDN_NUM_THREADS = 0
         const val DEFAULT_OIDN_INPUT_SCALE = 0f
+        const val KEY_THEME = "dynamic"
     }
 
     val showSaveDialog: Flow<Boolean> = App.ctx.dataStore.data.map { prefs ->
@@ -403,6 +412,32 @@ class AppPreferences {
 
     suspend fun setOidnInputScale(inputScale: Float) {
         App.ctx.dataStore.edit { prefs -> prefs[PreferenceKeys.OIDN_INPUT_SCALE] = inputScale }
+    }
+
+    fun loadAppTheme(): AppTheme {
+        return runCatching {
+            val prefs = kotlinx.coroutines.runBlocking {
+                App.ctx.dataStore.data.first()
+            }
+
+            when (prefs[PreferenceKeys.APP_THEME]) {
+                "light" -> AppTheme.Light
+                "dark" -> AppTheme.Dark
+                "oled" -> AppTheme.OLED
+                else -> AppTheme.Dynamic
+            }
+        }.getOrDefault(AppTheme.Dynamic)
+    }
+
+    suspend fun setAppTheme(theme: AppTheme) {
+        App.ctx.dataStore.edit { prefs ->
+            prefs[PreferenceKeys.APP_THEME] = when (theme) {
+                AppTheme.Dynamic -> "dynamic"
+                AppTheme.Light -> "light"
+                AppTheme.Dark -> "dark"
+                AppTheme.OLED -> "oled"
+            }
+        }
     }
 }
 

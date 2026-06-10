@@ -7,6 +7,7 @@
 
 package com.je.dejpeg.utils
 
+import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.ContentUris
 import android.content.ContentValues
@@ -40,6 +41,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@SuppressLint("Recycle")
 object ImageLoadingHelper {
     private const val THUMBNAIL_SIZE = 144
     private fun safabs(value: Int): Int = if (value < 0) -value else value

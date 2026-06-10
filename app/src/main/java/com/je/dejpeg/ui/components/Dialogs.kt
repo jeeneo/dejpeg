@@ -187,18 +187,6 @@ fun SimpleAlertDialog(
         })
 }
 
-data class FallingLogo(
-    val id: Int,
-    val startX: Float,
-    val startY: Float,
-    val velocityX: Float,
-    val velocityY: Float,
-    val rotation: Float,
-    val rotationSpeed: Float,
-    val scale: Float,
-    val startTime: Long
-)
-
 @Composable
 fun LoadingDialog(
     title: String, message: String? = null, progress: Float? = null, progressText: String? = null
@@ -443,22 +431,6 @@ fun CancelProcessingDialog(
                 onClick = { HapticFeedbacks.heavy(); onConfirm(); onDismissRequest() },
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
             )
-        })
-}
-
-@Composable
-fun StarterModelDialog(onDismiss: () -> Unit) {
-    StyledAlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.starter_model_title)) },
-        text = {
-            Column {
-                Text(stringResource(R.string.starter_model_message))
-            }
-        },
-        confirmButton = {
-            MorphButton(
-                label = stringResource(R.string.got_it), onClick = { HapticFeedbacks.light(); onDismiss() })
         })
 }
 

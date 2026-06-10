@@ -11,7 +11,6 @@
 package com.je.dejpeg.ui.screens
 
 import android.content.Intent
-import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -57,6 +56,8 @@ import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -77,7 +78,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -108,19 +108,19 @@ import com.je.dejpeg.App
 import com.je.dejpeg.AppPreferences
 import com.je.dejpeg.BuildConfig
 import com.je.dejpeg.HapticFeedbacks
-import com.je.dejpeg.utils.ModelManager
-import com.je.dejpeg.utils.ModelType
 import com.je.dejpeg.ProcessingMode
 import com.je.dejpeg.R
 import com.je.dejpeg.ThreadUtils
-import com.je.dejpeg.ui.components.ErrorAlertDialog
 import com.je.dejpeg.ui.components.SnackbarDuration
 import com.je.dejpeg.ui.components.SnackySnackbarController
 import com.je.dejpeg.ui.components.SnackySnackbarEvents
 import com.je.dejpeg.ui.components.loadFAQSections
 import com.je.dejpeg.ui.components.rememberMaterialPressState
+import com.je.dejpeg.ui.theme.AppTheme
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
+import com.je.dejpeg.utils.ModelManager
+import com.je.dejpeg.utils.ModelType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -137,7 +137,7 @@ fun SettingsScreen(
     val appPreferences = remember { AppPreferences() }
     val scope = rememberCoroutineScope()
     val installedModels by viewModel.installedModels.collectAsState()
-    var showImportProgress by remember { mutableStateOf(false) }
+    val showImportProgress = remember { mutableStateOf(false) }
     var expandedSection by remember { mutableStateOf<SettingsSection?>(null) }
     fun toggle(section: SettingsSection) {
         HapticFeedbacks.light()
@@ -148,20 +148,17 @@ fun SettingsScreen(
     val importedModelMessage = stringResource(R.string.imported_model)
     val deletedModelMessage = stringResource(R.string.deleted_model)
     val blockedSwitchingMessage = stringResource(R.string.model_switch_blocked_processing)
-    var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
     val chunkSize by viewModel.chunkSize.collectAsState()
     val overlapSize by viewModel.overlapSize.collectAsState()
     val onnxDeviceThreads by viewModel.onnxDeviceThreads.collectAsState()
     var activeModelName by remember {
         mutableStateOf(runBlocking { viewModel.getActiveModelName() })
     }
-    var pendingModelSelection by remember { mutableStateOf<String?>(null) }
-    var warningState by remember { mutableStateOf<ModelWarningState?>(null) }
     val showSaveDialog by appPreferences.showSaveDialog.collectAsState(initial = true)
     val defaultImageSource by appPreferences.defaultImageSource.collectAsState(initial = null)
     val hapticFeedbackEnabled by appPreferences.hapticFeedbackEnabled.collectAsState(initial = true)
     val swapSwipeActions by appPreferences.swapSwipeActions.collectAsState(initial = false)
-    var modelInfoDialog by remember { mutableStateOf<Pair<String, String>?>(null) }
+    val modelInfoDialog = remember { mutableStateOf<Pair<String, String>?>(null) }
 
     val processingMode by viewModel.processingMode.collectAsState()
     val installedOidnModels by viewModel.installedOidnModels.collectAsState()
@@ -173,17 +170,6 @@ fun SettingsScreen(
         mutableStateOf(runBlocking { viewModel.getActiveModelName(ModelType.OIDN) })
     }
     val uriHandler = LocalUriHandler.current
-
-//    fun threadLabel(value: Int, autoString: String) = if (value == 0) autoString else "$value"
-
-    DisposableEffect(Unit) {
-        onDispose {
-            showImportProgress = false
-            warningState = null
-            pendingModelSelection = null
-            pendingImportUri = null
-        }
-    }
 
     BackHandler {
         if (expandedSection != null) expandedSection = null else onBack()
@@ -206,12 +192,10 @@ fun SettingsScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let { it ->
-            pendingImportUri = it
-            showImportProgress = true
+            showImportProgress.value = true
             importProgress = 0
             viewModel.importModel(it, onProgress = { importProgress = it }, onSuccess = { name ->
-                showImportProgress = false
-                pendingImportUri = null
+                showImportProgress.value = false
                 scope.launch {
                     SnackySnackbarController.pushEvent(
                         SnackySnackbarEvents.MessageEvent(
@@ -220,13 +204,6 @@ fun SettingsScreen(
                         )
                     )
                 }
-            }, onError = { err ->
-                showImportProgress = false
-                pendingImportUri = null
-                warningState = ModelWarningState.Error(err)
-            }, onWarning = { modelName, warning ->
-                showImportProgress = false
-                warningState = ModelWarningState.ModelWarning(modelName, warning, isImport = true)
             })
         }
     }
@@ -235,14 +212,14 @@ fun SettingsScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let { selectedUri ->
-            showImportProgress = true
+            showImportProgress.value = true
             importProgress = 0
             viewModel.importModel(
                 selectedUri,
                 type = ModelType.OIDN,
                 onProgress = { importProgress = it },
                 onSuccess = { name ->
-                    showImportProgress = false
+                    showImportProgress.value = false
                     scope.launch {
                         SnackySnackbarController.pushEvent(
                             SnackySnackbarEvents.MessageEvent(
@@ -251,10 +228,6 @@ fun SettingsScreen(
                             )
                         )
                     }
-                },
-                onError = { err ->
-                    showImportProgress = false
-                    warningState = ModelWarningState.Error(err)
                 })
         }
     }
@@ -307,7 +280,7 @@ fun SettingsScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(top = 8.dp, bottom = 16.dp)
             ) {
-                PreferenceGroupHeading("Settings")
+                PreferenceGroupHeading(stringResource(R.string.header_settings))
                 if (BuildConfig.OIDN_ENABLED) {
                     Surface(
                         modifier = Modifier
@@ -394,7 +367,7 @@ fun SettingsScreen(
                             icon = painterResource(id = R.drawable.ic_model),
                             iconBackgroundColor = MaterialTheme.colorScheme.surfaceVariant,
                             iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            title = "Models",
+                            title = stringResource(R.string.settings_title_models),
                             subtitle = activeModelName ?: stringResource(R.string.no_model_loaded),
                             ellipsizeSubtitle = true,
                             expanded = expandedSection == SettingsSection.ModelManagement,
@@ -455,7 +428,7 @@ fun SettingsScreen(
                                             )
                                             modelManager.getModelInfo(modelName)?.let {
                                                 IconButton(onClick = {
-                                                    HapticFeedbacks.light(); modelInfoDialog =
+                                                    HapticFeedbacks.light(); modelInfoDialog.value =
                                                     modelName to it
                                                 }, modifier = Modifier.size(32.dp)) {
                                                     Icon(
@@ -576,7 +549,7 @@ fun SettingsScreen(
                             icon = Icons.Filled.GridOn,
                             iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
                             iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
-                            title = "Processing",
+                            title = stringResource(R.string.settings_item_title_processing),
                             subtitle = stringResource(
                                 R.string.chunk_size_px, chunkSize
                             ) + " • " + stringResource(R.string.overlap_size_px, overlapSize),
@@ -906,19 +879,23 @@ fun SettingsScreen(
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
+
+                val currentTheme = App.state.appTheme.value
+
+                var themeMenuExpanded by remember { mutableStateOf(false) }
+
                 PreferenceGroupCard {
                     PreferenceItem(
                         icon = Icons.Filled.Settings,
                         iconBackgroundColor = MaterialTheme.colorScheme.surfaceVariant,
                         iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        title = "Options",
-                        subtitle = "Other settings",
+                        title = stringResource(R.string.settings_item_title_options),
+                        subtitle = stringResource(R.string.settings_item_subtitle_options),
                         expanded = expandedSection == SettingsSection.Preferences,
                         expandedContent = {
                             Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
                                 LabeledSwitch(
                                     title = stringResource(R.string.vibration_on_touch),
-                                    desc = "",
                                     checked = hapticFeedbackEnabled,
                                     onCheckedChange = { new ->
                                         scope.launch {
@@ -929,7 +906,6 @@ fun SettingsScreen(
 
                                 LabeledSwitch(
                                     title = stringResource(R.string.show_save_dialog),
-                                    desc = "",
                                     checked = showSaveDialog,
                                     onCheckedChange = { new ->
                                         scope.launch {
@@ -940,7 +916,6 @@ fun SettingsScreen(
 
                                 LabeledSwitch(
                                     title = stringResource(R.string.swap_swipe_actions),
-                                    desc = "",
                                     checked = swapSwipeActions,
                                     onCheckedChange = { new ->
                                         scope.launch {
@@ -979,6 +954,43 @@ fun SettingsScreen(
                                         HapticFeedbacks.light()
                                     }) { Text(stringResource(R.string.clear_default_source)) }
                                 }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = stringResource(R.string.theme),
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                    Box {
+                                        TextButton(
+                                            onClick = { themeMenuExpanded = true }) {
+                                            Text(currentTheme.name)
+                                        }
+                                        DropdownMenu(
+                                            expanded = themeMenuExpanded,
+                                            onDismissRequest = { themeMenuExpanded = false }) {
+                                            AppTheme.entries.forEach { theme ->
+                                                val label = when (theme) {
+                                                    AppTheme.Dynamic -> stringResource(R.string.theme_dynamic)
+                                                    AppTheme.Light -> stringResource(R.string.theme_light)
+                                                    AppTheme.Dark -> stringResource(R.string.theme_dark)
+                                                    AppTheme.OLED -> stringResource(R.string.theme_oled)
+                                                }
+                                                DropdownMenuItem(text = { Text(label) }, onClick = {
+                                                    themeMenuExpanded = false
+                                                    scope.launch {
+                                                        appPreferences.setAppTheme(theme)
+                                                    }
+                                                    App.state.appTheme.value = theme
+                                                })
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         },
                         onClick = {
@@ -993,8 +1005,8 @@ fun SettingsScreen(
                                 icon = Icons.Filled.QuestionMark,
                                 iconBackgroundColor = MaterialTheme.colorScheme.primaryContainer,
                                 iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                title = "Help",
-                                subtitle = "Show FAQs",
+                                title = stringResource(R.string.settings_item_title_help),
+                                subtitle = stringResource(R.string.settings_item_subtitle_help_faq),
                                 expanded = expandedSection == SettingsSection.FAQ,
                                 expandedContent = {
                                     val faqSections = remember { loadFAQSections(context) }
@@ -1018,12 +1030,12 @@ fun SettingsScreen(
                         icon = Icons.Filled.Code,
                         iconBackgroundColor = MaterialTheme.colorScheme.primaryContainer,
                         iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        title = "Info",
-                        subtitle = "Source code",
+                        title = stringResource(R.string.settings_item_title_sourcecodelink),
+                        subtitle = stringResource(R.string.settings_item_subtitle_sourcecode),
                         trailing = {
                             Icon(
                                 Icons.AutoMirrored.Filled.OpenInNew,
-                                contentDescription = "Open source code in browser",
+                                contentDescription = stringResource(R.string.settings_item_sourcecode_description),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                                 modifier = Modifier.size(20.dp)
                             )
@@ -1039,9 +1051,9 @@ fun SettingsScreen(
         }
     }
 
-    if (showImportProgress) {
+    if (showImportProgress.value) {
         ModalBottomSheet(onDismissRequest = {
-            showImportProgress = false; pendingImportUri = null
+            showImportProgress.value = false
         }) {
             Column(Modifier.padding(16.dp)) {
                 Text(
@@ -1069,15 +1081,17 @@ fun SettingsScreen(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = { showImportProgress = false; pendingImportUri = null }) {
+                    TextButton(onClick = {
+                        showImportProgress.value = false
+                    }) {
                         Text(stringResource(R.string.cancel))
                     }
                 }
             }
         }
     }
-    modelInfoDialog?.let { (modelName, infoText) ->
-        ModalBottomSheet(onDismissRequest = { modelInfoDialog = null }) {
+    modelInfoDialog.value?.let { (modelName, infoText) ->
+        ModalBottomSheet(onDismissRequest = { modelInfoDialog.value = null }) {
             Column(Modifier.padding(16.dp)) {
                 Text(
                     modelName,
@@ -1094,99 +1108,10 @@ fun SettingsScreen(
             }
         }
     }
-
-    warningState?.let { state ->
-        when (state) {
-            is ModelWarningState.ModelWarning -> {
-
-                ModalBottomSheet(onDismissRequest = { warningState = null }) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text(
-                            stringResource(state.warning.titleResId),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            "Model: ${state.modelName}",
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 2,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(stringResource(state.warning.messageResId))
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                            TextButton(onClick = {
-                                HapticFeedbacks.medium()
-                                if (state.isImport) {
-                                    pendingImportUri?.let { uri ->
-                                        showImportProgress = true
-                                        viewModel.importModel(
-                                            uri,
-                                            force = true,
-                                            onProgress = { },
-                                            onSuccess = { name ->
-                                                showImportProgress = false
-                                                warningState = null
-                                                scope.launch {
-                                                    SnackySnackbarController.pushEvent(
-                                                        SnackySnackbarEvents.MessageEvent(
-                                                            message = importedModelMessage.format(
-                                                                name
-                                                            ), duration = SnackbarDuration.Short
-                                                        )
-                                                    )
-                                                }
-                                            },
-                                            onError = { err ->
-                                                showImportProgress = false
-                                                warningState = ModelWarningState.Error(err)
-                                            })
-                                    }
-                                } else {
-                                    pendingModelSelection?.let {
-                                        viewModel.setActiveModelByName(it)
-                                        activeModelName = it
-                                    }
-                                }
-                            }) {
-                                Text(stringResource(state.warning.positiveButtonTextResId))
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            TextButton(onClick = {
-                                HapticFeedbacks.light()
-                                warningState = null
-                            }) {
-                                Text(stringResource(state.warning.negativeButtonTextResId))
-                            }
-                        }
-                    }
-                }
-            }
-
-            is ModelWarningState.Error -> {
-                ErrorAlertDialog(
-                    title = stringResource(R.string.import_error),
-                    errorMessage = state.message,
-                    onDismiss = { warningState = null },
-                    context = context
-                )
-            }
-        }
-    }
 }
 
 private enum class SettingsSection {
     Chunk, Preferences, OidnSettings, ModelManagement, OidnModelManagement, FAQ
-}
-
-sealed class ModelWarningState {
-    data class ModelWarning(
-        val modelName: String, val warning: ModelManager.ModelWarning, val isImport: Boolean
-    ) : ModelWarningState()
-
-    data class Error(val message: String) : ModelWarningState()
 }
 
 @Composable
@@ -1227,7 +1152,7 @@ fun PowerSlider(
     maxAllowed: Int = Int.MAX_VALUE,
     onChange: (Int) -> Unit,
     hapticAction: () -> Unit,
-    hideValue: Boolean = true,
+    hideValue: Boolean = false,
 ) {
     val effectivePowers = remember(powers, maxAllowed) {
         powers.filter { it <= maxAllowed }.ifEmpty { listOf(powers.first()) }
@@ -1244,12 +1169,15 @@ fun PowerSlider(
     Column {
         Row {
             Text(
-                label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium
+                label,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.primary
             )
             if (!hideValue) Text(
                 " • ${effectivePowers[index]}",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.primary
             )
         }
@@ -1273,7 +1201,7 @@ fun PowerSlider(
 
 @Composable
 fun LabeledSwitch(
-    title: String, desc: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit
+    title: String, desc: String = "", checked: Boolean, onCheckedChange: (Boolean) -> Unit
 ) {
     Row(
         modifier = Modifier

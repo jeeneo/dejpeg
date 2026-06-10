@@ -145,7 +145,7 @@ fun HomeWrapperScreen(
     sharedUris: List<Uri>
 ) {
     val context = LocalContext.current
-    var currentTab by rememberSaveable { mutableStateOf("processing") }
+    val currentTab = rememberSaveable { mutableStateOf("processing") }
     val lazyListState = androidx.compose.foundation.lazy.rememberLazyListState()
     val isScrollingUp = remember {
         derivedStateOf {
@@ -200,7 +200,7 @@ fun HomeWrapperScreen(
                                 else -> 0f
                             }
                             pageOffset.animateTo(target, settleSpec)
-                            currentTab = if (target == 0f) "processing" else "settings"
+                            currentTab.value = if (target == 0f) "processing" else "settings"
                         }
                     }
                 }) {
@@ -240,7 +240,7 @@ fun HomeWrapperScreen(
                     settingsViewModel, viewModel, onBack = {
                         scope.launch {
                             pageOffset.animateTo(0f, settleSpec)
-                            currentTab = "processing"
+                            currentTab.value = "processing"
                         }
                     })
             }
@@ -292,7 +292,7 @@ fun HomeWrapperScreen(
                                     HapticFeedbacks.light()
                                     scope.launch {
                                         pageOffset.animateTo(0f, settleSpec)
-                                        currentTab = "processing"
+                                        currentTab.value = "processing"
                                     }
                                 },
                                 shapes = ButtonDefaults.shapes(
@@ -354,7 +354,7 @@ fun HomeWrapperScreen(
                                     HapticFeedbacks.light()
                                     scope.launch {
                                         pageOffset.animateTo(1f, settleSpec)
-                                        currentTab = "settings"
+                                        currentTab.value = "settings"
                                     }
                                 },
                                 shapes = ButtonDefaults.shapes(

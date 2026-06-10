@@ -10,6 +10,7 @@ package com.je.dejpeg.utils
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtException
 import ai.onnxruntime.OrtSession
+import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -53,26 +54,8 @@ class ModelManager(
 
     companion object {
         private const val STARTER_MODELS_ASSET_DIR = "embedonnx"
-        private val MODEL_HASHES = mapOf(
-            // should show dialog/warning if mismatch again? probably
-            "fbcnn_color_fp16.onnx" to "1a678ff4f721b557fd8a7e560b99cb94ba92f201545c7181c703e7808b93e922",
-            "fbcnn_gray_fp16.onnx" to "e220b9637a9f2c34a36c98b275b2c9d2b9c2c029e365be82111072376afbec54",
-            "fbcnn_gray_double_fp16.onnx" to "17feadd8970772f5ff85596cb9fb152ae3c2b82bca4deb52a7c8b3ecb2f7ac14",
-            "scunet_color_real_gan_fp16.onnx" to "50411164ee869605161be9cafd674c241cf0c104f5ee6b73e7c3ea69d69f94bd",
-            "scunet_color_real_psnr_fp16.onnx" to "8923b09e240e0078b3247964e9b105cbfbb4da01e260b29a961d038f8fa7791a",
-            "scunet_color_15_fp16.onnx" to "25a3a07de278867df9d29e9d08fe555523bb0f9f78f8956c4af943a4eeb8c934",
-            "scunet_color_25_fp16.onnx" to "34d25ec2187d24f9f25b9dc9d918e94e87217c129471adda8c9fdf2e5a1cb62a",
-            "scunet_color_50_fp16.onnx" to "1c6bdc6d9e0c1dea314cf22d41c261d4c744bf0ae1ae6c59b9505c4b4d50febb",
-            "scunet_gray_15_fp16.onnx" to "8e8740cea4306c9a61215194f315e5c0dc9e06c726a9ddea77d978d804da7663",
-            "scunet_gray_25_fp16.onnx" to "dec631fbdca7705bbff1fc779cf85a657dcb67f55359c368464dd6e734e1f2b7",
-            "scunet_gray_50_fp16.onnx" to "48b7d07229a03d98b892d2b33aa4c572ea955301772e7fcb5fd10723552a1874",
-        )
 
         private val MODEL_INFO_RES_IDS = mapOf(
-            // starter models
-            "1x-RGB-max-Denoise-fp16.onnx" to R.string.model_info_1x_rgb_max_denoise_fp16,
-            "1x-span-anime-pretrain-fp16.onnx" to R.string.model_info_1x_span_anime_pretrain_fp16,
-
             // fbcnn (jpeg model)
             "fbcnn_color_fp16.onnx" to R.string.model_info_fbcnn_color_fp16,
             "fbcnn_gray_fp16.onnx" to R.string.model_info_fbcnn_gray_fp16,
@@ -96,6 +79,8 @@ class ModelManager(
             "1x-WB-Denoise-fp16.onnx" to R.string.model_info_1x_wb_denoise_fp16,
             "1xBook-Compact-fp16.onnx" to R.string.model_info_1x_book_compact_fp16,
             "1xOverExposureCorrection_compact-fp16.onnx" to R.string.model_info_1x_over_exposure_correction_compact_fp16,
+            "1x-RGB-max-Denoise-fp16.onnx" to R.string.model_info_1x_rgb_max_denoise_fp16,
+            "1x-span-anime-pretrain-fp16.onnx" to R.string.model_info_1x_span_anime_pretrain_fp16,
 
             // other compression
             "1x_JPEGDestroyerV2_96000G-fp16.onnx" to R.string.model_info_1x_jpeg_destroyer_v2_96000g_fp16,
@@ -334,9 +319,7 @@ class ModelManager(
         type: ModelType = ModelType.ONNX,
         onProgress: (Int) -> Unit = {},
         onSuccess: (String) -> Unit = {},
-        onError: (String) -> Unit = {},
-        onWarning: ((String, ModelWarning) -> Unit)? = null,
-        force: Boolean = false
+        onError: (String) -> Unit = {}
     ) {
         try {
             val filename = resolveFilename(modelUri)
@@ -350,6 +333,7 @@ class ModelManager(
         }
     }
 
+    @SuppressLint("Recycle")
     private fun resolveFilename(uri: Uri): String {
         context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
             if (cursor.moveToFirst()) {
@@ -366,6 +350,7 @@ class ModelManager(
         return uri.lastPathSegment?.trim() ?: "model.onnx"
     }
 
+    @SuppressLint("Recycle")
     private fun importModelInternal(
         uri: Uri,
         filename: String,

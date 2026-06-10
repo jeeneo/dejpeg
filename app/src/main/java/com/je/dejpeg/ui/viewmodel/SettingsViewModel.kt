@@ -150,17 +150,7 @@ class SettingsViewModel : ViewModel() {
                         refreshInstalledModels(type)
                         launch(Dispatchers.Main) { onSuccess(modelName) }
                     },
-                    onError = { launch(Dispatchers.Main) { onError(it) } },
-                    onWarning = onWarning?.let { cb ->
-                        { n, w ->
-                            launch(Dispatchers.Main) {
-                                cb(
-                                    n, w
-                                )
-                            }
-                        }
-                    },
-                    force = force
+                    onError = { launch(Dispatchers.Main) { onError(it) } }
                 )
             } catch (e: Exception) {
                 launch(Dispatchers.Main) { onError(e.message ?: "Unknown error") }

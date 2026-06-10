@@ -36,14 +36,6 @@ class BeforeAfterActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val imageId = intent.getStringExtra("imageId") ?: return finish()
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            overrideActivityTransition(
-                OVERRIDE_TRANSITION_OPEN, R.anim.activity_open_enter, R.anim.activity_open_exit
-            )
-            overrideActivityTransition(OVERRIDE_TRANSITION_CLOSE, 0, 0)
-        }
-
         setContent {
             val isDarkTheme = isSystemInDarkTheme()
             SideEffect {

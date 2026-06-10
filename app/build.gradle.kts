@@ -30,6 +30,7 @@ android {
     defaultConfig {
         applicationId = "com.je.dejpeg"
         minSdk = 26
+        //noinspection OldTargetApi
         targetSdk = 36
         versionCode = 401
         versionName = "4.0.1"
@@ -94,6 +95,9 @@ android {
         resources.excludes += listOf(
             "DebugProbesKt.bin", "kotlin-tooling-metadata.json"
         )
+    }
+    lint {
+        disable += "IconXmlAndPng"
     }
 }
 

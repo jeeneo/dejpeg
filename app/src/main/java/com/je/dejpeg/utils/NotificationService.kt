@@ -6,7 +6,6 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.je.dejpeg.MainActivity
 import com.je.dejpeg.R
@@ -17,20 +16,18 @@ object NotificationService {
     const val NOTIFICATION_ID = 1001
 
     fun checkChannel(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val mgr = context.getSystemService(NotificationManager::class.java)
-            val existing = mgr?.getNotificationChannel(CHANNEL_ID)
-            if (existing == null) {
-                val channel = NotificationChannel(
-                    CHANNEL_ID,
-                    context.getString(R.string.notification_channel_name),
-                    NotificationManager.IMPORTANCE_LOW
-                ).apply {
-                    description = context.getString(R.string.notification_channel_description)
-                    setShowBadge(false)
-                }
-                mgr?.createNotificationChannel(channel)
+        val mgr = context.getSystemService(NotificationManager::class.java)
+        val existing = mgr?.getNotificationChannel(CHANNEL_ID)
+        if (existing == null) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                context.getString(R.string.notification_channel_name),
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = context.getString(R.string.notification_channel_description)
+                setShowBadge(false)
             }
+            mgr?.createNotificationChannel(channel)
         }
     }
 

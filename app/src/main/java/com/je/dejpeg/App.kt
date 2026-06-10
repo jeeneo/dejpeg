@@ -9,6 +9,14 @@ class App : Application() {
         @SuppressLint("StaticFieldLeak") // application context
         lateinit var ctx: Context
             private set
+        
+        val prefs: AppPreferences by lazy {
+            AppPreferences()
+        }
+
+        val state: AppState by lazy {
+            AppState(prefs)
+        }
     }
 
     override fun onCreate() {

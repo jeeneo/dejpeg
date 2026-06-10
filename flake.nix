@@ -42,6 +42,18 @@
             ANDROID_SDK_ROOT = "${androidSdk}/libexec/android-sdk";
             ANDROID_NDK_ROOT = "${ANDROID_HOME}/ndk-bundle";
             GRADLE_OPTS = "-Dorg.gradle.project.android.aapt2FromMavenOverride=${ANDROID_HOME}/build-tools/${buildToolsVersion}/aapt2";
+
+            # shellHook = ''
+            #   PROPS_FILE="$(git rev-parse --show-toplevel 2>/dev/null || pwd)/gradle.properties"
+            #   AAPT2_LINE="android.aapt2FromMavenOverride=${ANDROID_HOME}/build-tools/${buildToolsVersion}/aapt2"
+            #   if ! grep -qF "android.aapt2FromMavenOverride" "$PROPS_FILE" 2>/dev/null; then
+            #     echo "$AAPT2_LINE" >> "$PROPS_FILE"
+            #     echo "Added aapt2 override to $PROPS_FILE"
+            #   else
+            #     sed -i "s|android.aapt2FromMavenOverride=.*|$AAPT2_LINE|" "$PROPS_FILE"
+            #   fi
+            # '';
+
             buildInputs = [
               (android-studio.withSdk androidSdk)
               androidSdk
