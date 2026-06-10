@@ -164,7 +164,7 @@
     <string name="model_info_1x_gainres_v4_fp16">Kenar yumuşatma, genel artefaktlar, CGI</string>
     <string name="model_info_1x_debandurh_fs_ultra_lite_fp16">Bantlanma giderme</string>
     <string name="model_info_1x_nmkd_brighten_redux_200k_fp16">Parlaklık azaltma</string>
-    <string name="model_info_1x_nmkd_detoon_97500_g_fp16">Ton giderme</string>
+    <string name="model_info_1x_nmkd_detoon_97500_g_fp16">çizgi film efekti kaldırma</string>
     <string name="model_info_1x_noise_toner_poisson_detailed_108000_g_fp16">Poisson gürültü tonlama (detaylı)</string>
     <string name="model_info_1x_noise_toner_poisson_soft_101000_g_fp16">Poisson gürültü tonlama (yumuşak)</string>
     <string name="model_info_1x_noise_toner_uniform_detailed_100000_g_fp16">Düzgün gürültü tonlama (detaylı)</string>
