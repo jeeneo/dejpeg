@@ -47,7 +47,8 @@
     <string name="set_as_default">تعيين كافتراضي</string>
     <string name="info">معلومات</string>
     <string name="faq_what_is_this_title">ما هو الغرض من هذا التطبيق؟</string>
-    <string name="faq_what_is_this_content">تم تصميم هذا التطبيق لإزالة ضغط الصور أو الضوضاء أو أي عيوب غير مرغوب فيها\n\nملاحظة: هذا ليس \"ذكاءً اصطناعيًا\" أو تكبيرًا للصورة، صورك تبقى بنفس الدقة.\nالهدف هو توفير صورة أنظف، وقد يساعد ذلك في تحسين نتائج \"محسنات الذكاء الاصطناعي\".</string>    <string name="faq_which_models_title">أي النماذج يجب استخدامها؟</string>
+    <string name="faq_what_is_this_content">تم تصميم هذا التطبيق لإزالة ضغط الصور أو الضوضاء أو أي عيوب غير مرغوب فيها\n\nملاحظة: هذا ليس \"ذكاءً اصطناعيًا\" أو تكبيرًا للصورة، صورك تبقى بنفس الدقة.\nالهدف هو توفير صورة أنظف، وقد يساعد ذلك في تحسين نتائج \"محسنات الذكاء الاصطناعي\".</string>
+    <string name="faq_which_models_title">أي النماذج يجب استخدامها؟</string>
     <string name="faq_fbcnn_title">FBCNN</string>
     <string name="faq_fbcnn_content">يُستخدم للصور التي بها ضغط JPEG (مثل الصور منخفضة الدقة من جوجل، بنترست، إنستغرام، المنتديات العشوائية، إلخ).\n\nشريط التمرير متاح لنماذج FBCNN فقط، ويؤثر على قوة إزالة الضغط، القيم حوالي 30/50 للضغط الطفيف، و 70+ للإزالة الشديدة، وبعد ذلك تبدأ الصورة بالتنعيم بشكل ملحوظ.\n\nالنموذج الأساسي ملون، نماذج FBCNN الرمادية مخصصة للصور بالأبيض والأسود، الرمادي المزدوج مخصص للصور التي تم حفظها وإعادة حفظها كـ JPEG. (تم تحريرها/تغيير حجمها مرتين مع الحفظ كـ JPEG في كل مرة).</string>
     <string name="faq_scunet_title">SCUNet</string>
@@ -179,7 +180,7 @@
     <string name="model_info_1x_gainres_v4_fp16">تنعيم الحواف، تشوهات عامة، CGI</string>
     <string name="model_info_1x_debandurh_fs_ultra_lite_fp16">إزالة التدرج</string>
     <string name="model_info_1x_nmkd_brighten_redux_200k_fp16">تقليل السطوع</string>
-    <string name="model_info_1x_nmkd_detoon_97500_g_fp16">إزالة النغمات</string>
+    <string name="model_info_1x_nmkd_detoon_97500_g_fp16">إلغاء التأثير الكرتوني</string>
     <string name="model_info_1x_noise_toner_poisson_detailed_108000_g_fp16">تنغيم ضوضاء بواسون (مفصل)</string>
     <string name="model_info_1x_noise_toner_poisson_soft_101000_g_fp16">تنغيم ضوضاء بواسون (ناعم)</string>
     <string name="model_info_1x_noise_toner_uniform_detailed_100000_g_fp16">تنغيم ضوضاء موحدة (مفصل)</string>
