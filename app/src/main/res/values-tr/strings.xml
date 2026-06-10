@@ -33,7 +33,7 @@
     <string name="gallery_picker_desc">Görselleri seçmek için cihazınızın veya 3. taraf galeri uygulamasını kullanır. Bu yöntem önerilir, çoğu cihazda çalışır ve dosya adlarını destekler.</string>
     <string name="internal_picker">Fotoğraf seçici</string>
     <string name="internal_picker_title">Dahili fotoğraf seçici</string>
-    <string name="internal_picker_desc">Android'in yerleşik fotoğraf seçicisini kullanır, gizliliğe daha duyarlıdır ancak dosya adlarını kısıtlar.</string>
+    <string name="internal_picker_desc">Android\'in yerleşik fotoğraf seçicisini kullanır, gizliliğe daha duyarlıdır ancak dosya adlarını kısıtlar.</string>
     <string name="documents">Belgeler</string>
     <string name="documents_picker_title">Belge sağlayıcı</string>
     <string name="documents_picker_desc">Standart SAF seçicisini açar. Klasörlerdeki veya diğer konumlardaki/sağlayıcılardaki görsellere erişmek için kullanışlıdır.</string>
@@ -223,7 +223,7 @@
     <string name="sharpness_soft">yumuşak</string>
     <string name="sharpness_blurry">bulanık</string>
     <string name="brisque_about_title">BRISQUE hakkında</string>
-    <string name="brisque_about_message">BRISQUE (Kör/Referanssız Görüntü Uzamsal Kalite Değerlendiricisi), referanssız bir görüntü kalite puanıdır.\n\nAçık Türkçeyle, bir görseli alır ve 0 ile 100 arasında bir kalite değeri atar, düşük olan en iyi, yüksek olan en kötü olur.\n\nBunu bir keskinlik tahminiyle birlikte kullanmak, daha büyük bir boyuta ölçeklendirilmiş bir görseli orijinal çözünürlüğüne yakın bir şekilde geri küçültmek için yarı güvenilir bir yöntem sağlayabilir.\n\nBuna benzer görseller arasında ekran görüntüsünün ekran görüntüsü, aşırı büyütülmüş memler veya büyük DPI'larda taranmış eski fotoğraflar yer alır.\n\nBunu her görsele uygulamanıza gerek yoktur, yalnızca bulanık görünen veya görselin gerçek boyutuyla uyuşmayanlara uygulayın.</string>
+    <string name="brisque_about_message">BRISQUE (Kör/Referanssız Görüntü Uzamsal Kalite Değerlendiricisi), referanssız bir görüntü kalite puanıdır.\n\nAçık Türkçeyle, bir görseli alır ve 0 ile 100 arasında bir kalite değeri atar, düşük olan en iyi, yüksek olan en kötü olur.\n\nBunu bir keskinlik tahminiyle birlikte kullanmak, daha büyük bir boyuta ölçeklendirilmiş bir görseli orijinal çözünürlüğüne yakın bir şekilde geri küçültmek için yarı güvenilir bir yöntem sağlayabilir.\n\nBuna benzer görseller arasında ekran görüntüsünün ekran görüntüsü, aşırı büyütülmüş memler veya büyük DPI\'larda taranmış eski fotoğraflar yer alır.\n\nBunu her görsele uygulamanıza gerek yoktur, yalnızca bulanık görünen veya görselin gerçek boyutuyla uyuşmayanlara uygulayın.</string>
     <string name="brisque_descale_again_title">Tekrar küçültülsün mü?</string>
     <string name="brisque_descale_again_message">Bu, görseli tekrar küçültür ve bu da daha kötü sonuçlar üretebilir, devam edilsin mi?</string>
     <string name="brisque_descaling_image">Görsel küçültülüyor</string>
@@ -281,7 +281,7 @@
     <string name="settings_item_subtitle_options">Diğer ayarlar</string>
     <string name="settings_item_title_processing">İşleme</string>
     <string name="settings_item_title_help">Yardım</string>
-    <string name="settings_item_subtitle_help_faq">SSS'yi göster</string>
+    <string name="settings_item_subtitle_help_faq">SSS\'yi göster</string>
     <string name="settings_item_subtitle_sourcecode">Kaynak kodu</string>
     <string name="settings_item_sourcecode_description">Kaynak kodunu tarayıcıda aç</string>
     <string name="settings_item_title_sourcecodelink">Bilgi</string>

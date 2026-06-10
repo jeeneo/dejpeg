@@ -40,7 +40,7 @@
     <string name="documents_picker_desc">Opent de standaard SAF-kiezer. Handig voor toegang tot afbeeldingen in mappen of andere locaties/providers.</string>
     <string name="camera">Camera</string>
     <string name="camera_title">Camera</string>
-    <string name="camera_desc">Opent de camera van je apparaat, gemaakte foto's worden automatisch geïmporteerd.</string>
+    <string name="camera_desc">Opent de camera van je apparaat, gemaakte foto\'s worden automatisch geïmporteerd.</string>
     <string name="set_as_default">Als standaard instellen</string>
     <string name="info">Info</string>
     <string name="faq_what_is_this_title">Waarvoor is deze app?</string>
@@ -114,8 +114,8 @@
     <string name="recover">Herstellen</string>
     <string name="discard">Negeren</string>
     <string name="recovered_image_prefix">Hersteld</string>
-    <string name="model_info_1x_rgb_max_denoise_fp16">Snel, ruis en compressie, geweldig voor animatie. Verandert foto's ook in cartoons.</string>
-    <string name="model_info_1x_span_anime_pretrain_fp16">Snel, algemene compressie, algemene ruis. Goed voor animatie, strips, anime en sommige foto's.</string>
+    <string name="model_info_1x_rgb_max_denoise_fp16">Snel, ruis en compressie, geweldig voor animatie. Verandert foto\'s ook in cartoons.</string>
+    <string name="model_info_1x_span_anime_pretrain_fp16">Snel, algemene compressie, algemene ruis. Goed voor animatie, strips, anime en sommige foto\'s.</string>
     <string name="model_info_fbcnn_color_fp16">Best bij algemene JPEG-compressie, lichte ruis, elke kleurenafbeelding</string>
     <string name="model_info_fbcnn_gray_fp16">Algemene compressie en ruis, alleen grijswaardenafbeeldingen</string>
     <string name="model_info_fbcnn_gray_double_fp16">Sterkste bij algemene compressie en ruis, alleen grijswaardenafbeeldingen</string>
@@ -127,7 +127,7 @@
     <string name="model_info_scunet_gray_15_fp16">Algemene ruis, grijswaardenafbeeldingen</string>
     <string name="model_info_scunet_gray_25_fp16">Algemene ruis, grijswaardenafbeeldingen, sterker</string>
     <string name="model_info_scunet_gray_50_fp16">Zware algemene ruis, grijswaardenafbeeldingen, sterkst</string>
-    <string name="model_info_deblurring_nafnet_2025may">Ontwazening, restauratie, ruisverwijdering. Algemeen, maar het beste voor foto's</string>
+    <string name="model_info_deblurring_nafnet_2025may">Ontwazening, restauratie, ruisverwijdering. Algemeen, maar het beste voor foto\'s</string>
     <string name="model_info_1x_anime_undeint_compact_fp16">Compressie, kartelranden</string>
     <string name="model_info_1x_broadcast_to_studio_compact_fp16">Cartoons, uitzendcompressie</string>
     <string name="model_info_1x_wb_denoise_fp16">Kleurloze cartoonruis</string>
@@ -224,7 +224,7 @@
     <string name="sharpness_soft">zacht</string>
     <string name="sharpness_blurry">wazig</string>
     <string name="brisque_about_title">Over BRISQUE</string>
-    <string name="brisque_about_message">BRISQUE (Blind/Referenceless Image Spatial Quality Evaluator) is een referentieloze beeldkwaliteitsscore.\n\nIn gewone mensentaal: het neemt een afbeelding en wijst er een kwaliteitswaarde aan toe tussen 0 en 100, waarbij lager beter is en hoger slechter.\n\nDoor dit te combineren met een scherpteschatting kan het een semi-betrouwbare methode bieden om een afbeelding die is opgeschaald naar een groter formaat, terug te brengen naar ongeveer de oorspronkelijke resolutie.\n\nVoorbeelden van zulke afbeeldingen zijn screenshots van screenshots, over-opgeschaalde memes, of oude foto's die zijn gescand met een hoge DPI.\n\nJe hoeft dit niet op elke afbeelding toe te passen, alleen op degenen die wazig lijken of niet overeenkomen met de werkelijke grootte van de afbeelding.</string>
+    <string name="brisque_about_message">BRISQUE (Blind/Referenceless Image Spatial Quality Evaluator) is een referentieloze beeldkwaliteitsscore.\n\nIn gewone mensentaal: het neemt een afbeelding en wijst er een kwaliteitswaarde aan toe tussen 0 en 100, waarbij lager beter is en hoger slechter.\n\nDoor dit te combineren met een scherpteschatting kan het een semi-betrouwbare methode bieden om een afbeelding die is opgeschaald naar een groter formaat, terug te brengen naar ongeveer de oorspronkelijke resolutie.\n\nVoorbeelden van zulke afbeeldingen zijn screenshots van screenshots, over-opgeschaalde memes, of oude foto\'s die zijn gescand met een hoge DPI.\n\nJe hoeft dit niet op elke afbeelding toe te passen, alleen op degenen die wazig lijken of niet overeenkomen met de werkelijke grootte van de afbeelding.</string>
     <string name="brisque_descale_again_title">Opnieuw descalen?</string>
     <string name="brisque_descale_again_message">Dit zal de afbeelding opnieuw descalen, wat slechtere resultaten kan opleveren. Doorgaan?</string>
     <string name="brisque_descaling_image">Afbeelding descalen</string>

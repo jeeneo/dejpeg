@@ -115,7 +115,7 @@
     <string name="recover">Recupera</string>
     <string name="discard">Scarta</string>
     <string name="recovered_image_prefix">Recuperata</string>
-    <string name="model_info_1x_rgb_max_denoise_fp16">Veloce, rumore e compressione, ottimo per l'animazione. Trasforma anche le foto in cartoni.</string>
+    <string name="model_info_1x_rgb_max_denoise_fp16">Veloce, rumore e compressione, ottimo per l\'animazione. Trasforma anche le foto in cartoni.</string>
     <string name="model_info_1x_span_anime_pretrain_fp16">Veloce, compressione generale, rumore generale. Buono per animazione, fumetti, anime e alcune foto.</string>
     <string name="model_info_fbcnn_color_fp16">Migliore per compressione JPEG generale, rumore minore, qualsiasi tipo di immagini a colori</string>
     <string name="model_info_fbcnn_gray_fp16">Compressione e rumore generali, solo immagini in scala di grigi</string>
@@ -133,7 +133,7 @@
     <string name="model_info_1x_broadcast_to_studio_compact_fp16">Cartoni, compressione broadcast</string>
     <string name="model_info_1x_wb_denoise_fp16">Rumore cartoni senza colore</string>
     <string name="model_info_1x_book_compact_fp16">Scansione libri</string>
-    <string name="model_info_1x_over_exposure_correction_compact_fp16">Correzione dell'esposizione</string>
+    <string name="model_info_1x_over_exposure_correction_compact_fp16">Correzione dell\'esposizione</string>
     <string name="model_info_1x_jpeg_destroyer_v2_96000g_fp16">Compressione JPEG generale</string>
     <string name="model_info_1x_nmkd_jaywreck3_lite_fp16">Compressione generale</string>
     <string name="model_info_1x_nmkd_h264_texturize_fp16">Texturizzazione, compressione h264</string>
@@ -161,7 +161,7 @@
     <string name="model_info_1x_bendel_halftone_fp32">Rimozione mezzitoni</string>
     <string name="model_info_1x_colorizer_v2_22000g_fp16">Colorizzazione generale</string>
     <string name="model_info_1x_de_edge_fp16">Rimozione bordi</string>
-    <string name="model_info_1x_de_sharpen_fp16">Rimuove l'eccessiva nitidezza</string>
+    <string name="model_info_1x_de_sharpen_fp16">Rimuove l\'eccessiva nitidezza</string>
     <string name="model_info_1x_dither_deleter_v3_smooth_fp16">Rimozione dithering</string>
     <string name="model_info_1x_gainres_v4_fp16">Anti-aliasing, artefatti generali, CGI</string>
     <string name="model_info_1x_debandurh_fs_ultra_lite_fp16">Debanding</string>
@@ -191,7 +191,7 @@
     <string name="failed_to_extract_starter_models">Impossibile estrarre i modelli piccoli</string>
     <string name="processing_complete_notification">Elaborazione completata</string>
     <string name="notification_channel_name">Elaborazione immagini</string>
-    <string name="notification_channel_description">Mostra l'avanzamento dell'elaborazione delle immagini</string>
+    <string name="notification_channel_description">Mostra l\'avanzamento dell\'elaborazione delle immagini</string>
     <string name="notification_title_processing">Elaborazione</string>
     <string name="notification_chunk_progress">Blocco %1$d / %2$d</string>
     <plurals name="notification_chunk_progress_range_threads">
