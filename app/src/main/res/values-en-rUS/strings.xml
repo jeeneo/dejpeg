@@ -150,7 +150,7 @@
     <string name="model_info_1x_artifacts_jpg_00_20_alsa_fp16">JPEG artifacts (quality 0–20)</string>
     <string name="model_info_1x_artifacts_jpg_20_40_alsa_fp16">JPEG artifacts (quality 20–40)</string>
     <string name="model_info_1x_artifacts_jpg_40_60_alsa_fp16">JPEG artifacts (quality 40–60)</string>
-    <string name="model_info_1x_artifacts_jpg_60_800_alsa_fp16">JPEG artifacts (quality 60–80)</string>
+    <string name="model_info_1x_artifacts_jpg_60_80_alsa_fp16">JPEG artifacts (quality 60–80)</string>
     <string name="model_info_1x_artifacts_jpg_80_100_alsa_fp16">JPEG artifacts (quality 80–100)</string>
     <string name="model_info_1x_anti_aliasing_fp16">Anti-aliasing</string>
     <string name="model_info_1x_kdm003_scans_fp16">Scanned art, drawings, moire removal</string>

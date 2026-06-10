@@ -153,7 +153,7 @@
     <string name="model_info_1x_artifacts_jpg_00_20_alsa_fp16">JPEG 伪影（质量 0–20）</string>
     <string name="model_info_1x_artifacts_jpg_20_40_alsa_fp16">JPEG 伪影（质量 20–40）</string>
     <string name="model_info_1x_artifacts_jpg_40_60_alsa_fp16">JPEG 伪影（质量 40–60）</string>
-    <string name="model_info_1x_artifacts_jpg_60_800_alsa_fp16">JPEG 伪影（质量 60–80）</string>
+    <string name="model_info_1x_artifacts_jpg_60_80_alsa_fp16">JPEG 伪影（质量 60–80）</string>
     <string name="model_info_1x_artifacts_jpg_80_100_alsa_fp16">JPEG 伪影（质量 80–100）</string>
     <string name="model_info_1x_anti_aliasing_fp16">抗锯齿</string>
     <string name="model_info_1x_kdm003_scans_fp16">扫描艺术品、绘画，消除摩尔纹</string>

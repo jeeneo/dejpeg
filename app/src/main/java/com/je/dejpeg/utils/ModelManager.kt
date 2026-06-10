@@ -103,7 +103,7 @@ class ModelManager(
             "1x_artifacts_jpg_00_20_alsa-fp16.onnx" to R.string.model_info_1x_artifacts_jpg_00_20_alsa_fp16,
             "1x_artifacts_jpg_20_40_alsa-fp16.onnx" to R.string.model_info_1x_artifacts_jpg_20_40_alsa_fp16,
             "1x_artifacts_jpg_40_60_alsa-fp16.onnx" to R.string.model_info_1x_artifacts_jpg_40_60_alsa_fp16,
-            "1x_artifacts_jpg_60_800_alsa-fp16.onnx" to R.string.model_info_1x_artifacts_jpg_60_800_alsa_fp16,
+            "1x_artifacts_jpg_60_80_alsa-fp16.onnx" to R.string.model_info_1x_artifacts_jpg_60_80_alsa_fp16,
             "1x_artifacts_jpg_80_100_alsa-fp16.onnx" to R.string.model_info_1x_artifacts_jpg_80_100_alsa_fp16,
 
             // miscellaneous models
