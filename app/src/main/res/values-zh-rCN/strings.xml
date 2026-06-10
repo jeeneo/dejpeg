@@ -287,4 +287,19 @@
     <string name="extracted_starter_models">入门模型已提取</string>
     <string name="model_switch_blocked_processing">处理中无法切换模型</string>
     <string name="cleared_default_source">默认来源已清除</string>
+    <string name="header_settings">设置</string>
+    <string name="settings_title_models">模型</string>
+    <string name="settings_item_title_options">选项</string>
+    <string name="settings_item_subtitle_options">其他设置</string>
+    <string name="settings_item_title_processing">处理</string>
+    <string name="settings_item_title_help">帮助</string>
+    <string name="settings_item_subtitle_help_faq">显示常见问题</string>
+    <string name="settings_item_subtitle_sourcecode">源代码</string>
+    <string name="settings_item_sourcecode_description">在浏览器中打开源代码</string>
+    <string name="settings_item_title_sourcecodelink">信息</string>
+    <string name="theme">应用主题</string>
+    <string name="theme_dynamic">动态</string>
+    <string name="theme_light">浅色</string>
+    <string name="theme_dark">深色</string>
+    <string name="theme_oled">OLED</string>
 </resources>
