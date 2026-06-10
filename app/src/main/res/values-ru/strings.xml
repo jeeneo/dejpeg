@@ -22,7 +22,7 @@
     <string name="error_saving_image_title">Ошибка сохранения изображения</string>
     <string name="error_saving_image">Ошибка сохранения изображения: %1$s</string>
     <plurals name="image_saved_to_gallery">
-        <item quantity="one">Изображение сохранено</item>
+        <item quantity="one">%1$d Изображение сохранено</item>
         <item quantity="few">Сохранено %1$d изображения</item>
         <item quantity="many">Сохранено %1$d изображений</item>
         <item quantity="other">Сохранено %1$d изображений</item>
@@ -293,4 +293,11 @@
     <string name="theme_light">Светлая</string>
     <string name="theme_dark">Тёмная</string>
     <string name="theme_oled">OLED</string>
+    <string name="model_info_1x_nmkd_brighten_10000_g_fp16">Осветление</string>
+    <string name="brisque_phase_initialization">Инициализация</string>
+    <string name="brisque_phase_coarse_scan">Грубое сканирование</string>
+    <string name="brisque_phase_coarse_complete">Грубое сканирование завершено</string>
+    <string name="brisque_phase_fine_scan">Точное сканирование</string>
+    <string name="brisque_phase_fine_done">Точное сканирование выполнено</string>
+    <string name="brisque_phase_finalizing">Завершение</string>
 </resources>
