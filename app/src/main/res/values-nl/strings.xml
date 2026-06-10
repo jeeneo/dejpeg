@@ -171,7 +171,7 @@
     <string name="model_info_1x_noise_toner_uniform_detailed_100000_g_fp16">Uniforme ruistonering (gedetailleerd)</string>
     <string name="model_info_1x_noise_toner_uniform_soft_100000_g_fp16">Uniforme ruistonering (zacht)</string>
     <string name="model_info_1x_re_detail_v2_126000_g_fp16">Detail-"verbetering"</string>
-    <string name="model_info_1x_repainter_20000_g_fp16">Overchilderen(?)</string>
+    <string name="model_info_1x_repainter_20000_g_fp16">Herbeschilderen</string>
     <string name="model_info_1x_artifacts_dithering_alsa_fp16">Dithering-artefacten</string>
     <string name="model_info_1x_nmkd_brighten_10000_g_fp16">Verheldering</string>
     <string name="copy">Kopiëren</string>

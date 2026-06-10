@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="image">画像</string>
     <string name="save">保存</string>
@@ -276,4 +277,12 @@
     <string name="theme_light">ライト</string>
     <string name="theme_dark">ダーク</string>
     <string name="theme_oled">OLED</string>
+    <string name="model_info_1x_nmkd_detoon_97500_g_fp16">去网点</string>
+    <string name="model_info_1x_noise_toner_poisson_detailed_108000_g_fp16">泊松噪声网点化（细节增强）</string>
+    <string name="model_info_1x_noise_toner_poisson_soft_101000_g_fp16">泊松噪声网点化（柔和）</string>
+    <string name="model_info_1x_noise_toner_uniform_detailed_100000_g_fp16">均匀噪声网点化（细节增强）</string>
+    <string name="model_info_1x_noise_toner_uniform_soft_100000_g_fp16">均匀噪声网点化（柔和）</string>
+    <string name="model_info_1x_re_detail_v2_126000_g_fp16">细节“增强”</string>
+    <string name="model_info_1x_repainter_20000_g_fp16">重绘（？）</string>
+    <string name="model_info_1x_artifacts_dithering_alsa_fp16">抖动伪影</string>
 </resources>
