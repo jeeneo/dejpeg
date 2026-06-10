@@ -277,7 +277,7 @@
     <string name="theme_light">ライト</string>
     <string name="theme_dark">ダーク</string>
     <string name="theme_oled">OLED</string>
-    <string name="model_info_1x_nmkd_detoon_97500_g_fp16">去网点</string>
+    <string name="model_info_1x_nmkd_detoon_97500_g_fp16">カートゥーン効果の除去</string>
     <string name="model_info_1x_noise_toner_poisson_detailed_108000_g_fp16">泊松噪声网点化（细节增强）</string>
     <string name="model_info_1x_noise_toner_poisson_soft_101000_g_fp16">泊松噪声网点化（柔和）</string>
     <string name="model_info_1x_noise_toner_uniform_detailed_100000_g_fp16">均匀噪声网点化（细节增强）</string>
