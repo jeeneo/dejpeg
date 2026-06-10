@@ -104,10 +104,12 @@
     <string name="error_copied">Copiato negli appunti</string>
     <plurals name="recover_images_title">
         <item quantity="one">Recupera %1$d immagine</item>
+        <item quantity="many">Recupera %1$d immagini</item>
         <item quantity="other">Recupera %1$d immagini</item>
     </plurals>
     <plurals name="recover_images_message">
         <item quantity="one">Trovata %1$d immagine elaborata che non è stata salvata prima della chiusura. Vuoi recuperarla?</item>
+        <item quantity="many">Trovate %1$d immagini elaborate che non sono state salvate prima della chiusura. Vuoi recuperarle?</item>
         <item quantity="other">Trovate %1$d immagini elaborate che non sono state salvate prima della chiusura. Vuoi recuperarle?</item>
     </plurals>
     <string name="recover">Recupera</string>
