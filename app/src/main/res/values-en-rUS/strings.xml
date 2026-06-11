@@ -164,7 +164,7 @@
     <string name="model_info_1x_gainres_v4_fp16">Anti-aliasing, general artifacts, CGI</string>
     <string name="model_info_1x_debandurh_fs_ultra_lite_fp16">Debanding</string>
     <string name="model_info_1x_nmkd_brighten_redux_200k_fp16">Brightness reduction</string>
-    <string name="model_info_1x_nmkd_detoon_97500_g_fp16">detooning</string>
+    <string name="model_info_1x_nmkd_detoon_97500_g_fp16">Detooning</string>
     <string name="model_info_1x_noise_toner_poisson_detailed_108000_g_fp16">Poisson noise toning (detailed)</string>
     <string name="model_info_1x_noise_toner_poisson_soft_101000_g_fp16">Poisson noise toning (soft)</string>
     <string name="model_info_1x_noise_toner_uniform_detailed_100000_g_fp16">Uniform noise toning (detailed)</string>

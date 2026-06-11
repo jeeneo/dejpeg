@@ -165,7 +165,7 @@
     <string name="model_info_1x_gainres_v4_fp16">Anti-aliasing, algemene artefacten, CGI</string>
     <string name="model_info_1x_debandurh_fs_ultra_lite_fp16">Debanding</string>
     <string name="model_info_1x_nmkd_brighten_redux_200k_fp16">Helderheidsreductie</string>
-    <string name="model_info_1x_nmkd_detoon_97500_g_fp16">detooning</string>
+    <string name="model_info_1x_nmkd_detoon_97500_g_fp16">Detooning</string>
     <string name="model_info_1x_noise_toner_poisson_detailed_108000_g_fp16">Poisson-ruistonering (gedetailleerd)</string>
     <string name="model_info_1x_noise_toner_poisson_soft_101000_g_fp16">Poisson-ruistonering (zacht)</string>
     <string name="model_info_1x_noise_toner_uniform_detailed_100000_g_fp16">Uniforme ruistonering (gedetailleerd)</string>
