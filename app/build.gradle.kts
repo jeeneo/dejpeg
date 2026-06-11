@@ -99,6 +99,9 @@ android {
     lint {
         disable += "IconXmlAndPng"
     }
+    androidResources {
+        generateLocaleConfig = true
+    }
 }
 
 dependencies {
