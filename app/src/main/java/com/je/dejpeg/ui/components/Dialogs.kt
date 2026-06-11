@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
@@ -38,16 +39,12 @@ import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -80,7 +77,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.FileProvider
 import com.je.dejpeg.AppPreferences
@@ -188,59 +184,6 @@ fun SimpleAlertDialog(
 }
 
 @Composable
-fun LoadingDialog(
-    title: String, message: String? = null, progress: Float? = null, progressText: String? = null
-) {
-    Dialog(
-        onDismissRequest = { },
-        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
-    ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Text(
-                    title,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold
-                )
-                message?.let {
-                    Text(
-                        it,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                if (progress != null) {
-                    LinearProgressIndicator(
-                        progress = { progress }, modifier = Modifier.fillMaxWidth()
-                    )
-                } else {
-                    CircularProgressIndicator(modifier = Modifier.size(48.dp))
-                }
-                progressText?.let {
-                    Text(
-                        it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
 fun SaveImageDialog(
     defaultFilename: String,
     showSaveAllOption: Boolean = false,
@@ -309,7 +252,8 @@ fun SaveImageDialog(
             }
         }
     }, dismissButton = {
-        DialogTextButton(stringResource(R.string.cancel), onDismissRequest, { HapticFeedbacks.light() })
+        DialogTextButton(
+            stringResource(R.string.cancel), onDismissRequest, { HapticFeedbacks.light() })
     }, confirmButton = {
         DialogPrimaryButton(stringResource(R.string.save), {
             onSave(sanitizeFilename(textState), saveAll, skipNext)
@@ -320,43 +264,66 @@ fun SaveImageDialog(
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun PreparingShareDialog() {
+fun PreparingShareDialog(
+    progressText: String? = null,
+    progress: Float? = null,
+    title: String? = "",
+) {
     val thickStrokeWidth = with(LocalDensity.current) { 8.dp.toPx() }
     val thickStroke = remember(thickStrokeWidth) {
         Stroke(width = thickStrokeWidth, cap = StrokeCap.Round)
     }
-
     BasicAlertDialog(
-        onDismissRequest = {},
-        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
-        content = {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable(enabled = false) {},
-                contentAlignment = Alignment.Center
+        onDismissRequest = {}, properties = DialogProperties(
+            dismissOnBackPress = false, dismissOnClickOutside = false
+        )
+    ) {
+        Surface(
+            shape = RoundedCornerShape(28.dp),
+            tonalElevation = 6.dp,
+            modifier = Modifier.wrapContentSize()
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Surface(
-                    shape = RoundedCornerShape(28.dp),
-                    tonalElevation = 6.dp,
-                    modifier = Modifier.size(160.dp),
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            ContainedLoadingIndicator(modifier = Modifier.size(80.dp))
-                            CircularWavyProgressIndicator(
-                                modifier = Modifier.size(88.dp),
-                                stroke = thickStroke,
-                                trackStroke = thickStroke,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                        }
+                if (title != null) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                Box(contentAlignment = Alignment.Center) {
+                    ContainedLoadingIndicator(modifier = Modifier.size(80.dp))
+                    if (progress != null) {
+                        CircularWavyProgressIndicator(
+                            progress = { progress.coerceIn(0f, 1f) },
+                            modifier = Modifier.size(88.dp),
+                            stroke = thickStroke,
+                            trackStroke = thickStroke,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    } else {
+                        CircularWavyProgressIndicator(
+                            modifier = Modifier.size(88.dp),
+                            stroke = thickStroke,
+                            trackStroke = thickStroke,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                 }
+                progressText?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
-        })
+        }
+    }
 }
 
 @Composable
@@ -386,12 +353,12 @@ fun RemoveImageDialog(
             ) {
                 DialogTextButton(
                     stringResource(R.string.remove), {
-                    CacheManager.deleteRecoveryPair(
-                        context, imageId, deleteProcessed = true, deleteUnprocessed = true
-                    )
-                    onRemove()
-                    onDismissRequest()
-                }, { HapticFeedbacks.heavy() }, MaterialTheme.colorScheme.error
+                        CacheManager.deleteRecoveryPair(
+                            context, imageId, deleteProcessed = true, deleteUnprocessed = true
+                        )
+                        onRemove()
+                        onDismissRequest()
+                    }, { HapticFeedbacks.heavy() }, MaterialTheme.colorScheme.error
                 )
                 if (hasOutput) {
                     MorphButton(
@@ -567,7 +534,9 @@ fun ImageSourceDialog(
                         topEnd = 16f,
                         bottomStart = 28f,
                         bottomEnd = 16f,
-                        onHelpClick = { HapticFeedbacks.light(); helpTarget = HelpTarget.Documents },
+                        onHelpClick = {
+                            HapticFeedbacks.light(); helpTarget = HelpTarget.Documents
+                        },
                         onClick = {
                             HapticFeedbacks.medium()
                             scope.launch { handleSelection("documents", onDocumentsSelected) }

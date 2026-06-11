@@ -56,7 +56,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import com.je.dejpeg.App
 import com.je.dejpeg.AppPreferences
 import com.je.dejpeg.HapticFeedbacks
 import com.je.dejpeg.ImageRepository
@@ -86,7 +85,7 @@ fun ImageScreen(
     onBack: () -> Unit = {},
     showAfter: Boolean = true
 ) {
-    val context = App.ctx
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val appPreferences = remember { AppPreferences() }
     val showSaveDialog by appPreferences.showSaveDialog.collectAsState(initial = true)

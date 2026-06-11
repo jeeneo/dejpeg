@@ -1,6 +1,6 @@
 [versions]
 #noinspection AndroidGradlePluginVersion
-agp = "9.0.1"
+agp = "8.13.2"
 coreSplashscreen = "1.2.0"
 #noinspection GradleDependency
 foundation = "1.10.3"
@@ -21,6 +21,7 @@ zoomable = "0.19.0"
 exifinterface = "1.4.2"
 datastore = "1.2.1"
 animationCore = "1.11.2"
+coreKtxVersion = "1.18.0"
 
 [libraries]
 androidx-compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "foundation" }
@@ -46,7 +47,9 @@ zoomable = { module = "me.saket.telephoto:zoomable", version.ref = "zoomable" }
 androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 androidx-compose-animation-core = { group = "androidx.compose.animation", name = "animation-core", version.ref = "animationCore" }
+core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtxVersion" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version = "2.2.20" }

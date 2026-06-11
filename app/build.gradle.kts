@@ -5,6 +5,7 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.android)
 }
 
 val localProperties = Properties().apply {
@@ -117,6 +118,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.core.ktx)
     implementation(libs.google.material)
     implementation(libs.onnxruntime.android)
     implementation(libs.zoomable)

@@ -10,7 +10,6 @@
 
 package com.je.dejpeg.ui.screens
 
-import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -28,6 +27,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -103,7 +103,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
-import androidx.core.net.toUri
 import com.je.dejpeg.App
 import com.je.dejpeg.AppPreferences
 import com.je.dejpeg.BuildConfig
@@ -472,10 +471,9 @@ fun SettingsScreen(
                                             )
                                         )
                                     }
-                                    Row(
+                                    FlowRow(
                                         modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
+                                        horizontalArrangement = Arrangement.End
                                     ) {
                                         Spacer(Modifier.weight(1f))
                                         TextButton(onClick = {
@@ -524,10 +522,7 @@ fun SettingsScreen(
                                         }
                                         TextButton(onClick = {
                                             HapticFeedbacks.light()
-                                            val intent = Intent(
-                                                Intent.ACTION_VIEW,
-                                                "https://codeberg.org/dryerlint/dejpeg/src/branch/main/models".toUri()
-                                            ); context.startActivity(intent)
+                                            uriHandler.openUri("https://codeberg.org/dryerlint/dejpeg/src/branch/main/models")
                                         }) {
                                             Icon(
                                                 Icons.Filled.Download,
@@ -1208,9 +1203,7 @@ fun LabeledSwitch(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold
+                title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold
             )
             if (desc.isNotEmpty()) {
                 Text(
@@ -1222,36 +1215,32 @@ fun LabeledSwitch(
         }
 
         Switch(
-            checked = checked,
-            onCheckedChange = {
-                onCheckedChange(it)
-                HapticFeedbacks.light()
-            },
-            thumbContent = if (checked) {
-                {
-                    Icon(
-                        imageVector = Icons.Filled.Check,
-                        contentDescription = null,
-                        modifier = Modifier.size(SwitchDefaults.IconSize),
-                    )
-                }
-            } else {
-                {
-                    Icon(
-                        imageVector = Icons.Filled.Close,
-                        contentDescription = null,
-                        modifier = Modifier.size(SwitchDefaults.IconSize),
-                    )
-                }
-            },
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = MaterialTheme.colorScheme.primaryContainer,
-                checkedTrackColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                uncheckedThumbColor = MaterialTheme.colorScheme.secondary,
-                uncheckedTrackColor = MaterialTheme.colorScheme.secondaryContainer,
-                uncheckedBorderColor = Color.Transparent,
-            )
-        )
+            checked = checked, onCheckedChange = {
+            onCheckedChange(it)
+            HapticFeedbacks.light()
+        }, thumbContent = if (checked) {
+            {
+                Icon(
+                    imageVector = Icons.Filled.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                )
+            }
+        } else {
+            {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = null,
+                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                )
+            }
+        }, colors = SwitchDefaults.colors(
+            checkedThumbColor = MaterialTheme.colorScheme.primaryContainer,
+            checkedTrackColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            uncheckedThumbColor = MaterialTheme.colorScheme.secondary,
+            uncheckedTrackColor = MaterialTheme.colorScheme.secondaryContainer,
+            uncheckedBorderColor = Color.Transparent,
+        ))
     }
 }
 
