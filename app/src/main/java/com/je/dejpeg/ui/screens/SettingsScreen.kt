@@ -1204,17 +1204,13 @@ fun LabeledSwitch(
     title: String, desc: String = "", checked: Boolean, onCheckedChange: (Boolean) -> Unit
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() }, indication = ripple()
-            ) { onCheckedChange(!checked) }
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically) {
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold
+                title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold
             )
             if (desc.isNotEmpty()) {
                 Text(
@@ -1224,33 +1220,38 @@ fun LabeledSwitch(
                 )
             }
         }
+
         Switch(
-            checked = checked, onCheckedChange = {
-            onCheckedChange(it)
-            HapticFeedbacks.light()
-        }, thumbContent = if (checked) {
-            {
-                Icon(
-                    imageVector = Icons.Filled.Check,
-                    contentDescription = null,
-                    modifier = Modifier.size(SwitchDefaults.IconSize),
-                )
-            }
-        } else {
-            {
-                Icon(
-                    imageVector = Icons.Filled.Close,
-                    contentDescription = null,
-                    modifier = Modifier.size(SwitchDefaults.IconSize),
-                )
-            }
-        }, colors = SwitchDefaults.colors(
-            checkedThumbColor = MaterialTheme.colorScheme.primaryContainer,
-            checkedTrackColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            uncheckedThumbColor = MaterialTheme.colorScheme.secondary,
-            uncheckedTrackColor = MaterialTheme.colorScheme.secondaryContainer,
-            uncheckedBorderColor = Color.Transparent,
-        ))
+            checked = checked,
+            onCheckedChange = {
+                onCheckedChange(it)
+                HapticFeedbacks.light()
+            },
+            thumbContent = if (checked) {
+                {
+                    Icon(
+                        imageVector = Icons.Filled.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(SwitchDefaults.IconSize),
+                    )
+                }
+            } else {
+                {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = null,
+                        modifier = Modifier.size(SwitchDefaults.IconSize),
+                    )
+                }
+            },
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = MaterialTheme.colorScheme.primaryContainer,
+                checkedTrackColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                uncheckedThumbColor = MaterialTheme.colorScheme.secondary,
+                uncheckedTrackColor = MaterialTheme.colorScheme.secondaryContainer,
+                uncheckedBorderColor = Color.Transparent,
+            )
+        )
     }
 }
 

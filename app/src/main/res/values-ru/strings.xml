@@ -52,12 +52,12 @@
     <string name="faq_scunet_title">SCUNet</string>
     <string name="faq_scunet_content">SCUNet более эффективно устраняет шумы (например, ISO-шум, зернистость или пятнистость).\n\nКроме того, он в определенной степени способен устранять артефакты сжатия и GIF-артефакты.\n\nМодели SCUNet с обозначением «gray 15/25/50» предназначены исключительно для изображений в оттенках серого и отличаются степенью шумоподавления.\n\nЧем выше число, тем больше шума удаляется.\n\nВариант PSNR пытается максимально точно сопоставить пиксели с исходным изображением, поэтому оно выглядит математически корректно, но может казаться чрезмерно сглаженным.\n\nGAN жертвует пиксельной точностью ради добавления реалистичных текстур или деталей, что может выглядеть более естественно. Как и в большинстве случаев, попробуйте оба варианта и посмотрите, какой из них лучше подходит для вашего изображения.</string>
     <string name="ok">ОК</string>
-    <string name="images">Изображения (%1$d)</string>
+    <string name="images">Фото (%1$d)</string>
     <string name="strength">Сила: %1$d</string>
     <string name="input_scale">Масштаб ввода: %1$s</string>
     <string name="text_auto">Авто</string>
     <string name="no_images_yet">Пока нет изображений</string>
-    <string name="tap_to_add_images">Нажмите, чтобы добавить изображения</string>
+    <string name="tap_to_add_images">Добавить фото</string>
     <string name="no_model_installed_title">Модели не установлены</string>
     <string name="download">Скачать</string>
     <string name="delete">Удалить</string>
@@ -74,7 +74,7 @@
     <string name="status_canceling">Отмена…</string>
     <string name="status_queued">в очереди</string>
     <string name="settings">Настройки</string>
-    <string name="add_images">Добавить изображения</string>
+    <string name="add_images">Добавить фото</string>
     <string name="process">Обработать</string>
     <string name="reprocess">Обработать заново</string>
     <string name="no_model_loaded">Модель не загружена</string>
@@ -82,10 +82,10 @@
     <string name="overlap_size_px">%1$d px</string>
     <string name="imported_model">Импортировано: %1$s</string>
     <string name="deleted_model">Удалено: %1$s</string>
-    <string name="import_model_text">Импортировать модель</string>
+    <string name="import_model_text">Импорт модели</string>
     <string name="show_save_dialog">Подтверждение сохранения</string>
     <string name="swap_swipe_actions">Поменять действия свайпа</string>
-    <string name="processing_threads_desc">Параллельные фрагменты</string>
+    <string name="processing_threads_desc">Потоки</string>
     <string name="thread_value_auto">Авто (%1$d)</string>
     <string name="default_image_source">Источник по умолчанию</string>
     <string name="none">нет</string>
