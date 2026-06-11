@@ -50,7 +50,7 @@
     <string name="faq_fbcnn_title">FBCNN</string>
     <string name="faq_fbcnn_content">Подходит для изображений с JPEG-сжатием (например, низкокачественные изображения из Google, Pinterest, Instagram и т.д.).\n\nПолзунок доступен только для FBCNN и управляет силой удаления артефактов: ~30–50 для слабого сжатия, 70+ для сильного. При высоких значениях изображение становится заметно более сглаженным.\n\nЦветная модель используется для RGB-изображений, серые модели — для чёрно-белых. Gray double предназначена для изображений, многократно пересохранявшихся в JPEG.</string>
     <string name="faq_scunet_title">SCUNet</string>
-    <string name="faq_scunet_content">SCUNet лучше всего подходит для удаления шума (ISO-шум, зерно и т.п.).\n\nТакже частично убирает JPEG и GIF-артефакты.\n\nСерые модели SCUNet (15/25/50) предназначены для изображений в градациях серого.\n\nЧем выше число, тем сильнее шумоподавление.\n\nPSNR-версия стремится к точному восстановлению пикселей, но может выглядеть слишком гладко.\nGAN-версия добавляет более реалистичные текстуры, но менее точна по пикселям.</string>
+    <string name="faq_scunet_content">SCUNet более эффективно устраняет шумы (например, ISO-шум, зернистость или пятнистость).\n\nКроме того, он в определенной степени способен устранять артефакты сжатия и GIF-артефакты.\n\nМодели SCUNet с обозначением «gray 15/25/50» предназначены исключительно для изображений в оттенках серого и отличаются степенью шумоподавления.\n\nЧем выше число, тем больше шума удаляется.\n\nВариант PSNR пытается максимально точно сопоставить пиксели с исходным изображением, поэтому оно выглядит математически корректно, но может казаться чрезмерно сглаженным.\n\nGAN жертвует пиксельной точностью ради добавления реалистичных текстур или деталей, что может выглядеть более естественно. Как и в большинстве случаев, попробуйте оба варианта и посмотрите, какой из них лучше подходит для вашего изображения.</string>
     <string name="ok">ОК</string>
     <string name="images">Изображения (%1$d)</string>
     <string name="strength">Сила: %1$d</string>
@@ -89,7 +89,7 @@
     <string name="thread_value_auto">Авто (%1$d)</string>
     <string name="default_image_source">Источник по умолчанию</string>
     <string name="none">нет</string>
-    <string name="clear_default_source">Сбросить</string>
+    <string name="clear_default_source">Очистить</string>
     <string name="cleared_default_source">Источник по умолчанию сброшен</string>
     <string name="error_processing_cancelled">Обработка отменена</string>
     <string name="processing_chunk_x_of_y">Обработка фрагмента %1$d/%2$d</string>
@@ -122,10 +122,10 @@
     <string name="discard">Отклонить</string>
     <string name="recovered_image_prefix">Восстановлено</string>
     <string name="model_info_1x_rgb_max_denoise_fp16">Быстрое шумоподавление и удаление артефактов, хорошо для анимации. Также может превращать фото в мультяшный стиль.</string>
-    <string name="model_info_1x_span_anime_pretrain_fp16">Быстрое общее восстановление JPEG и шума. Подходит для анимации, комиксов и фотографий.</string>
+    <string name="model_info_1x_span_anime_pretrain_fp16">Быстро, общее сжатие, общий шум. Подходит для анимации, комиксов, аниме и некоторых фотографий.</string>
     <string name="model_info_fbcnn_color_fp16">Лучше всего для JPEG-сжатия и лёгкого шума, любые цветные изображения</string>
     <string name="model_info_fbcnn_gray_fp16">Общее сжатие и шум, только чёрно-белые изображения</string>
-    <string name="model_info_fbcnn_gray_double_fp16">Максимально сильное восстановление JPEG и шума для чёрно-белых изображений</string>
+    <string name="model_info_fbcnn_gray_double_fp16">Наиболее эффективно при общем сжатии и шуме, только для изображений в оттенках серого</string>
     <string name="model_info_scunet_color_real_gan_fp16">Умеренный шум, GAN-архитектура, цветные изображения, больше деталей</string>
     <string name="model_info_scunet_color_real_psnr_fp16">Общий шум, PSNR-архитектура, цветные изображения, более гладкий результат</string>
     <string name="model_info_scunet_color_15_fp16">Лёгкий шум, цветные изображения</string>
@@ -145,7 +145,7 @@
     <string name="model_info_1x_nmkd_h264_texturize_fp16">Текстурирование H.264</string>
     <string name="model_info_vhs_sharpen_1x_46000_g_fp16">Сжатие VHS</string>
     <string name="model_info_1x_bc_gone_smooth_110000_g_fp16">Сжатие BC1</string>
-    <string name="model_info_1x_cinepak_fp16">Сжатие Cinepak / MSVideo1 / RoQ</string>
+    <string name="model_info_1x_cinepak_fp16">Cinepak, msvideo1, roq сжатие</string>
     <string name="model_info_1x_bc_gone_detailed_v2_40_60_115000_g_fp16">Сжатие BC1 с детализацией</string>
     <string name="model_info_1x_de_bink_v4">Сжатие Bink, улучшенная геометрия</string>
     <string name="model_info_1x_de_bink_v5">Сжатие Bink, более сильное</string>
@@ -225,7 +225,7 @@
     <string name="brisque_score_fair">приемлемо</string>
     <string name="brisque_score_poor">слабо</string>
     <string name="brisque_score_bad">плохо</string>
-    <string name="brisque_score_horrible">ужасно</string>
+    <string name="brisque_score_horrible">ужасно!</string>
     <string name="sharpness_very_sharp">очень резкое</string>
     <string name="sharpness_sharp">резкое</string>
     <string name="sharpness_moderate">умеренное</string>
