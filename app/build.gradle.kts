@@ -39,6 +39,10 @@ android {
             abiFilters += "arm64-v8a"
         }
         buildConfigField("boolean", "OIDN_ENABLED", "false")
+        // needs to remove the release text at end somehow
+        val abi = ndk.abiFilters.first()
+        val fileName = "${rootProject.name.lowercase()}-$abi"
+        setProperty("archivesBaseName", fileName)
     }
     if (buildOidn) {
         externalNativeBuild {
@@ -101,6 +105,7 @@ android {
         disable += "IconXmlAndPng"
     }
     androidResources {
+        @Suppress("UnstableApiUsage")
         generateLocaleConfig = true
     }
 }
@@ -126,19 +131,4 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.compose.animation.core)
-}
-
-androidComponents {
-    onVariants { variant ->
-        val abis = android.defaultConfig.ndk.abiFilters
-        val abi = if (abis.size == 1) abis.first() else "universal"
-        val taskName = "assemble${variant.name.replaceFirstChar { it.uppercase() }}"
-        tasks.matching { it.name == taskName }.configureEach {
-            doLast {
-                val outDir = layout.buildDirectory.dir("outputs/apk/${variant.name}").get().asFile
-                outDir.listFiles()?.filter { it.extension == "apk" }
-                    ?.forEach { it.renameTo(File(outDir, "dejpeg-${abi}.apk")) }
-            }
-        }
-    }
 }

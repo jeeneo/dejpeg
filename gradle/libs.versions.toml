@@ -4,7 +4,7 @@ agp = "8.13.2"
 coreSplashscreen = "1.2.0"
 #noinspection GradleDependency
 foundation = "1.10.3"
-kotlin = "2.4.0"
+kotlin = "2.2.0"
 #noinspection GradleDependency
 coreKtx = "1.18.0"
 lifecycleRuntimeKtx = "2.10.0"
