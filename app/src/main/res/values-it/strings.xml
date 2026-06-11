@@ -23,6 +23,7 @@
     <string name="error_saving_image">Errore nel salvataggio dell\'immagine: %1$s</string>
     <plurals name="image_saved_to_gallery">
         <item quantity="one">Immagine salvata</item>
+        <item quantity="many">%1$d immagini salvate</item>
         <item quantity="other">%1$d immagini salvate</item>
     </plurals>
     <string name="share_image">Condividi immagine</string>
@@ -93,6 +94,7 @@
     <string name="processing_chunk_x_of_y">Elaborazione blocco %1$d/%2$d</string>
     <plurals name="processing_chunk_range_of_y_threads">
         <item quantity="one">Elaborazione %1$d-%2$d/%3$d (%4$d thread)</item>
+        <item quantity="many">Elaborazione %1$d-%2$d/%3$d (%4$d thread)</item>
         <item quantity="other">Elaborazione %1$d-%2$d/%3$d (%4$d thread)</item>
     </plurals>
     <string name="loading_images">Caricamento…</string>
@@ -196,6 +198,7 @@
     <string name="notification_chunk_progress">Blocco %1$d / %2$d</string>
     <plurals name="notification_chunk_progress_range_threads">
         <item quantity="one">Blocchi %1$d-%2$d / %3$d • %4$d thread</item>
+        <item quantity="many">Blocchi %1$d-%2$d / %3$d • %4$d thread</item>
         <item quantity="other">Blocchi %1$d-%2$d / %3$d • %4$d thread</item>
     </plurals>
     <string name="brisque_analysis">Analisi BRISQUE</string>
