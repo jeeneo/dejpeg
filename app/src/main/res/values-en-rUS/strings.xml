@@ -291,4 +291,5 @@
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
     <string name="theme_oled">OLED</string>
+    <string name="model_info_background_removal_u2net">Background removal using u2net</string>
 </resources>
