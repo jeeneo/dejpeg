@@ -970,12 +970,12 @@ fun SettingsScreen(
                                     }
                                     Box {
                                         TextButton(
-                                            onClick = { themeMenuExpanded = true }) {
+                                            onClick = {HapticFeedbacks.light();  themeMenuExpanded = true }) {
                                             Text(currentTheme.name)
                                         }
                                         DropdownMenu(
                                             expanded = themeMenuExpanded,
-                                            onDismissRequest = { themeMenuExpanded = false }) {
+                                            onDismissRequest = { HapticFeedbacks.light(); themeMenuExpanded = false }) {
                                             AppTheme.entries.forEach { theme ->
                                                 val label = when (theme) {
                                                     AppTheme.Dynamic -> stringResource(R.string.theme_dynamic)
@@ -985,6 +985,7 @@ fun SettingsScreen(
                                                 }
                                                 DropdownMenuItem(text = { Text(label) }, onClick = {
                                                     themeMenuExpanded = false
+                                                    HapticFeedbacks.light()
                                                     scope.launch {
                                                         appPreferences.setAppTheme(theme)
                                                     }
@@ -997,6 +998,7 @@ fun SettingsScreen(
                             }
                         },
                         onClick = {
+                            HapticFeedbacks.light()
                             toggle(SettingsSection.Preferences)
                         },
                         position = CardPosition.Leading,
