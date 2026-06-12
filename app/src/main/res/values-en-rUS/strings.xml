@@ -61,7 +61,8 @@
     <string name="finishing_up">Finishing up…</string>
     <string name="status_preparing">Preparing…</string>
     <string name="status_complete">Complete</string>
-    <string name="status_complete_ui">complete - tap to view</string>
+    <string name="status_complete_ui">Complete - tap to view</string>
+    <string name="status_ready">Ready</string>
     <string name="status_cancelled">Cancelled</string>
     <string name="status_canceling">Canceling…</string>
     <string name="status_queued">Queued</string>

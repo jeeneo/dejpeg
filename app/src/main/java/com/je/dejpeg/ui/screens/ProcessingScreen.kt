@@ -17,13 +17,17 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.animateColor
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.EaseInOutSine
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
@@ -62,24 +66,26 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.outlined.AddPhotoAlternate
 import androidx.compose.material3.BasicAlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ContainedLoadingIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SplitButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
@@ -99,6 +105,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -114,7 +122,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -781,12 +789,6 @@ fun SwipeToDismissWrapper(
         )
         else springStandard, label = "swipe"
     )
-    val fraction = if (widthPx > 0) {
-        (kotlin.math.abs(animatedOffset) / (widthPx * swipeThreshold)).coerceIn(0f, 1f)
-    } else 0f
-
-    val rightFraction = if (animatedOffset > 0f) fraction else 0f
-    val leftFraction = if (animatedOffset < 0f && currentAllowLeftSwipe) fraction else 0f
     val rightIcon = if (swapActions) {
         if (hasOutput) Icons.Filled.Save else Icons.Filled.PlayArrow
     } else {
@@ -811,7 +813,6 @@ fun SwipeToDismissWrapper(
             .fillMaxWidth()
             .onSizeChanged { widthPx = it.width }) {
         ActionPill(
-            fraction = rightFraction,
             icon = rightIcon,
             tint = rightTint,
             containerColor = rightContainerColor,
@@ -819,7 +820,6 @@ fun SwipeToDismissWrapper(
             modifier = Modifier.matchParentSize()
         )
         ActionPill(
-            fraction = leftFraction,
             icon = leftIcon,
             tint = leftTint,
             containerColor = leftContainerColor,
@@ -882,34 +882,24 @@ fun SwipeToDismissWrapper(
 
 @Composable
 fun ActionPill(
-    fraction: Float,
     icon: ImageVector,
     tint: Color,
     containerColor: Color,
     alignment: Alignment,
     modifier: Modifier = Modifier,
 ) {
-    val atThreshold = fraction >= 1f
-    val pulse = remember { Animatable(1f) }
-    LaunchedEffect(atThreshold) {
-        if (atThreshold) pulse.animateTo(1f, keyframes {
-            durationMillis = 280; 1.15f at 90; 0.95f at 170; 1f at 280
-        }) else pulse.snapTo(1f)
-    }
     Box(
         modifier.padding(
             start = if (alignment == Alignment.CenterStart) 20.dp else 0.dp,
             end = if (alignment == Alignment.CenterEnd) 20.dp else 0.dp
         ), contentAlignment = alignment
     ) {
-        val f = fraction.coerceIn(0f, 1f)
-        Box(modifier = Modifier
-            .size(48.dp)
-            .graphicsLayer {
-                val scale = lerp(0.5f, 1f, f) * pulse.value
-                scaleX = scale; scaleY = scale; alpha = lerp(0f, 1f, f)
-            }
-            .background(containerColor, CircleShape), contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .background(containerColor, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
             Icon(icon, contentDescription = null, modifier = Modifier.size(24.dp), tint = tint)
         }
     }
@@ -939,7 +929,6 @@ fun rememberSaveOrPrompt(
     val currentPerformRemoval by rememberUpdatedState(performRemoval)
     val currentSetSaveDialog by rememberUpdatedState(setSaveDialogState)
     val currentSetOverwriteDialog by rememberUpdatedState(setOverwriteDialogState)
-
     return { imageId, filename ->
         if (currentShowSaveDialog) {
             currentSetSaveDialog.invoke(Pair(imageId, filename))
@@ -957,39 +946,15 @@ fun rememberSaveOrPrompt(
     }
 }
 
-
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-fun ChunkProgressIndicator(completedChunks: Int, totalChunks: Int) {
-    val target = if (totalChunks > 0) (completedChunks.toFloat() / totalChunks.toFloat()).coerceIn(
-        0f, 1f
-    ) else 0f
-    val animatedProgress by animateFloatAsState(
-        targetValue = target,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium
-        ),
-        label = "chunk_progress",
-    )
-    LinearWavyProgressIndicator(
-        progress = { animatedProgress },
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.primary,
-        trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-    )
-}
-
 @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun SaveProgressDialog(saveState: SaveState.Saving) {
     val progress = if (saveState.total > 0) saveState.current.toFloat() / saveState.total.toFloat()
     else 0f
-
     val thickStrokeWidth = with(LocalDensity.current) { 8.dp.toPx() }
     val thickStroke = remember(thickStrokeWidth) {
         Stroke(width = thickStrokeWidth, cap = StrokeCap.Round)
     }
-
     val animatedProgress by animateFloatAsState(
         targetValue = progress, animationSpec = spring(
             dampingRatio = Spring.DampingRatioNoBouncy,
@@ -997,7 +962,6 @@ fun SaveProgressDialog(saveState: SaveState.Saving) {
             visibilityThreshold = 1f / 1000f
         ), label = "save_progress"
     )
-
     BasicAlertDialog(
         onDismissRequest = {},
         modifier = Modifier,
@@ -1087,50 +1051,15 @@ fun ImageCard(
     haptic: HapticFeedbacks
 ) {
     val cardInteractionSource = remember { MutableInteractionSource() }
-    val cardPress by rememberMaterialPressState(cardInteractionSource)
-    val processInteraction = remember { MutableInteractionSource() }
-    val removeInteraction = remember { MutableInteractionSource() }
-    val brisqueInteraction = remember { MutableInteractionSource() }
-    val animatedBadgeCorner = lerp(8f, 24f, cardPress)
-    val processPress by rememberMaterialPressState(processInteraction)
-    val removePress by rememberMaterialPressState(removeInteraction)
-    val brisquePress by rememberMaterialPressState(brisqueInteraction)
-    val bouncySpringFloat = spring<Float>(
-        dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium
+    val progressTint = MaterialTheme.colorScheme.primary
+    val chunkFraction = if (image.totalChunks > 1) {
+        image.completedChunks.toFloat() / image.totalChunks.coerceAtLeast(1)
+    } else -1f
+    val pulseAlpha = rememberInfiniteTransition().animateFloat(
+        initialValue = 0.04f, targetValue = 0.11f, animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = EaseInOutSine), repeatMode = RepeatMode.Reverse
+        )
     )
-    val bouncySpringDp = spring<Dp>(
-        dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium
-    )
-    val cardState = when {
-        isProcessing -> CardState.Processing
-        image.outputBitmap != null && image.isOutputStale -> CardState.Stale
-        image.outputBitmap != null -> CardState.Complete
-        else -> CardState.Idle
-    }
-    val transition = updateTransition(targetState = cardState, label = "card_morph")
-    val morphContainerColor by transition.animateColor(
-        transitionSpec = { spring(dampingRatio = Spring.DampingRatioMediumBouncy) },
-        label = "container_color"
-    ) { state ->
-        when (state) {
-            CardState.Processing -> MaterialTheme.colorScheme.errorContainer
-            CardState.Stale -> MaterialTheme.colorScheme.tertiaryContainer
-            CardState.Complete -> MaterialTheme.colorScheme.primaryContainer
-            CardState.Idle -> MaterialTheme.colorScheme.secondaryContainer
-        }
-    }
-    val morphContentColor by transition.animateColor(
-        transitionSpec = { spring(dampingRatio = Spring.DampingRatioMediumBouncy) },
-        label = "content_color"
-    ) { state ->
-        when (state) {
-            CardState.Processing -> MaterialTheme.colorScheme.onErrorContainer
-            CardState.Stale -> MaterialTheme.colorScheme.onTertiaryContainer
-            CardState.Complete -> MaterialTheme.colorScheme.onPrimaryContainer
-            CardState.Idle -> MaterialTheme.colorScheme.onSecondaryContainer
-        }
-    }
-    val shape = cardShape(position)
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -1142,234 +1071,274 @@ fun ImageCard(
                 haptic.light()
                 if (image.outputBitmap != null) onClick() else onBeforeOnly()
             },
-        shape = shape,
+        shape = cardShape(position),
         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceContainer)
     ) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            val imageBitmap =
-                remember(image.thumbnailBitmap, image.outputBitmap, image.inputBitmap) {
-                    (image.thumbnailBitmap ?: image.outputBitmap
-                    ?: image.inputBitmap).asImageBitmap()
-                }
-            Surface(
-                Modifier
-                    .size(72.dp)
-                    .clip(RoundedCornerShape(12.dp)),
-                color = MaterialTheme.colorScheme.surfaceVariant
-            ) {
-                Image(
-                    imageBitmap,
-                    image.filename,
-                    Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            }
-            Column(
-                Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        image.filename,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 1,
-                        modifier = Modifier.weight(1f, false)
-                    )
-                    Text(
-                        image.size,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                if (image.isProcessing) {
-                    if (image.totalChunks > 1) ChunkProgressIndicator(
-                        image.completedChunks, image.totalChunks
-                    )
-                    else LinearWavyProgressIndicator(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.primary,
-                        trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
-                    )
-                    if (image.progress.isNotEmpty()) Text(
-                        image.progress,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1
-                    )
-                } else if (image.outputBitmap != null) {
-                    Surface(
-                        shape = RoundedCornerShape(animatedBadgeCorner.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer
-                    ) {
-                        Text(
-                            stringResource(R.string.status_complete_ui),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
-                        )
-                    }
-                }
-            }
-        }
-
         Box(
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp)
-        ) {
-            Row(
-                Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(
-                    animateDpAsState(
-                        targetValue = if (isProcessing) 0.dp else 6.dp, animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessMedium
-                        ), label = "button_spacing"
-                    ).value
-                ), verticalAlignment = Alignment.CenterVertically
-            ) {
-                val pressOffset = 0.18f
-
-                val primaryWeight by animateFloatAsState(
-                    targetValue = when {
-                        isProcessing -> 1f
-                        processPress > 0f -> 1f + pressOffset
-                        removePress > 0f -> 1f
-                        else -> 1f
-                    }, animationSpec = bouncySpringFloat, label = "primary_weight"
-                )
-
-                val brisqueExpansion by animateFloatAsState(
-                    targetValue = brisquePress,
-                    animationSpec = bouncySpringFloat,
-                    label = "brisque_expansion"
-                )
-
-                val removeWidth = when {
-                    isProcessing -> 0.dp
-                    else -> (lerp(145f, 129f, brisqueExpansion) + lerp(0f, -25f, processPress)).dp
-                }
-
-                val brisqueWidth = when {
-                    isProcessing -> 0.dp
-                    else -> lerp(40f, 56f, brisqueExpansion).dp
-                }
-
-                val brisqueCorner by animateDpAsState(
-                    targetValue = lerp(28f, 6f, brisquePress).dp,
-                    animationSpec = bouncySpringDp,
-                )
-
-                val removeCorner by animateDpAsState(
-                    targetValue = lerp(6f, 28f, removePress).dp,
-                    animationSpec = bouncySpringDp,
-                    label = "remove_corner"
-                )
-
-                val processStartCorner by animateDpAsState(
-                    targetValue = lerp(28f, 6f, processPress).dp,
-                    animationSpec = bouncySpringDp,
-                    label = "process_start_corner"
-                )
-                val processEndCorner by animateDpAsState(
-                    targetValue = if (isProcessing) lerp(28f, 6f, processPress).dp else 6.dp,
-                    animationSpec = bouncySpringDp,
-                    label = "process_end_corner"
-                )
-
-                val processShape = RoundedCornerShape(
-                    topStart = processStartCorner,
-                    bottomStart = processStartCorner,
-                    topEnd = processEndCorner,
-                    bottomEnd = processEndCorner
-                )
-
-                Box(Modifier.weight(primaryWeight)) {
-                    Button(
-                        onClick = {
-                            when {
-                                isProcessing -> {
-                                    haptic.heavy(); onRemove()
-                                }
-
-                                image.outputBitmap != null && !image.isOutputStale -> {
-                                    haptic.medium(); onSave()
-                                }
-
-                                else -> {
-                                    haptic.medium(); onProcess()
-                                }
+                .drawBehind {
+                    if (!isProcessing) return@drawBehind
+                    if (chunkFraction >= 0f) {
+                        if (chunkFraction >= 1f) {
+                            drawRect(progressTint.copy(alpha = 0.12f))
+                        } else {
+                            val fillEnd = size.width * chunkFraction
+                            val softEdge = 12.dp.toPx()
+                            val gradientEnd = (fillEnd + softEdge).coerceAtMost(size.width)
+                            if (gradientEnd > 0f) {
+                                val solidStop = (fillEnd / gradientEnd).coerceIn(0f, 1f)
+                                drawRect(
+                                    brush = Brush.horizontalGradient(
+                                        colorStops = arrayOf(
+                                            0f to progressTint.copy(alpha = 0.12f),
+                                            solidStop to progressTint.copy(alpha = 0.10f),
+                                            1f to Color.Transparent
+                                        ), startX = 0f, endX = gradientEnd
+                                    )
+                                )
                             }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = processShape,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = morphContainerColor, contentColor = morphContentColor
-                        ),
-                        interactionSource = processInteraction
-                    ) {
-                        val (icon, label) = when {
-                            isProcessing -> Icons.Filled.Close to stringResource(R.string.cancel)
-                            image.outputBitmap != null && image.isOutputStale -> Icons.Filled.PlayArrow to stringResource(
-                                R.string.reprocess
-                            )
-
-                            image.outputBitmap != null -> Icons.Filled.Save to stringResource(R.string.save)
-                            else -> Icons.Filled.PlayArrow to stringResource(R.string.process)
                         }
-                        Icon(icon, null, Modifier.size(16.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text(label, style = MaterialTheme.typography.labelLarge)
+                    } else {
+                        drawRect(progressTint.copy(alpha = pulseAlpha.value))
+                    }
+                }) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                val imageBitmap =
+                    remember(image.thumbnailBitmap, image.outputBitmap, image.inputBitmap) {
+                        (image.thumbnailBitmap ?: image.outputBitmap
+                        ?: image.inputBitmap).asImageBitmap()
+                    }
+                Surface(
+                    Modifier
+                        .size(82.dp)
+                        .clip(RoundedCornerShape(12.dp)),
+                    color = MaterialTheme.colorScheme.surfaceVariant
+                ) {
+                    Image(
+                        imageBitmap,
+                        image.filename,
+                        Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+                Column(
+                    Modifier
+                        .weight(1f)
+                        .height(86.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Row(
+                        Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            image.filename,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .weight(1f, fill = false)
+                                .alignByBaseline()
+                        )
+                        Text(
+                            image.size,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.alignByBaseline()
+                        )
+                    }
+                    Spacer(Modifier.weight(1f))
+                    if (image.outputBitmap != null && !isProcessing) {
+                        Surface(
+                            shape = RoundedCornerShape(32.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer
+                        ) {
+                            Text(
+                                stringResource(R.string.status_complete_ui),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                            )
+                        }
+                    } else if (!isProcessing) {
+                        Surface(
+                            shape = RoundedCornerShape(32.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer
+                        ) {
+                            Text(
+                                stringResource(R.string.status_ready),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                    if (isProcessing && image.progress.isNotEmpty()) {
+                        Surface(
+                            shape = RoundedCornerShape(32.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer
+                        ) {
+                            Text(
+                                image.progress,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                    Spacer(Modifier.weight(1f))
+                    ImageCardSplitButton(
+                        image = image,
+                        isProcessing = isProcessing,
+                        onProcess = onProcess,
+                        onRemove = onRemove,
+                        onBrisque = onBrisque,
+                        onSave = onSave,
+                        haptic = haptic,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun ImageCardSplitButton(
+    image: ImageItem,
+    isProcessing: Boolean,
+    onProcess: () -> Unit,
+    onRemove: () -> Unit,
+    onBrisque: () -> Unit,
+    onSave: () -> Unit,
+    haptic: HapticFeedbacks,
+    modifier: Modifier = Modifier,
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
+    val fastSpatialSpec = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
+    val cardState = when {
+        isProcessing -> CardState.Processing
+        image.outputBitmap != null && image.isOutputStale -> CardState.Stale
+        image.outputBitmap != null -> CardState.Complete
+        else -> CardState.Idle
+    }
+    val transition = updateTransition(targetState = cardState, label = "card_morph")
+    val containerColor by transition.animateColor(
+        transitionSpec = { spring(dampingRatio = Spring.DampingRatioMediumBouncy) },
+        label = "container_color"
+    ) { state ->
+        when (state) {
+            CardState.Processing -> MaterialTheme.colorScheme.errorContainer
+            CardState.Stale -> MaterialTheme.colorScheme.tertiaryContainer
+            CardState.Complete -> MaterialTheme.colorScheme.primaryContainer
+            CardState.Idle -> MaterialTheme.colorScheme.secondaryContainer
+        }
+    }
+    val contentColor by transition.animateColor(
+        transitionSpec = { spring(dampingRatio = Spring.DampingRatioMediumBouncy) },
+        label = "content_color"
+    ) { state ->
+        when (state) {
+            CardState.Processing -> MaterialTheme.colorScheme.onErrorContainer
+            CardState.Stale -> MaterialTheme.colorScheme.onTertiaryContainer
+            CardState.Complete -> MaterialTheme.colorScheme.onPrimaryContainer
+            CardState.Idle -> MaterialTheme.colorScheme.onSecondaryContainer
+        }
+    }
+    val leadingLabel = when (cardState) {
+        CardState.Processing -> stringResource(R.string.cancel)
+        CardState.Stale -> stringResource(R.string.reprocess)
+        CardState.Complete -> stringResource(R.string.save_image)
+        CardState.Idle -> stringResource(R.string.process)
+    }
+    val leadingIcon = when (cardState) {
+        CardState.Processing -> Icons.Filled.Close
+        CardState.Stale, CardState.Idle -> Icons.Filled.PlayArrow
+        CardState.Complete -> Icons.Filled.Save
+    }
+    val isRecovered = image.filename.startsWith("Recovered") // note to self: fragile and hacky
+
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(2.5.dp)
+    ) {
+        SplitButtonDefaults.LeadingButton(
+            onClick = {
+                when (cardState) {
+                    CardState.Processing -> {
+                        haptic.heavy(); onRemove()
+                    }
+
+                    CardState.Complete -> {
+                        haptic.medium(); onSave()
+                    }
+
+                    CardState.Idle, CardState.Stale -> {
+                        haptic.medium(); onProcess()
                     }
                 }
+            },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = containerColor,
+                contentColor = contentColor,
+            ),
+            modifier = Modifier
+                .weight(1f)
+                .height(36.dp),
+        ) {
+            Icon(leadingIcon, contentDescription = null)
+            Spacer(Modifier.width(4.dp))
+            Text(leadingLabel, style = MaterialTheme.typography.labelMedium)
+        }
+        Box {
+            SplitButtonDefaults.TrailingButton(
+                checked = menuExpanded,
+                onCheckedChange = { haptic.light(); menuExpanded = it },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = containerColor,
+                    contentColor = contentColor,
+                ),
+                modifier = Modifier.height(36.dp),
+            ) {
+                val chevronRotation by animateFloatAsState(
+                    targetValue = if (menuExpanded) 180f else 0f,
+                    animationSpec = fastSpatialSpec,
+                    label = "chevronRotation"
+                )
+                Icon(
+                    Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(SplitButtonDefaults.TrailingIconSize)
+                        .graphicsLayer { rotationZ = chevronRotation })
+            }
 
-                if (!isProcessing && removeWidth > 90.dp) {
-                    Box(Modifier.width(removeWidth)) {
-                        Button(
-                            onClick = { haptic.heavy(); onRemove() },
-                            modifier = Modifier.width(removeWidth),
-                            shape = RoundedCornerShape(removeCorner),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer,
-                                contentColor = MaterialTheme.colorScheme.onErrorContainer
-                            ),
-                            contentPadding = PaddingValues(0.dp),
-                            interactionSource = removeInteraction
-                        ) {
-                            Icon(Icons.Filled.Delete, null, Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text(
-                                stringResource(R.string.remove),
-                                style = MaterialTheme.typography.labelLarge
-                            )
-                        }
-                    }
-
-                    Box(Modifier.width(brisqueWidth)) {
-                        Button(
-                            onClick = { haptic.light(); onBrisque() },
-                            modifier = Modifier.width(brisqueWidth),
-                            shape = RoundedCornerShape(
-                                topStart = 6.dp,
-                                bottomStart = 6.dp,
-                                topEnd = brisqueCorner,
-                                bottomEnd = brisqueCorner
-                            ),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            ),
-                            contentPadding = PaddingValues(0.dp),
-                            interactionSource = brisqueInteraction
+            DropdownMenu(
+                expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                if (isRecovered) {
+                    DropdownMenuItem(text = { Text(stringResource(R.string.reprocess)) }, leadingIcon = {
+                        Icon(Icons.Filled.PlayArrow, null)
+                    }, onClick = {
+                        haptic.medium()
+                        menuExpanded = false
+                        onProcess()
+                    })
+                }
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.brisque_analysis)) },
+                    leadingIcon = {
+                        Box(
+                            modifier = Modifier.size(24.dp), contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 "B",
@@ -1379,8 +1348,21 @@ fun ImageCard(
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
-                    }
-                }
+                    },
+                    onClick = {
+                        haptic.light()
+                        menuExpanded = false
+                        onBrisque()
+                    })
+                DropdownMenuItem(text = { Text(stringResource(R.string.remove)) }, leadingIcon = {
+                    Icon(
+                        Icons.Filled.Delete, null, tint = MaterialTheme.colorScheme.error
+                    )
+                }, onClick = {
+                    haptic.heavy()
+                    menuExpanded = false
+                    onRemove()
+                })
             }
         }
     }
