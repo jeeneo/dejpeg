@@ -1,0 +1,1 @@
+Rimozione della compressione e riduzione del rumore da immagini offline
