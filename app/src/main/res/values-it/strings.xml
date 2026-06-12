@@ -118,7 +118,7 @@
     <string name="model_info_fbcnn_gray_double_fp16">Il più potente per compressione e rumore generali, solo immagini in scala di grigi. Simile a fbcnn_gray ma può elaborare foto in scala di grigi fortemente compresse.</string>
     <string name="model_info_scunet_suffix">SCUNet è più abile nel rimuovere il rumore es. rumore ISO, aspetto granuloso o macchiato. Può anche rimuovere la compressione e gli artefatti GIF.</string>
     <string name="model_info_scunet_color_real_gan_fp16">Rumore moderato, architettura GAN, immagini a colori, dettagli migliori. GAN può aggiungere texture o dettagli realistici che possono apparire più naturali, ma rimuovere meno artefatti.</string>
-    <string name="model_info_scunet_color_real_psnr_fp16">Rumore generale, architettura PSNR, immagini a colori, meno dettagli. Cerca di far corrispondere l'immagine originale il più fedelmente possibile a livello di pixel, ma può apparire eccessivamente liscia.</string>
+    <string name="model_info_scunet_color_real_psnr_fp16">Rumore generale, architettura PSNR, immagini a colori, meno dettagli. Cerca di far corrispondere l\'immagine originale il più fedelmente possibile a livello di pixel, ma può apparire eccessivamente liscia.</string>
     <string name="model_info_scunet_color_15_fp16">Rumore minore, immagini a colori</string>
     <string name="model_info_scunet_color_25_fp16">Rumore minore, immagini a colori, più forte</string>
     <string name="model_info_scunet_color_50_fp16">Rumore minore, immagini a colori, più forte possibile</string>

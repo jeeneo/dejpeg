@@ -23,7 +23,6 @@
     <string name="error_saving_image_title">保存图像时出错</string>
     <string name="error_saving_image">保存图像时出错：%1$s</string>
     <plurals name="image_saved_to_gallery">
-        <item quantity="one">图像已保存</item>
         <item quantity="other">已保存 %1$d 张图像</item>
     </plurals>
     <string name="share_image">分享图像</string>
@@ -86,7 +85,6 @@
     <string name="error_processing_cancelled">处理已取消</string>
     <string name="processing_chunk_x_of_y">正在处理分块 %1$d/%2$d</string>
     <plurals name="processing_chunk_range_of_y_threads">
-        <item quantity="one">正在处理 %1$d-%2$d/%3$d（%4$d 线程）</item>
         <item quantity="other">正在处理 %1$d-%2$d/%3$d（%4$d 线程）</item>
     </plurals>
     <string name="loading_images">加载中……</string>
@@ -97,11 +95,9 @@
     <string name="error_native_crash">处理服务意外终止。这通常表示模型不兼容或内存不足。</string>
     <string name="error_copied">已复制到剪贴板</string>
     <plurals name="recover_images_title">
-        <item quantity="one">恢复 %1$d 张图像</item>
         <item quantity="other">恢复 %1$d 张图像</item>
     </plurals>
     <plurals name="recover_images_message">
-        <item quantity="one">发现 %1$d 张在关闭前未保存的已处理图像。是否恢复？</item>
         <item quantity="other">发现 %1$d 张在关闭前未保存的已处理图像。是否恢复？</item>
     </plurals>
     <string name="recover">恢复</string>
@@ -189,7 +185,6 @@
     <string name="notification_title_processing">处理中</string>
     <string name="notification_chunk_progress">分块 %1$d / %2$d</string>
     <plurals name="notification_chunk_progress_range_threads">
-        <item quantity="one">分块 %1$d-%2$d / %3$d • %4$d 线程</item>
         <item quantity="other">分块 %1$d-%2$d / %3$d • %4$d 线程</item>
     </plurals>
     <string name="brisque_analysis">BRISQUE 分析</string>
