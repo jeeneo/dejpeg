@@ -72,7 +72,7 @@
     <string name="status_complete_ui">завершено — нажмите для просмотра</string>
     <string name="status_cancelled">Отменено</string>
     <string name="status_canceling">Отмена…</string>
-    <string name="status_queued">в очереди</string>
+    <string name="status_queued">В очереди</string>
     <string name="settings">Настройки</string>
     <string name="add_images">Добавить фото</string>
     <string name="process">Обработать</string>
@@ -300,4 +300,6 @@
     <string name="brisque_phase_fine_scan">Точное сканирование</string>
     <string name="brisque_phase_fine_done">Точное сканирование выполнено</string>
     <string name="brisque_phase_finalizing">Завершение</string>
+    <string name="model_info_background_removal_bria_rmbg">Удаление фона с помощью BriaAI RMBG</string>
+    <string name="model_info_background_removal_u2net">Удаление фона с помощью u2net</string>
 </resources>
