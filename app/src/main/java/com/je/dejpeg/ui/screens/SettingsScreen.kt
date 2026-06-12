@@ -120,7 +120,6 @@ import com.je.dejpeg.utils.ModelManager
 import com.je.dejpeg.utils.ModelType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
@@ -147,9 +146,6 @@ fun SettingsScreen(
     val chunkSize by viewModel.chunkSize.collectAsState()
     val overlapSize by viewModel.overlapSize.collectAsState()
     val onnxDeviceThreads by viewModel.onnxDeviceThreads.collectAsState()
-    var activeModelName by remember {
-        mutableStateOf(runBlocking { viewModel.getActiveModelName() })
-    }
     val showSaveDialog by appPreferences.showSaveDialog.collectAsState(initial = true)
     val defaultImageSource by appPreferences.defaultImageSource.collectAsState(initial = null)
     val hapticFeedbackEnabled by appPreferences.hapticFeedbackEnabled.collectAsState(initial = true)
@@ -162,9 +158,6 @@ fun SettingsScreen(
     @Suppress("SpellCheckingInspection") val oidnSrgb by viewModel.oidnSrgb.collectAsState()
     val oidnQuality by viewModel.oidnQuality.collectAsState()
     val oidnNumThreads by viewModel.oidnNumThreads.collectAsState()
-    var activeOidnModelName by remember {
-        mutableStateOf(runBlocking { viewModel.getActiveModelName(ModelType.OIDN) })
-    }
     val uriHandler = LocalUriHandler.current
     val importError = remember { mutableStateOf<String?>(null) }
 
@@ -172,14 +165,8 @@ fun SettingsScreen(
         if (expandedSection != null) expandedSection = null else onBack()
     }
 
-    LaunchedEffect(installedModels) {
-        activeModelName = withContext(Dispatchers.IO) { viewModel.getActiveModelName() }
-    }
-
-    LaunchedEffect(installedOidnModels) {
-        activeOidnModelName =
-            withContext(Dispatchers.IO) { viewModel.getActiveModelName(ModelType.OIDN) }
-    }
+    val activeModelName by viewModel.activeModelName.collectAsState()
+    val activeOidnModelName by viewModel.activeOidnModelName.collectAsState()
 
     LaunchedEffect(processingMode) {
         expandedSection = null
@@ -417,7 +404,6 @@ fun SettingsScreen(
                                                         }
                                                     } else {
                                                         viewModel.setActiveModelByName(modelName)
-                                                        activeModelName = modelName
                                                     }
                                                 }
                                                 .padding(horizontal = 8.dp, vertical = 10.dp),
@@ -653,7 +639,6 @@ fun SettingsScreen(
                                                         viewModel.setActiveModelByName(
                                                             modelName, ModelType.OIDN
                                                         )
-                                                        activeOidnModelName = modelName
                                                     }
                                                 }
                                                 .padding(horizontal = 8.dp, vertical = 10.dp),

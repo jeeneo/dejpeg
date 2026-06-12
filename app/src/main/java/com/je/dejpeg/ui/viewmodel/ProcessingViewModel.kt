@@ -349,7 +349,7 @@ class ProcessingViewModel : ViewModel() {
                 chunkSize = settingsViewModel.chunkSize.value,
                 overlapSize = settingsViewModel.overlapSize.value,
                 onnxDeviceThreads = settingsViewModel.onnxDeviceThreads.value,
-                modelName = settingsViewModel.getActiveModelName(),
+                modelName = settingsViewModel.activeModelName.value,
                 processingMode = mode.name,
                 oidnWeightsPath = if (mode == ProcessingMode.OIDN) settingsViewModel.modelManager?.getActiveModelPath(
                     ModelType.OIDN

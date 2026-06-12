@@ -143,10 +143,6 @@ class SettingsViewModel : ViewModel() {
                     onProgress = { launch(Dispatchers.Main) { onProgress(it) } },
                     onSuccess = { modelName ->
                         modelManager?.setActiveModel(modelName, type)
-                        when (type) {
-                            ModelType.ONNX -> activeModelName.value = modelName
-                            ModelType.OIDN -> activeOidnModelName.value = modelName
-                        }
                         refreshInstalledModels(type)
                         launch(Dispatchers.Main) { onSuccess(modelName) }
                     },
@@ -167,6 +163,15 @@ class SettingsViewModel : ViewModel() {
                 withContext(Dispatchers.Main) { onDeleted(name) }
             }
             refreshInstalledModels(type)
+            when (type) {
+                ModelType.ONNX -> activeModelName.value = withContext(Dispatchers.IO) {
+                    modelManager?.getActiveModelName(ModelType.ONNX)
+                }
+
+                ModelType.OIDN -> activeOidnModelName.value = withContext(Dispatchers.IO) {
+                    modelManager?.getActiveModelName(ModelType.OIDN)
+                }
+            }
         }
     }
 

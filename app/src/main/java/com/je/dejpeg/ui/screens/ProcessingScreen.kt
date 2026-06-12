@@ -196,8 +196,13 @@ fun ProcessingScreen(
     val oidnInputScale by settingsViewModel.oidnInputScale.collectAsState()
     val isOidnMode = processingMode == ProcessingMode.OIDN
     val activeModelType = if (isOidnMode) ModelType.OIDN else ModelType.ONNX
-    val supportsStrength = if (isOidnMode) true else settingsViewModel.getActiveModelName()
-        ?.contains("fbcnn", ignoreCase = true) == true && processingMode == ProcessingMode.ONNX
+
+    val activeModelName by settingsViewModel.activeModelName.collectAsState()
+    val supportsStrength = if (isOidnMode) true else activeModelName?.contains(
+            "fbcnn",
+            ignoreCase = true
+        ) == true && processingMode == ProcessingMode.ONNX
+
     val noModelMessage = stringResource(R.string.no_model_installed_title)
     val scope = rememberCoroutineScope()
     val isLoadingImages by imageRepository.isLoadingImages.collectAsState()
@@ -1326,13 +1331,16 @@ private fun ImageCardSplitButton(
             DropdownMenu(
                 expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                 if (isRecovered) {
-                    DropdownMenuItem(text = { Text(stringResource(R.string.reprocess)) }, leadingIcon = {
-                        Icon(Icons.Filled.PlayArrow, null)
-                    }, onClick = {
-                        haptic.medium()
-                        menuExpanded = false
-                        onProcess()
-                    })
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.reprocess)) },
+                        leadingIcon = {
+                            Icon(Icons.Filled.PlayArrow, null)
+                        },
+                        onClick = {
+                            haptic.medium()
+                            menuExpanded = false
+                            onProcess()
+                        })
                 }
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.brisque_analysis)) },
