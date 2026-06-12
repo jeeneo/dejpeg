@@ -25,8 +25,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -54,7 +52,7 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         val modelManager = ModelManager(this)
-        val starterModelExtracted = modelManager.initializeStarterModel()
+        modelManager.initializeStarterModel()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(
@@ -75,6 +73,7 @@ class MainActivity : ComponentActivity() {
                 AppTheme.Dynamic -> systemDark
                 AppTheme.OLED,
                 AppTheme.Dark -> true
+
                 AppTheme.Light -> false
             }
 

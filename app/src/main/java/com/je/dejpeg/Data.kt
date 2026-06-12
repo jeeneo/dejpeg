@@ -466,37 +466,38 @@ class ImageRepository {
             withContext(Dispatchers.IO) {
                 uris.forEachIndexed { index, uri ->
                     try {
-                        ImageLoadingHelper.loadBitmap(ImageSource.FromUri(context, uri))?.let { bmp ->
-                            val imageId = UUID.randomUUID().toString()
-                            uri.path?.substringAfterLast('/')?.let { filename ->
-                                if (filename.startsWith("temp_camera_")) {
-                                    val tempFile = File(App.ctx.cacheDir, filename)
-                                    if (tempFile.exists()) {
-                                        val unprocessedFile =
-                                            File(App.ctx.cacheDir, "${imageId}_unprocessed.jpg")
-                                        if (tempFile.renameTo(unprocessedFile)) {
-                                            Log.d(
-                                                "ImageRepository",
-                                                "Renamed camera temp file to ${unprocessedFile.name}"
-                                            )
+                        ImageLoadingHelper.loadBitmap(ImageSource.FromUri(context, uri))
+                            ?.let { bmp ->
+                                val imageId = UUID.randomUUID().toString()
+                                uri.path?.substringAfterLast('/')?.let { filename ->
+                                    if (filename.startsWith("temp_camera_")) {
+                                        val tempFile = File(App.ctx.cacheDir, filename)
+                                        if (tempFile.exists()) {
+                                            val unprocessedFile =
+                                                File(App.ctx.cacheDir, "${imageId}_unprocessed.jpg")
+                                            if (tempFile.renameTo(unprocessedFile)) {
+                                                Log.d(
+                                                    "ImageRepository",
+                                                    "Renamed camera temp file to ${unprocessedFile.name}"
+                                                )
+                                            }
                                         }
                                     }
                                 }
-                            }
-                            val imageItem = ImageItem(
-                                id = imageId,
-                                uri = uri,
-                                filename = ImageLoadingHelper.getFileNameFromUri(context, uri),
-                                inputBitmap = bmp,
-                                thumbnailBitmap = ImageLoadingHelper.generateThumbnail(bmp),
-                                size = "${bmp.width}x${bmp.height}",
+                                val imageItem = ImageItem(
+                                    id = imageId,
+                                    uri = uri,
+                                    filename = ImageLoadingHelper.getFileNameFromUri(context, uri),
+                                    inputBitmap = bmp,
+                                    thumbnailBitmap = ImageLoadingHelper.generateThumbnail(bmp),
+                                    size = "${bmp.width}x${bmp.height}",
 
-                                )
-                            withContext(Dispatchers.Main) {
-                                addImage(imageItem)
-                                loadingImagesProgress.value = Pair(index + 1, uris.size)
+                                    )
+                                withContext(Dispatchers.Main) {
+                                    addImage(imageItem)
+                                    loadingImagesProgress.value = Pair(index + 1, uris.size)
+                                }
                             }
-                        }
                     } catch (e: Exception) {
                         Log.e("ImageRepository", "Failed to load image: $uri - ${e.message}")
                     }

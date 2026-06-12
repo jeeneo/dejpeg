@@ -215,8 +215,9 @@ class ProcessingService : Service() {
                             "ProcessingService",
                             "Loading cached unprocessed file: ${unprocessedFile.name}"
                         )
-                        val bitmap = ImageLoadingHelper.loadBitmap(ImageSource.FromFile(unprocessedFile))
-                            ?: throw Exception("Failed to decode bitmap")
+                        val bitmap =
+                            ImageLoadingHelper.loadBitmap(ImageSource.FromFile(unprocessedFile))
+                                ?: throw Exception("Failed to decode bitmap")
 
                         if (processingMode == ProcessingMode.OIDN) {
                             val weightsPath = intent.getStringExtra(EXTRA_OIDN_WEIGHTS_PATH)

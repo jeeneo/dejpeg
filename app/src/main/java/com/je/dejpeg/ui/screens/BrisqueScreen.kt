@@ -87,11 +87,11 @@ import com.je.dejpeg.BrisqueSettings
 import com.je.dejpeg.HapticFeedbacks
 import com.je.dejpeg.ImageRepository
 import com.je.dejpeg.R
+import com.je.dejpeg.processing.BRISQUEDescaler
 import com.je.dejpeg.ui.components.ErrorAlertDialog
 import com.je.dejpeg.ui.components.SimpleAlertDialog
 import com.je.dejpeg.ui.viewmodel.BrisqueViewModel
 import com.je.dejpeg.ui.viewmodel.SaveState
-import com.je.dejpeg.processing.BRISQUEDescaler
 import kotlinx.coroutines.launch
 import me.saket.telephoto.zoomable.ZoomSpec
 import me.saket.telephoto.zoomable.rememberZoomableState
@@ -783,7 +783,8 @@ private fun BRISQUESettings(
                     style = MaterialTheme.typography.labelMedium
                 )
                 if (infoText.isNotEmpty()) IconButton(onClick = {
-                    HapticFeedbacks.light(); expandedInfo = if (expandedInfo == label) null else label
+                    HapticFeedbacks.light(); expandedInfo =
+                    if (expandedInfo == label) null else label
                 }, Modifier.size(24.dp)) {
                     Icon(
                         Icons.Filled.Info, stringResource(R.string.info_desc), Modifier.size(18.dp)
@@ -894,7 +895,13 @@ private fun BRISQUESettings(
         },
         confirmButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = { HapticFeedbacks.light(); onDismiss() }) { Text(stringResource(R.string.cancel)) }
+                TextButton(onClick = { HapticFeedbacks.light(); onDismiss() }) {
+                    Text(
+                        stringResource(
+                            R.string.cancel
+                        )
+                    )
+                }
                 TextButton(onClick = {
                     HapticFeedbacks.light()
                     coarseStep = 20f

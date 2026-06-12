@@ -418,40 +418,6 @@ fun CancelProcessingDialog(
         })
 }
 
-data class FAQSectionData(
-    val title: String, val content: String?, val subSections: List<Pair<String, String>>?
-)
-
-fun loadFAQSections(context: Context): List<FAQSectionData> {
-    val sections = mutableListOf<FAQSectionData>()
-
-    sections.add(
-        FAQSectionData(
-            title = context.getString(R.string.faq_what_is_this_title),
-            content = context.getString(R.string.faq_what_is_this_content),
-            subSections = null
-        )
-    )
-
-    sections.add(
-        FAQSectionData(
-            title = context.getString(R.string.faq_which_models_title),
-            content = null,
-            subSections = listOf(
-                Pair(
-                    context.getString(R.string.faq_fbcnn_title),
-                    context.getString(R.string.faq_fbcnn_content)
-                ), Pair(
-                    context.getString(R.string.faq_scunet_title),
-                    context.getString(R.string.faq_scunet_content)
-                )
-            )
-        )
-    )
-
-    return sections
-}
-
 private sealed interface HelpTarget {
     data object Gallery : HelpTarget
     data object Internal : HelpTarget

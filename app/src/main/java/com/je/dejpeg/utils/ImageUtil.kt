@@ -61,13 +61,17 @@ object ImageLoadingHelper {
                 applyExifOrientation(bitmap, ExifInterface(exifStream))
             } ?: bitmap
         }
-    } catch (_: Exception) { null }
+    } catch (_: Exception) {
+        null
+    }
 
     private fun loadFromFile(file: File): Bitmap? = try {
         BitmapFactory.decodeFile(file.absolutePath)?.let { bitmap ->
             applyExifOrientation(bitmap, ExifInterface(file.absolutePath))
         }
-    } catch (_: Exception) { null }
+    } catch (_: Exception) {
+        null
+    }
 
     private const val THUMBNAIL_SIZE = 144
     private fun safabs(value: Int): Int = if (value < 0) -value else value

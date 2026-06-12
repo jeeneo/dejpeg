@@ -14,11 +14,11 @@ import com.je.dejpeg.App
 import com.je.dejpeg.AppPreferences
 import com.je.dejpeg.BrisqueSettings
 import com.je.dejpeg.R
+import com.je.dejpeg.processing.BRISQUEAssessor
+import com.je.dejpeg.processing.BRISQUEDescaler
 import com.je.dejpeg.ui.components.SnackbarDuration
 import com.je.dejpeg.ui.components.SnackySnackbarController
 import com.je.dejpeg.ui.components.SnackySnackbarEvents
-import com.je.dejpeg.processing.BRISQUEAssessor
-import com.je.dejpeg.processing.BRISQUEDescaler
 import com.je.dejpeg.utils.ImageActions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job

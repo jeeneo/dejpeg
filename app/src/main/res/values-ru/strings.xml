@@ -44,13 +44,6 @@
     <string name="camera_desc">Открывает камеру устройства, снятые фото будут импортированы автоматически.</string>
     <string name="set_as_default">Установить по умолчанию</string>
     <string name="info">Информация</string>
-    <string name="faq_what_is_this_title">Для чего это приложение?</string>
-    <string name="faq_what_is_this_content">Приложение предназначено для удаления артефактов сжатия, шума и других дефектов изображения.\n\nЭто не «ИИ» и не увеличение разрешения: исходное разрешение сохраняется.\nОно делает изображение чище, что может улучшить результат при последующей обработке другими инструментами.</string>
-    <string name="faq_which_models_title">Какие модели использовать?</string>
-    <string name="faq_fbcnn_title">FBCNN</string>
-    <string name="faq_fbcnn_content">Подходит для изображений с JPEG-сжатием (например, низкокачественные изображения из Google, Pinterest, Instagram и т.д.).\n\nПолзунок доступен только для FBCNN и управляет силой удаления артефактов: ~30–50 для слабого сжатия, 70+ для сильного. При высоких значениях изображение становится заметно более сглаженным.\n\nЦветная модель используется для RGB-изображений, серые модели — для чёрно-белых. Gray double предназначена для изображений, многократно пересохранявшихся в JPEG.</string>
-    <string name="faq_scunet_title">SCUNet</string>
-    <string name="faq_scunet_content">SCUNet более эффективно устраняет шумы (например, ISO-шум, зернистость или пятнистость).\n\nКроме того, он в определенной степени способен устранять артефакты сжатия и GIF-артефакты.\n\nМодели SCUNet с обозначением «gray 15/25/50» предназначены исключительно для изображений в оттенках серого и отличаются степенью шумоподавления.\n\nЧем выше число, тем больше шума удаляется.\n\nВариант PSNR пытается максимально точно сопоставить пиксели с исходным изображением, поэтому оно выглядит математически корректно, но может казаться чрезмерно сглаженным.\n\nGAN жертвует пиксельной точностью ради добавления реалистичных текстур или деталей, что может выглядеть более естественно. Как и в большинстве случаев, попробуйте оба варианта и посмотрите, какой из них лучше подходит для вашего изображения.</string>
     <string name="ok">ОК</string>
     <string name="images">Фото (%1$d)</string>
     <string name="strength">Сила: %1$d</string>
@@ -123,11 +116,13 @@
     <string name="recovered_image_prefix">Восстановлено</string>
     <string name="model_info_1x_rgb_max_denoise_fp16">Быстрое шумоподавление и удаление артефактов, хорошо для анимации. Также может превращать фото в мультяшный стиль.</string>
     <string name="model_info_1x_span_anime_pretrain_fp16">Быстро, общее сжатие, общий шум. Подходит для анимации, комиксов, аниме и некоторых фотографий.</string>
-    <string name="model_info_fbcnn_color_fp16">Лучше всего для JPEG-сжатия и лёгкого шума, любые цветные изображения</string>
-    <string name="model_info_fbcnn_gray_fp16">Общее сжатие и шум, только чёрно-белые изображения</string>
-    <string name="model_info_fbcnn_gray_double_fp16">Наиболее эффективно при общем сжатии и шуме, только для изображений в оттенках серого</string>
-    <string name="model_info_scunet_color_real_gan_fp16">Умеренный шум, GAN-архитектура, цветные изображения, больше деталей</string>
-    <string name="model_info_scunet_color_real_psnr_fp16">Общий шум, PSNR-архитектура, цветные изображения, более гладкий результат</string>
+    <string name="model_info_fbcnn_suffix">Ползунок доступен только для FBCNN и управляет силой удаления артефактов: около 30–50 для слабого сжатия и 70+ для сильного.</string>
+    <string name="model_info_fbcnn_color_fp16">Лучше всего подходит для устранения JPEG-сжатия, лёгкого шума и любых цветных изображений. Подходит для изображений с JPEG-сжатием (например, низкокачественные изображения из Google, Pinterest, Instagram и т.д.).</string>
+    <string name="model_info_fbcnn_gray_fp16">Общее устранение сжатия и шума, только для изображений в оттенках серого. Подходит для чёрно-белых изображений с JPEG-сжатием.</string>
+    <string name="model_info_fbcnn_gray_double_fp16">Самая мощная модель для устранения сжатия и шума, только для изображений в оттенках серого. Аналогична fbcnn_gray, но лучше справляется с сильно сжатыми чёрно-белыми изображениями.</string>
+    <string name="model_info_scunet_suffix">SCUNet более эффективно устраняет шумы например, ISO-шум, зернистость или пятнистость. Кроме того, он способен устранять артефакты сжатия и GIF-артефакты.</string>
+    <string name="model_info_scunet_color_real_gan_fp16">Умеренный шум, архитектура GAN, цветные изображения, лучше сохраняет детали. GAN может добавлять реалистичные текстуры и детали, делая изображение более естественным, но удаляя меньше артефактов.</string>
+    <string name="model_info_scunet_color_real_psnr_fp16">Общий шум, архитектура PSNR, цветные изображения, меньше деталей. Максимально точно сопоставляет пиксели с оригиналом, но изображение может выглядеть слишком сглаженным.</string>
     <string name="model_info_scunet_color_15_fp16">Лёгкий шум, цветные изображения</string>
     <string name="model_info_scunet_color_25_fp16">Лёгкий шум, цветные изображения, сильнее</string>
     <string name="model_info_scunet_color_50_fp16">Лёгкий шум, цветные изображения, максимальное подавление</string>
@@ -180,6 +175,7 @@
     <string name="model_info_1x_re_detail_v2_126000_g_fp16">«Улучшение» деталей</string>
     <string name="model_info_1x_repainter_20000_g_fp16">Перерисовка</string>
     <string name="model_info_1x_artifacts_dithering_alsa_fp16">Артефакты дизеринга</string>
+    <string name="model_info_1x_nmkd_brighten_10000_g_fp16">Осветление</string>
     <string name="copy">Копировать</string>
     <string name="drag_to_compare">Перетащите для сравнения</string>
     <string name="back_desc">Назад</string>
@@ -259,6 +255,12 @@
     <string name="brisque_refining_progress">Уточнение %1$s (%2$d/%3$d)</string>
     <string name="brisque_analyzing">Анализ…</string>
     <string name="brisque_starting_descale">Запуск уменьшения масштаба…</string>
+    <string name="brisque_phase_initialization">Инициализация</string>
+    <string name="brisque_phase_coarse_scan">Грубое сканирование</string>
+    <string name="brisque_phase_coarse_complete">Грубое сканирование завершено</string>
+    <string name="brisque_phase_fine_scan">Точное сканирование</string>
+    <string name="brisque_phase_fine_done">Точное сканирование выполнено</string>
+    <string name="brisque_phase_finalizing">Завершение</string>
     <string name="invalid_tza_file_type">В режиме Oidn поддерживаются только файлы моделей .tza</string>
     <string name="processing_mode">Режим обработки</string>
     <string name="mode_onnx" translatable="false">ONNX</string>
@@ -293,11 +295,4 @@
     <string name="theme_light">Светлая</string>
     <string name="theme_dark">Тёмная</string>
     <string name="theme_oled">OLED</string>
-    <string name="model_info_1x_nmkd_brighten_10000_g_fp16">Осветление</string>
-    <string name="brisque_phase_initialization">Инициализация</string>
-    <string name="brisque_phase_coarse_scan">Грубое сканирование</string>
-    <string name="brisque_phase_coarse_complete">Грубое сканирование завершено</string>
-    <string name="brisque_phase_fine_scan">Точное сканирование</string>
-    <string name="brisque_phase_fine_done">Точное сканирование выполнено</string>
-    <string name="brisque_phase_finalizing">Завершение</string>
 </resources>

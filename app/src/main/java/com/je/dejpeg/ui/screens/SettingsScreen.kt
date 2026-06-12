@@ -52,7 +52,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.GridOn
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -113,7 +112,6 @@ import com.je.dejpeg.ThreadUtils
 import com.je.dejpeg.ui.components.SnackbarDuration
 import com.je.dejpeg.ui.components.SnackySnackbarController
 import com.je.dejpeg.ui.components.SnackySnackbarEvents
-import com.je.dejpeg.ui.components.loadFAQSections
 import com.je.dejpeg.ui.components.rememberMaterialPressState
 import com.je.dejpeg.ui.theme.AppTheme
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
@@ -253,13 +251,13 @@ fun SettingsScreen(
 
                 ExtendedFloatingActionButton(
                     onClick = {
-                    HapticFeedbacks.light()
-                    if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN) {
-                        oidnModelPickerLauncher.launch("*/*")
-                    } else {
-                        modelPickerLauncher.launch("*/*")
-                    }
-                },
+                        HapticFeedbacks.light()
+                        if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN) {
+                            oidnModelPickerLauncher.launch("*/*")
+                        } else {
+                            modelPickerLauncher.launch("*/*")
+                        }
+                    },
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = {
                         Text(
@@ -826,41 +824,42 @@ fun SettingsScreen(
 
                 val isOidn = BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN
 
-                Box(modifier = Modifier
-                    .fillMaxWidth()
-                    .onSizeChanged { containerWidth = it.width }
-                    .clip(MaterialTheme.shapes.large)
-                    .pointerInput(processingMode) {
-                        if (!BuildConfig.OIDN_ENABLED) return@pointerInput
-                        detectHorizontalDragGestures(onDragEnd = {
-                            val threshold = containerWidth * 0.35f
-                            scope.launch {
-                                if (animatedOffset.value > threshold && processingMode == ProcessingMode.OIDN) {
-                                    animatedOffset.animateTo(containerWidth.toFloat(), spring())
-                                    viewModel.setProcessingMode(ProcessingMode.ONNX)
-                                    animatedOffset.snapTo(0f)
-                                } else if (animatedOffset.value < -threshold && processingMode == ProcessingMode.ONNX) {
-                                    animatedOffset.animateTo(
-                                        -containerWidth.toFloat(), spring()
-                                    )
-                                    viewModel.setProcessingMode(ProcessingMode.OIDN)
-                                    animatedOffset.snapTo(0f)
-                                } else {
-                                    animatedOffset.animateTo(0f, spring())
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onSizeChanged { containerWidth = it.width }
+                        .clip(MaterialTheme.shapes.large)
+                        .pointerInput(processingMode) {
+                            if (!BuildConfig.OIDN_ENABLED) return@pointerInput
+                            detectHorizontalDragGestures(onDragEnd = {
+                                val threshold = containerWidth * 0.35f
+                                scope.launch {
+                                    if (animatedOffset.value > threshold && processingMode == ProcessingMode.OIDN) {
+                                        animatedOffset.animateTo(containerWidth.toFloat(), spring())
+                                        viewModel.setProcessingMode(ProcessingMode.ONNX)
+                                        animatedOffset.snapTo(0f)
+                                    } else if (animatedOffset.value < -threshold && processingMode == ProcessingMode.ONNX) {
+                                        animatedOffset.animateTo(
+                                            -containerWidth.toFloat(), spring()
+                                        )
+                                        viewModel.setProcessingMode(ProcessingMode.OIDN)
+                                        animatedOffset.snapTo(0f)
+                                    } else {
+                                        animatedOffset.animateTo(0f, spring())
+                                    }
                                 }
-                            }
-                        }, onDragCancel = {
-                            scope.launch { animatedOffset.animateTo(0f, spring()) }
-                        }, onHorizontalDrag = { change, dragAmount ->
-                            change.consume()
-                            val newOffset = animatedOffset.value + dragAmount
-                            val clamped = when (processingMode) {
-                                ProcessingMode.OIDN -> newOffset.coerceAtLeast(0f)
-                                ProcessingMode.ONNX -> newOffset.coerceAtMost(0f)
-                            }
-                            scope.launch { animatedOffset.snapTo(clamped) }
-                        })
-                    }) {
+                            }, onDragCancel = {
+                                scope.launch { animatedOffset.animateTo(0f, spring()) }
+                            }, onHorizontalDrag = { change, dragAmount ->
+                                change.consume()
+                                val newOffset = animatedOffset.value + dragAmount
+                                val clamped = when (processingMode) {
+                                    ProcessingMode.OIDN -> newOffset.coerceAtLeast(0f)
+                                    ProcessingMode.ONNX -> newOffset.coerceAtMost(0f)
+                                }
+                                scope.launch { animatedOffset.snapTo(clamped) }
+                            })
+                        }) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -970,12 +969,16 @@ fun SettingsScreen(
                                     }
                                     Box {
                                         TextButton(
-                                            onClick = {HapticFeedbacks.light();  themeMenuExpanded = true }) {
+                                            onClick = {
+                                                HapticFeedbacks.light(); themeMenuExpanded = true
+                                            }) {
                                             Text(currentTheme.name)
                                         }
                                         DropdownMenu(
                                             expanded = themeMenuExpanded,
-                                            onDismissRequest = { HapticFeedbacks.light(); themeMenuExpanded = false }) {
+                                            onDismissRequest = {
+                                                HapticFeedbacks.light(); themeMenuExpanded = false
+                                            }) {
                                             AppTheme.entries.forEach { theme ->
                                                 val label = when (theme) {
                                                     AppTheme.Dynamic -> stringResource(R.string.theme_dynamic)
@@ -1003,34 +1006,6 @@ fun SettingsScreen(
                         },
                         position = CardPosition.Leading,
                     )
-
-                    AnimatedVisibility(visible = processingMode == ProcessingMode.ONNX || !BuildConfig.OIDN_ENABLED) {
-                        Column {
-                            PreferenceItem(
-                                icon = Icons.Filled.QuestionMark,
-                                iconBackgroundColor = MaterialTheme.colorScheme.primaryContainer,
-                                iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                title = stringResource(R.string.settings_item_title_help),
-                                subtitle = stringResource(R.string.settings_item_subtitle_help_faq),
-                                expanded = expandedSection == SettingsSection.FAQ,
-                                expandedContent = {
-                                    val faqSections = remember { loadFAQSections(context) }
-                                    Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
-                                        faqSections.forEach { section ->
-                                            FAQSection(
-                                                section.title, section.content, section.subSections
-                                            )
-                                        }
-                                    }
-                                },
-                                onClick = {
-                                    toggle(SettingsSection.FAQ)
-                                },
-                                position = CardPosition.Center
-                            )
-                        }
-                    }
-
                     PreferenceItem(
                         icon = Icons.Filled.Code,
                         iconBackgroundColor = MaterialTheme.colorScheme.primaryContainer,
@@ -1134,7 +1109,7 @@ fun SettingsScreen(
 }
 
 private enum class SettingsSection {
-    Chunk, Preferences, OidnSettings, ModelManagement, OidnModelManagement, FAQ
+    Chunk, Preferences, OidnSettings, ModelManagement, OidnModelManagement
 }
 
 @Composable
@@ -1244,31 +1219,31 @@ fun LabeledSwitch(
 
         Switch(
             checked = checked, onCheckedChange = {
-            onCheckedChange(it)
-            HapticFeedbacks.light()
-        }, thumbContent = if (checked) {
-            {
-                Icon(
-                    imageVector = Icons.Filled.Check,
-                    contentDescription = null,
-                    modifier = Modifier.size(SwitchDefaults.IconSize),
-                )
-            }
-        } else {
-            {
-                Icon(
-                    imageVector = Icons.Filled.Close,
-                    contentDescription = null,
-                    modifier = Modifier.size(SwitchDefaults.IconSize),
-                )
-            }
-        }, colors = SwitchDefaults.colors(
-            checkedThumbColor = MaterialTheme.colorScheme.primaryContainer,
-            checkedTrackColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            uncheckedThumbColor = MaterialTheme.colorScheme.secondary,
-            uncheckedTrackColor = MaterialTheme.colorScheme.secondaryContainer,
-            uncheckedBorderColor = Color.Transparent,
-        ))
+                onCheckedChange(it)
+                HapticFeedbacks.light()
+            }, thumbContent = if (checked) {
+                {
+                    Icon(
+                        imageVector = Icons.Filled.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(SwitchDefaults.IconSize),
+                    )
+                }
+            } else {
+                {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = null,
+                        modifier = Modifier.size(SwitchDefaults.IconSize),
+                    )
+                }
+            }, colors = SwitchDefaults.colors(
+                checkedThumbColor = MaterialTheme.colorScheme.primaryContainer,
+                checkedTrackColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                uncheckedThumbColor = MaterialTheme.colorScheme.secondary,
+                uncheckedTrackColor = MaterialTheme.colorScheme.secondaryContainer,
+                uncheckedBorderColor = Color.Transparent,
+            ))
     }
 }
 
@@ -1384,61 +1359,5 @@ fun PreferenceItem(
                 expandedContent?.invoke()
             }
         }
-    }
-}
-
-@Composable
-fun FAQSection(title: String, content: String?, subSections: List<Pair<String, String>>? = null) {
-    var expanded by remember { mutableStateOf(false) }
-    val chevronRotation by animateFloatAsState(
-        targetValue = if (expanded) 90f else 0f, animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium
-        ), label = "chevron"
-    )
-
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { HapticFeedbacks.light(); expanded = !expanded }
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically) {
-            Text(title, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-            Icon(
-                Icons.Filled.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                modifier = Modifier
-                    .size(20.dp)
-                    .rotate(chevronRotation)
-            )
-        }
-        AnimatedVisibility(visible = expanded) {
-            Column(modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)) {
-                content?.let {
-                    Text(
-                        it,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                subSections?.forEach { (subTitle, subContent) ->
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        subTitle,
-                        fontWeight = FontWeight.SemiBold,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        subContent,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-        Spacer(modifier = Modifier.height(10.dp))
     }
 }

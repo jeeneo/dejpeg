@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_name" translatable="false">DeJPEG</string>
     <string name="image">Image</string>
     <string name="save">Save</string>
     <string name="before">Before</string>
@@ -42,13 +43,6 @@
     <string name="camera_desc">Opens your device\'s camera, photos taken will be imported automatically.</string>
     <string name="set_as_default">Set as default</string>
     <string name="info">Info</string>
-    <string name="faq_what_is_this_title">What is this app for?</string>
-    <string name="faq_what_is_this_content">This app is designed to remove image compression, noise, or other unpleasant artifacts\n\nNote: this isn\'t \"AI\" or image upscaling, your images stay the same resolution.\nIt\'s meant to provide a cleaner image, which can produce better results if you do use \"AI enhancers\".</string>
-    <string name="faq_which_models_title">Which models to use?</string>
-    <string name="faq_fbcnn_title">FBCNN</string>
-    <string name="faq_fbcnn_content">Use for images that have JPEG compression (e.g. low-res images from Google, Pinterest, Instagram, that random forum, etc).\n\nThe slider is available for FBCNN models only, and affects how much strength goes into removing compression, values around 30/50 for minor compression, and 70+ for heavy removal, afterward it begins to get noticeably smoother.\n\nThe base model is color, the gray FBCNN models are for black and white images, gray double is for images saved and re-saved as JPEG. (edited/resized twice both saving as JPEG).</string>
-    <string name="faq_scunet_title">SCUNet</string>
-    <string name="faq_scunet_content">SCUNet is more adept at removing noise (e.g. ISO noise, grainy looking or speckled).\n\nIt can also remove compression and GIF artifacts, to some degree.\n\nThe gray 15/25/50 SCUNet models are only for grayscale images as well, with different levels of noise removal.\n\nHigher the number, the more noise is removed.\n\nThe PSNR variant tries to pixel-match the original image as closely as possible, so it looks mathematically correct but may appear overly smooth.\n\nGAN sacrifices pixel-perfect accuracy to add realistic textures or details, which can look more natural. As with most cases, try both and see which one suits your image better.</string>
     <string name="ok">OK</string>
     <string name="images">Images (%1$d)</string>
     <string name="strength">Strength: %1$d</string>
@@ -115,11 +109,13 @@
     <string name="recovered_image_prefix">Recovered</string>
     <string name="model_info_1x_rgb_max_denoise_fp16">Fast, noise and compression, great for animation. Also turns photos into cartoons.</string>
     <string name="model_info_1x_span_anime_pretrain_fp16">Fast, general compression, general noise. Good for animation, comics, anime, and some photos.</string>
-    <string name="model_info_fbcnn_color_fp16">Best at general JPEG compression, minor noise, any kind of color images</string>
-    <string name="model_info_fbcnn_gray_fp16">General compression and noise, only grayscale images</string>
-    <string name="model_info_fbcnn_gray_double_fp16">Strongest at general compression and noise, only grayscale images</string>
-    <string name="model_info_scunet_color_real_gan_fp16">Moderate noise, GAN architecture, color images, better details</string>
-    <string name="model_info_scunet_color_real_psnr_fp16">General noise, PSNR architecture, color images, less details</string>
+    <string name="model_info_fbcnn_suffix">The slider is available for FBCNN models only, and affects how much strength goes into removing compression, values around 30/50 for minor compression, and 70+ for heavy removal</string>
+    <string name="model_info_fbcnn_color_fp16">Best at general JPEG compression, minor noise, any kind of color images. Use for images that have JPEG compression (e.g. low-res images from Google, Pinterest, Instagram, etc).</string>
+    <string name="model_info_fbcnn_gray_fp16">General compression and noise, only grayscale images. Use for black and white that have JPEG compression.</string>
+    <string name="model_info_fbcnn_gray_double_fp16">Strongest at general compression and noise, only grayscale images. Same as fbcnn_grey except can process heavily compressed greyscale photos.</string>
+    <string name="model_info_scunet_suffix">SCUNet is more adept at removing noise (e.g. ISO noise, grainy looking or speckled). It can also remove compression and GIF artifacts.</string>
+    <string name="model_info_scunet_color_real_gan_fp16">Moderate noise, GAN architecture, color images, better details. GAN might add realistic textures or details which can look more natural but remove less artifacts.</string>
+    <string name="model_info_scunet_color_real_psnr_fp16">General noise, PSNR architecture, color images, less details. Pixel-matches the original image as closely as possible but may appear overly smooth.</string>
     <string name="model_info_scunet_color_15_fp16">Minor noise, color images</string>
     <string name="model_info_scunet_color_25_fp16">Minor noise, color images, stronger</string>
     <string name="model_info_scunet_color_50_fp16">Minor noise, color images, strongest</string>
@@ -174,6 +170,7 @@
     <string name="model_info_1x_artifacts_dithering_alsa_fp16">Dithering artifacts</string>
     <string name="model_info_1x_nmkd_brighten_10000_g_fp16">Brightening</string>
     <string name="model_info_background_removal_bria_rmbg">Background removal using BriaAI RMBG</string>
+    <string name="model_info_background_removal_u2net">Background removal using u2net</string>
     <string name="copy">Copy</string>
     <string name="drag_to_compare">Drag to compare</string>
     <string name="back_desc">Back</string>

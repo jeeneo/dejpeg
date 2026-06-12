@@ -144,8 +144,7 @@ class ModelManager(
         )
 
         private val FIXED_INPUT_SIZE_BY_NAME = mapOf(
-            "rmbg" to Pair(1024, 1024),
-            "u2net" to Pair(320, 320)
+            "rmbg" to Pair(1024, 1024), "u2net" to Pair(320, 320)
         )
     }
 
@@ -436,7 +435,18 @@ class ModelManager(
             modelName.contains(key)
         } ?: return null
         val resId = MODEL_INFO_RES_IDS[match] ?: return null
-        return context.getString(resId)
+        val info = context.getString(resId)
+        return when {
+            modelName.contains(
+                "fbcnn", ignoreCase = true
+            ) -> info + "\n\n" + context.getString(R.string.model_info_fbcnn_suffix)
+
+            modelName.contains(
+                "scunet", ignoreCase = true
+            ) -> info + "\n\n" + context.getString(R.string.model_info_scunet_suffix)
+
+            else -> info
+        }
     }
 
     fun initializeStarterModel(): Boolean {
