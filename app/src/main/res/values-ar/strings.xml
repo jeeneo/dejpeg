@@ -305,4 +305,6 @@
     <string name="theme_light">فاتح</string>
     <string name="theme_dark">داكن</string>
     <string name="theme_oled">OLED</string>
+    <string name="model_info_background_removal_bria_rmbg">إزالة الخلفية باستخدام BriaAI RMBG</string>
+    <string name="model_info_background_removal_u2net">إزالة الخلفية باستخدام u2net</string>
 </resources>

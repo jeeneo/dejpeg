@@ -65,7 +65,7 @@
     <string name="status_complete_ui">завершено — нажмите для просмотра</string>
     <string name="status_cancelled">Отменено</string>
     <string name="status_canceling">Отмена…</string>
-    <string name="status_queued">в очереди</string>
+    <string name="status_queued">В очереди</string>
     <string name="settings">Настройки</string>
     <string name="add_images">Добавить фото</string>
     <string name="process">Обработать</string>
@@ -176,6 +176,8 @@
     <string name="model_info_1x_repainter_20000_g_fp16">Перерисовка</string>
     <string name="model_info_1x_artifacts_dithering_alsa_fp16">Артефакты дизеринга</string>
     <string name="model_info_1x_nmkd_brighten_10000_g_fp16">Осветление</string>
+    <string name="model_info_background_removal_bria_rmbg">Удаление фона с помощью BriaAI RMBG</string>
+    <string name="model_info_background_removal_u2net">Удаление фона с помощью u2net</string>
     <string name="copy">Копировать</string>
     <string name="drag_to_compare">Перетащите для сравнения</string>
     <string name="back_desc">Назад</string>

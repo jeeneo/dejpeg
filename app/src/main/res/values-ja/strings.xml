@@ -164,6 +164,8 @@
     <string name="model_info_1x_repainter_20000_g_fp16">重绘（？）</string>
     <string name="model_info_1x_artifacts_dithering_alsa_fp16">抖动伪影</string>
     <string name="model_info_1x_nmkd_brighten_10000_g_fp16">輝度低減</string>
+    <string name="model_info_background_removal_bria_rmbg">BriaAI RMBG を使用した背景除去</string>
+    <string name="model_info_background_removal_u2net">u2net を使用した背景除去</string>
     <string name="copy">コピー</string>
     <string name="drag_to_compare">ドラッグして比較</string>
     <string name="back_desc">戻る</string>
