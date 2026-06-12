@@ -7,3 +7,4 @@ Added/updated:
 - Improved expressive design
 - Background removal model (Bria RMBG)
 - OLED theme
+- Replaced FAQs with model info sheet
