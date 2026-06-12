@@ -1116,7 +1116,7 @@ fun ImageCard(
                     }
                 Surface(
                     Modifier
-                        .size(82.dp)
+                        .size(84.dp)
                         .clip(RoundedCornerShape(12.dp)),
                     color = MaterialTheme.colorScheme.surfaceVariant
                 ) {
@@ -1130,7 +1130,7 @@ fun ImageCard(
                 Column(
                     Modifier
                         .weight(1f)
-                        .height(86.dp),
+                        .height(84.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Row(
