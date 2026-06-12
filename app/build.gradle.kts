@@ -33,8 +33,8 @@ android {
         minSdk = 26
         //noinspection OldTargetApi
         targetSdk = 36
-        versionCode = 401
-        versionName = "4.0.1"
+        versionCode = 410
+        versionName = "4.1.0"
         ndk {
             abiFilters += "arm64-v8a"
         }
@@ -42,7 +42,8 @@ android {
         applicationVariants.all {
             val variant = this
             val abi = ndk.abiFilters.first()
-            val fileName = "${rootProject.name.lowercase()}-$abi"
+            val signingState = if (hasReleaseSigning) "signed" else "unsigned"
+            val fileName = "${rootProject.name.lowercase()}-$abi-$signingState"
             variant.outputs.all {
                 val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
                 output.outputFileName = "$fileName.apk"
