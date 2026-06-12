@@ -143,7 +143,8 @@ class ModelManager(
         )
 
         private val FIXED_INPUT_SIZE_BY_NAME = mapOf(
-            "rmbg" to Pair(1024, 1024)
+            "rmbg" to Pair(1024, 1024),
+            "u2net" to Pair(320, 320)
         )
     }
 

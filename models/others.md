@@ -29,8 +29,9 @@ Speed:
 
 - ✧ ➠ [BriaAI RMBG v1.4](https://huggingface.co/briaai/RMBG-1.4) (license: [bria-rmbg-1.4](https://web.archive.org/web/20240216110248if_/https://bria.ai/wp-content/uploads/2024/01/BRIA_huggingface_model_license_agreement.pdf)) download: [direct link](https://huggingface.co/briaai/RMBG-1.4/resolve/main/onnx/model_quantized.onnx) - usage: background removal
 - ✧ ➠ [BriaAI RMBG v2.0](https://huggingface.co/briaai/RMBG-2.0) (license: [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/deed.en)) downlaoad: [link](https://huggingface.co/briaai/RMBG-2.0/resolve/main/onnx/model_quantized.onnx) (requires HF account), download `model_quantized.onnx` - usage: background removal
+- ✧ ➤ [u2netp](https://huggingface.co/BritishWerewolf/U-2-Netp/resolve/main/onnx/model.onnx) ([source](https://huggingface.co/BritishWerewolf/U-2-Netp)) - background removal
 
-note: after downloading, please rename the onnx file to something containing `rmbg`, for example `bria_rmbg_1.4.onnx` for correct operation otherwise issues may occur when processing
+note: after downloading these models, rename to contain either `rmbg` or `u2net` (e.g. `bria_rmbg_1.4.onnx`) respectively for correct operation otherwise issues may occur when processing
 
 ## [Other compression models](https://huggingface.co/colpona/dejpeg-models/tree/main/other-models):
 
