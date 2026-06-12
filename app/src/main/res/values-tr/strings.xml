@@ -60,7 +60,7 @@
     <string name="finishing_up">Bitiriliyor…</string>
     <string name="status_preparing">Hazırlanıyor…</string>
     <string name="status_complete">Tamamlandı</string>
-    <string name="status_complete_ui">tamamlandı - görüntülemek için dokunun</string>
+    <string name="status_complete_ui">Tamamlandı - görüntülemek için dokunun</string>
     <string name="status_cancelled">İptal edildi</string>
     <string name="status_canceling">İptal ediliyor…</string>
     <string name="status_queued">Sırada</string>
@@ -287,4 +287,5 @@
     <string name="theme_oled">OLED</string>
     <string name="model_info_background_removal_bria_rmbg">BriaAI RMBG kullanarak arka plan kaldırma</string>
     <string name="model_info_background_removal_u2net">u2net kullanarak arka plan kaldırma</string>
+    <string name="status_ready">Hazır</string>
 </resources>

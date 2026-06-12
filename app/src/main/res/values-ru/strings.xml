@@ -62,7 +62,7 @@
     <string name="finishing_up">Завершение…</string>
     <string name="status_preparing">Подготовка…</string>
     <string name="status_complete">Завершено</string>
-    <string name="status_complete_ui">завершено — нажмите для просмотра</string>
+    <string name="status_complete_ui">Завершено — нажмите для просмотра</string>
     <string name="status_cancelled">Отменено</string>
     <string name="status_canceling">Отмена…</string>
     <string name="status_queued">В очереди</string>
@@ -297,4 +297,5 @@
     <string name="theme_light">Светлая</string>
     <string name="theme_dark">Тёмная</string>
     <string name="theme_oled">OLED</string>
+    <string name="status_ready">Готово</string>
 </resources>

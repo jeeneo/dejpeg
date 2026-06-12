@@ -283,4 +283,5 @@
     <string name="theme_oled">OLED 黑</string>
     <string name="model_info_background_removal_bria_rmbg">使用 BriaAI RMBG 去除背景</string>
     <string name="model_info_background_removal_u2net">使用 u2net 去除背景</string>
+    <string name="status_ready">準備好了</string>
 </resources>
