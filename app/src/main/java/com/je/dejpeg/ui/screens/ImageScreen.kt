@@ -8,20 +8,22 @@
 package com.je.dejpeg.ui.screens
 
 import android.graphics.Bitmap
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -49,13 +51,18 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.core.graphics.createBitmap
 import com.je.dejpeg.AppPreferences
 import com.je.dejpeg.HapticFeedbacks
 import com.je.dejpeg.ImageRepository
@@ -138,6 +145,7 @@ fun ImageScreen(
             Box(
                 Modifier.fillMaxSize()
             ) {
+                val needsChecker = beforeBitmap.hasAlpha() || afterBitmap?.hasAlpha() == true
                 if (afterBitmap != null) {
                     BeforeAfterSlider(
                         beforeBitmap = beforeBitmap,
@@ -145,7 +153,7 @@ fun ImageScreen(
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {
-                    SingleImageView(beforeBitmap)
+                    SingleImageView(beforeBitmap, needsChecker)
                 }
 
                 Row(
@@ -280,9 +288,10 @@ fun ImageScreen(
 }
 
 @Composable
-private fun SingleImageView(bitmap: Bitmap) {
+private fun SingleImageView(bitmap: Bitmap, needsChecker: Boolean) {
     val appPreferences = remember { AppPreferences() }
     val isHapticEnabled by appPreferences.hapticFeedbackEnabled.collectAsState(initial = true)
+    val checkerShader = if (needsChecker) rememberCheckerShader() else null
     val zoomableState = rememberZoomableState(
         ZoomSpec(
             maximum = ZoomLimit(
@@ -299,12 +308,59 @@ private fun SingleImageView(bitmap: Bitmap) {
             .fillMaxSize()
             .zoomable(zoomableState), Alignment.Center
     ) {
-        Image(
-            bitmap.asImageBitmap(),
-            null,
-            Modifier.fillMaxSize(),
-            contentScale = ContentScale.Fit,
-            filterQuality = FilterQuality.None
+        CheckeredImage(
+            bitmap = bitmap,
+            modifier = Modifier
+                .fillMaxSize()
+                .wrapContentSize(Alignment.Center)
+                .aspectRatio(bitmap.width.toFloat() / bitmap.height.toFloat()),
+            checkerShader = checkerShader
+        )
+    }
+}
+
+@Composable
+fun CheckeredImage(
+    bitmap: Bitmap,
+    modifier: Modifier = Modifier,
+    checkerShader: ShaderBrush? = null,
+    filterQuality: FilterQuality = FilterQuality.None
+) {
+    val imageBitmap = remember(bitmap) { bitmap.asImageBitmap() }
+    androidx.compose.foundation.Canvas(modifier) {
+        if (checkerShader != null) {
+            drawRect(brush = checkerShader)
+        }
+        drawImage(
+            image = imageBitmap,
+            dstSize = androidx.compose.ui.unit.IntSize(size.width.toInt(), size.height.toInt()),
+            filterQuality = filterQuality
+        )
+    }
+}
+
+@Composable
+fun rememberCheckerShader(cellSize: Dp = 8.dp): ShaderBrush {
+    val isDark = isSystemInDarkTheme()
+    val cellPx = with(LocalDensity.current) { cellSize.toPx() }.toInt()
+    val colorA = if (isDark) Color(0xFF262626) else Color(0xFFCCCCCC)
+    val colorB = if (isDark) Color(0xFF343434) else Color(0xFFFFFFFF)
+    return remember(isDark, cellPx) {
+        val size = cellPx * 2
+        val tile = createBitmap(size, size)
+        val canvas = android.graphics.Canvas(tile)
+        val paintA = android.graphics.Paint().apply { color = colorA.toArgb() }
+        val paintB = android.graphics.Paint().apply { color = colorB.toArgb() }
+        canvas.drawRect(0f, 0f, cellPx.toFloat(), cellPx.toFloat(), paintA)
+        canvas.drawRect(cellPx.toFloat(), cellPx.toFloat(), size.toFloat(), size.toFloat(), paintA)
+        canvas.drawRect(cellPx.toFloat(), 0f, size.toFloat(), cellPx.toFloat(), paintB)
+        canvas.drawRect(0f, cellPx.toFloat(), cellPx.toFloat(), size.toFloat(), paintB)
+        ShaderBrush(
+            android.graphics.BitmapShader(
+                tile,
+                android.graphics.Shader.TileMode.REPEAT,
+                android.graphics.Shader.TileMode.REPEAT
+            )
         )
     }
 }

@@ -1,12 +1,15 @@
 > [!IMPORTANT]
 > Links may change from time to time.
 
-support status
+> [!CAUTION]
+> Some of these models can make your device run hot, please monitor device temperature
+
+Support:
 - ✦ = officially supported, stable
 - ✧ = tested, but can be unstable
 - ✚ = might crash, was only checked for runability
 
-speed:
+Speed:
 - ➤ = fast, good on low-end devices
 - ➠ = medium, depends on device
 - ➽ = slow, resource intensive

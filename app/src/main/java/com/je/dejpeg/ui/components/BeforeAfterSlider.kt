@@ -6,16 +6,19 @@
 package com.je.dejpeg.ui.components
 
 import android.graphics.Bitmap
-import androidx.compose.foundation.Image
+import android.graphics.Color.blue
+import android.graphics.Color.red
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -37,11 +40,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.FilterQuality
-import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -54,9 +55,12 @@ import androidx.core.graphics.get
 import com.je.dejpeg.AppPreferences
 import com.je.dejpeg.HapticFeedbacks
 import com.je.dejpeg.R
+import com.je.dejpeg.ui.screens.CheckeredImage
+import com.je.dejpeg.ui.screens.rememberCheckerShader
 import me.saket.telephoto.zoomable.OverzoomEffect
 import me.saket.telephoto.zoomable.ZoomLimit
 import me.saket.telephoto.zoomable.ZoomSpec
+import me.saket.telephoto.zoomable.ZoomableState
 import me.saket.telephoto.zoomable.rememberZoomableState
 import me.saket.telephoto.zoomable.zoomable
 
@@ -74,6 +78,9 @@ fun BeforeAfterSlider(
 ) {
     val appPreferences = remember { AppPreferences() }
     val isHapticEnabled by appPreferences.hapticFeedbackEnabled.collectAsState(initial = true)
+    val hasAlpha = beforeBitmap.hasAlpha() || afterBitmap.hasAlpha()
+    val checkerShader = if (hasAlpha) rememberCheckerShader() else null
+
     val zoomableState = if (enableZoom) {
         rememberZoomableState(
             ZoomSpec(
@@ -105,16 +112,17 @@ fun BeforeAfterSlider(
             label = if (showLabels) beforeLabel else null,
             labelAlignment = Alignment.TopStart,
             labelPadding = labelPadding,
-            modifier = if (zoomableState != null) Modifier.zoomable(zoomableState) else Modifier
+            zoomableState = zoomableState,
+            checkerShader = checkerShader
         )
-
         ImageHalf(
             bitmap = afterBitmap,
             clipRange = sliderPosition to 1f,
             label = if (showLabels) afterLabel else null,
             labelAlignment = Alignment.TopEnd,
             labelPadding = labelPadding,
-            modifier = if (zoomableState != null) Modifier.zoomable(zoomableState) else Modifier
+            zoomableState = zoomableState,
+            checkerShader = checkerShader
         )
 
         if (containerSize.width > 0) {
@@ -173,7 +181,8 @@ private fun ImageHalf(
     label: String?,
     labelAlignment: Alignment,
     labelPadding: Dp,
-    modifier: Modifier
+    zoomableState: ZoomableState?,
+    checkerShader: ShaderBrush? = null
 ) {
     Box(
         Modifier
@@ -181,24 +190,23 @@ private fun ImageHalf(
             .drawWithContent {
                 clipRect(
                     size.width * clipRange.first, 0f, size.width * clipRange.second, size.height
-                ) {
-                    this@drawWithContent.drawContent()
-                }
+                ) { this@drawWithContent.drawContent() }
             }) {
         Box(
             Modifier
                 .fillMaxSize()
-                .then(modifier), Alignment.Center
+                .then(if (zoomableState != null) Modifier.zoomable(zoomableState) else Modifier),
+            Alignment.Center
         ) {
-            Image(
-                bitmap.asImageBitmap(),
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Fit,
-                filterQuality = FilterQuality.None
+            CheckeredImage(
+                bitmap = bitmap,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .wrapContentSize(Alignment.Center)
+                    .aspectRatio(bitmap.width.toFloat() / bitmap.height.toFloat()),
+                checkerShader = checkerShader
             )
         }
-
         if (label != null) {
             Box(
                 Modifier
@@ -234,10 +242,9 @@ private fun calculateSliderColors(bitmap: Bitmap): Pair<Color, Color> {
             val x = (cx + dx).coerceIn(0, bitmap.width - 1)
             val y = (cy + dy).coerceIn(0, bitmap.height - 1)
             val pixel = bitmap[x, y]
-            val luminance =
-                (android.graphics.Color.red(pixel) + android.graphics.Color.green(pixel) + android.graphics.Color.blue(
-                    pixel
-                )) / 3
+            val luminance = (red(pixel) + android.graphics.Color.green(pixel) + blue(
+                pixel
+            )) / 3
             luminances.add(luminance)
         }
     }

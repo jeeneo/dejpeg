@@ -8,6 +8,7 @@ package com.je.dejpeg.ui.components
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
 import androidx.compose.foundation.Image
@@ -38,6 +39,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularWavyProgressIndicator
@@ -86,6 +88,7 @@ import com.je.dejpeg.R
 import com.je.dejpeg.ui.viewmodel.ImageItem
 import com.je.dejpeg.utils.CacheManager
 import com.je.dejpeg.utils.ImageLoadingHelper
+import com.je.dejpeg.utils.ImageSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -165,7 +168,7 @@ fun SimpleAlertDialog(
     message: String? = null,
     confirmButtonText: String? = null,
     onConfirm: () -> Unit = onDismiss,
-    dismissButtonText: String? = null,
+    dismissButtonText: String = "",
     icon: ImageVector? = null,
     content: (@Composable () -> Unit)? = null
 ) {
@@ -175,8 +178,12 @@ fun SimpleAlertDialog(
         icon = icon,
         title = { Text(title) },
         text = content ?: message?.let { { Text(it) } },
-        dismissButton = dismissButtonText?.let {
-            { DialogTextButton(it, { onDismiss() }, { HapticFeedbacks.light() }) }
+        dismissButton = {
+            TextButton(
+                onClick = { onDismiss(); HapticFeedbacks.light() },
+            ) {
+                Text(dismissButtonText)
+            }
         },
         confirmButton = {
             DialogPrimaryButton(resolvedText, { onConfirm() }, { HapticFeedbacks.light() })
@@ -252,8 +259,11 @@ fun SaveImageDialog(
             }
         }
     }, dismissButton = {
-        DialogTextButton(
-            stringResource(R.string.cancel), onDismissRequest, { HapticFeedbacks.light() })
+        TextButton(
+            onClick = { onDismissRequest(); HapticFeedbacks.light() },
+        ) {
+            Text(stringResource(R.string.nope))
+        }
     }, confirmButton = {
         DialogPrimaryButton(stringResource(R.string.save), {
             onSave(sanitizeFilename(textState), saveAll, skipNext)
@@ -341,25 +351,30 @@ fun RemoveImageDialog(
         title = { Text(stringResource(R.string.remove_image_title)) },
         text = { Text(stringResource(R.string.remove_image_question, imageFilename)) },
         dismissButton = {
-            DialogTextButton(
-                stringResource(R.string.nope),
-                { onDismissRequest() },
-                { HapticFeedbacks.light() })
+            TextButton(
+                onClick = { onDismissRequest(); HapticFeedbacks.light() },
+            ) {
+                Text(stringResource(R.string.nope))
+            }
         },
         confirmButton = {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                DialogTextButton(
-                    stringResource(R.string.remove), {
+                // color red
+                TextButton(
+                    onClick = {
+                        onDismissRequest()
                         CacheManager.deleteRecoveryPair(
                             context, imageId, deleteProcessed = true, deleteUnprocessed = true
                         )
                         onRemove()
-                        onDismissRequest()
-                    }, { HapticFeedbacks.heavy() }, MaterialTheme.colorScheme.error
-                )
+                        HapticFeedbacks.light()
+                    },
+                ) {
+                    Text(stringResource(R.string.remove))
+                }
                 if (hasOutput) {
                     MorphButton(
                         label = stringResource(R.string.save),
@@ -370,6 +385,7 @@ fun RemoveImageDialog(
         })
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun CancelProcessingDialog(
     imageFilename: String? = null, onDismissRequest: () -> Unit, onConfirm: () -> Unit
@@ -387,10 +403,11 @@ fun CancelProcessingDialog(
             )
         },
         dismissButton = {
-            DialogTextButton(
-                stringResource(R.string.nope),
-                { onDismissRequest() },
-                { HapticFeedbacks.light() })
+            TextButton(
+                onClick = { onDismissRequest(); HapticFeedbacks.light() },
+            ) {
+                Text(stringResource(R.string.nope))
+            }
         },
         confirmButton = {
             MorphButton(
@@ -723,19 +740,6 @@ fun HelpDialog(title: String, text: String, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun DialogTextButton(
-    label: String, onClick: () -> Unit, hapticAction: () -> Unit, textColor: Color? = null
-) {
-    TextButton(
-        onClick = {
-            hapticAction()
-            onClick()
-        }) {
-        if (textColor != null) Text(label, color = textColor) else Text(label)
-    }
-}
-
-@Composable
 private fun DialogPrimaryButton(
     label: String, onClick: () -> Unit, hapticAction: () -> Unit, enabled: Boolean = true
 ) {
@@ -753,7 +757,7 @@ fun MorphButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    colors: androidx.compose.material3.ButtonColors = ButtonDefaults.buttonColors()
+    colors: ButtonColors = ButtonDefaults.buttonColors()
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressProgress by rememberMaterialPressState(interactionSource)
@@ -781,8 +785,8 @@ fun RecoveryDialog(
     data class RecoveryImage(
         val imageId: String,
         val label: String,
-        val processedBitmap: android.graphics.Bitmap,
-        val unprocessedBitmap: android.graphics.Bitmap?
+        val processedBitmap: Bitmap,
+        val unprocessedBitmap: Bitmap?
     )
 
     val context = LocalContext.current
@@ -807,7 +811,7 @@ fun RecoveryDialog(
                         val unprocessedFile = CacheManager.getUnprocessedImage(context, imageId)
                         val unprocessedBitmap = if (unprocessedFile != null) {
                             withContext(Dispatchers.IO) {
-                                BitmapFactory.decodeFile(unprocessedFile.absolutePath)
+                                ImageLoadingHelper.loadBitmap(ImageSource.FromFile(unprocessedFile))
                             }
                         } else null
                         loadedImages.add(
@@ -923,6 +927,7 @@ fun RecoveryDialog(
             confirmButton = {
                 MorphButton(
                     label = recoverButtonText, onClick = {
+                        Log.d("RecoveryDialog", "User chose to keep recovered images")
                         HapticFeedbacks.medium()
                         recoveryImages.value.forEach { img ->
                             val processed = img.processedBitmap

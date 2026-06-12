@@ -18,8 +18,10 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
 import android.util.Log
 import androidx.core.graphics.createBitmap
+import androidx.core.graphics.scale
 import com.je.dejpeg.AppPreferences
 import com.je.dejpeg.R
 import com.je.dejpeg.ThreadUtils
@@ -82,7 +84,9 @@ class ImageProcessor(
                     "Enforcing minimum overlap for $modelName: $baseOverlap -> $effectiveOverlap"
                 )
             }
-            val modelInfo = ModelInfo(modelName, strength, session, chunkSize, effectiveOverlap)
+            val fixedSize = modelManager.getFixedInputSize(modelName)
+            val modelInfo =
+                ModelInfo(modelName, strength, session, chunkSize, effectiveOverlap, fixedSize)
             val result = processBitmap(
                 session = session,
                 inputBitmap = inputBitmap,
@@ -117,16 +121,32 @@ class ImageProcessor(
         info: ModelInfo,
         coresToUse: Int
     ): Bitmap {
+        val mustTile: Boolean
+        val effectiveMaxChunkSize: Int
+
         val width = inputBitmap.width
         val height = inputBitmap.height
         val hasTransparency = inputBitmap.hasAlpha()
         val processingConfig = Bitmap.Config.ARGB_8888
-        val effectiveMaxChunkSize = if (info.expectedWidth != null && info.expectedHeight != null) {
-            minOf(info.chunkSize, info.expectedWidth, info.expectedHeight)
-        } else {
-            info.chunkSize
+
+        if (info.skipTiling) {
+            val bitmapToProcess =
+                if (inputBitmap.config != processingConfig) inputBitmap.copy(processingConfig, true)
+                else inputBitmap
+            withContext(Dispatchers.Main) {
+                callback.onProgress(context.getString(R.string.processing))
+            }
+            return processChunk(session, bitmapToProcess, processingConfig, hasTransparency, info)
         }
-        val mustTile = width > effectiveMaxChunkSize || height > effectiveMaxChunkSize
+
+        if (info.expectedWidth != null && info.expectedHeight != null) {
+            effectiveMaxChunkSize = minOf(info.expectedWidth, info.expectedHeight)
+            mustTile = width > info.expectedWidth || height > info.expectedHeight
+        } else {
+            effectiveMaxChunkSize = info.chunkSize
+            mustTile = width > effectiveMaxChunkSize || height > effectiveMaxChunkSize
+        }
+
         val processedBitmap = if (mustTile) processTiled(
             session,
             inputBitmap,
@@ -189,14 +209,12 @@ class ImageProcessor(
         val rowBounds = computeEvenTileBoundaries(height, maxTileSize)
         val cols = colBounds.size
         val rows = rowBounds.size
-
         Log.d(
             "ImageProcessor",
             "Processing tiled: image=${width}x${height}, maxChunkSize=$maxChunkSize, maxTileSize=$maxTileSize, grid=${cols}x${rows}, overlap=$overlap"
         )
         Log.d("ImageProcessor", "  Column bounds: $colBounds")
         Log.d("ImageProcessor", "  Row bounds: $rowBounds")
-
         val totalChunks = cols * rows
         val chunksDir = CacheManager.getChunksDir(context)
         val chunkInfoList = mutableListOf<ChunkInfo>()
@@ -345,6 +363,36 @@ class ImageProcessor(
         }
     }
 
+    private fun scaleBitmap(src: Bitmap, w: Int, h: Int): Bitmap {
+        var current = src
+        while (current.width > w * 2 || current.height > h * 2) {
+            val next = drawScaled(
+                current, (current.width / 2).coerceAtLeast(w), (current.height / 2).coerceAtLeast(h)
+            )
+            if (current !== src) current.recycle()
+            current = next
+        }
+        val result = drawScaled(current, w, h)
+        if (current !== src) current.recycle()
+        return result
+    }
+
+    private fun drawScaled(src: Bitmap, w: Int, h: Int): Bitmap {
+        val dst = createBitmap(w, h, src.config ?: Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(dst)
+        val paint = Paint().apply {
+            isAntiAlias = true
+            isFilterBitmap = true
+        }
+        canvas.drawBitmap(
+            src,
+            android.graphics.Rect(0, 0, src.width, src.height),
+            android.graphics.Rect(0, 0, w, h),
+            paint
+        )
+        return dst
+    }
+
     private fun processChunk(
         session: OrtSession,
         chunk: Bitmap,
@@ -354,6 +402,64 @@ class ImageProcessor(
     ): Bitmap {
         val originalW = chunk.width
         val originalH = chunk.height
+        if (info.skipTiling && info.expectedWidth != null && info.expectedHeight != null) {
+            val modelW = info.expectedWidth
+            val modelH = info.expectedHeight
+            val scaledBitmap = scaleBitmap(chunk, modelW, modelH)
+            val pixels = IntArray(modelW * modelH)
+            scaledBitmap.getPixels(pixels, 0, modelW, 0, 0, modelW, modelH)
+            scaledBitmap.recycle()
+            val inputArray = FloatArray(3 * modelW * modelH)
+            for (i in 0 until modelW * modelH) {
+                val color = pixels[i]
+                inputArray[i] = (Color.red(color) / 255f) - 0.5f
+                inputArray[modelW * modelH + i] = (Color.green(color) / 255f) - 0.5f
+                inputArray[2 * modelW * modelH + i] = (Color.blue(color) / 255f) - 0.5f
+            }
+            val env = info.env ?: OrtEnvironment.getEnvironment()
+            val inputShape = longArrayOf(1, 3, modelH.toLong(), modelW.toLong())
+            val inputTensor = OnnxTensor.createTensor(env, FloatBuffer.wrap(inputArray), inputShape)
+            val inputs = mapOf(info.inputName to inputTensor)
+            return inputTensor.use {
+                session.run(inputs).use { sessionResult ->
+                    val (outputArray, _) = extractOutputArray(
+                        sessionResult[0].value, 1, modelH, modelW
+                    )
+                    var ma = outputArray[0]
+                    var mi = outputArray[0]
+                    for (v in outputArray) {
+                        if (v > ma) ma = v; if (v < mi) mi = v
+                    }
+                    val range = (ma - mi).coerceAtLeast(1e-6f)
+                    val maskBitmap = createBitmap(modelW, modelH, Bitmap.Config.ALPHA_8)
+                    val maskPixels = IntArray(modelW * modelH)
+                    for (i in 0 until modelW * modelH) {
+                        val a = clamp255(((outputArray[i] - mi) / range) * 255f)
+                        maskPixels[i] = Color.argb(a, 0, 0, 0)
+                    }
+                    maskBitmap.setPixels(maskPixels, 0, modelW, 0, 0, modelW, modelH)
+                    val scaledMask = maskBitmap.scale(originalW, originalH)
+                    maskBitmap.recycle()
+                    val origPixels = IntArray(originalW * originalH)
+                    chunk.getPixels(origPixels, 0, originalW, 0, 0, originalW, originalH)
+                    val maskAlphas = IntArray(originalW * originalH)
+                    scaledMask.getPixels(maskAlphas, 0, originalW, 0, 0, originalW, originalH)
+                    scaledMask.recycle()
+                    val result = createBitmap(originalW, originalH, config)
+                    val outPixels = IntArray(originalW * originalH)
+                    for (i in 0 until originalW * originalH) {
+                        outPixels[i] = Color.argb(
+                            Color.alpha(maskAlphas[i]),
+                            Color.red(origPixels[i]),
+                            Color.green(origPixels[i]),
+                            Color.blue(origPixels[i])
+                        )
+                    }
+                    result.setPixels(outPixels, 0, originalW, 0, 0, originalW, originalH)
+                    result
+                }
+            }
+        }
         val minImgSize =
             modelManager.getMinSpatialSize(info.modelName) // redirected to modelManager
         val w = if (info.expectedWidth != null && info.expectedWidth > 0) {
@@ -617,7 +723,8 @@ class ImageProcessor(
         val strength: Float,
         session: OrtSession,
         chunkSize: Int?,
-        overlapSize: Int?
+        overlapSize: Int?,
+        fixedInputSize: Pair<Int, Int>? = null
     ) {
         val env: OrtEnvironment?
         val inputName: String
@@ -629,11 +736,12 @@ class ImageProcessor(
         val overlap: Int = overlapSize ?: AppPreferences.DEFAULT_OVERLAP_SIZE
         val expectedWidth: Int?
         val expectedHeight: Int?
+        val skipTiling: Boolean = fixedInputSize != null
 
         init {
             Log.d(
                 "ModelInfo",
-                "Initialized with chunkSize: $chunkSize, overlapSize: $overlapSize -> chunkSize: $chunkSize, overlap: $overlap"
+                "Initialized $modelName:: chunkSize: $chunkSize, overlapSize: $overlapSize -> chunkSize: $chunkSize, overlap: $overlap, fixedInputSize: $fixedInputSize, skipTiling: $skipTiling"
             )
             inputInfoMap = session.inputInfo
             env = OrtEnvironment.getEnvironment()
@@ -669,11 +777,11 @@ class ImageProcessor(
             inputChannels = foundInputChannels
             outputChannels = foundOutputChannels
             isFp16 = foundIsFp16
-            expectedWidth = foundExpectedWidth
-            expectedHeight = foundExpectedHeight
+            expectedWidth = fixedInputSize?.first ?: foundExpectedWidth
+            expectedHeight = fixedInputSize?.second ?: foundExpectedHeight
             Log.d(
                 "ModelInfo",
-                "Model input type: ${if (isFp16) "FP16" else "FP32"}, input channels: $inputChannels, output channels: $outputChannels, expected dimensions: ${expectedWidth ?: "dynamic"}x${expectedHeight ?: "dynamic"}"
+                "Model $modelName data:: input type: ${if (isFp16) "FP16" else "FP32"}, input channels: $inputChannels, output channels: $outputChannels, expected dimensions: ${expectedWidth ?: "dynamic"}x${expectedHeight ?: "dynamic"}, fixedInputSize: $fixedInputSize, skipTiling: $skipTiling"
             )
         }
     }

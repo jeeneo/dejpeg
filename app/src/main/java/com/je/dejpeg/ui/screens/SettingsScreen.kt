@@ -169,6 +169,7 @@ fun SettingsScreen(
         mutableStateOf(runBlocking { viewModel.getActiveModelName(ModelType.OIDN) })
     }
     val uriHandler = LocalUriHandler.current
+    val importError = remember { mutableStateOf<String?>(null) }
 
     BackHandler {
         if (expandedSection != null) expandedSection = null else onBack()
@@ -203,6 +204,9 @@ fun SettingsScreen(
                         )
                     )
                 }
+            }, onError = { error ->
+                importProgress = 0
+                importError.value = error
             })
         }
     }
@@ -227,6 +231,10 @@ fun SettingsScreen(
                             )
                         )
                     }
+                },
+                onError = { error ->
+                    importProgress = 0
+                    importError.value = error
                 })
         }
     }
@@ -1049,6 +1057,7 @@ fun SettingsScreen(
     if (showImportProgress.value) {
         ModalBottomSheet(onDismissRequest = {
             showImportProgress.value = false
+            importError.value = null
         }) {
             Column(Modifier.padding(16.dp)) {
                 Text(
@@ -1057,29 +1066,46 @@ fun SettingsScreen(
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                val animatedProgress by animateFloatAsState(
-                    targetValue = importProgress.coerceIn(0, 100) / 100f, animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessLow
-                    ), label = "import_progress"
-                )
-                LinearProgressIndicator(
-                    progress = { animatedProgress },
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                )
+                if (importError.value != null) {
+                    Text(
+                        importError.value!!,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    val animatedProgress by animateFloatAsState(
+                        targetValue = importProgress.coerceIn(0, 100) / 100f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessLow
+                        ),
+                        label = "import_progress"
+                    )
+                    LinearProgressIndicator(
+                        progress = { animatedProgress },
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    )
+                }
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    "${importProgress.coerceIn(0, 100)}%",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                if (importError.value == null) {
+                    Text(
+                        "${importProgress.coerceIn(0, 100)}%",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = {
                         showImportProgress.value = false
+                        importError.value = null
                     }) {
-                        Text(stringResource(R.string.cancel))
+                        Text(
+                            if (importError.value != null) stringResource(R.string.ok)
+                            else stringResource(R.string.cancel)
+                        )
                     }
                 }
             }
@@ -1099,7 +1125,7 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(64.dp))
             }
         }
     }

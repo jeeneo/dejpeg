@@ -1,0 +1,9 @@
+Fixed:
+- Unapplied image rotation on recovered images
+- Fixed typo: Detoning > Detooning
+
+Added/updated:
+- Languages: Arabic, Chinese, Dutch, Italian, Japanese, Russian, Turkish
+- Improved expressive design
+- Background removal model (Bria RMBG)
+- OLED theme

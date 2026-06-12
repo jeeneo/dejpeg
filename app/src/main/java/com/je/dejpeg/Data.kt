@@ -29,6 +29,7 @@ import com.je.dejpeg.HapticFeedbacks.appHapticsEnabled
 import com.je.dejpeg.ui.theme.AppTheme
 import com.je.dejpeg.ui.viewmodel.ImageItem
 import com.je.dejpeg.utils.ImageLoadingHelper
+import com.je.dejpeg.utils.ImageSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -465,7 +466,7 @@ class ImageRepository {
             withContext(Dispatchers.IO) {
                 uris.forEachIndexed { index, uri ->
                     try {
-                        ImageLoadingHelper.loadBitmapWithRotation(context, uri)?.let { bmp ->
+                        ImageLoadingHelper.loadBitmap(ImageSource.FromUri(context, uri))?.let { bmp ->
                             val imageId = UUID.randomUUID().toString()
                             uri.path?.substringAfterLast('/')?.let { filename ->
                                 if (filename.startsWith("temp_camera_")) {

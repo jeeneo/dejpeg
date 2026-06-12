@@ -41,6 +41,7 @@ class ModelManager(
     private val context: Context,
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
 ) {
+
     private var currentSession: OrtSession? = null
     private var ortEnv: OrtEnvironment? = null
     private var currentModelName: String? = null
@@ -128,6 +129,9 @@ class ModelManager(
             "1x_Repainter_20000_G-fp16.onnx" to R.string.model_info_1x_repainter_20000_g_fp16,
             "1x_artifacts_dithering_alsa-fp16.onnx" to R.string.model_info_1x_artifacts_dithering_alsa_fp16,
             "1x_nmkdbrighten_10000_G-fp16.onnx" to R.string.model_info_1x_nmkd_brighten_10000_g_fp16,
+
+            // special models
+            "rmbg" to R.string.model_info_background_removal_bria_rmbg,
         )
 
         private val MIN_SPATIAL_SIZE_BY_NAME = mapOf(
@@ -137,6 +141,15 @@ class ModelManager(
         private val MIN_OVERLAP_SIZE_BY_NAME = mapOf(
             "scunet" to 128 // scunet models need large overlap(?) needs more testing
         )
+
+        private val FIXED_INPUT_SIZE_BY_NAME = mapOf(
+            "rmbg" to Pair(1024, 1024)
+        )
+    }
+
+    fun getFixedInputSize(modelName: String?): Pair<Int, Int>? {
+        val normalized = modelName?.lowercase() ?: return null
+        return FIXED_INPUT_SIZE_BY_NAME.entries.firstOrNull { normalized.contains(it.key) }?.value
     }
 
     fun getMinSpatialSize(modelName: String?): Int {
@@ -361,9 +374,7 @@ class ModelManager(
     ) {
         try {
             val modelsDir = getModelsDir(type)
-            if (!modelsDir.exists()) {
-                modelsDir.mkdirs()
-            }
+            if (!modelsDir.exists()) modelsDir.mkdirs()
             val modelFile = File(modelsDir, filename)
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
                 val size =
@@ -372,19 +383,15 @@ class ModelManager(
                     copyWithProgress(inputStream, outputStream, size, onProgress)
                 }
             }
-        } catch (e: Exception) {
-            onError(e.message ?: context.getString(R.string.failed_to_import_model))
-        } finally {
             onProgress(100)
             onSuccess(filename)
+        } catch (e: Exception) {
+            onError(e.message ?: context.getString(R.string.failed_to_import_model))
         }
     }
 
     private fun copyWithProgress(
-        input: InputStream,
-        output: OutputStream,
-        totalSize: Long,
-        onProgress: (Int) -> Unit
+        input: InputStream, output: OutputStream, totalSize: Long, onProgress: (Int) -> Unit
     ) {
         val buffer = ByteArray(8192)
         var bytesRead: Int
@@ -423,7 +430,10 @@ class ModelManager(
 
     fun getModelInfo(modelName: String?): String? {
         if (modelName == null) return null
-        val resId = MODEL_INFO_RES_IDS[modelName] ?: return null
+        val match = MODEL_INFO_RES_IDS.keys.firstOrNull { key ->
+            modelName.contains(key)
+        } ?: return null
+        val resId = MODEL_INFO_RES_IDS[match] ?: return null
         return context.getString(resId)
     }
 

@@ -1,19 +1,19 @@
 A list of all other models currently converted to `onnx` from their `pytorch` variants.
 
 > [!CAUTION]
-> Some of these models can make your device run hot, please monitor device temperature.
+> Some of these models can make your device run hot, please monitor device temperature
 
-support status
+Support:
 - ✧ = tested, but can be unstable
 - ✚ = might crash, was only checked for runability
 
-speed:
+Speed:
 - ➤ = fast, good on low-end devices
 - ➠ = medium, depends on device
 - ➽ = slow, resource intensive
 - ➽➽ = VERY slow
 
-# [Small models](https://huggingface.co/colpona/dejpeg-models/tree/main/other-models/nanomodels)
+## [Small models](https://huggingface.co/colpona/dejpeg-models/tree/main/other-models/nanomodels)
 (for low-end devices)
 
 - ✧ ➤ [1x-AnimeUndeint-Compact-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/nanomodels/1x-AnimeUndeint-Compact-fp16.onnx) ([source](https://openmodeldb.info/models/1x-AnimeUndeint-Compact)) - usage: compression, jagged lines
@@ -25,7 +25,14 @@ speed:
 - ✧ ➤ [1xOverExposureCorrection_compact-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/nanomodels/1xOverExposureCorrection_compact-fp16.onnx) ([source](https://openmodeldb.info/models/1x-ExposureCorrection-compact)) - usage: exposure correction
 - ✧ ➤ [ArtCNN_R8F64_JPEG420.onnx](https://github.com/Artoriuz/ArtCNN/raw/refs/heads/main/ONNX/ArtCNN_R8F64_JPEG420.onnx), [ArtCNN_R8F64_JPEG444.onnx](https://github.com/Artoriuz/ArtCNN/raw/refs/heads/main/ONNX/ArtCNN_R8F64_JPEG444.onnx) ([source](https://github.com/Artoriuz/ArtCNN)) - usage: JPEG compression, anime
 
-# [Other models](https://huggingface.co/colpona/dejpeg-models/tree/main/other-models):
+## Special models
+
+- ✧ ➠ [BriaAI RMBG v1.4](https://huggingface.co/briaai/RMBG-1.4) (license: [bria-rmbg-1.4](https://web.archive.org/web/20240216110248if_/https://bria.ai/wp-content/uploads/2024/01/BRIA_huggingface_model_license_agreement.pdf)) download: [direct link](https://huggingface.co/briaai/RMBG-1.4/resolve/main/onnx/model_quantized.onnx) - usage: background removal
+- ✧ ➠ [BriaAI RMBG v2.0](https://huggingface.co/briaai/RMBG-2.0) (license: [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/deed.en)) downlaoad: [link](https://huggingface.co/briaai/RMBG-2.0/resolve/main/onnx/model_quantized.onnx) (requires HF account), download `model_quantized.onnx` - usage: background removal
+
+note: after downloading, please rename the onnx file to something containing `rmbg`, for example `bria_rmbg_1.4.onnx` for correct operation otherwise issues may occur when processing
+
+## [Other compression models](https://huggingface.co/colpona/dejpeg-models/tree/main/other-models):
 
 ### General compression:
 - ✚ ➠ [1x_JPEGDestroyerV2_96000G-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_JPEGDestroyerV2_96000G-fp16.onnx) ([source](https://openmodeldb.info/models/1x-JPEGDestroyer)) - usage: general compression

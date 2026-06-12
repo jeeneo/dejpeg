@@ -18,7 +18,7 @@ val releaseKeyAlias: String? = localProperties.getProperty("keystore.alias")
 val releaseKeyPassword: String? = localProperties.getProperty("keystore.keyPassword")
 val hasReleaseSigning = listOf(
     releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword
-).all { !it.isNullOrBlank() }
+).all { !it.isNullOrBlank() } && releaseStoreFile?.let { file(it).exists() } == true
 
 val buildOidn = gradle.startParameter.taskNames.any { "oidn" in it.lowercase() }
 
@@ -39,10 +39,15 @@ android {
             abiFilters += "arm64-v8a"
         }
         buildConfigField("boolean", "OIDN_ENABLED", "false")
-        // needs to remove the release text at end somehow
-        val abi = ndk.abiFilters.first()
-        val fileName = "${rootProject.name.lowercase()}-$abi"
-        setProperty("archivesBaseName", fileName)
+        applicationVariants.all {
+            val variant = this
+            val abi = ndk.abiFilters.first()
+            val fileName = "${rootProject.name.lowercase()}-$abi"
+            variant.outputs.all {
+                val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+                output.outputFileName = "$fileName.apk"
+            }
+        }
     }
     if (buildOidn) {
         externalNativeBuild {

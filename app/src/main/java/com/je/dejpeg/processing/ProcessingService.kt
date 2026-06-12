@@ -22,6 +22,7 @@ import com.je.dejpeg.ProcessingMode
 import com.je.dejpeg.R
 import com.je.dejpeg.utils.CacheManager
 import com.je.dejpeg.utils.ImageLoadingHelper
+import com.je.dejpeg.utils.ImageSource
 import com.je.dejpeg.utils.ModelManager
 import com.je.dejpeg.utils.NotificationService
 import kotlinx.coroutines.CancellationException
@@ -214,7 +215,7 @@ class ProcessingService : Service() {
                             "ProcessingService",
                             "Loading cached unprocessed file: ${unprocessedFile.name}"
                         )
-                        val bitmap = ImageLoadingHelper.loadBitmapWithRotation(unprocessedFile)
+                        val bitmap = ImageLoadingHelper.loadBitmap(ImageSource.FromFile(unprocessedFile))
                             ?: throw Exception("Failed to decode bitmap")
 
                         if (processingMode == ProcessingMode.OIDN) {

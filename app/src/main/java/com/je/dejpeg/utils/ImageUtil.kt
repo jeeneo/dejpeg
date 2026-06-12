@@ -41,30 +41,36 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+sealed interface ImageSource {
+    data class FromUri(val context: Context, val uri: Uri) : ImageSource
+    data class FromFile(val file: File) : ImageSource
+}
+
 @SuppressLint("Recycle")
 object ImageLoadingHelper {
-    private const val THUMBNAIL_SIZE = 144
-    private fun safabs(value: Int): Int = if (value < 0) -value else value
+    fun loadBitmap(source: ImageSource): Bitmap? = when (source) {
+        is ImageSource.FromUri -> loadFromUri(source.context, source.uri)
+        is ImageSource.FromFile -> loadFromFile(source.file)
+    }
 
-    fun loadBitmapWithRotation(context: Context, uri: Uri): Bitmap? = try {
-        context.contentResolver.openInputStream(uri)?.use { inputStream ->
-            val bitmap = BitmapFactory.decodeStream(inputStream) ?: return null
+    private fun loadFromUri(context: Context, uri: Uri): Bitmap? = try {
+        context.contentResolver.openInputStream(uri)?.use { stream ->
+            BitmapFactory.decodeStream(stream)
+        }?.let { bitmap ->
             context.contentResolver.openInputStream(uri)?.use { exifStream ->
-                val exif = ExifInterface(exifStream)
-                applyExifOrientation(bitmap, exif)
+                applyExifOrientation(bitmap, ExifInterface(exifStream))
             } ?: bitmap
         }
-    } catch (_: Exception) {
-        null
-    }
+    } catch (_: Exception) { null }
 
-    fun loadBitmapWithRotation(file: File): Bitmap? = try {
-        val bitmap = BitmapFactory.decodeFile(file.absolutePath) ?: return null
-        val exif = ExifInterface(file.absolutePath)
-        applyExifOrientation(bitmap, exif)
-    } catch (_: Exception) {
-        null
-    }
+    private fun loadFromFile(file: File): Bitmap? = try {
+        BitmapFactory.decodeFile(file.absolutePath)?.let { bitmap ->
+            applyExifOrientation(bitmap, ExifInterface(file.absolutePath))
+        }
+    } catch (_: Exception) { null }
+
+    private const val THUMBNAIL_SIZE = 144
+    private fun safabs(value: Int): Int = if (value < 0) -value else value
 
     private fun applyExifOrientation(bitmap: Bitmap, exif: ExifInterface): Bitmap {
         return when (exif.getAttributeInt(
