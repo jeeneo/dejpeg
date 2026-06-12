@@ -115,12 +115,24 @@ class SettingsViewModel : ViewModel() {
     fun refreshInstalledModels(type: ModelType = ModelType.ONNX) {
         viewModelScope.launch {
             when (type) {
-                ModelType.ONNX -> installedModels.value = withContext(Dispatchers.IO) {
-                    modelManager?.getInstalledModels(ModelType.ONNX) ?: emptyList()
+                ModelType.ONNX -> {
+                    installedModels.value = withContext(Dispatchers.IO) {
+                        modelManager?.getInstalledModels(ModelType.ONNX) ?: emptyList()
+                    }
+                    activeModelName.value = withContext(Dispatchers.IO) {
+                        val name = modelManager?.getActiveModelName(ModelType.ONNX)
+                        if (name != null && !installedModels.value.contains(name)) null else name
+                    }
                 }
 
-                ModelType.OIDN -> installedOidnModels.value = withContext(Dispatchers.IO) {
-                    modelManager?.getInstalledModels(ModelType.OIDN) ?: emptyList()
+                ModelType.OIDN -> {
+                    installedOidnModels.value = withContext(Dispatchers.IO) {
+                        modelManager?.getInstalledModels(ModelType.OIDN) ?: emptyList()
+                    }
+                    activeOidnModelName.value = withContext(Dispatchers.IO) {
+                        val name = modelManager?.getActiveModelName(ModelType.OIDN)
+                        if (name != null && !installedOidnModels.value.contains(name)) null else name
+                    }
                 }
             }
         }
@@ -146,8 +158,7 @@ class SettingsViewModel : ViewModel() {
                         refreshInstalledModels(type)
                         launch(Dispatchers.Main) { onSuccess(modelName) }
                     },
-                    onError = { launch(Dispatchers.Main) { onError(it) } }
-                )
+                    onError = { launch(Dispatchers.Main) { onError(it) } })
             } catch (e: Exception) {
                 launch(Dispatchers.Main) { onError(e.message ?: "Unknown error") }
             }
@@ -163,15 +174,6 @@ class SettingsViewModel : ViewModel() {
                 withContext(Dispatchers.Main) { onDeleted(name) }
             }
             refreshInstalledModels(type)
-            when (type) {
-                ModelType.ONNX -> activeModelName.value = withContext(Dispatchers.IO) {
-                    modelManager?.getActiveModelName(ModelType.ONNX)
-                }
-
-                ModelType.OIDN -> activeOidnModelName.value = withContext(Dispatchers.IO) {
-                    modelManager?.getActiveModelName(ModelType.OIDN)
-                }
-            }
         }
     }
 
