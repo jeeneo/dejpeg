@@ -1,0 +1,7 @@
+<p>Fotoğraflardaki sıkıştırma ve gürültüyü giderir</p>
+
+<p>Çevrimdışı işlenir (İNTERNET izni yok)</p>
+
+<p>Modeller: FBCNN (sıkıştırma), SCUNet (gürültü), RMBG ve U2NETP (arka plan kaldırma)</p>
+
+<p>Model listesi <a href="https://codeberg.org/dryerlint/dejpeg/src/branch/main/models">burada</a> mevcuttur</p>

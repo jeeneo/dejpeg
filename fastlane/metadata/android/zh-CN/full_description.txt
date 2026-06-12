@@ -1,0 +1,7 @@
+<p>去除照片中的压缩痕迹与噪点</p>
+
+<p>本地处理（无需网络权限）</p>
+
+<p>模型：FBCNN（去压缩）、SCUNet（降噪）、RMBG 与 U2NETP（背景去除）</p>
+
+<p>模型列表详见<a href="https://codeberg.org/dryerlint/dejpeg/src/branch/main/models">此处</a></p>

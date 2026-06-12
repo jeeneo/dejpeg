@@ -1,0 +1,7 @@
+<p>写真から圧縮アーティファクトとノイズを除去します</p>
+
+<p>オフラインで処理（インターネット接続不要）</p>
+
+<p>モデル：FBCNN（圧縮除去）、SCUNet（ノイズ除去）、RMBG・U2NETP（背景除去）</p>
+
+<p>モデル一覧は<a href="https://codeberg.org/dryerlint/dejpeg/src/branch/main/models">こちら</a></p>
