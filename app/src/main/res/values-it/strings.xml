@@ -295,4 +295,6 @@
     <string name="theme_light">Chiaro</string>
     <string name="theme_dark">Scuro</string>
     <string name="theme_oled">OLED</string>
+    <string name="model_info_background_removal_bria_rmbg">Rimozione dello sfondo tramite BriaAI RMBG</string>
+    <string name="model_info_background_removal_u2net">Rimozione dello sfondo tramite u2net</string>
 </resources>
