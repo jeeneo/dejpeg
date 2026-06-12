@@ -1,6 +1,0 @@
-fix progress display
-fix navigation issue
-miscellaneous QoL fixes
-recovery dialog for unsaved images
-better cleanup of cache
-fixed camera imports and rotation issues

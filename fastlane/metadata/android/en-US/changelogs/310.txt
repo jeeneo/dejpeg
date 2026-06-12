@@ -1,3 +1,0 @@
-- minor UI fixes
-- add image descaling (beta)
-- chunk processing fixes

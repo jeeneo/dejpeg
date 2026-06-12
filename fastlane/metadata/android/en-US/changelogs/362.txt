@@ -1,2 +1,0 @@
-Added chinese translation
-Added tile thread support

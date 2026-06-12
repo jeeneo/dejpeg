@@ -1,1 +1,0 @@
-fix erroring on chunked images
