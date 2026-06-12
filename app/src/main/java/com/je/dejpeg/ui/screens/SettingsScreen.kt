@@ -531,6 +531,13 @@ fun SettingsScreen(
                             },
                             position = CardPosition.Leading,
                         )
+                        val resolvedThreads = ThreadUtils.resolveThreadCount(onnxDeviceThreads)
+                        val threadValue = if (onnxDeviceThreads == 0) {
+                            stringResource(R.string.thread_value_auto, resolvedThreads)
+                        } else {
+                            onnxDeviceThreads.toString()
+                        }
+                        val threadLabel = "${stringResource(R.string.processing_threads_desc)} • $threadValue"
                         PreferenceItem(
                             icon = Icons.Filled.GridOn,
                             iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -538,7 +545,7 @@ fun SettingsScreen(
                             title = stringResource(R.string.settings_item_title_processing),
                             subtitle = stringResource(
                                 R.string.chunk_size_px, chunkSize
-                            ) + " • " + stringResource(R.string.overlap_size_px, overlapSize),
+                            ) + " • " + stringResource(R.string.overlap_size_px, overlapSize) + " × $resolvedThreads",
                             expanded = expandedSection == SettingsSection.Chunk,
                             expandedContent = {
                                 val maxThreads = remember {
@@ -559,18 +566,6 @@ fun SettingsScreen(
                                         onChange = { viewModel.setOverlapSize(it) },
                                         hapticAction = { HapticFeedbacks.light() })
                                     Spacer(modifier = Modifier.height(8.dp))
-
-                                    val resolvedThreads =
-                                        ThreadUtils.resolveThreadCount(onnxDeviceThreads)
-
-                                    val threadValue = if (onnxDeviceThreads == 0) {
-                                        stringResource(R.string.thread_value_auto, resolvedThreads)
-                                    } else {
-                                        onnxDeviceThreads.toString()
-                                    }
-                                    val threadLabel =
-                                        "${stringResource(R.string.processing_threads_desc)} • $threadValue"
-
                                     PowerSlider(
                                         label = threadLabel,
                                         value = onnxDeviceThreads,
