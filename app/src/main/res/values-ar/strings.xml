@@ -29,7 +29,7 @@
         <item quantity="many">تم حفظ %1$d صورة</item>
         <item quantity="other">تم حفظ %1$d صورة</item>
     </plurals>
-    <string name="share_image">مشاركة الصورة</string>
+    <string name="share_image">مشاركة</string>
     <string name="error_sharing_image">خطأ في مشاركة الصورة: %1$s</string>
     <string name="select_image_source">اختيار مصدر الصورة</string>
     <string name="gallery">المعرض</string>

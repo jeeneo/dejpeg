@@ -129,8 +129,7 @@ import kotlin.math.roundToInt
 fun SettingsScreen(
     viewModel: SettingsViewModel, processingViewModel: ProcessingViewModel, onBack: () -> Unit = {}
 ) {
-    val context = App.ctx
-    val modelManager = remember { ModelManager(context) }
+    val modelManager = remember { ModelManager(App.ctx) }
     val appPreferences = remember { AppPreferences() }
     val scope = rememberCoroutineScope()
     val installedModels by viewModel.installedModels.collectAsState()
@@ -596,7 +595,7 @@ fun SettingsScreen(
                                 }
                             },
                             onClick = { toggle(SettingsSection.Chunk) },
-                            position = CardPosition.Trailing
+                            position = if (BuildConfig.OIDN_ENABLED) CardPosition.Trailing else CardPosition.Center
                         )
                     }
                 }
@@ -817,13 +816,12 @@ fun SettingsScreen(
                             onClick = {
                                 toggle(SettingsSection.OidnSettings)
                             },
-                            position = CardPosition.Trailing
+                            position = if (BuildConfig.OIDN_ENABLED) CardPosition.Trailing else CardPosition.Leading
                         )
                     }
                 }
 
                 val isOidn = BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN
-
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -869,7 +867,6 @@ fun SettingsScreen(
                             }) {
                         OnnxPreferenceGroupCard()
                     }
-
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -880,12 +877,11 @@ fun SettingsScreen(
                         OidnPreferenceGroupCard()
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-
+                if (BuildConfig.OIDN_ENABLED) Spacer(modifier = Modifier.height(8.dp)) else Spacer(
+                    modifier = Modifier.height(4.dp)
+                )
                 val currentTheme = App.state.appTheme.value
-
                 var themeMenuExpanded by remember { mutableStateOf(false) }
-
                 PreferenceGroupCard {
                     PreferenceItem(
                         icon = Icons.Filled.Settings,
@@ -975,8 +971,7 @@ fun SettingsScreen(
                                             Text(currentTheme.name)
                                         }
                                         DropdownMenu(
-                                            expanded = themeMenuExpanded,
-                                            onDismissRequest = {
+                                            expanded = themeMenuExpanded, onDismissRequest = {
                                                 HapticFeedbacks.light(); themeMenuExpanded = false
                                             }) {
                                             AppTheme.entries.forEach { theme ->
@@ -1004,7 +999,7 @@ fun SettingsScreen(
                             HapticFeedbacks.light()
                             toggle(SettingsSection.Preferences)
                         },
-                        position = CardPosition.Leading,
+                        position = if (BuildConfig.OIDN_ENABLED) CardPosition.Leading else CardPosition.Center,
                     )
                     PreferenceItem(
                         icon = Icons.Filled.Code,

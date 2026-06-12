@@ -25,7 +25,7 @@
         <item quantity="one">Görsel kaydedildi</item>
         <item quantity="other">%1$d görsel kaydedildi</item>
     </plurals>
-    <string name="share_image">Görseli paylaş</string>
+    <string name="share_image">Paylaş</string>
     <string name="error_sharing_image">Görseli paylaşma hatası: %1$s</string>
     <string name="select_image_source">Görsel kaynağını seçin</string>
     <string name="gallery">Galeri</string>

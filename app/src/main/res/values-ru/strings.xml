@@ -27,7 +27,7 @@
         <item quantity="many">Сохранено %1$d изображений</item>
         <item quantity="other">Сохранено %1$d изображений</item>
     </plurals>
-    <string name="share_image">Поделиться изображением</string>
+    <string name="share_image">Поделиться</string>
     <string name="error_sharing_image">Ошибка отправки изображения: %1$s</string>
     <string name="select_image_source">Выберите источник изображения</string>
     <string name="gallery">Галерея</string>

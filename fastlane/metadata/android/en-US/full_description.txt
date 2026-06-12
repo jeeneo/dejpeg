@@ -1,5 +1,7 @@
-<p>An app for cleaning compressed images and removing noise.</p>
+<p>Removes compression and noise from photos</p>
 
-<p>Processed locally, saves as png</p>
+<p>Processed offline (no INTERNET permission)</p>
 
-<p>See readme on Codeberg for additional model downloads</p>
+<p>Models: FBCNN (compression), SCUNet (noise), RMBG & U2NETP (background removal)</p>
+
+<p>Model list available <a href="https://codeberg.org/dryerlint/dejpeg/src/branch/main/models">here</a></p>

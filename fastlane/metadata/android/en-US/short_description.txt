@@ -1,1 +1,1 @@
-An offline compression artifact remover and denoiser
+An offline image compression remover and denoiser

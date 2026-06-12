@@ -192,11 +192,11 @@ fun ImageScreen(
                     ) {
                         Icon(
                             Icons.Filled.Share,
-                            contentDescription = "Share",
+                            contentDescription = stringResource(id = R.string.share_image),
                         )
                         Spacer(Modifier.width(ButtonDefaults.IconSpacing))
                         Text(
-                            text = "Share",
+                            text = stringResource(id = R.string.share_image),
                         )
                     }
 

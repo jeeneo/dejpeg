@@ -26,7 +26,7 @@
         <item quantity="many">%1$d immagini salvate</item>
         <item quantity="other">%1$d immagini salvate</item>
     </plurals>
-    <string name="share_image">Condividi immagine</string>
+    <string name="share_image">Condividi</string>
     <string name="error_sharing_image">Errore nella condivisione dell\'immagine: %1$s</string>
     <string name="select_image_source">Seleziona origine immagine</string>
     <string name="gallery">Galleria</string>

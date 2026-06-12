@@ -538,7 +538,7 @@ fun ProcessingScreen(
                                 modifier = Modifier.size(64.dp),
                                 tint = MaterialTheme.colorScheme.primary
                             )
-                            Spacer(Modifier.height(12.dp))
+                            Spacer(Modifier.height(8.dp))
                             Text(
                                 stringResource(R.string.no_images_yet),
                                 style = MaterialTheme.typography.titleLarge,
@@ -550,7 +550,7 @@ fun ProcessingScreen(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Spacer(Modifier.height(12.dp))
+                            Spacer(Modifier.height(8.dp))
                             FilledTonalButton(
                                 onClick = { importImage() },
                                 shape = RoundedCornerShape(animatedCornerRadius.dp),
@@ -826,59 +826,57 @@ fun SwipeToDismissWrapper(
             alignment = Alignment.CenterEnd,
             modifier = Modifier.matchParentSize()
         )
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .offset { IntOffset(animatedOffset.roundToInt(), 0) }
-                .pointerInput(widthPx) {
-                    detectHorizontalDragGestures(onHorizontalDrag = { _, dragAmount ->
-                        val newValue = swipeState.value + dragAmount
-                        swipeState.value =
-                            if (currentAllowLeftSwipe) newValue else maxOf(0f, newValue)
-                        val absOffset = kotlin.math.abs(swipeState.value)
-                        val threshold = widthPx * swipeThreshold
-                        when {
-                            widthPx > 0 && absOffset > threshold && !hasReachedThreshold -> {
-                                HapticFeedbacks.medium(); hasReachedThreshold = true
-                            }
+        Box(Modifier
+            .fillMaxWidth()
+            .offset { IntOffset(animatedOffset.roundToInt(), 0) }
+            .pointerInput(widthPx) {
+                detectHorizontalDragGestures(onHorizontalDrag = { _, dragAmount ->
+                    val newValue = swipeState.value + dragAmount
+                    swipeState.value = if (currentAllowLeftSwipe) newValue else maxOf(0f, newValue)
+                    val absOffset = kotlin.math.abs(swipeState.value)
+                    val threshold = widthPx * swipeThreshold
+                    when {
+                        widthPx > 0 && absOffset > threshold && !hasReachedThreshold -> {
+                            HapticFeedbacks.medium(); hasReachedThreshold = true
+                        }
 
-                            absOffset <= threshold -> hasReachedThreshold = false
-                        }
-                    }, onDragEnd = {
-                        val absOffset = kotlin.math.abs(swipeState.value)
-                        val threshold = widthPx * swipeThreshold
-                        if (widthPx > 0 && absOffset > threshold) {
-                            HapticFeedbacks.heavy()
-                            val isRight = swipeState.value > 0
-                            val willSlideOff =
-                                if (isRight) rightSwipeImmediate else (currentAllowLeftSwipe && leftSwipeImmediate)
-                            scope.launch {
-                                if (willSlideOff) {
-                                    animate(
-                                        initialValue = swipeState.value,
-                                        targetValue = if (isRight) widthPx * 2f else -widthPx * 2f,
-                                        animationSpec = spring(
-                                            dampingRatio = Spring.DampingRatioNoBouncy,
-                                            stiffness = Spring.StiffnessHigh
-                                        )
-                                    ) { value, _ -> swipeState.value = value }
-                                    if (isRight) currentOnRightSwipe() else currentOnLeftSwipe()
-                                    swipeState.value = 0f
-                                } else {
-                                    if (isRight) currentOnRightSwipe()
-                                    else if (currentAllowLeftSwipe) currentOnLeftSwipe()
-                                    swipeState.value = 0f
-                                }
-                                hasReachedThreshold = false
-                            }
-                        } else {
-                            scope.launch {
+                        absOffset <= threshold -> hasReachedThreshold = false
+                    }
+                }, onDragEnd = {
+                    val absOffset = kotlin.math.abs(swipeState.value)
+                    val threshold = widthPx * swipeThreshold
+                    if (widthPx > 0 && absOffset > threshold) {
+                        HapticFeedbacks.heavy()
+                        val isRight = swipeState.value > 0
+                        val willSlideOff =
+                            if (isRight) rightSwipeImmediate else (currentAllowLeftSwipe && leftSwipeImmediate)
+                        scope.launch {
+                            if (willSlideOff) {
+                                animate(
+                                    initialValue = swipeState.value,
+                                    targetValue = if (isRight) widthPx * 2f else -widthPx * 2f,
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioNoBouncy,
+                                        stiffness = Spring.StiffnessHigh
+                                    )
+                                ) { value, _ -> swipeState.value = value }
+                                if (isRight) currentOnRightSwipe() else currentOnLeftSwipe()
                                 swipeState.value = 0f
-                                hasReachedThreshold = false
+                            } else {
+                                if (isRight) currentOnRightSwipe()
+                                else if (currentAllowLeftSwipe) currentOnLeftSwipe()
+                                swipeState.value = 0f
                             }
+                            hasReachedThreshold = false
                         }
-                    })
-                }) { content() }
+                    } else {
+                        scope.launch {
+                            swipeState.value = 0f
+                            hasReachedThreshold = false
+                        }
+                    }
+                })
+            }) { content() }
     }
 }
 
@@ -905,14 +903,13 @@ fun ActionPill(
         ), contentAlignment = alignment
     ) {
         val f = fraction.coerceIn(0f, 1f)
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .graphicsLayer {
-                    val scale = lerp(0.5f, 1f, f) * pulse.value
-                    scaleX = scale; scaleY = scale; alpha = lerp(0f, 1f, f)
-                }
-                .background(containerColor, CircleShape), contentAlignment = Alignment.Center) {
+        Box(modifier = Modifier
+            .size(48.dp)
+            .graphicsLayer {
+                val scale = lerp(0.5f, 1f, f) * pulse.value
+                scaleX = scale; scaleY = scale; alpha = lerp(0f, 1f, f)
+            }
+            .background(containerColor, CircleShape), contentAlignment = Alignment.Center) {
             Icon(icon, contentDescription = null, modifier = Modifier.size(24.dp), tint = tint)
         }
     }

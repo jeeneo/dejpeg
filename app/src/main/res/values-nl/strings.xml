@@ -26,7 +26,7 @@
         <item quantity="one">Afbeelding opgeslagen</item>
         <item quantity="other">%1$d afbeeldingen opgeslagen</item>
     </plurals>
-    <string name="share_image">Afbeelding delen</string>
+    <string name="share_image">Delen</string>
     <string name="error_sharing_image">Fout bij delen afbeelding: %1$s</string>
     <string name="select_image_source">Afbeeldingsbron selecteren</string>
     <string name="gallery">Galerij</string>

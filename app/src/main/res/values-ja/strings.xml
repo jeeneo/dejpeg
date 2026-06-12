@@ -24,7 +24,7 @@
     <plurals name="image_saved_to_gallery">
         <item quantity="other">%1$d枚の画像を保存しました</item>
     </plurals>
-    <string name="share_image">画像を共有</string>
+    <string name="share_image">を共有</string>
     <string name="error_sharing_image">画像の共有エラー: %1$s</string>
     <string name="select_image_source">画像の選択元</string>
     <string name="gallery">ギャラリー</string>

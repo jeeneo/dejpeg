@@ -1,10 +1,11 @@
 Fixed:
 - Unapplied image rotation on recovered images
-- Fixed typo: Detoning > Detooning
+- Typo: Detoning > Detooning
+- Missing translation for "Share"
 
 Added/updated:
 - Languages: Arabic, Chinese, Dutch, Italian, Japanese, Russian, Turkish
 - Improved expressive design
-- Background removal model (Bria RMBG)
+- Background removal model (Bria RMBG and u2netp)
 - OLED theme
-- Replaced FAQs with model info sheet
+- Replaced FAQ with model info sheet
