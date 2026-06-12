@@ -1,0 +1,1 @@
+Een offline tool voor het verwijderen van beeldcompressie en ruis

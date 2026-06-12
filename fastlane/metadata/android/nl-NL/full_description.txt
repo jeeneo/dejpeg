@@ -1,0 +1,7 @@
+<p>Verwijdert compressie en ruis uit foto's</p>
+
+<p>Verwerkt offline (geen INTERNET-toestemming)</p>
+
+<p>Modellen: FBCNN (compressie), SCUNet (ruis), RMBG & U2NETP (achtergrondverwijdering)</p>
+
+<p>Modellenlijst beschikbaar <a href="https://codeberg.org/dryerlint/dejpeg/src/branch/main/models">hier</a></p>
