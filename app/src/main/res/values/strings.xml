@@ -175,6 +175,7 @@
     <string name="model_info_1x_artifacts_dithering_alsa_fp16">Dithering artifacts</string>
     <string name="model_info_1x_nmkd_brighten_10000_g_fp16">Brightening</string>
     <string name="model_info_background_removal_bria_rmbg">Background removal using BriaAI RMBG</string>
+    <string name="model_info_background_removal_u2net">Background removal using u2net</string>
     <string name="copy">Copy</string>
     <string name="drag_to_compare">Drag to compare</string>
     <string name="back_desc">Back</string>

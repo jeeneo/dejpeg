@@ -132,6 +132,7 @@ class ModelManager(
 
             // special models
             "rmbg" to R.string.model_info_background_removal_bria_rmbg,
+            "u2net" to R.string.model_info_background_removal_u2net
         )
 
         private val MIN_SPATIAL_SIZE_BY_NAME = mapOf(
