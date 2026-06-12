@@ -61,7 +61,7 @@
     <string name="finishing_up">Afronden…</string>
     <string name="status_preparing">Voorbereiden…</string>
     <string name="status_complete">Voltooid</string>
-    <string name="status_complete_ui">voltooid - tik om te bekijken</string>
+    <string name="status_complete_ui">Voltooid - tik om te bekijken</string>
     <string name="status_cancelled">Geannuleerd</string>
     <string name="status_canceling">Annuleren…</string>
     <string name="status_queued">In de wachtrij</string>
@@ -288,4 +288,5 @@
     <string name="theme_oled">OLED</string>
     <string name="model_info_background_removal_bria_rmbg">Achtergrond verwijderen met BriaAI RMBG</string>
     <string name="model_info_background_removal_u2net">Achtergrond verwijderen met u2net</string>
+    <string name="status_ready">Voorbereid</string>
 </resources>
