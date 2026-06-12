@@ -70,7 +70,7 @@
     <string name="status_complete_ui">tamamlandı - görüntülemek için dokunun</string>
     <string name="status_cancelled">İptal edildi</string>
     <string name="status_canceling">İptal ediliyor…</string>
-    <string name="status_queued">sırada</string>
+    <string name="status_queued">Sırada</string>
     <string name="settings">Ayarlar</string>
     <string name="add_images">Görsel Ekle</string>
     <string name="process">İşle</string>
@@ -290,4 +290,6 @@
     <string name="theme_light">Açık</string>
     <string name="theme_dark">Koyu</string>
     <string name="theme_oled">OLED</string>
+    <string name="model_info_background_removal_bria_rmbg">BriaAI RMBG kullanarak arka plan kaldırma</string>
+    <string name="model_info_background_removal_u2net">u2net kullanarak arka plan kaldırma</string>
 </resources>
