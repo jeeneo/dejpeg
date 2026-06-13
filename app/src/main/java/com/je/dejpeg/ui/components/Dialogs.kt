@@ -277,7 +277,7 @@ fun SaveImageDialog(
 fun PreparingShareDialog(
     progressText: String? = null,
     progress: Float? = null,
-    title: String? = "",
+    title: String? = null,
 ) {
     val thickStrokeWidth = with(LocalDensity.current) { 8.dp.toPx() }
     val thickStroke = remember(thickStrokeWidth) {
