@@ -8,6 +8,9 @@
         android:name="android.permission.FOREGROUND_SERVICE"
         tools:ignore="ForegroundServicesPolicy" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission
+        android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROCESSING"
+        android:minSdkVersion="34" />
     <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
 
     <application
@@ -61,7 +64,7 @@
         <service
             android:name=".processing.ProcessingService"
             android:exported="false"
-            android:foregroundServiceType="dataSync"
+            android:foregroundServiceType="mediaProcessing|dataSync"
             android:process=":processor"
             android:stopWithTask="true" />
     </application>

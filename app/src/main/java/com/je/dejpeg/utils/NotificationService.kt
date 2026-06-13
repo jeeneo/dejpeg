@@ -63,6 +63,7 @@ object NotificationService {
     fun showProgress(
         context: Context,
         message: String,
+        imageId: String? = null,
         currentChunkIndex: Int? = null,
         totalChunks: Int? = null,
         parallelWorkers: Int? = null,
@@ -98,7 +99,13 @@ object NotificationService {
         if (cancellable) {
             val cancelIntent = Intent(
                 context, ProcessingService::class.java
-            ).setAction(ProcessingService.ACTION_CANCEL)
+            ).setAction(ProcessingService.ACTION_CANCEL).also { intent ->
+                imageId?.let {
+                    intent.putExtra(
+                        ProcessingService.EXTRA_IMAGE_ID, it
+                    )
+                }
+            }
             val pendingCancel = PendingIntent.getService(
                 context,
                 0,

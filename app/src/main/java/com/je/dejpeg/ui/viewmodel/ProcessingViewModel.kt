@@ -29,6 +29,8 @@ import com.je.dejpeg.utils.ImagePickerHelper
 import com.je.dejpeg.utils.ModelType
 import com.je.dejpeg.utils.ProcessingQueueManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -60,6 +62,10 @@ sealed class ProcessingUiState {
 }
 
 class ProcessingViewModel : ViewModel() {
+    companion object {
+        private const val CANCEL_WATCHDOG_TIMEOUT_MS = 3000L
+    }
+
     val uiState = MutableStateFlow<ProcessingUiState>(ProcessingUiState.Idle)
     val processingErrorDialog = MutableStateFlow<String?>(null)
     val saveState = MutableStateFlow<SaveState>(SaveState.Idle)
@@ -69,6 +75,38 @@ class ProcessingViewModel : ViewModel() {
     private var imagePickerHelper: ImagePickerHelper? = null
     private val queue = ProcessingQueueManager()
     private var isInitialized = false
+    private var cancelWatchdogJob: Job? = null
+    private fun startCancelWatchdog(imageId: String?) {
+        cancelWatchdogJob?.cancel()
+        cancelWatchdogJob = viewModelScope.launch {
+            delay(CANCEL_WATCHDOG_TIMEOUT_MS)
+            if (queue.cancelInProgress) {
+                Log.w(
+                    "ProcessingViewModel",
+                    "Cancel watchdog fired: no service callback for imageId=$imageId, force-resetting state"
+                )
+                forceResetProcessingState()
+            }
+        }
+    }
+
+    private fun cancelCancelWatchdog() {
+        cancelWatchdogJob?.cancel()
+        cancelWatchdogJob = null
+    }
+
+    private fun forceResetProcessingState() {
+        queue.clear()
+        queue.cancelInProgress = false
+        queue.setCurrentProcessing(null)
+        queue.singleImageCancelId = null
+        imageRepository.images.value = imageRepository.images.value.map {
+            if (it.isProcessing || it.isCancelling) {
+                it.copy(isProcessing = false, isCancelling = false, progress = "")
+            } else it
+        }
+        uiState.value = ProcessingUiState.Idle
+    }
 
     lateinit var imageRepository: ImageRepository
 
@@ -129,13 +167,19 @@ class ProcessingViewModel : ViewModel() {
                 override fun onError(imageId: String?, message: String) {
                     handleProcessingError(imageId, message)
                 }
-
-                override fun onServiceCrash(imageId: String?) {
-                    Log.e(
-                        "ProcessingViewModel",
-                        "Service process crashed while processing image: $imageId"
-                    )
-                    handleServiceCrash(imageId)
+                override fun onServiceCrash(imageId: String?, intentional: Boolean) {
+                    if (intentional) {
+                        Log.d(
+                            "ProcessingViewModel",
+                            "Service process terminated intentionally (cancel) for image: $imageId"
+                        )
+                    } else {
+                        Log.e(
+                            "ProcessingViewModel",
+                            "Service process crashed while processing image: $imageId"
+                        )
+                    }
+                    handleServiceCrash(imageId, intentional)
                 }
             })
         serviceHelper?.register()
@@ -214,6 +258,7 @@ class ProcessingViewModel : ViewModel() {
                 return
             }
             queue.cancelInProgress = true
+            startCancelWatchdog(id)
             imageRepository.updateImageState(id) {
                 it.copy(
                     isCancelling = true, progress = statusCanceling
@@ -367,7 +412,7 @@ class ProcessingViewModel : ViewModel() {
     fun cancelProcessing() {
         queue.clear()
         queue.cancelInProgress = true
-
+        startCancelWatchdog(queue.currentProcessingId)
         queue.currentProcessingId?.let {
             imageRepository.updateImageState(it) { img ->
                 img.copy(
@@ -386,18 +431,22 @@ class ProcessingViewModel : ViewModel() {
     private fun cancelProcessingService(imageId: String?) {
         val targetImageId = imageId ?: queue.currentProcessingId
         val ctx = appContext ?: return
+        val wasActive = targetImageId != null && queue.isActive(targetImageId)
         val wasKilled = serviceHelper?.cancelProcessing {
             viewModelScope.launch(Dispatchers.IO) {
                 CacheManager.clearChunks(ctx)
                 CacheManager.clearAbandonedImages(ctx)
             }
         } ?: false
-        if (targetImageId != null && queue.isActive(targetImageId)) {
+        if (wasActive) {
             queue.setCurrentProcessing(null)
         }
-        if (targetImageId != null) {
+        if (!wasKilled && targetImageId != null) {
             stopProcessing(
-                targetImageId, statusCancelled, isCancelled = true, serviceAlreadyDead = wasKilled
+                targetImageId,
+                statusCancelled,
+                isCancelled = true,
+                serviceAlreadyDead = !wasActive
             )
         }
     }
@@ -454,22 +503,23 @@ class ProcessingViewModel : ViewModel() {
         stopProcessing(resolvedId, displayMessage, isCancelled, singleImageCancel = isSingleCancel)
     }
 
-    private fun handleServiceCrash(imageId: String?) {
+    private fun handleServiceCrash(imageId: String?, intentional: Boolean = false) {
         Log.d(
             "ProcessingViewModel",
-            "handleServiceCrash: imageId=$imageId, singleCancelId=${queue.singleImageCancelId}, currentProcessingId=${queue.currentProcessingId}"
+            "handleServiceCrash: imageId=$imageId, intentional=$intentional, singleCancelId=${queue.singleImageCancelId}, currentProcessingId=${queue.currentProcessingId}"
         )
         val resolvedId = imageId ?: queue.singleImageCancelId
         val isSingleCancel = resolvedId != null && resolvedId == queue.singleImageCancelId
+        val isCancelled = intentional || isSingleCancel
         Log.d(
             "ProcessingViewModel",
-            "handleServiceCrash: resolvedId=$resolvedId, isSingleCancel=$isSingleCancel"
+            "handleServiceCrash: resolvedId=$resolvedId, isSingleCancel=$isSingleCancel, isCancelled=$isCancelled"
         )
         if (isSingleCancel) queue.singleImageCancelId = null
         stopProcessing(
             resolvedId,
-            statusNativeCrash,
-            isCancelled = isSingleCancel,
+            if (isCancelled) statusCancelled else statusNativeCrash,
+            isCancelled = isCancelled,
             serviceAlreadyDead = true,
             singleImageCancel = isSingleCancel
         )
@@ -486,6 +536,7 @@ class ProcessingViewModel : ViewModel() {
             "ProcessingViewModel",
             "stopProcessing: imageId=$imageId, displayMessage=$displayMessage, isCancelled=$isCancelled, singleImageCancel=$singleImageCancel, currentProcessingId=${queue.currentProcessingId}"
         )
+        cancelCancelWatchdog()
         if (!imageId.isNullOrEmpty()) {
             imageRepository.updateImageState(imageId) {
                 resetImageProcessingState(
@@ -568,6 +619,7 @@ class ProcessingViewModel : ViewModel() {
         if (queue.isActive(imageId)) {
             queue.cancelInProgress = true
             queue.singleImageCancelId = imageId
+            startCancelWatchdog(imageId)
             imageRepository.updateImageState(imageId) {
                 it.copy(isCancelling = true, progress = statusCanceling)
             }
