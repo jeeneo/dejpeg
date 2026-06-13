@@ -42,8 +42,8 @@ android {
         applicationVariants.all {
             val variant = this
             val abi = ndk.abiFilters.first()
-            val signingState = if (hasReleaseSigning) "signed" else "unsigned"
-            val fileName = "${rootProject.name.lowercase()}-$abi-$signingState"
+            val signingState = if (hasReleaseSigning) "" else "-unsigned"
+            val fileName = "${rootProject.name.lowercase()}-$abi$signingState"
             variant.outputs.all {
                 val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
                 output.outputFileName = "$fileName.apk"

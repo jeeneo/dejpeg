@@ -38,12 +38,12 @@ static std::vector<uint8_t> readFile(const char *path) {
 extern "C" {
 
 JNIEXPORT jint JNICALL
-Java_com_je_dejpeg_OidnProcessor_nativeGetDeviceCount(JNIEnv *, jclass) {
+Java_com_je_dejpeg_processing_OidnProcessor_nativeGetDeviceCount(JNIEnv *, jclass) {
     return (jint) oidnGetNumPhysicalDevices();
 }
 
 JNIEXPORT jstring JNICALL
-Java_com_je_dejpeg_OidnProcessor_nativeGetDeviceName(JNIEnv *env, jclass) {
+Java_com_je_dejpeg_processing_OidnProcessor_nativeGetDeviceName(JNIEnv *env, jclass) {
     int count = oidnGetNumPhysicalDevices();
     if (count <= 0) return env->NewStringUTF("none");
     const char *name = oidnGetPhysicalDeviceString(0, "name");
@@ -51,9 +51,9 @@ Java_com_je_dejpeg_OidnProcessor_nativeGetDeviceName(JNIEnv *env, jclass) {
 }
 
 JNIEXPORT jfloatArray JNICALL
-Java_com_je_dejpeg_OidnProcessor_nativeDenoise(
+Java_com_je_dejpeg_processing_OidnProcessor_nativeDenoise(
         JNIEnv *env,
-        jobject      /* this */,
+        jobject,
         jfloatArray jColor,
         jint width,
         jint height,

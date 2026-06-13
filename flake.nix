@@ -61,6 +61,8 @@
               wget
               cmake
               ispc
+              zip
+              jq
             ];
           };
       });
