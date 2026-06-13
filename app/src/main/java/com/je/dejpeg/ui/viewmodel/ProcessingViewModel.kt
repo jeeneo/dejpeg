@@ -167,6 +167,7 @@ class ProcessingViewModel : ViewModel() {
                 override fun onError(imageId: String?, message: String) {
                     handleProcessingError(imageId, message)
                 }
+
                 override fun onServiceCrash(imageId: String?, intentional: Boolean) {
                     if (intentional) {
                         Log.d(
@@ -690,6 +691,12 @@ class ProcessingViewModel : ViewModel() {
             }
         }
     }
+
+    fun importOutputAsNewImage(imageId: String) {
+        val image = imageRepository.getImageById(imageId) ?: return
+        imageRepository.addImageFromOutputCache(appContext ?: return, imageId, image.filename)
+    }
+
 
     private fun resolveFilename(original: String, base: String?, index: Int, total: Int): String {
         val chosenBase = base?.takeIf { it.isNotBlank() }

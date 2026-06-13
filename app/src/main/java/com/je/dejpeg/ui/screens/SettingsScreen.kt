@@ -537,7 +537,8 @@ fun SettingsScreen(
                         } else {
                             onnxDeviceThreads.toString()
                         }
-                        val threadLabel = "${stringResource(R.string.processing_threads_desc)} • $threadValue"
+                        val threadLabel =
+                            "${stringResource(R.string.processing_threads_desc)} • $threadValue"
                         PreferenceItem(
                             icon = Icons.Filled.GridOn,
                             iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -545,7 +546,9 @@ fun SettingsScreen(
                             title = stringResource(R.string.settings_item_title_processing),
                             subtitle = stringResource(
                                 R.string.chunk_size_px, chunkSize
-                            ) + " • " + stringResource(R.string.overlap_size_px, overlapSize) + " × $resolvedThreads",
+                            ) + " • " + stringResource(
+                                R.string.overlap_size_px, overlapSize
+                            ) + " × $resolvedThreads",
                             expanded = expandedSection == SettingsSection.Chunk,
                             expandedContent = {
                                 val maxThreads = remember {
@@ -862,6 +865,7 @@ fun SettingsScreen(
                 )
                 val currentTheme = App.state.appTheme.value
                 var themeMenuExpanded by remember { mutableStateOf(false) }
+                val glassSlider by appPreferences.glassSlider.collectAsState(initial = true)
                 PreferenceGroupCard {
                     PreferenceItem(
                         icon = Icons.Filled.Settings,
@@ -891,7 +895,6 @@ fun SettingsScreen(
                                         }
                                     })
                                 Spacer(modifier = Modifier.height(8.dp))
-
                                 LabeledSwitch(
                                     title = stringResource(R.string.swap_swipe_actions),
                                     checked = swapSwipeActions,
@@ -899,6 +902,13 @@ fun SettingsScreen(
                                         scope.launch {
                                             appPreferences.setSwapSwipeActions(new)
                                         }
+                                    })
+                                Spacer(modifier = Modifier.height(8.dp))
+                                LabeledSwitch(
+                                    title = stringResource(R.string.glass_slider),
+                                    checked = glassSlider,
+                                    onCheckedChange = { new ->
+                                        scope.launch { appPreferences.setGlassSlider(new) }
                                     })
                                 Spacer(modifier = Modifier.height(8.dp))
                                 val clearedDefaultSourceMsg =

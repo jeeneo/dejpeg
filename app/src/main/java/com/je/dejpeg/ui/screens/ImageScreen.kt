@@ -121,6 +121,7 @@ fun ImageScreen(
     val afterBitmap = if (showAfter) image.outputBitmap else null
     val filename = image.filename
     val showSaveAllOption = images.any { it.outputBitmap != null }
+    val glassSlider by appPreferences.glassSlider.collectAsState(initial = true)
 
     Column(
         Modifier
@@ -150,6 +151,7 @@ fun ImageScreen(
                     BeforeAfterSlider(
                         beforeBitmap = beforeBitmap,
                         afterBitmap = afterBitmap,
+                        glassSlider = glassSlider,
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {

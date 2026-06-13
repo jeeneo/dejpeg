@@ -26,7 +26,7 @@ android {
     namespace = "com.je.dejpeg"
     ndkVersion = "29.0.14206865"
     compileSdk {
-        version = release(36)
+        version = release(37)
     }
     defaultConfig {
         applicationId = "com.je.dejpeg"
@@ -137,4 +137,5 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.compose.animation.core)
+    implementation(libs.backdrop)
 }

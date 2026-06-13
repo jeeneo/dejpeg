@@ -1,6 +1,7 @@
 [versions]
 #noinspection AndroidGradlePluginVersion
 agp = "8.13.2"
+backdrop = "2.0.0"
 coreSplashscreen = "1.2.0"
 #noinspection GradleDependency
 foundation = "1.10.3"
@@ -29,6 +30,7 @@ androidx-compose-material-icons-extended = { module = "androidx.compose.material
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
+backdrop = { module = "io.github.kyant0:backdrop", version.ref = "backdrop" }
 google-material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 #junit = { group = "junit", name = "junit", version.ref = "junit" }
 #androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

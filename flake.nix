@@ -16,7 +16,7 @@
         androidComposition = pkgs.androidenv.composeAndroidPackages {
           platformToolsVersion = "36.0.1";
           buildToolsVersions = [ buildToolsVersion "35.0.0" ];
-          platformVersions = [ "36" "35" ];
+          platformVersions = [ "36" "37" ];
           includeEmulator = false;
           includeSystemImages = false;
           systemImageTypes = [ "default" ];

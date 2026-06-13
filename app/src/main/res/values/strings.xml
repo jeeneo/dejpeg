@@ -289,4 +289,6 @@
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
     <string name="theme_oled">OLED</string>
+    <string name="glass_slider">Glass slider</string>
+    <string name="import_output">Import output image</string>
 </resources>

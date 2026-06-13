@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -38,12 +39,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -61,6 +64,11 @@ import androidx.core.graphics.get
 import com.je.dejpeg.HapticFeedbacks
 import com.je.dejpeg.R
 import com.je.dejpeg.ui.screens.rememberCheckerShader
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.lens
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
@@ -101,12 +109,7 @@ fun BeforeAfterSlider(
     beforeBitmap: Bitmap,
     afterBitmap: Bitmap,
     modifier: Modifier = Modifier,
-    showLabels: Boolean = true,
-    enableZoom: Boolean = true,
-    sliderHandleSize: Dp = 48.dp,
-    sliderLineWidth: Dp = 3.dp,
-    labelPadding: Dp = 24.dp,
-    maxZoomFactor: Float = 20f
+    glassSlider: Boolean,
 ) {
     val beforeImage = remember(beforeBitmap) {
         val hw = beforeBitmap.copy(Bitmap.Config.HARDWARE, false) ?: beforeBitmap
@@ -118,7 +121,12 @@ fun BeforeAfterSlider(
     }
     val hasAlpha = beforeBitmap.hasAlpha() || afterBitmap.hasAlpha()
     val checkerShader = if (hasAlpha) rememberCheckerShader() else null
-
+    val showLabels = true
+    val enableZoom = true
+    val sliderHandleSize: Dp = if (glassSlider) 48.dp else 48.dp
+    val sliderLineWidth: Dp = if (glassSlider) 16.dp else 3.dp
+    val labelPadding: Dp = 24.dp
+    val maxZoomFactor = 20f
     val transform = remember(maxZoomFactor) { ComparisonTransform(maxZoomFactor) }
     var sliderPosition by remember { mutableFloatStateOf(0.5f) }
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
@@ -126,54 +134,108 @@ fun BeforeAfterSlider(
     val (sliderColor, iconColor) = remember(beforeBitmap) { calculateSliderColors(beforeBitmap) }
     val beforeLabel = stringResource(R.string.before)
     val afterLabel = stringResource(R.string.after)
+    val zoomModifier = if (enableZoom) {
+        Modifier
+            .pointerInput(beforeImage) {
+                detectTransformGestures { centroid, pan, zoom, _ ->
+                    transform.applyGesture(
+                        centroid,
+                        pan,
+                        zoom,
+                        Size(size.width.toFloat(), size.height.toFloat()),
+                        fittedContentSize(beforeImage, size)
+                    )
+                }
+            }
+            .pointerInput(beforeImage) {
+                detectTapGestures(onDoubleTap = { tap ->
+                    transform.doubleTap(
+                        tap,
+                        Size(size.width.toFloat(), size.height.toFloat()),
+                        fittedContentSize(beforeImage, size)
+                    )
+                })
+            }
+    } else Modifier
 
     Box(modifier, Alignment.Center) {
-        Canvas(
+        val backdrop = rememberLayerBackdrop {
+            drawContent()
+        }
+        Box(
             Modifier
                 .fillMaxSize()
-                .then(if (enableZoom) Modifier.pointerInput(beforeImage) {
-                        detectTransformGestures { centroid, pan, zoom, _ ->
-                            transform.applyGesture(
-                                centroid,
-                                pan,
-                                zoom,
-                                Size(size.width.toFloat(), size.height.toFloat()),
-                                fittedContentSize(beforeImage, size)
-                            )
-                        }
-                    }.pointerInput(beforeImage) {
-                        detectTapGestures(onDoubleTap = { tap ->
-                            transform.doubleTap(
-                                tap,
-                                Size(size.width.toFloat(), size.height.toFloat()),
-                                fittedContentSize(beforeImage, size)
-                            )
-                        })
-                    }
-                else Modifier)) {
-            containerSize = IntSize(size.width.roundToInt(), size.height.roundToInt())
-            val scale = transform.scale
-            val offset = transform.offset
-            val split = size.width * sliderPosition
-            drawHalf(beforeImage, 0f, split, scale, offset, checkerShader)
-            drawHalf(afterImage, split, size.width, scale, offset, checkerShader)
-        }
-
-        if (showLabels) {
-            ComparisonLabel(beforeLabel, Alignment.TopStart, labelPadding)
-            ComparisonLabel(afterLabel, Alignment.TopEnd, labelPadding)
-        }
-
-        if (containerSize.width > 0) {
-            val sliderX = containerSize.width * sliderPosition
-            Box(Modifier.fillMaxSize()) {
+                .layerBackdrop(backdrop)
+        ) {
+            Canvas(
+                Modifier
+                    .fillMaxSize()
+                    .then(zoomModifier)
+            ) {
+                containerSize = IntSize(size.width.roundToInt(), size.height.roundToInt())
+                val split = size.width * sliderPosition
+                drawHalf(beforeImage, 0f, split, transform.scale, transform.offset, checkerShader)
+                drawHalf(
+                    afterImage, split, size.width, transform.scale, transform.offset, checkerShader
+                )
+            }
+            if (showLabels) {
                 Box(
                     Modifier
-                        .fillMaxHeight()
-                        .width(sliderLineWidth)
-                        .offset(x = with(density) { sliderX.toDp() - sliderLineWidth / 2 })
-                        .background(sliderColor)
-                )
+                        .fillMaxSize()
+                        .drawWithContent {
+                            clipRect(0f, 0f, size.width * sliderPosition, size.height) {
+                                this@drawWithContent.drawContent()
+                            }
+                        }) {
+                    ComparisonLabel(beforeLabel, Alignment.TopStart, labelPadding)
+                }
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .drawWithContent {
+                            clipRect(size.width * sliderPosition, 0f, size.width, size.height) {
+                                this@drawWithContent.drawContent()
+                            }
+                        }) {
+                    ComparisonLabel(afterLabel, Alignment.TopEnd, labelPadding)
+                }
+            }
+        }
+        if (containerSize.width > 0) {
+            val sliderX = containerSize.width * sliderPosition
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .clip(RectangleShape)
+            ) {
+                if (glassSlider) {
+                    Box(
+                        Modifier
+                            .requiredHeight(with(density) { containerSize.height.toDp() + 32.dp })
+                            .width(sliderLineWidth)
+                            .offset(x = with(density) { sliderX.toDp() - sliderLineWidth / 2 })
+                            .drawBackdrop(
+                                backdrop = backdrop,
+                                shape = { RoundedCornerShape(50) },
+                                effects = {
+                                    blur(radius = 6.dp.toPx())
+                                    lens(
+                                        refractionHeight = 4.dp.toPx(),
+                                        refractionAmount = 8.dp.toPx(),
+                                        chromaticAberration = true
+                                    )
+                                })
+                    )
+                } else {
+                    Box(
+                        Modifier
+                            .fillMaxHeight()
+                            .width(sliderLineWidth)
+                            .offset(x = with(density) { sliderX.toDp() - sliderLineWidth / 2 })
+                            .background(sliderColor)
+                    )
+                }
                 Box(
                     Modifier
                         .fillMaxHeight()
@@ -188,24 +250,40 @@ fun BeforeAfterSlider(
                                         (sliderPosition + dragAmount.x / containerSize.width).coerceIn(
                                             0f, 1f
                                         )
-                                },
-                                onDragEnd = {})
+                                })
                         }) {
                     Box(
                         Modifier
-                            .size(sliderHandleSize)
                             .align(Alignment.Center)
-                            .shadow(8.dp, CircleShape)
-                            .clip(CircleShape)
-                            .background(sliderColor),
-                        Alignment.Center
+                            .then(
+                                if (glassSlider) {
+                                    Modifier.drawBackdrop(
+                                        backdrop = backdrop,
+                                        shape = { CircleShape },
+                                        effects = {
+                                            lens(
+                                                refractionHeight = 12.dp.toPx(),
+                                                refractionAmount = 16.dp.toPx(),
+                                                chromaticAberration = true
+                                            )
+                                        })
+                                } else {
+                                    Modifier
+                                        .shadow(8.dp, CircleShape)
+                                        .clip(CircleShape)
+                                        .background(sliderColor)
+                                }
+                            )
+                            .size(sliderHandleSize), contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            Icons.Filled.SwapHoriz,
-                            contentDescription = stringResource(R.string.drag_to_compare),
-                            tint = iconColor,
-                            modifier = Modifier.size(sliderHandleSize * 0.5f)
-                        )
+                        if (!glassSlider) {
+                            Icon(
+                                Icons.Filled.SwapHoriz,
+                                contentDescription = stringResource(R.string.drag_to_compare),
+                                tint = iconColor,
+                                modifier = Modifier.size(sliderHandleSize * 0.5f)
+                            )
+                        }
                     }
                 }
             }
@@ -265,9 +343,11 @@ private fun DrawScope.drawHalf(
 }
 
 @Composable
-private fun ComparisonLabel(text: String, alignment: Alignment, padding: Dp) {
+private fun ComparisonLabel(
+    text: String, alignment: Alignment, padding: Dp, modifier: Modifier = Modifier
+) {
     Box(
-        Modifier
+        modifier
             .fillMaxSize()
             .padding(padding), contentAlignment = alignment
     ) {

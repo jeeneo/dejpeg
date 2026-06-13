@@ -8,6 +8,7 @@
 package com.je.dejpeg
 
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.os.VibrationAttributes
@@ -17,6 +18,7 @@ import android.provider.Settings
 import android.util.Log
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
+import androidx.core.net.toUri
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -144,7 +146,6 @@ object PreferenceKeys {
     val BRISQUE_MIN_WIDTH_RATIO = floatPreferencesKey("brisque_min_width_ratio")
     val BRISQUE_WEIGHT = floatPreferencesKey("brisque_weight")
     val BRISQUE_SHARPNESS_WEIGHT = floatPreferencesKey("brisque_sharpness_weight")
-
     val PROCESSING_MODE = stringPreferencesKey("processing_mode")
     val ACTIVE_OIDN_MODEL = stringPreferencesKey("activeOidnModel")
     val OIDN_HDR = booleanPreferencesKey("oidn_hdr")
@@ -154,6 +155,7 @@ object PreferenceKeys {
     val OIDN_NUM_THREADS = intPreferencesKey("oidn_num_threads")
     val OIDN_INPUT_SCALE = floatPreferencesKey("oidn_input_scale")
     val APP_THEME = stringPreferencesKey("app_theme")
+    val GLASS_SLIDER = booleanPreferencesKey("before_after_screen_glasseffect")
 }
 
 data class BrisqueSettings(
@@ -183,7 +185,6 @@ class AppPreferences {
         const val DEFAULT_OIDN_MAX_MEMORY_MB = 0
         const val DEFAULT_OIDN_NUM_THREADS = 0
         const val DEFAULT_OIDN_INPUT_SCALE = 0f
-        const val KEY_THEME = "dynamic"
     }
 
     val showSaveDialog: Flow<Boolean> = App.ctx.dataStore.data.map { prefs ->
@@ -440,6 +441,16 @@ class AppPreferences {
             }
         }
     }
+
+    val glassSlider: Flow<Boolean> = App.ctx.dataStore.data.map { prefs ->
+        prefs[PreferenceKeys.GLASS_SLIDER] ?: false
+    }
+
+    suspend fun setGlassSlider(enabled: Boolean) {
+        App.ctx.dataStore.edit { prefs ->
+            prefs[PreferenceKeys.GLASS_SLIDER] = enabled
+        }
+    }
 }
 
 class ImageRepository {
@@ -521,6 +532,25 @@ class ImageRepository {
 
     fun markImageAsSaved(imageId: String) {
         updateImageState(imageId) { it.copy(hasBeenSaved = true) }
+    }
+
+    fun addImageFromOutputCache(context: Context, sourceImageId: String, sourceFilename: String) {
+        scope.launch(Dispatchers.IO) {
+            val cacheFile = File(context.cacheDir, "${sourceImageId}_processed.png")
+            if (!cacheFile.exists()) return@launch
+            val uri = cacheFile.toUri()
+            val bitmap = BitmapFactory.decodeFile(cacheFile.absolutePath) ?: return@launch
+            val id = UUID.randomUUID().toString()
+            val item = ImageItem(
+                id = id,
+                uri = uri,
+                filename = "output_$sourceFilename",
+                inputBitmap = bitmap,
+                thumbnailBitmap = ImageLoadingHelper.generateThumbnail(bitmap),
+                size = "${bitmap.width}x${bitmap.height}"
+            )
+            withContext(Dispatchers.Main) { addImage(item) }
+        }
     }
 
     companion object {

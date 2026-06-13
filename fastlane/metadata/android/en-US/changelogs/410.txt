@@ -6,6 +6,7 @@ Fixed:
 Added/updated:
 - Languages: Arabic, Chinese, Dutch, Italian, Japanese, Russian, Turkish
 - Improved expressive design
+- Directly import output image for multi-step processing without needing to save
 - Background removal model (Bria RMBG and u2netp)
-- OLED theme
+- Themes (OLED, light, dark, dynamic)
 - Replaced FAQ with model info sheet

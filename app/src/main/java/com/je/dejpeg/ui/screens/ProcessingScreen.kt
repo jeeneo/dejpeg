@@ -199,9 +199,8 @@ fun ProcessingScreen(
 
     val activeModelName by settingsViewModel.activeModelName.collectAsState()
     val supportsStrength = if (isOidnMode) true else activeModelName?.contains(
-            "fbcnn",
-            ignoreCase = true
-        ) == true && processingMode == ProcessingMode.ONNX
+        "fbcnn", ignoreCase = true
+    ) == true && processingMode == ProcessingMode.ONNX
 
     val noModelMessage = stringResource(R.string.no_model_installed_title)
     val scope = rememberCoroutineScope()
@@ -632,7 +631,11 @@ fun ProcessingScreen(
                                 onBeforeOnly = { onNavigateToBeforeAfter(image.id) },
                                 onSave = { saveOrPrompt(image.id, image.filename) },
                                 isProcessing = image.isProcessing,
-                                haptic = HapticFeedbacks
+                                haptic = HapticFeedbacks,
+                                onImportOutput = {
+                                    HapticFeedbacks.light()
+                                    viewModel.importOutputAsNewImage(image.id)
+                                },
                             )
                         }
                     }
@@ -831,57 +834,59 @@ fun SwipeToDismissWrapper(
             alignment = Alignment.CenterEnd,
             modifier = Modifier.matchParentSize()
         )
-        Box(Modifier
-            .fillMaxWidth()
-            .offset { IntOffset(animatedOffset.roundToInt(), 0) }
-            .pointerInput(widthPx) {
-                detectHorizontalDragGestures(onHorizontalDrag = { _, dragAmount ->
-                    val newValue = swipeState.value + dragAmount
-                    swipeState.value = if (currentAllowLeftSwipe) newValue else maxOf(0f, newValue)
-                    val absOffset = kotlin.math.abs(swipeState.value)
-                    val threshold = widthPx * swipeThreshold
-                    when {
-                        widthPx > 0 && absOffset > threshold && !hasReachedThreshold -> {
-                            HapticFeedbacks.medium(); hasReachedThreshold = true
-                        }
-
-                        absOffset <= threshold -> hasReachedThreshold = false
-                    }
-                }, onDragEnd = {
-                    val absOffset = kotlin.math.abs(swipeState.value)
-                    val threshold = widthPx * swipeThreshold
-                    if (widthPx > 0 && absOffset > threshold) {
-                        HapticFeedbacks.heavy()
-                        val isRight = swipeState.value > 0
-                        val willSlideOff =
-                            if (isRight) rightSwipeImmediate else (currentAllowLeftSwipe && leftSwipeImmediate)
-                        scope.launch {
-                            if (willSlideOff) {
-                                animate(
-                                    initialValue = swipeState.value,
-                                    targetValue = if (isRight) widthPx * 2f else -widthPx * 2f,
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioNoBouncy,
-                                        stiffness = Spring.StiffnessHigh
-                                    )
-                                ) { value, _ -> swipeState.value = value }
-                                if (isRight) currentOnRightSwipe() else currentOnLeftSwipe()
-                                swipeState.value = 0f
-                            } else {
-                                if (isRight) currentOnRightSwipe()
-                                else if (currentAllowLeftSwipe) currentOnLeftSwipe()
-                                swipeState.value = 0f
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .offset { IntOffset(animatedOffset.roundToInt(), 0) }
+                .pointerInput(widthPx) {
+                    detectHorizontalDragGestures(onHorizontalDrag = { _, dragAmount ->
+                        val newValue = swipeState.value + dragAmount
+                        swipeState.value =
+                            if (currentAllowLeftSwipe) newValue else maxOf(0f, newValue)
+                        val absOffset = kotlin.math.abs(swipeState.value)
+                        val threshold = widthPx * swipeThreshold
+                        when {
+                            widthPx > 0 && absOffset > threshold && !hasReachedThreshold -> {
+                                HapticFeedbacks.medium(); hasReachedThreshold = true
                             }
-                            hasReachedThreshold = false
+
+                            absOffset <= threshold -> hasReachedThreshold = false
                         }
-                    } else {
-                        scope.launch {
-                            swipeState.value = 0f
-                            hasReachedThreshold = false
+                    }, onDragEnd = {
+                        val absOffset = kotlin.math.abs(swipeState.value)
+                        val threshold = widthPx * swipeThreshold
+                        if (widthPx > 0 && absOffset > threshold) {
+                            HapticFeedbacks.heavy()
+                            val isRight = swipeState.value > 0
+                            val willSlideOff =
+                                if (isRight) rightSwipeImmediate else (currentAllowLeftSwipe && leftSwipeImmediate)
+                            scope.launch {
+                                if (willSlideOff) {
+                                    animate(
+                                        initialValue = swipeState.value,
+                                        targetValue = if (isRight) widthPx * 2f else -widthPx * 2f,
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioNoBouncy,
+                                            stiffness = Spring.StiffnessHigh
+                                        )
+                                    ) { value, _ -> swipeState.value = value }
+                                    if (isRight) currentOnRightSwipe() else currentOnLeftSwipe()
+                                    swipeState.value = 0f
+                                } else {
+                                    if (isRight) currentOnRightSwipe()
+                                    else if (currentAllowLeftSwipe) currentOnLeftSwipe()
+                                    swipeState.value = 0f
+                                }
+                                hasReachedThreshold = false
+                            }
+                        } else {
+                            scope.launch {
+                                swipeState.value = 0f
+                                hasReachedThreshold = false
+                            }
                         }
-                    }
-                })
-            }) { content() }
+                    })
+                }) { content() }
     }
 }
 
@@ -1052,6 +1057,7 @@ fun ImageCard(
     onClick: () -> Unit,
     onBeforeOnly: () -> Unit,
     onSave: () -> Unit,
+    onImportOutput: () -> Unit,
     isProcessing: Boolean = false,
     haptic: HapticFeedbacks
 ) {
@@ -1096,7 +1102,7 @@ fun ImageCard(
                                 drawRect(
                                     brush = Brush.horizontalGradient(
                                         colorStops = arrayOf(
-                                            0f to progressTint.copy(alpha = 0.12f),
+                                            0f to progressTint.copy(alpha = 0.16f),
                                             solidStop to progressTint.copy(alpha = 0.10f),
                                             1f to Color.Transparent
                                         ), startX = 0f, endX = gradientEnd
@@ -1209,6 +1215,7 @@ fun ImageCard(
                         onBrisque = onBrisque,
                         onSave = onSave,
                         haptic = haptic,
+                        onImportOutput = onImportOutput
                     )
                 }
             }
@@ -1225,6 +1232,7 @@ private fun ImageCardSplitButton(
     onRemove: () -> Unit,
     onBrisque: () -> Unit,
     onSave: () -> Unit,
+    onImportOutput: () -> Unit,
     haptic: HapticFeedbacks,
     modifier: Modifier = Modifier,
 ) {
@@ -1340,6 +1348,16 @@ private fun ImageCardSplitButton(
                             haptic.medium()
                             menuExpanded = false
                             onProcess()
+                        })
+                }
+                if (cardState == CardState.Complete) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.import_output)) },
+                        leadingIcon = { Icon(Icons.Outlined.AddPhotoAlternate, null) },
+                        onClick = {
+                            haptic.light()
+                            menuExpanded = false
+                            onImportOutput()
                         })
                 }
                 DropdownMenuItem(
