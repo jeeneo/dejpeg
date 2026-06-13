@@ -2,6 +2,7 @@ Fixed:
 - Unapplied image rotation on recovered images
 - Typo: Detoning > Detooning
 - Missing translation for "Share"
+- Lag when viewing large images
 
 Added/updated:
 - Languages: Arabic, Chinese, Dutch, Italian, Japanese, Russian, Turkish
