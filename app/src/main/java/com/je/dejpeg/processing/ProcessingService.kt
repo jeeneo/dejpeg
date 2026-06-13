@@ -809,7 +809,6 @@ class ServiceCommunicationHelper(
         }
         if (intentionalKill) {
             pendingStart = doStart
-            mainHandler.postDelayed(doStart, 150)
         } else {
             doStart()
         }
