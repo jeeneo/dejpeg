@@ -283,4 +283,6 @@
     <string name="theme_dark">ダーク</string>
     <string name="theme_oled">OLED</string>
     <string name="status_ready">準備完了</string>
+    <string name="glass_slider">ガラス風スライダ</string>
+    <string name="import_output">出力画像をインポート</string>
 </resources>
