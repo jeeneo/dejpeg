@@ -1,7 +1,5 @@
 <p>Removes compression and noise from photos</p>
 
-<p>Processed offline (no INTERNET permission)</p>
+<p>Processed offline (no INTERNET permission) using downloadable ONNX models available <a href="https://codeberg.org/dryerlint/dejpeg/src/branch/main/models">here</a></p>
 
 <p>Models: FBCNN (compression), SCUNet (noise), RMBG & U2NETP (background removal)</p>
-
-<p>Model list available <a href="https://codeberg.org/dryerlint/dejpeg/src/branch/main/models">here</a></p>

@@ -124,7 +124,7 @@ fun BeforeAfterSlider(
     val showLabels = true
     val enableZoom = true
     val sliderHandleSize: Dp = if (glassSlider) 48.dp else 48.dp
-    val sliderLineWidth: Dp = if (glassSlider) 16.dp else 3.dp
+    val sliderLineWidth: Dp = if (glassSlider) 12.dp else 3.dp
     val labelPadding: Dp = 24.dp
     val maxZoomFactor = 20f
     val transform = remember(maxZoomFactor) { ComparisonTransform(maxZoomFactor) }
@@ -204,6 +204,9 @@ fun BeforeAfterSlider(
         }
         if (containerSize.width > 0) {
             val sliderX = containerSize.width * sliderPosition
+            //  val lineBackdrop = rememberLayerBackdrop()
+
+            // trackbar
             Box(
                 Modifier
                     .fillMaxSize()
@@ -236,6 +239,10 @@ fun BeforeAfterSlider(
                             .background(sliderColor)
                     )
                 }
+
+                // round center handle
+                // val combinedBackdrop = rememberCombinedBackdrop(backdrop, lineBackdrop)
+
                 Box(
                     Modifier
                         .fillMaxHeight()
@@ -268,9 +275,7 @@ fun BeforeAfterSlider(
                                             )
                                         })
                                 } else {
-                                    Modifier
-                                        .shadow(8.dp, CircleShape)
-                                        .clip(CircleShape)
+                                    Modifier.shadow(8.dp, CircleShape).clip(CircleShape)
                                         .background(sliderColor)
                                 }
                             )

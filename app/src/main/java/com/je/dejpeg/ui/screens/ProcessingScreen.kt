@@ -834,59 +834,57 @@ fun SwipeToDismissWrapper(
             alignment = Alignment.CenterEnd,
             modifier = Modifier.matchParentSize()
         )
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .offset { IntOffset(animatedOffset.roundToInt(), 0) }
-                .pointerInput(widthPx) {
-                    detectHorizontalDragGestures(onHorizontalDrag = { _, dragAmount ->
-                        val newValue = swipeState.value + dragAmount
-                        swipeState.value =
-                            if (currentAllowLeftSwipe) newValue else maxOf(0f, newValue)
-                        val absOffset = kotlin.math.abs(swipeState.value)
-                        val threshold = widthPx * swipeThreshold
-                        when {
-                            widthPx > 0 && absOffset > threshold && !hasReachedThreshold -> {
-                                HapticFeedbacks.medium(); hasReachedThreshold = true
-                            }
+        Box(Modifier
+            .fillMaxWidth()
+            .offset { IntOffset(animatedOffset.roundToInt(), 0) }
+            .pointerInput(widthPx) {
+                detectHorizontalDragGestures(onHorizontalDrag = { _, dragAmount ->
+                    val newValue = swipeState.value + dragAmount
+                    swipeState.value = if (currentAllowLeftSwipe) newValue else maxOf(0f, newValue)
+                    val absOffset = kotlin.math.abs(swipeState.value)
+                    val threshold = widthPx * swipeThreshold
+                    when {
+                        widthPx > 0 && absOffset > threshold && !hasReachedThreshold -> {
+                            HapticFeedbacks.medium(); hasReachedThreshold = true
+                        }
 
-                            absOffset <= threshold -> hasReachedThreshold = false
-                        }
-                    }, onDragEnd = {
-                        val absOffset = kotlin.math.abs(swipeState.value)
-                        val threshold = widthPx * swipeThreshold
-                        if (widthPx > 0 && absOffset > threshold) {
-                            HapticFeedbacks.heavy()
-                            val isRight = swipeState.value > 0
-                            val willSlideOff =
-                                if (isRight) rightSwipeImmediate else (currentAllowLeftSwipe && leftSwipeImmediate)
-                            scope.launch {
-                                if (willSlideOff) {
-                                    animate(
-                                        initialValue = swipeState.value,
-                                        targetValue = if (isRight) widthPx * 2f else -widthPx * 2f,
-                                        animationSpec = spring(
-                                            dampingRatio = Spring.DampingRatioNoBouncy,
-                                            stiffness = Spring.StiffnessHigh
-                                        )
-                                    ) { value, _ -> swipeState.value = value }
-                                    if (isRight) currentOnRightSwipe() else currentOnLeftSwipe()
-                                    swipeState.value = 0f
-                                } else {
-                                    if (isRight) currentOnRightSwipe()
-                                    else if (currentAllowLeftSwipe) currentOnLeftSwipe()
-                                    swipeState.value = 0f
-                                }
-                                hasReachedThreshold = false
-                            }
-                        } else {
-                            scope.launch {
+                        absOffset <= threshold -> hasReachedThreshold = false
+                    }
+                }, onDragEnd = {
+                    val absOffset = kotlin.math.abs(swipeState.value)
+                    val threshold = widthPx * swipeThreshold
+                    if (widthPx > 0 && absOffset > threshold) {
+                        HapticFeedbacks.heavy()
+                        val isRight = swipeState.value > 0
+                        val willSlideOff =
+                            if (isRight) rightSwipeImmediate else (currentAllowLeftSwipe && leftSwipeImmediate)
+                        scope.launch {
+                            if (willSlideOff) {
+                                animate(
+                                    initialValue = swipeState.value,
+                                    targetValue = if (isRight) widthPx * 2f else -widthPx * 2f,
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioNoBouncy,
+                                        stiffness = Spring.StiffnessHigh
+                                    )
+                                ) { value, _ -> swipeState.value = value }
+                                if (isRight) currentOnRightSwipe() else currentOnLeftSwipe()
                                 swipeState.value = 0f
-                                hasReachedThreshold = false
+                            } else {
+                                if (isRight) currentOnRightSwipe()
+                                else if (currentAllowLeftSwipe) currentOnLeftSwipe()
+                                swipeState.value = 0f
                             }
+                            hasReachedThreshold = false
                         }
-                    })
-                }) { content() }
+                    } else {
+                        scope.launch {
+                            swipeState.value = 0f
+                            hasReachedThreshold = false
+                        }
+                    }
+                })
+            }) { content() }
     }
 }
 
@@ -1278,8 +1276,6 @@ private fun ImageCardSplitButton(
         CardState.Stale, CardState.Idle -> Icons.Filled.PlayArrow
         CardState.Complete -> Icons.Filled.Save
     }
-    val isRecovered = image.filename.startsWith("Recovered") // note to self: fragile and hacky
-
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
@@ -1324,7 +1320,7 @@ private fun ImageCardSplitButton(
                 modifier = Modifier.height(36.dp),
             ) {
                 val chevronRotation by animateFloatAsState(
-                    targetValue = if (menuExpanded) 180f else 0f,
+                    targetValue = if (menuExpanded) 0f else -90f,
                     animationSpec = fastSpatialSpec,
                     label = "chevronRotation"
                 )
@@ -1338,7 +1334,7 @@ private fun ImageCardSplitButton(
 
             DropdownMenu(
                 expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                if (isRecovered) {
+                if (cardState == CardState.Complete) {
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.reprocess)) },
                         leadingIcon = {
@@ -1380,15 +1376,20 @@ private fun ImageCardSplitButton(
                         menuExpanded = false
                         onBrisque()
                     })
-                DropdownMenuItem(text = { Text(stringResource(R.string.remove)) }, leadingIcon = {
-                    Icon(
-                        Icons.Filled.Delete, null, tint = MaterialTheme.colorScheme.error
-                    )
-                }, onClick = {
-                    haptic.heavy()
-                    menuExpanded = false
-                    onRemove()
-                })
+                if (cardState != CardState.Processing) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.remove)) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Filled.Delete, null, tint = MaterialTheme.colorScheme.error
+                            )
+                        },
+                        onClick = {
+                            haptic.heavy()
+                            menuExpanded = false
+                            onRemove()
+                        })
+                }
             }
         }
     }

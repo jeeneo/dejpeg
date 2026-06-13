@@ -243,30 +243,33 @@ class ModelManager(
     }
 
     fun loadModel(): OrtSession {
-        val activeModel = getActiveModelName(ModelType.ONNX)
-        Log.d(
-            "ModelManager",
-            "loadModel called, activeModel: $activeModel, currentModelName: $currentModelName"
-        )
-        if (activeModel == null) {
-            Log.e("ModelManager", "No active model set")
-            throw Exception("No active model set")
-        }
+        val activeModel =
+            getActiveModelName(ModelType.ONNX) ?: throw Exception("No active model set")
         if (currentSession != null && activeModel == currentModelName) {
-            Log.d("ModelManager", "Returning cached session for: $activeModel")
             return currentSession!!
         }
-        Log.d("ModelManager", "Loading new model: $activeModel (previous: $currentModelName)")
-        unloadModel()
-        val modelFile = File(getModelsDir(ModelType.ONNX), activeModel)
-        if (!modelFile.exists()) {
-            Log.e("ModelManager", "Model file does not exist: ${modelFile.absolutePath}")
-            throw Exception("Model file does not exist: ${modelFile.absolutePath}")
+        val oldSession = currentSession
+        val oldEnv = ortEnv
+        currentSession = null
+        currentModelName = null
+        ortEnv = null
+        try {
+            oldSession?.close()
+        } catch (e: Exception) {
+            Log.e("ModelManager", "Error closing old session: ${e.message}")
         }
         try {
-            if (ortEnv == null) {
-                ortEnv = OrtEnvironment.getEnvironment()
-            }
+            oldEnv?.close()
+        } catch (e: Exception) {
+            Log.e("ModelManager", "Error closing old env: ${e.message}")
+        }
+        System.gc()
+        System.runFinalization()
+        System.gc()
+        val modelFile = File(getModelsDir(ModelType.ONNX), activeModel)
+        if (!modelFile.exists()) throw Exception("Model file does not exist: ${modelFile.absolutePath}")
+        try {
+            ortEnv = OrtEnvironment.getEnvironment()
             val opts = OrtSession.SessionOptions()
             configureSessionOptions(opts, activeModel)
             currentSession = ortEnv?.createSession(modelFile.absolutePath, opts)
@@ -310,21 +313,23 @@ class ModelManager(
 
     fun unloadModel() {
         Log.d("ModelManager", "unloadModel called, clearing session for: $currentModelName")
+        val session = currentSession
+        val env = ortEnv
+        currentSession = null
+        currentModelName = null
+        ortEnv = null
         try {
-            currentSession?.close()
-            Log.d("ModelManager", "Session closed successfully")
+            session?.close()
         } catch (e: Exception) {
             Log.e("ModelManager", "Error closing session: ${e.message}")
         }
-        currentSession = null
-        currentModelName = null
         try {
-            ortEnv?.close()
-            Log.d("ModelManager", "OrtEnvironment closed successfully")
+            env?.close()
         } catch (e: Exception) {
             Log.e("ModelManager", "Error closing environment: ${e.message}")
         }
-        ortEnv = null
+        System.gc()
+        System.runFinalization()
         System.gc()
     }
 
