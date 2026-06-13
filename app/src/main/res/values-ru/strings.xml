@@ -298,4 +298,6 @@
     <string name="theme_dark">Тёмная</string>
     <string name="theme_oled">OLED</string>
     <string name="status_ready">Готово</string>
+    <string name="glass_slider">Стеклянный ползунок</string>
+    <string name="import_output">Импорт результата</string>
 </resources>

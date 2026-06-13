@@ -288,4 +288,6 @@
     <string name="model_info_background_removal_bria_rmbg">BriaAI RMBG kullanarak arka plan kaldırma</string>
     <string name="model_info_background_removal_u2net">u2net kullanarak arka plan kaldırma</string>
     <string name="status_ready">Hazır</string>
+    <string name="glass_slider">Cam kaydırıcı</string>
+    <string name="import_output">Sonucu içe aktar</string>
 </resources>
