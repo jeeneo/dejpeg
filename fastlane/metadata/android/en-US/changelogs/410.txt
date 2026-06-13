@@ -6,6 +6,7 @@ Fixed:
 Added/updated:
 - Languages: Arabic, Chinese, Dutch, Italian, Japanese, Russian, Turkish
 - Improved expressive design
+- Opt-in glass slider for before/after
 - Directly import output image for multi-step processing without needing to save
 - Background removal model (Bria RMBG and u2netp)
 - Themes (OLED, light, dark, dynamic)
