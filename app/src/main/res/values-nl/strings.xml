@@ -289,4 +289,6 @@
     <string name="model_info_background_removal_bria_rmbg">Achtergrond verwijderen met BriaAI RMBG</string>
     <string name="model_info_background_removal_u2net">Achtergrond verwijderen met u2net</string>
     <string name="status_ready">Voorbereid</string>
+    <string name="glass_slider">Glazen schuifregelaar</string>
+    <string name="import_output">Uitvoerafbeelding importeren</string>
 </resources>
