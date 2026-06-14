@@ -23,6 +23,8 @@ exifinterface = "1.4.2"
 datastore = "1.2.1"
 animationCore = "1.11.2"
 coreKtxVersion = "1.18.0"
+litertGpu = "1.4.2"
+litert = "2.1.5"
 
 [libraries]
 androidx-compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "foundation" }
@@ -50,6 +52,8 @@ androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterfa
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 androidx-compose-animation-core = { group = "androidx.compose.animation", name = "animation-core", version.ref = "animationCore" }
 core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtxVersion" }
+litert-gpu = { group = "com.google.ai.edge.litert", name = "litert-gpu", version.ref = "litertGpu" }
+litert = { group = "com.google.ai.edge.litert", name = "litert", version.ref = "litert" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

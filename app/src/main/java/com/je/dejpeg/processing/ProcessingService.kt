@@ -37,6 +37,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
+import com.je.dejpeg.processing.LiteRtImageProcessor
+import com.je.dejpeg.utils.LiteRtModelManager
 
 class ProcessingService : Service() {
     companion object {
@@ -69,6 +71,7 @@ class ProcessingService : Service() {
         const val ERROR_EXTRA_MESSAGE = "extra_message"
         const val PID_ACTION = "com.je.dejpeg.action.PID"
         const val PID_EXTRA_VALUE = "extra_pid"
+        const val USE_LITERT_TEST = true
     }
 
     class LocalBinder : Binder()
@@ -86,6 +89,9 @@ class ProcessingService : Service() {
     private var chunkProgressParallelWorkers: Int = 1
     private var currentProgressMessage: String = "Processing..."
     private val stopHandler = Handler(Looper.getMainLooper())
+
+    private var liteRtModelManager: LiteRtModelManager? = null
+    private var liteRtImageProcessor: LiteRtImageProcessor? = null
 
     @Volatile
     private var cancelBroadcastSent = false
@@ -141,6 +147,10 @@ class ProcessingService : Service() {
         modelManager = ModelManager(applicationContext)
         imageProcessor = ImageProcessor(applicationContext, modelManager!!)
         oidnProcessor = OidnProcessor(applicationContext)
+        if (USE_LITERT_TEST) {
+            liteRtModelManager = LiteRtModelManager(applicationContext)
+            liteRtImageProcessor = LiteRtImageProcessor(applicationContext, liteRtModelManager!!)
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -320,6 +330,41 @@ class ProcessingService : Service() {
                                         notifyProgressChange()
                                     }
                                 })
+                        } else if (USE_LITERT_TEST) {
+                            liteRtImageProcessor?.processImage(
+                                bitmap, strength, object : LiteRtImageProcessor.ProcessCallback {
+                                    override fun onComplete(result: Bitmap) {
+                                        try {
+                                            if (cancelBroadcastSent) { scheduleAutoStop(); return }
+                                            val safeName = if (!imageId.isNullOrEmpty()) imageId else filename
+                                            val outFile = File(cacheDir, "${safeName}_processed.png")
+                                            FileOutputStream(outFile).use {
+                                                result.compress(Bitmap.CompressFormat.PNG, 100, it)
+                                            }
+                                            broadcast(COMPLETE_ACTION, COMPLETE_EXTRA_PATH to outFile.absolutePath, imageId = imageId)
+                                            NotificationService.show(this@ProcessingService, getString(R.string.processing_complete_notification))
+                                        } catch (e: Exception) {
+                                            if (!cancelBroadcastSent) {
+                                                broadcast(ERROR_ACTION, ERROR_EXTRA_MESSAGE to "Save error: ${e.message}", imageId = imageId)
+                                            }
+                                        } finally {
+                                            scheduleAutoStop()
+                                        }
+                                    }
+
+                                    override fun onError(error: String) {
+                                        if (!cancelBroadcastSent) {
+                                            broadcast(ERROR_ACTION, ERROR_EXTRA_MESSAGE to error, imageId = imageId)
+                                        }
+                                        scheduleAutoStop()
+                                    }
+
+                                    override fun onProgress(message: String) {
+                                        currentProgressMessage = message
+                                        broadcast(PROGRESS_ACTION, PROGRESS_EXTRA_MESSAGE to message, imageId = imageId)
+                                        notifyProgressChange()
+                                    }
+                                })
                         } else {
                             imageProcessor?.processImage(
                                 bitmap, strength, object : ImageProcessor.ProcessCallback {
@@ -437,6 +482,7 @@ class ProcessingService : Service() {
                     ERROR_ACTION, ERROR_EXTRA_MESSAGE to "Cancelled", imageId = id
                 )
                 runCatching { currentJob?.cancel() }
+                runCatching { liteRtImageProcessor?.cancelProcessing() }
                 currentJob = null
                 currentImageId = null
                 scheduleAutoStop()
@@ -549,9 +595,13 @@ class ProcessingService : Service() {
         Log.d("ProcessingService", "onDestroy() - cleaning up")
         cancelAndCleanupResources()
         serviceScope.cancel()
+        runCatching { liteRtImageProcessor?.cancelProcessing() }
         modelManager = null
         imageProcessor = null
         oidnProcessor = null
+        liteRtModelManager?.unloadModel()
+        liteRtImageProcessor = null
+        liteRtModelManager = null
     }
 
     override fun onBind(intent: Intent?): IBinder = binder
@@ -561,6 +611,7 @@ class ProcessingService : Service() {
         cancelAndCleanupResources()
         runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
         runCatching { NotificationService.cancel(this) }
+        runCatching { liteRtImageProcessor?.cancelProcessing() }
         stopSelf()
     }
 }

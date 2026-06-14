@@ -111,3 +111,5 @@ note: after downloading these models, rename to contain either `u2net` or `rmbg`
 - ✚ ➽ [1x_nmkdbrighten_10000_G-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_nmkdbrighten_10000_G-fp16.onnx) - usage: brightening
 
 <!-- this readme was typed out by a real human -->
+
+<!-- https://github.com/Loganavter/Archivist-Project-Denoiser -->
