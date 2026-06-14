@@ -90,20 +90,20 @@ class SettingsViewModel : ViewModel() {
         viewModelScope.launch {
             ModelMigrationHelper.migrateModelsIfNeeded()
             installedModels.value = withContext(Dispatchers.IO) {
-                modelManager?.getInstalledModels(ModelType.ONNX) ?: emptyList()
+                modelManager?.getInstalledModels(ModelType.LITERT) ?: emptyList()
             }
             installedOidnModels.value = withContext(Dispatchers.IO) {
                 modelManager?.getInstalledModels(ModelType.OIDN) ?: emptyList()
             }
             hasCheckedModels.value = true
             activeModelName.value = withContext(Dispatchers.IO) {
-                modelManager?.getActiveModelName(ModelType.ONNX)
+                modelManager?.getActiveModelName(ModelType.LITERT)
             }
             activeOidnModelName.value = withContext(Dispatchers.IO) {
                 modelManager?.getActiveModelName(ModelType.OIDN)
             }
             val activeType =
-                if (processingMode.value == ProcessingMode.OIDN) ModelType.OIDN else ModelType.ONNX
+                if (processingMode.value == ProcessingMode.OIDN) ModelType.OIDN else ModelType.LITERT
             val activeList =
                 if (activeType == ModelType.OIDN) installedOidnModels.value else installedModels.value
             if (activeList.isEmpty()) {
@@ -112,15 +112,15 @@ class SettingsViewModel : ViewModel() {
         }
     }
 
-    fun refreshInstalledModels(type: ModelType = ModelType.ONNX) {
+    fun refreshInstalledModels(type: ModelType = ModelType.LITERT) {
         viewModelScope.launch {
             when (type) {
-                ModelType.ONNX -> {
+                ModelType.LITERT -> {
                     installedModels.value = withContext(Dispatchers.IO) {
-                        modelManager?.getInstalledModels(ModelType.ONNX) ?: emptyList()
+                        modelManager?.getInstalledModels(ModelType.LITERT) ?: emptyList()
                     }
                     activeModelName.value = withContext(Dispatchers.IO) {
-                        val name = modelManager?.getActiveModelName(ModelType.ONNX)
+                        val name = modelManager?.getActiveModelName(ModelType.LITERT)
                         if (name != null && !installedModels.value.contains(name)) null else name
                     }
                 }
@@ -140,7 +140,7 @@ class SettingsViewModel : ViewModel() {
 
     fun importModel(
         uri: Uri,
-        type: ModelType = ModelType.ONNX,
+        type: ModelType = ModelType.LITERT,
         force: Boolean = false,
         onProgress: (Int) -> Unit = {},
         onSuccess: (String) -> Unit = {},
@@ -166,7 +166,7 @@ class SettingsViewModel : ViewModel() {
     }
 
     fun deleteModels(
-        models: List<String>, type: ModelType = ModelType.ONNX, onDeleted: (String) -> Unit = {}
+        models: List<String>, type: ModelType = ModelType.LITERT, onDeleted: (String) -> Unit = {}
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             models.forEach { name ->
@@ -177,20 +177,20 @@ class SettingsViewModel : ViewModel() {
         }
     }
 
-    fun setActiveModelByName(name: String, type: ModelType = ModelType.ONNX) {
+    fun setActiveModelByName(name: String, type: ModelType = ModelType.LITERT) {
         modelManager?.setActiveModel(name, type) ?: Log.e(
             "SettingsViewModel", "modelManager is null!"
         )
         when (type) {
-            ModelType.ONNX -> activeModelName.value = name
+            ModelType.LITERT -> activeModelName.value = name
             ModelType.OIDN -> activeOidnModelName.value = name
         }
     }
 
-    fun hasActiveModel(type: ModelType = ModelType.ONNX) =
+    fun hasActiveModel(type: ModelType = ModelType.LITERT) =
         modelManager?.hasActiveModel(type) ?: false
 
-    fun getActiveModelName(type: ModelType = ModelType.ONNX) =
+    fun getActiveModelName(type: ModelType = ModelType.LITERT) =
         modelManager?.getActiveModelName(type)
 
     fun setChunkSize(size: Int) =

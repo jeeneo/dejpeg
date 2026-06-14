@@ -195,7 +195,7 @@ fun ProcessingScreen(
     val processingMode by settingsViewModel.processingMode.collectAsState()
     val oidnInputScale by settingsViewModel.oidnInputScale.collectAsState()
     val isOidnMode = processingMode == ProcessingMode.OIDN
-    val activeModelType = if (isOidnMode) ModelType.OIDN else ModelType.ONNX
+    val activeModelType = if (isOidnMode) ModelType.OIDN else ModelType.LITERT
 
     val activeModelName by settingsViewModel.activeModelName.collectAsState()
     val supportsStrength = if (isOidnMode) true else activeModelName?.contains(

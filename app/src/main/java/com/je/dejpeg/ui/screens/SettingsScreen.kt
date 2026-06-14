@@ -486,7 +486,7 @@ fun SettingsScreen(
                                                     modelManager.extractStarterModel(setAsActive = true)
                                                 }
                                                 if (extracted) {
-                                                    viewModel.refreshInstalledModels(ModelType.ONNX)
+                                                    viewModel.refreshInstalledModels(ModelType.LITERT)
                                                     SnackySnackbarController.pushEvent(
                                                         SnackySnackbarEvents.MessageEvent(
                                                             message = extractedMsg,

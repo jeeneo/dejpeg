@@ -7,19 +7,13 @@
 
 package com.je.dejpeg.processing
 
-import ai.onnxruntime.NodeInfo
-import ai.onnxruntime.OnnxJavaType
-import ai.onnxruntime.OnnxTensor
-import ai.onnxruntime.OrtEnvironment
-import ai.onnxruntime.OrtSession
-import ai.onnxruntime.TensorInfo
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.Paint
 import android.util.Log
+import org.tensorflow.lite.Interpreter
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
 import com.je.dejpeg.AppPreferences
@@ -74,7 +68,7 @@ class ImageProcessor(
         try {
             val coresToUse = ThreadUtils.resolveThreadCount(deviceThreadCount)
             val modelName = modelManager.getActiveModelName()
-            val session = modelManager.loadModel()
+            val interpreter = modelManager.loadModel()
             val minOverlap = modelManager.getMinOverlapSize(modelName)
             val baseOverlap = overlapSize ?: AppPreferences.DEFAULT_OVERLAP_SIZE
             val effectiveOverlap = maxOf(baseOverlap, minOverlap)
@@ -86,9 +80,9 @@ class ImageProcessor(
             }
             val fixedSize = modelManager.getFixedInputSize(modelName)
             val modelInfo =
-                ModelInfo(modelName, strength, session, chunkSize, effectiveOverlap, fixedSize)
+                ModelInfo(modelName, strength, interpreter, chunkSize, effectiveOverlap, fixedSize)
             val result = processBitmap(
-                session = session,
+                interpreter = interpreter,
                 inputBitmap = inputBitmap,
                 callback = callback,
                 info = modelInfo,
@@ -115,7 +109,7 @@ class ImageProcessor(
     }
 
     private suspend fun processBitmap(
-        session: OrtSession,
+        interpreter: Interpreter,
         inputBitmap: Bitmap,
         callback: ProcessCallback,
         info: ModelInfo,
@@ -136,19 +130,21 @@ class ImageProcessor(
             withContext(Dispatchers.Main) {
                 callback.onProgress(context.getString(R.string.processing))
             }
-            return processChunk(session, bitmapToProcess, processingConfig, hasTransparency, info)
+            return processChunk(interpreter, bitmapToProcess, processingConfig, hasTransparency, info)
         }
 
         if (info.expectedWidth != null && info.expectedHeight != null) {
-            effectiveMaxChunkSize = minOf(info.expectedWidth, info.expectedHeight)
-            mustTile = width > info.expectedWidth || height > info.expectedHeight
+            val expectedW = info.expectedWidth!!
+            val expectedH = info.expectedHeight!!
+            effectiveMaxChunkSize = minOf(expectedW, expectedH)
+            mustTile = width > expectedW || height > expectedH
         } else {
             effectiveMaxChunkSize = info.chunkSize
             mustTile = width > effectiveMaxChunkSize || height > effectiveMaxChunkSize
         }
 
         val processedBitmap = if (mustTile) processTiled(
-            session,
+            interpreter,
             inputBitmap,
             callback,
             info,
@@ -166,7 +162,7 @@ class ImageProcessor(
                 callback.onProgress(progressMessage())
             }
             val result =
-                processChunk(session, bitmapToProcess, processingConfig, hasTransparency, info)
+                processChunk(interpreter, bitmapToProcess, processingConfig, hasTransparency, info)
             result
         }
         return processedBitmap
@@ -192,7 +188,7 @@ class ImageProcessor(
     }
 
     private suspend fun processTiled(
-        session: OrtSession,
+        interpreter: Interpreter,
         inputBitmap: Bitmap,
         callback: ProcessCallback,
         info: ModelInfo,
@@ -291,7 +287,7 @@ class ImageProcessor(
                 val loadedChunk = withContext(Dispatchers.IO) {
                     BitmapFactory.decodeFile(chunkInfo.inputFile.absolutePath)
                 } ?: throw Exception("Failed to load chunk ${chunkInfo.index}")
-                val processed = processChunk(session, loadedChunk, config, hasTransparency, info)
+                val processed = processChunk(interpreter, loadedChunk, config, hasTransparency, info)
                 loadedChunk.recycle()
                 val cropped =
                     if (chunkInfo.expandLeft > 0 || chunkInfo.expandTop > 0 || processed.width > chunkInfo.width || processed.height > chunkInfo.height) {
@@ -363,38 +359,8 @@ class ImageProcessor(
         }
     }
 
-    private fun scaleBitmap(src: Bitmap, w: Int, h: Int): Bitmap {
-        var current = src
-        while (current.width > w * 2 || current.height > h * 2) {
-            val next = drawScaled(
-                current, (current.width / 2).coerceAtLeast(w), (current.height / 2).coerceAtLeast(h)
-            )
-            if (current !== src) current.recycle()
-            current = next
-        }
-        val result = drawScaled(current, w, h)
-        if (current !== src) current.recycle()
-        return result
-    }
-
-    private fun drawScaled(src: Bitmap, w: Int, h: Int): Bitmap {
-        val dst = createBitmap(w, h, src.config ?: Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(dst)
-        val paint = Paint().apply {
-            isAntiAlias = true
-            isFilterBitmap = true
-        }
-        canvas.drawBitmap(
-            src,
-            android.graphics.Rect(0, 0, src.width, src.height),
-            android.graphics.Rect(0, 0, w, h),
-            paint
-        )
-        return dst
-    }
-
     private fun processChunk(
-        session: OrtSession,
+        interpreter: Interpreter,
         chunk: Bitmap,
         config: Bitmap.Config,
         hasAlpha: Boolean,
@@ -402,265 +368,135 @@ class ImageProcessor(
     ): Bitmap {
         val originalW = chunk.width
         val originalH = chunk.height
-        if (info.skipTiling && info.expectedWidth != null && info.expectedHeight != null) {
-            val modelW = info.expectedWidth
-            val modelH = info.expectedHeight
-            val scaledBitmap = scaleBitmap(chunk, modelW, modelH)
-            val pixels = IntArray(modelW * modelH)
-            scaledBitmap.getPixels(pixels, 0, modelW, 0, 0, modelW, modelH)
-            scaledBitmap.recycle()
-            val inputArray = FloatArray(3 * modelW * modelH)
-            for (i in 0 until modelW * modelH) {
-                val color = pixels[i]
-                inputArray[i] = (Color.red(color) / 255f) - 0.5f
-                inputArray[modelW * modelH + i] = (Color.green(color) / 255f) - 0.5f
-                inputArray[2 * modelW * modelH + i] = (Color.blue(color) / 255f) - 0.5f
-            }
-            val env = info.env ?: OrtEnvironment.getEnvironment()
-            val inputShape = longArrayOf(1, 3, modelH.toLong(), modelW.toLong())
-            val inputTensor = OnnxTensor.createTensor(env, FloatBuffer.wrap(inputArray), inputShape)
-            val inputs = mapOf(info.inputName to inputTensor)
-            return inputTensor.use {
-                session.run(inputs).use { sessionResult ->
-                    val (outputArray, _) = extractOutputArray(
-                        sessionResult[0].value, 1, modelH, modelW
-                    )
-                    var ma = outputArray[0]
-                    var mi = outputArray[0]
-                    for (v in outputArray) {
-                        if (v > ma) ma = v; if (v < mi) mi = v
-                    }
-                    val range = (ma - mi).coerceAtLeast(1e-6f)
-                    val maskBitmap = createBitmap(modelW, modelH, Bitmap.Config.ALPHA_8)
-                    val maskPixels = IntArray(modelW * modelH)
-                    for (i in 0 until modelW * modelH) {
-                        val a = clamp255(((outputArray[i] - mi) / range) * 255f)
-                        maskPixels[i] = Color.argb(a, 0, 0, 0)
-                    }
-                    maskBitmap.setPixels(maskPixels, 0, modelW, 0, 0, modelW, modelH)
-                    val scaledMask = maskBitmap.scale(originalW, originalH)
-                    maskBitmap.recycle()
-                    val origPixels = IntArray(originalW * originalH)
-                    chunk.getPixels(origPixels, 0, originalW, 0, 0, originalW, originalH)
-                    val maskAlphas = IntArray(originalW * originalH)
-                    scaledMask.getPixels(maskAlphas, 0, originalW, 0, 0, originalW, originalH)
-                    scaledMask.recycle()
-                    val result = createBitmap(originalW, originalH, config)
-                    val outPixels = IntArray(originalW * originalH)
-                    for (i in 0 until originalW * originalH) {
-                        outPixels[i] = Color.argb(
-                            Color.alpha(maskAlphas[i]),
-                            Color.red(origPixels[i]),
-                            Color.green(origPixels[i]),
-                            Color.blue(origPixels[i])
-                        )
-                    }
-                    result.setPixels(outPixels, 0, originalW, 0, 0, originalW, originalH)
-                    result
-                }
-            }
-        }
-        val minImgSize =
-            modelManager.getMinSpatialSize(info.modelName) // redirected to modelManager
-        val w = if (info.expectedWidth != null && info.expectedWidth > 0) {
-            info.expectedWidth
-        } else {
-            val padFactor = MODEL_PAD_FACTOR
-            val paddedW = ((originalW + padFactor - 1) / padFactor) * padFactor
-            maxOf(paddedW, minImgSize)
-        }
-        val h = if (info.expectedHeight != null && info.expectedHeight > 0) {
-            info.expectedHeight
-        } else {
-            val padFactor = MODEL_PAD_FACTOR
-            val paddedH = ((originalH + padFactor - 1) / padFactor) * padFactor
-            maxOf(paddedH, minImgSize)
-        }
-        val needsPadding = w != originalW || h != originalH
-        val paddedChunk = if (needsPadding) {
-            Log.d("ImageProcessor", "Padding chunk from ${originalW}x${originalH} to ${w}x${h}")
-            val padded = createBitmap(w, h, config)
-            val canvas = Canvas(padded)
-            canvas.drawBitmap(chunk, 0f, 0f, null)
-            if (w > originalW) {
-                val rightStrip = Bitmap.createBitmap(chunk, originalW - 1, 0, 1, originalH)
-                for (x in originalW until w) {
-                    canvas.drawBitmap(rightStrip, x.toFloat(), 0f, null)
-                }
-                rightStrip.recycle()
-            }
-            if (h > originalH) {
-                val bottomStrip = Bitmap.createBitmap(padded, 0, originalH - 1, w, 1)
-                for (y in originalH until h) {
-                    canvas.drawBitmap(bottomStrip, 0f, y.toFloat(), null)
-                }
-                bottomStrip.recycle()
-            }
-            padded
-        } else {
-            chunk
-        }
-        val inputChannels = info.inputChannels
-        val outputChannels = info.outputChannels
-        val pixels = IntArray(w * h)
-        paddedChunk.getPixels(pixels, 0, w, 0, 0, w, h)
-        val inputArray = FloatArray(inputChannels * w * h)
-        val alphaChannel = if (hasAlpha) FloatArray(w * h) else null
-        for (i in 0 until w * h) {
-            val color = pixels[i]
-            if (inputChannels == 1) {
-                val gray = (Color.red(color) + Color.green(color) + Color.blue(color)) / 3
-                inputArray[i] = gray / 255f
-            } else {
-                inputArray[i] = Color.red(color) / 255f
-                inputArray[w * h + i] = Color.green(color) / 255f
-                inputArray[2 * w * h + i] = Color.blue(color) / 255f
-            }
-            if (hasAlpha) {
-                alphaChannel!![i] = Color.alpha(color) / 255f
-            }
-        }
-        val env = info.env ?: OrtEnvironment.getEnvironment()
-        val inputShape = longArrayOf(1, inputChannels.toLong(), h.toLong(), w.toLong())
-        val inputs = mutableMapOf<String, OnnxTensor>()
-        val inputTensor = if (info.isFp16) {
-            val fp16Array = ShortArray(inputArray.size) { i -> floatToFloat16(inputArray[i]) }
-            val byteBuffer =
-                ByteBuffer.allocateDirect(fp16Array.size * 2).order(ByteOrder.nativeOrder())
-            val shortBuffer = byteBuffer.asShortBuffer()
-            shortBuffer.put(fp16Array)
-            byteBuffer.rewind()
-            OnnxTensor.createTensor(env, byteBuffer, inputShape, OnnxJavaType.FLOAT16)
-        } else {
-            OnnxTensor.createTensor(env, FloatBuffer.wrap(inputArray), inputShape)
-        }
-        inputs[info.inputName] = inputTensor
-        for ((key, nodeInfo) in info.inputInfoMap) {
-            if (key == info.inputName) continue
-            val tensorInfo = nodeInfo.info as? TensorInfo ?: continue
-            if (tensorInfo.type == OnnxJavaType.FLOAT || tensorInfo.type == OnnxJavaType.FLOAT16) {
-                val shape = tensorInfo.shape.clone()
-                for (i in shape.indices) {
-                    if (shape[i] == -1L) shape[i] = 1L
-                }
-                if (shape.size == 2 && shape[0] == 1L && shape[1] == 1L) {
-                    val strengthTensor = if (tensorInfo.type == OnnxJavaType.FLOAT16) {
-                        val strengthFp16 = floatToFloat16(info.strength / 100f)
-                        val byteBuffer = ByteBuffer.allocateDirect(2).order(ByteOrder.nativeOrder())
-                        byteBuffer.asShortBuffer().put(strengthFp16)
-                        byteBuffer.rewind()
-                        OnnxTensor.createTensor(env, byteBuffer, shape, OnnxJavaType.FLOAT16)
-                    } else {
-                        OnnxTensor.createTensor(
-                            env, FloatBuffer.wrap(floatArrayOf(info.strength / 100f)), shape
-                        )
-                    }
-                    inputs[key] = strengthTensor
-                }
-            }
-        }
-        val result = try {
-            session.run(inputs).use { sessionResult ->
-                val (outputArray, actualOutputChannels) = extractOutputArray(
-                    sessionResult[0].value, outputChannels, h, w
-                )
-                val fullResultBitmap = createBitmap(w, h, config)
-                val outPixels = IntArray(w * h)
-                for (i in 0 until w * h) {
-                    val alpha = if (hasAlpha) clamp255(alphaChannel!![i] * 255f) else 255
+        val modelW = info.expectedWidth ?: throw RuntimeException("Model width not set")
+        val modelH = info.expectedHeight ?: throw RuntimeException("Model height not set")
 
-                    if (actualOutputChannels == 1) {
-                        val gray = clamp255(outputArray[i] * 255f)
-                        outPixels[i] = Color.argb(alpha, gray, gray, gray)
-                    } else {
-                        val r = clamp255(outputArray[i] * 255f)
-                        val g = clamp255(outputArray[w * h + i] * 255f)
-                        val b = clamp255(outputArray[2 * w * h + i] * 255f)
-                        outPixels[i] = Color.argb(alpha, r, g, b)
-                    }
+        // Scale to model input size if needed
+        val scaled = if (chunk.width != modelW || chunk.height != modelH) {
+            chunk.scale(modelW, modelH)
+        } else chunk
+
+        val pixels = IntArray(modelW * modelH)
+        scaled.getPixels(pixels, 0, modelW, 0, 0, modelW, modelH)
+
+        // Convert pixels to input array (NCHW or NHWC)
+        val inputArray = FloatArray(info.inputChannels * modelW * modelH)
+        for (i in 0 until modelW * modelH) {
+            val c = pixels[i]
+            if (info.isNCHW) {
+                inputArray[i] = Color.red(c) / 255f
+                inputArray[modelW * modelH + i] = Color.green(c) / 255f
+                if (info.inputChannels == 3) {
+                    inputArray[2 * modelW * modelH + i] = Color.blue(c) / 255f
                 }
-                fullResultBitmap.setPixels(outPixels, 0, w, 0, 0, w, h)
-                if (needsPadding) {
-                    val cropped = Bitmap.createBitmap(fullResultBitmap, 0, 0, originalW, originalH)
-                    fullResultBitmap.recycle()
-                    cropped
-                } else {
-                    fullResultBitmap
+            } else {
+                // NHWC: interleaved
+                inputArray[i * info.inputChannels] = Color.red(c) / 255f
+                inputArray[i * info.inputChannels + 1] = Color.green(c) / 255f
+                if (info.inputChannels == 3) {
+                    inputArray[i * info.inputChannels + 2] = Color.blue(c) / 255f
                 }
-            }
-        } finally {
-            inputs.values.forEach { it.close() }
-            if (needsPadding) {
-                paddedChunk.recycle()
             }
         }
-        return result
+
+        val inputBuffer = ByteBuffer.allocateDirect(4 * inputArray.size).order(ByteOrder.nativeOrder())
+        inputArray.forEach { inputBuffer.putFloat(it) }
+        inputBuffer.rewind()
+
+        // Find image input and output tensor indices
+        var imageInputIndex = 0
+        for (i in 0 until interpreter.inputTensorCount) {
+            val shape = interpreter.getInputTensor(i).shape()
+            if (shape.size == 4) {
+                imageInputIndex = i
+                break
+            }
+        }
+
+        var imageOutputIndex = 0
+        for (i in 0 until interpreter.outputTensorCount) {
+            val shape = interpreter.getOutputTensor(i).shape()
+            if (shape.size == 4) {
+                imageOutputIndex = i
+                break
+            }
+        }
+
+        // Prepare input arrays for runForMultipleInputsOutputs
+        val inputs = arrayOfNulls<Any>(interpreter.inputTensorCount)
+        for (i in 0 until interpreter.inputTensorCount) {
+            val shape = interpreter.getInputTensor(i).shape()
+            inputs[i] = when {
+                i == imageInputIndex -> inputBuffer
+                shape.fold(1L) { a, b -> a * b } == 1L -> {
+                    // Strength parameter
+                    val strengthBuffer = ByteBuffer.allocateDirect(4).order(ByteOrder.nativeOrder())
+                    strengthBuffer.putFloat(info.strength / 100f)
+                    strengthBuffer.rewind()
+                    strengthBuffer
+                }
+                else -> {
+                    // Unknown input, allocate buffer for its shape
+                    val size = shape.fold(1) { a, b -> (a * b).toInt() }
+                    ByteBuffer.allocateDirect(4 * size).order(ByteOrder.nativeOrder())
+                }
+            }
+        }
+
+        // Prepare output buffers
+        val outputs = mutableMapOf<Int, Any>()
+        for (i in 0 until interpreter.outputTensorCount) {
+            val outputTensor = interpreter.getOutputTensor(i)
+            val size = outputTensor.shape().fold(1) { a, b -> (a * b).toInt() }
+            val outputBuffer = ByteBuffer.allocateDirect(4 * size).order(ByteOrder.nativeOrder())
+            outputs[i] = outputBuffer
+        }
+
+        // Run inference
+        interpreter.runForMultipleInputsOutputs(inputs, outputs)
+
+        // Extract output
+        val outputBuffer = outputs[imageOutputIndex] as ByteBuffer
+        outputBuffer.rewind()
+        val outputSize = info.outputChannels * modelW * modelH
+        val outputArray = FloatArray(outputSize) { outputBuffer.getFloat() }
+
+        // Convert output back to pixels
+        val outPixels = IntArray(modelW * modelH)
+        for (i in 0 until modelW * modelH) {
+            val (r, g, b) = if (info.isNCHW) {
+                Triple(
+                    clamp255(outputArray[i] * 255f),
+                    clamp255(outputArray[modelW * modelH + i] * 255f),
+                    if (info.outputChannels == 3) clamp255(outputArray[2 * modelW * modelH + i] * 255f) else clamp255(outputArray[i] * 255f)
+                )
+            } else {
+                Triple(
+                    clamp255(outputArray[i * info.outputChannels] * 255f),
+                    clamp255(outputArray[i * info.outputChannels + 1] * 255f),
+                    if (info.outputChannels == 3) clamp255(outputArray[i * info.outputChannels + 2] * 255f) else clamp255(outputArray[i * info.outputChannels + 1] * 255f)
+                )
+            }
+            outPixels[i] = Color.argb(255, r, g, b)
+        }
+
+        val modelResult = createBitmap(modelW, modelH, Bitmap.Config.ARGB_8888)
+        modelResult.setPixels(outPixels, 0, modelW, 0, 0, modelW, modelH)
+
+        if (scaled !== chunk) scaled.recycle()
+
+        // Scale back to original size if needed
+        return if (modelW != originalW || modelH != originalH) {
+            val resized = modelResult.scale(originalW, originalH)
+            modelResult.recycle()
+            resized
+        } else {
+            modelResult
+        }
     }
 
     private fun clamp255(v: Float): Int {
         return 0.coerceAtLeast(255.coerceAtMost(v.toInt()))
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    private fun extractOutputArray(
-        outputValue: Any, channels: Int, h: Int, w: Int
-    ): Pair<FloatArray, Int> {
-        Log.d("ImageProcessor", "Output type received: ${outputValue.javaClass.name}")
-        return when (outputValue) {
-            is FloatArray -> {
-                Log.d("ImageProcessor", "Output is FloatArray (FP32 or auto-converted from FP16)")
-                outputValue to channels
-            }
-
-            is ShortArray -> {
-                Log.d("ImageProcessor", "Output is ShortArray (FP16) - converting to Float32")
-                FloatArray(outputValue.size) { i -> float16ToFloat(outputValue[i]) } to channels
-            }
-
-            is Array<*> -> {
-                try {
-                    val arr = outputValue as Array<Array<Array<FloatArray>>>
-                    val actualChannels = arr[0].size
-                    Log.d(
-                        "ImageProcessor",
-                        "Expected channels: $channels, Actual channels: $actualChannels"
-                    )
-                    val out = FloatArray(channels * h * w)
-                    val channelsToProcess = minOf(channels, actualChannels)
-                    for (ch in 0 until channelsToProcess) {
-                        for (y in 0 until h) {
-                            for (x in 0 until w) {
-                                out[ch * h * w + y * w + x] = arr[0][ch][y][x]
-                            }
-                        }
-                    }
-                    out to actualChannels
-                } catch (e: Exception) {
-                    try {
-                        val arr = outputValue as Array<Array<Array<ShortArray>>>
-                        val actualChannels = arr[0].size
-                        Log.d(
-                            "ImageProcessor",
-                            "Expected channels: $channels, Actual channels: $actualChannels"
-                        )
-                        val out = FloatArray(channels * h * w)
-                        val channelsToProcess = minOf(channels, actualChannels)
-                        for (ch in 0 until channelsToProcess) {
-                            for (y in 0 until h) {
-                                for (x in 0 until w) {
-                                    out[ch * h * w + y * w + x] = float16ToFloat(arr[0][ch][y][x])
-                                }
-                            }
-                        }
-                        out to actualChannels
-                    } catch (e2: Exception) {
-                        throw RuntimeException("Failed to extract output array: ${e.message}, ${e2.message}")
-                    }
-                }
-            }
-
-            else -> throw RuntimeException("Unexpected ONNX output type: ${outputValue.javaClass}")
-        }
     }
 
     private data class ChunkInfo(
@@ -677,111 +513,75 @@ class ImageProcessor(
         val expandTop: Int
     )
 
-    private fun floatToFloat16(value: Float): Short {
-        val bits = java.lang.Float.floatToIntBits(value)
-        val sign = (bits ushr 16) and 0x8000
-        val exponent = ((bits ushr 23) and 0xFF) - 127 + 15
-        var mantissa = bits and 0x7FFFFF
-        if (exponent <= 0) {
-            if (exponent < -10) {
-                return sign.toShort()
-            }
-            mantissa = mantissa or 0x800000
-            mantissa = mantissa shr (1 - exponent)
-            return (sign or (mantissa shr 13)).toShort()
-        } else if (exponent >= 0x1F) {
-            return (sign or 0x7C00).toShort()
-        }
-        return (sign or (exponent shl 10) or (mantissa shr 13)).toShort()
-    }
-
-    private fun float16ToFloat(fp16: Short): Float {
-        val bits = fp16.toInt() and 0xFFFF
-        val sign = (bits and 0x8000) shl 16
-        val exponent = (bits and 0x7C00) ushr 10
-        val mantissa = bits and 0x3FF
-        if (exponent == 0) {
-            if (mantissa == 0) {
-                return java.lang.Float.intBitsToFloat(sign)
-            }
-            var e = -14
-            var m = mantissa
-            while ((m and 0x400) == 0) {
-                m = m shl 1
-                e--
-            }
-            m = m and 0x3FF
-            return java.lang.Float.intBitsToFloat(sign or ((e + 127) shl 23) or (m shl 13))
-        } else if (exponent == 0x1F) {
-            return java.lang.Float.intBitsToFloat(sign or 0x7F800000 or (mantissa shl 13))
-        }
-        return java.lang.Float.intBitsToFloat(sign or ((exponent - 15 + 127) shl 23) or (mantissa shl 13))
-    }
-
     private class ModelInfo(
         val modelName: String?,
         val strength: Float,
-        session: OrtSession,
+        interpreter: Interpreter,
         chunkSize: Int?,
         overlapSize: Int?,
         fixedInputSize: Pair<Int, Int>? = null
     ) {
-        val env: OrtEnvironment?
-        val inputName: String
-        val inputInfoMap: Map<String, NodeInfo>
-        val inputChannels: Int
-        val outputChannels: Int
-        val isFp16: Boolean
         val chunkSize: Int = chunkSize ?: AppPreferences.DEFAULT_CHUNK_SIZE
         val overlap: Int = overlapSize ?: AppPreferences.DEFAULT_OVERLAP_SIZE
-        val expectedWidth: Int?
-        val expectedHeight: Int?
+        var expectedWidth: Int? = null
+        var expectedHeight: Int? = null
         val skipTiling: Boolean = fixedInputSize != null
+        var isNCHW: Boolean = false
+        var inputChannels: Int = 3
+        var outputChannels: Int = 3
 
         init {
             Log.d(
                 "ModelInfo",
-                "Initialized $modelName:: chunkSize: $chunkSize, overlapSize: $overlapSize -> chunkSize: $chunkSize, overlap: $overlap, fixedInputSize: $fixedInputSize, skipTiling: $skipTiling"
+                "Initialized $modelName:: chunkSize: ${this.chunkSize}, overlapSize: ${this.overlap}, fixedInputSize: $fixedInputSize, skipTiling: $skipTiling"
             )
-            inputInfoMap = session.inputInfo
-            env = OrtEnvironment.getEnvironment()
-            var foundInputName: String? = null
-            var foundInputChannels = 3
-            var foundOutputChannels = 3
-            var foundIsFp16 = false
-            var foundExpectedWidth: Int? = null
-            var foundExpectedHeight: Int? = null
-            for ((key, nodeInfo) in inputInfoMap) {
-                val tensorInfo = nodeInfo.info as? TensorInfo ?: continue
-                val shape = tensorInfo.shape
-                if ((tensorInfo.type == OnnxJavaType.FLOAT || tensorInfo.type == OnnxJavaType.FLOAT16) && shape.size == 4) {
-                    foundInputName = key
-                    foundInputChannels = if (shape[1] == 1L) 1 else 3
-                    foundIsFp16 = (tensorInfo.type == OnnxJavaType.FLOAT16)
-                    if (shape[2] > 0) foundExpectedHeight = shape[2].toInt()
-                    if (shape[3] > 0) foundExpectedWidth = shape[3].toInt()
+            
+            // Detect image input tensor (4D with at least 3 channels)
+            var imageInputIndex = 0
+            var foundImageInput = false
+            for (i in 0 until interpreter.inputTensorCount) {
+                val shape = interpreter.getInputTensor(i).shape()
+                if (shape.size == 4) {
+                    imageInputIndex = i
+                    foundImageInput = true
                     break
                 }
             }
-            val outputInfoMap = session.outputInfo
-            for ((_, nodeInfo) in outputInfoMap) {
-                val tensorInfo = nodeInfo.info as? TensorInfo ?: continue
-                val shape = tensorInfo.shape
-                if ((tensorInfo.type == OnnxJavaType.FLOAT || tensorInfo.type == OnnxJavaType.FLOAT16) && shape.size == 4) {
-                    foundOutputChannels = if (shape[1] == 1L) 1 else 3
+            
+            if (!foundImageInput) {
+                throw RuntimeException("Could not find 4D input tensor")
+            }
+            
+            val imageShape = interpreter.getInputTensor(imageInputIndex).shape()
+            // Determine layout: NCHW or NHWC
+            isNCHW = false || imageShape[1] == 1
+            
+            val (modelH, modelW, channels) = if (isNCHW) {
+                Triple(imageShape[2], imageShape[3], imageShape[1])
+            } else {
+                Triple(imageShape[1], imageShape[2], imageShape[3])
+            }
+            
+            inputChannels = if (channels == 1) 1 else 3
+            
+            // Detect output channels from first 4D output tensor
+            outputChannels = 3 // default
+            for (i in 0 until interpreter.outputTensorCount) {
+                val shape = interpreter.getOutputTensor(i).shape()
+                if (shape.size == 4) {
+                    val outChannels = if (isNCHW) shape[1].toInt() else shape[3].toInt()
+                    outputChannels = if (outChannels == 1) 1 else 3
                     break
                 }
             }
-            inputName =
-                foundInputName ?: throw RuntimeException("Could not find valid input tensor")
-            inputChannels = foundInputChannels
-            outputChannels = foundOutputChannels
-            isFp16 = foundIsFp16
-            expectedWidth = fixedInputSize?.first ?: foundExpectedWidth
-            expectedHeight = fixedInputSize?.second ?: foundExpectedHeight
+            
+            // Use fixed size or inferred from model shape
+            expectedWidth = fixedInputSize?.first ?: modelW
+            expectedHeight = fixedInputSize?.second ?: modelH
+            
             Log.d(
                 "ModelInfo",
-                "Model $modelName data:: input type: ${if (isFp16) "FP16" else "FP32"}, input channels: $inputChannels, output channels: $outputChannels, expected dimensions: ${expectedWidth ?: "dynamic"}x${expectedHeight ?: "dynamic"}, fixedInputSize: $fixedInputSize, skipTiling: $skipTiling"
+                "Model $modelName data:: layout: ${if (isNCHW) "NCHW" else "NHWC"}, input channels: $inputChannels, output channels: $outputChannels, expected dimensions: $expectedWidth x $expectedHeight, fixedInputSize: $fixedInputSize, skipTiling: $skipTiling"
             )
         }
     }

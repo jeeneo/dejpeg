@@ -7,9 +7,6 @@
 
 package com.je.dejpeg.utils
 
-import ai.onnxruntime.OrtEnvironment
-import ai.onnxruntime.OrtException
-import ai.onnxruntime.OrtSession
 import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
@@ -21,15 +18,19 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import org.tensorflow.lite.Interpreter
+import org.tensorflow.lite.gpu.CompatibilityList
+import org.tensorflow.lite.gpu.GpuDelegate
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.InputStream
 import java.io.OutputStream
+import java.nio.channels.FileChannel
 
 enum class ModelType(val extensions: List<String>, val invalidFileTypeResId: Int) {
-    ONNX(listOf(".onnx", ".ort"), R.string.invalid_file_type), OIDN(
-        listOf(".tza"), R.string.invalid_tza_file_type
-    );
+    LITERT(listOf(".tflite"), R.string.invalid_file_type),
+    OIDN(listOf(".tza"), R.string.invalid_tza_file_type);
 
     fun matches(filename: String): Boolean {
         val lower = filename.lowercase()
@@ -42,14 +43,14 @@ class ModelManager(
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
 ) {
 
-    private var currentSession: OrtSession? = null
-    private var ortEnv: OrtEnvironment? = null
+    private var currentInterpreter: Interpreter? = null
+    private var gpuDelegate: GpuDelegate? = null
     private var currentModelName: String? = null
     private val cachedActiveModels = mutableMapOf<ModelType, String?>()
     private val appPreferences = AppPreferences()
 
-    private fun getModelsDir(type: ModelType = ModelType.ONNX): File = when (type) {
-        ModelType.ONNX -> ModelMigrationHelper.getOnnxModelsDir(context)
+    private fun getModelsDir(type: ModelType = ModelType.LITERT): File = when (type) {
+        ModelType.LITERT -> ModelMigrationHelper.getLiteRtModelsDir(context)
         ModelType.OIDN -> ModelMigrationHelper.getTzaModelsDir(context)
     }
 
@@ -57,100 +58,25 @@ class ModelManager(
         private const val STARTER_MODELS_ASSET_DIR = "embedonnx"
 
         private val MODEL_INFO_RES_IDS = mapOf(
-            // fbcnn (jpeg model)
-            "fbcnn_color_fp16.onnx" to R.string.model_info_fbcnn_color_fp16,
-            "fbcnn_gray_fp16.onnx" to R.string.model_info_fbcnn_gray_fp16,
-            "fbcnn_gray_double_fp16.onnx" to R.string.model_info_fbcnn_gray_double_fp16,
-
-            // scunet (noise model)
-            "scunet_color_real_gan_fp16.onnx" to R.string.model_info_scunet_color_real_gan_fp16,
-            "scunet_color_real_psnr_fp16.onnx" to R.string.model_info_scunet_color_real_psnr_fp16,
-            "scunet_color_15_fp16.onnx" to R.string.model_info_scunet_color_15_fp16,
-            "scunet_color_25_fp16.onnx" to R.string.model_info_scunet_color_25_fp16,
-            "scunet_color_50_fp16.onnx" to R.string.model_info_scunet_color_50_fp16,
-            "scunet_gray_15_fp16.onnx" to R.string.model_info_scunet_gray_15_fp16,
-            "scunet_gray_25_fp16.onnx" to R.string.model_info_scunet_gray_25_fp16,
-            "scunet_gray_50_fp16.onnx" to R.string.model_info_scunet_gray_50_fp16,
-
-            "deblurring_nafnet_2025may.onnx" to R.string.model_info_deblurring_nafnet_2025may,
-
-            // small models (for low-end devices)
-            "1x-AnimeUndeint-Compact-fp16.onnx" to R.string.model_info_1x_anime_undeint_compact_fp16,
-            "1x-BroadcastToStudio_Compact-fp16.onnx" to R.string.model_info_1x_broadcast_to_studio_compact_fp16,
-            "1x-WB-Denoise-fp16.onnx" to R.string.model_info_1x_wb_denoise_fp16,
-            "1xBook-Compact-fp16.onnx" to R.string.model_info_1x_book_compact_fp16,
-            "1xOverExposureCorrection_compact-fp16.onnx" to R.string.model_info_1x_over_exposure_correction_compact_fp16,
-            "1x-RGB-max-Denoise-fp16.onnx" to R.string.model_info_1x_rgb_max_denoise_fp16,
-            "1x-span-anime-pretrain-fp16.onnx" to R.string.model_info_1x_span_anime_pretrain_fp16,
-
-            // other compression
-            "1x_JPEGDestroyerV2_96000G-fp16.onnx" to R.string.model_info_1x_jpeg_destroyer_v2_96000g_fp16,
-            "1x-NMKD-Jaywreck3-Lite-fp16.onnx" to R.string.model_info_1x_nmkd_jaywreck3_lite_fp16,
-            "1x_NMKD-h264Texturize-fp16.onnx" to R.string.model_info_1x_nmkd_h264_texturize_fp16,
-            "VHS-Sharpen-1x_46000_G-fp16.onnx" to R.string.model_info_vhs_sharpen_1x_46000_g_fp16,
-            "1x_BCGone_Smooth_110000_G-fp16.onnx" to R.string.model_info_1x_bc_gone_smooth_110000_g_fp16,
-            "1x-cinepak-fp16.onnx" to R.string.model_info_1x_cinepak_fp16,
-            "1x_BCGone-DetailedV2_40-60_115000_G-fp16.onnx" to R.string.model_info_1x_bc_gone_detailed_v2_40_60_115000_g_fp16,
-            "1x-DeBink-v4.onnx" to R.string.model_info_1x_de_bink_v4,
-            "1x-DeBink-v5.onnx" to R.string.model_info_1x_de_bink_v5,
-            "1x-DeBink-v6.onnx" to R.string.model_info_1x_de_bink_v6,
-
-            // JPEG quality range models
-            "1x_JPEG_00-20-fp16.ort" to R.string.model_info_1x_jpeg_00_20_fp16,
-            "1x_JPEG_20-40-fp16.ort" to R.string.model_info_1x_jpeg_20_40_fp16,
-            "1x_JPEG_40-60-fp16.ort" to R.string.model_info_1x_jpeg_40_60_fp16,
-            "1x_JPEG_60-80-fp16.ort" to R.string.model_info_1x_jpeg_60_80_fp16,
-            "1x_JPEG_80-100-fp16.ort" to R.string.model_info_1x_jpeg_80_100_fp16,
-            "1x_artifacts_jpg_00_20_alsa-fp16.onnx" to R.string.model_info_1x_artifacts_jpg_00_20_alsa_fp16,
-            "1x_artifacts_jpg_20_40_alsa-fp16.onnx" to R.string.model_info_1x_artifacts_jpg_20_40_alsa_fp16,
-            "1x_artifacts_jpg_40_60_alsa-fp16.onnx" to R.string.model_info_1x_artifacts_jpg_40_60_alsa_fp16,
-            "1x_artifacts_jpg_60_80_alsa-fp16.onnx" to R.string.model_info_1x_artifacts_jpg_60_80_alsa_fp16,
-            "1x_artifacts_jpg_80_100_alsa-fp16.onnx" to R.string.model_info_1x_artifacts_jpg_80_100_alsa_fp16,
-
-            // miscellaneous models
-            "1x-Anti-Aliasing-fp16.onnx" to R.string.model_info_1x_anti_aliasing_fp16,
-            "1x-KDM003-scans-fp16.onnx" to R.string.model_info_1x_kdm003_scans_fp16,
-            "1x-SpongeColor-Lite-fp16.onnx" to R.string.model_info_1x_sponge_color_lite_fp16,
-            "1x_Bandage-Smooth-fp16.onnx" to R.string.model_info_1x_bandage_smooth_fp16,
-            "1x_Bendel_Halftone-fp32.onnx" to R.string.model_info_1x_bendel_halftone_fp32,
-            "1x_ColorizerV2_22000G-fp16.onnx" to R.string.model_info_1x_colorizer_v2_22000g_fp16,
-            "1x_DeEdge-fp16.onnx" to R.string.model_info_1x_de_edge_fp16,
-            "1x_DeSharpen-fp16.onnx" to R.string.model_info_1x_de_sharpen_fp16,
-            "1x_DitherDeleterV3-Smooth-fp16.onnx" to R.string.model_info_1x_dither_deleter_v3_smooth_fp16,
-            "1x_GainresV4-fp16.onnx" to R.string.model_info_1x_gainres_v4_fp16,
-            "1x-Debandurh-FS-Ultra-lite-fp16.onnx" to R.string.model_info_1x_debandurh_fs_ultra_lite_fp16,
-            "1x_NMKD-BrightenRedux_200k-fp16.onnx" to R.string.model_info_1x_nmkd_brighten_redux_200k_fp16,
-            "1x_NMKDDetoon_97500_G-fp16.onnx" to R.string.model_info_1x_nmkd_detoon_97500_g_fp16,
-            "1x_NoiseToner-Poisson-Detailed_108000_G-fp16.onnx" to R.string.model_info_1x_noise_toner_poisson_detailed_108000_g_fp16,
-            "1x_NoiseToner-Poisson-Soft_101000_G-fp16.onnx" to R.string.model_info_1x_noise_toner_poisson_soft_101000_g_fp16,
-            "1x_NoiseToner-Uniform-Detailed_100000_G-fp16.onnx" to R.string.model_info_1x_noise_toner_uniform_detailed_100000_g_fp16,
-            "1x_NoiseToner-Uniform-Soft_100000_G-fp16.onnx" to R.string.model_info_1x_noise_toner_uniform_soft_100000_g_fp16,
-            "1x_ReDetail_v2_126000_G-fp16.onnx" to R.string.model_info_1x_re_detail_v2_126000_g_fp16,
-            "1x_Repainter_20000_G-fp16.onnx" to R.string.model_info_1x_repainter_20000_g_fp16,
-            "1x_artifacts_dithering_alsa-fp16.onnx" to R.string.model_info_1x_artifacts_dithering_alsa_fp16,
-            "1x_nmkdbrighten_10000_G-fp16.onnx" to R.string.model_info_1x_nmkd_brighten_10000_g_fp16,
-
-            // special models
-            "rmbg" to R.string.model_info_background_removal_bria_rmbg,
-            "u2net" to R.string.model_info_background_removal_u2net
+            "fbcnn_color_fp16.tflite" to R.string.model_info_fbcnn_color_fp16
         )
 
         private val MIN_SPATIAL_SIZE_BY_NAME = mapOf(
-            "nafnet" to 512 // nafnet deblurring, set to 512
+            "nafnet" to 512
         )
 
         private val MIN_OVERLAP_SIZE_BY_NAME = mapOf(
-            "scunet" to 128 // scunet models need large overlap(?) needs more testing
+            "scunet" to 128
         )
 
-        private val FIXED_INPUT_SIZE_BY_NAME = mapOf(
-            "rmbg" to Pair(1024, 1024), "u2net" to Pair(320, 320)
+        private val MODEL_INPUT_SIZES = mapOf(
+            "fbcnn_color_fp16.tflite" to Pair(256, 256)
         )
     }
 
     fun getFixedInputSize(modelName: String?): Pair<Int, Int>? {
-        val normalized = modelName?.lowercase() ?: return null
-        return FIXED_INPUT_SIZE_BY_NAME.entries.firstOrNull { normalized.contains(it.key) }?.value
+        if (modelName == null) return null
+        return MODEL_INPUT_SIZES[modelName]
     }
 
     fun getMinSpatialSize(modelName: String?): Int {
@@ -180,16 +106,16 @@ class ModelManager(
         val negativeButtonTextResId: Int
     )
 
-    fun hasActiveModel(type: ModelType = ModelType.ONNX): Boolean {
+    fun hasActiveModel(type: ModelType = ModelType.LITERT): Boolean {
         val activeModel = getActiveModelName(type)
         return activeModel != null && File(getModelsDir(type), activeModel).exists()
     }
 
-    fun getActiveModelName(type: ModelType = ModelType.ONNX): String? {
+    fun getActiveModelName(type: ModelType = ModelType.LITERT): String? {
         cachedActiveModels[type]?.let { return it }
         return runBlocking {
             val name = when (type) {
-                ModelType.ONNX -> appPreferences.getActiveModel()
+                ModelType.LITERT -> appPreferences.getActiveModel()
                 ModelType.OIDN -> appPreferences.getActiveOidnModel()
             }
             name.also { cachedActiveModels[type] = it }
@@ -200,24 +126,24 @@ class ModelManager(
         return currentModelName
     }
 
-    fun setActiveModel(modelName: String, type: ModelType = ModelType.ONNX) {
+    fun setActiveModel(modelName: String, type: ModelType = ModelType.LITERT) {
         Log.d("ModelManager", "setActiveModel($type) called with: $modelName")
-        if (type == ModelType.ONNX) unloadModel()
+        if (type == ModelType.LITERT) unloadModel()
         cachedActiveModels[type] = modelName
         coroutineScope.launch {
             when (type) {
-                ModelType.ONNX -> appPreferences.setActiveModel(modelName)
+                ModelType.LITERT -> appPreferences.setActiveModel(modelName)
                 ModelType.OIDN -> appPreferences.setActiveOidnModel(modelName)
             }
             Log.d("ModelManager", "Active $type model saved to DataStore: $modelName")
         }
     }
 
-    private fun clearActiveModel(type: ModelType = ModelType.ONNX) {
+    private fun clearActiveModel(type: ModelType = ModelType.LITERT) {
         cachedActiveModels.remove(type)
         coroutineScope.launch {
             when (type) {
-                ModelType.ONNX -> appPreferences.clearActiveModel()
+                ModelType.LITERT -> appPreferences.clearActiveModel()
                 ModelType.OIDN -> appPreferences.clearActiveOidnModel()
             }
         }
@@ -229,7 +155,7 @@ class ModelManager(
         }
     }
 
-    fun getInstalledModels(type: ModelType = ModelType.ONNX): List<String> {
+    fun getInstalledModels(type: ModelType = ModelType.LITERT): List<String> {
         val modelsDir = getModelsDir(type)
         if (!modelsDir.exists()) return emptyList()
         val files = modelsDir.listFiles { _, name -> type.matches(name) }
@@ -242,91 +168,88 @@ class ModelManager(
         return if (modelFile.exists()) modelFile.absolutePath else null
     }
 
-    fun loadModel(): OrtSession {
+    fun loadModel(useGpu: Boolean = true): Interpreter {
         val activeModel =
-            getActiveModelName(ModelType.ONNX) ?: throw Exception("No active model set")
-        if (currentSession != null && activeModel == currentModelName) {
-            return currentSession!!
+            getActiveModelName(ModelType.LITERT) ?: throw Exception("No active model set")
+        if (currentInterpreter != null && activeModel == currentModelName) {
+            return currentInterpreter!!
         }
-        val oldSession = currentSession
-        val oldEnv = ortEnv
-        currentSession = null
+        
+        val oldInterpreter = currentInterpreter
+        val oldDelegate = gpuDelegate
+        currentInterpreter = null
         currentModelName = null
-        ortEnv = null
+        gpuDelegate = null
+        
         try {
-            oldSession?.close()
+            oldInterpreter?.close()
         } catch (e: Exception) {
-            Log.e("ModelManager", "Error closing old session: ${e.message}")
+            Log.e("ModelManager", "Error closing old interpreter: ${e.message}")
         }
         try {
-            oldEnv?.close()
+            oldDelegate?.close()
         } catch (e: Exception) {
-            Log.e("ModelManager", "Error closing old env: ${e.message}")
+            Log.e("ModelManager", "Error closing old GPU delegate: ${e.message}")
         }
         System.gc()
         System.runFinalization()
         System.gc()
-        val modelFile = File(getModelsDir(ModelType.ONNX), activeModel)
+        
+        val modelFile = File(getModelsDir(ModelType.LITERT), activeModel)
         if (!modelFile.exists()) throw Exception("Model file does not exist: ${modelFile.absolutePath}")
+        
         try {
-            ortEnv = OrtEnvironment.getEnvironment()
-            val opts = OrtSession.SessionOptions()
-            configureSessionOptions(opts, activeModel)
-            currentSession = ortEnv?.createSession(modelFile.absolutePath, opts)
+            val mapped = FileInputStream(modelFile).use { fis ->
+                fis.channel.map(FileChannel.MapMode.READ_ONLY, 0, modelFile.length())
+            }
+            
+            val opts = Interpreter.Options()
+            
+            if (useGpu) {
+                val compatList = CompatibilityList()
+                if (compatList.isDelegateSupportedOnThisDevice) {
+                    val delegateOptions = compatList.bestOptionsForThisDevice
+                    gpuDelegate = GpuDelegate(delegateOptions)
+                    opts.addDelegate(gpuDelegate)
+                    Log.d("ModelManager", "GPU delegate enabled for $activeModel")
+                } else {
+                    Log.w("ModelManager", "GPU delegate not supported, using CPU with multiple threads")
+                    opts.numThreads = Runtime.getRuntime().availableProcessors().coerceIn(1, 4)
+                }
+            } else {
+                opts.numThreads = Runtime.getRuntime().availableProcessors().coerceIn(1, 4)
+            }
+            
+            currentInterpreter = Interpreter(mapped, opts)
             currentModelName = activeModel
             setCurrentProcessingModel(activeModel)
-            Log.d("ModelManager", "Successfully loaded model: $activeModel")
-            return currentSession!!
+            Log.d("ModelManager", "Successfully loaded LiteRT model: $activeModel (gpu=${gpuDelegate != null})")
+            return currentInterpreter!!
         } catch (e: Exception) {
             Log.e("ModelManager", "Error loading model: ${e.message}", e)
-            currentSession = null
+            currentInterpreter = null
             currentModelName = null
             throw e
         }
     }
 
-    private fun configureSessionOptions(opts: OrtSession.SessionOptions, modelName: String) {
-        val processors = Runtime.getRuntime().availableProcessors()
-        try {
-            opts.setIntraOpNumThreads(if (processors <= 2) 1 else 2)
-        } catch (e: OrtException) {
-            Log.e("ModelManager", "Error setting IntraOpNumThreads: ${e.message}")
-        }
-        try {
-            opts.setInterOpNumThreads(4)
-        } catch (e: OrtException) {
-            Log.e("ModelManager", "Error setting InterOpNumThreads: ${e.message}")
-        }
-        try {
-            when {
-                modelName.endsWith(".ort") -> { // prevent double optimizations (.ort models are already optimized)
-                    opts.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.NO_OPT)
-                }
-
-                modelName.startsWith("fbcnn_") -> opts.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.EXTENDED_OPT)
-                modelName.startsWith("scunet_") -> opts.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.NO_OPT)
-            }
-        } catch (e: OrtException) {
-            Log.e("ModelManager", "Error setting OptimizationLevel: ${e.message}")
-        }
-    }
-
     fun unloadModel() {
-        Log.d("ModelManager", "unloadModel called, clearing session for: $currentModelName")
-        val session = currentSession
-        val env = ortEnv
-        currentSession = null
+        Log.d("ModelManager", "unloadModel called, clearing interpreter for: $currentModelName")
+        val interpreter = currentInterpreter
+        val delegate = gpuDelegate
+        currentInterpreter = null
         currentModelName = null
-        ortEnv = null
+        gpuDelegate = null
+        
         try {
-            session?.close()
+            interpreter?.close()
         } catch (e: Exception) {
-            Log.e("ModelManager", "Error closing session: ${e.message}")
+            Log.e("ModelManager", "Error closing interpreter: ${e.message}")
         }
         try {
-            env?.close()
+            delegate?.close()
         } catch (e: Exception) {
-            Log.e("ModelManager", "Error closing environment: ${e.message}")
+            Log.e("ModelManager", "Error closing GPU delegate: ${e.message}")
         }
         System.gc()
         System.runFinalization()
@@ -335,7 +258,7 @@ class ModelManager(
 
     fun importModel(
         modelUri: Uri,
-        type: ModelType = ModelType.ONNX,
+        type: ModelType = ModelType.LITERT,
         onProgress: (Int) -> Unit = {},
         onSuccess: (String) -> Unit = {},
         onError: (String) -> Unit = {}
@@ -366,7 +289,7 @@ class ModelManager(
         if (path != null && path.contains("/")) {
             return path.substring(path.lastIndexOf('/') + 1).trim()
         }
-        return uri.lastPathSegment?.trim() ?: "model.onnx"
+        return uri.lastPathSegment?.trim() ?: "model.tflite"
     }
 
     @SuppressLint("Recycle")
@@ -417,7 +340,7 @@ class ModelManager(
     }
 
     fun deleteModel(
-        modelName: String, type: ModelType = ModelType.ONNX, onDeleted: (String) -> Unit = {}
+        modelName: String, type: ModelType = ModelType.LITERT, onDeleted: (String) -> Unit = {}
     ) {
         val modelFile = File(getModelsDir(type), modelName)
         if (modelFile.exists()) {
@@ -463,9 +386,9 @@ class ModelManager(
                 Log.d("ModelManager", "Starter model already extracted, skipping")
                 return false
             }
-            val modelsDir = getModelsDir(ModelType.ONNX)
+            val modelsDir = getModelsDir(ModelType.LITERT)
             val hasModels = modelsDir.exists() && modelsDir.listFiles { _, name ->
-                ModelType.ONNX.matches(name)
+                ModelType.LITERT.matches(name)
             }?.isNotEmpty() == true
             if (hasModels) {
                 Log.d("ModelManager", "Models already exist, skipping starter model extraction")
@@ -489,15 +412,15 @@ class ModelManager(
         setAsActive: Boolean = false, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}
     ): Boolean {
         return try {
-            val modelsDir = getModelsDir(ModelType.ONNX)
+            val modelsDir = getModelsDir(ModelType.LITERT)
             val shouldSetAsActive =
                 setAsActive || !modelsDir.exists() || modelsDir.listFiles { _, name ->
-                    ModelType.ONNX.matches(name)
+                    ModelType.LITERT.matches(name)
                 }?.isEmpty() == true
             val extracted = copyStarterModelsFromAssets(modelsDir)
             if (extracted) {
                 if (shouldSetAsActive) {
-                    setActiveModel("1x-span-anime-pretrain-fp16.onnx", ModelType.ONNX)
+                    setActiveModel("1x-span-anime-pretrain-fp16.tflite", ModelType.LITERT)
                 }
                 markStarterModelExtracted()
                 onSuccess()
