@@ -68,15 +68,6 @@ class ModelManager(
         private val MIN_OVERLAP_SIZE_BY_NAME = mapOf(
             "scunet" to 128
         )
-
-        private val MODEL_INPUT_SIZES = mapOf(
-            "fbcnn_color_fp16.tflite" to Pair(256, 256)
-        )
-    }
-
-    fun getFixedInputSize(modelName: String?): Pair<Int, Int>? {
-        if (modelName == null) return null
-        return MODEL_INPUT_SIZES[modelName]
     }
 
     fun getMinSpatialSize(modelName: String?): Int {
@@ -207,6 +198,18 @@ class ModelManager(
             
             if (useGpu) {
                 val compatList = CompatibilityList()
+                // massive cold startup boost but uses massive space, notify user for this and allow disabling
+                if (compatList.isDelegateSupportedOnThisDevice) {
+                    val delegateOptions = compatList.bestOptionsForThisDevice
+                    val serializationDir = File(context.cacheDir, "gpu_delegate_cache").apply { mkdirs() }
+                    delegateOptions.setSerializationParams(
+                        serializationDir.absolutePath,
+                        "model_${activeModel.hashCode()}"
+                    )
+                    gpuDelegate = GpuDelegate(delegateOptions)
+                    opts.addDelegate(gpuDelegate)
+                    Log.d("ModelManager", "GPU delegate enabled for $activeModel")
+                }
                 if (compatList.isDelegateSupportedOnThisDevice) {
                     val delegateOptions = compatList.bestOptionsForThisDevice
                     gpuDelegate = GpuDelegate(delegateOptions)

@@ -141,6 +141,13 @@ class ProcessingService : Service() {
         modelManager = ModelManager(applicationContext)
         imageProcessor = ImageProcessor(applicationContext, modelManager!!)
         oidnProcessor = OidnProcessor(applicationContext)
+//        serviceScope.launch(Dispatchers.IO) {
+//            try {
+//                modelManager?.loadModel()
+//            } catch (e: Exception) {
+//                Log.w("ProcessingService", "Pre-warm load failed: ${e.message}")
+//            }
+//        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

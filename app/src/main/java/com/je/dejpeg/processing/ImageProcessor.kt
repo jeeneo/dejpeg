@@ -9,40 +9,23 @@ package com.je.dejpeg.processing
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.util.Log
-import org.tensorflow.lite.Interpreter
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
 import com.je.dejpeg.AppPreferences
 import com.je.dejpeg.R
-import com.je.dejpeg.ThreadUtils
-import com.je.dejpeg.utils.CacheManager
 import com.je.dejpeg.utils.ModelManager
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.FileOutputStream
+import org.tensorflow.lite.Interpreter
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.nio.FloatBuffer
-import java.util.concurrent.atomic.AtomicInteger
-import kotlin.math.ceil
 
 class ImageProcessor(
     private val context: Context, private val modelManager: ModelManager
 ) {
-
-    private companion object {
-        const val MODEL_PAD_FACTOR = 8
-    }
-
     var chunkSize: Int? = null
     var overlapSize: Int? = null
     var deviceThreadCount: Int? = null
@@ -66,117 +49,229 @@ class ImageProcessor(
     ) = withContext(Dispatchers.Default) {
         isCancelled = false
         try {
-            val coresToUse = ThreadUtils.resolveThreadCount(deviceThreadCount)
-            val modelName = modelManager.getActiveModelName()
             val interpreter = modelManager.loadModel()
-            val minOverlap = modelManager.getMinOverlapSize(modelName)
-            val baseOverlap = overlapSize ?: AppPreferences.DEFAULT_OVERLAP_SIZE
-            val effectiveOverlap = maxOf(baseOverlap, minOverlap)
-            if (effectiveOverlap > baseOverlap) {
-                Log.d(
-                    "ImageProcessor",
-                    "Enforcing minimum overlap for $modelName: $baseOverlap -> $effectiveOverlap"
+            val imageInputIndex = (0 until interpreter.inputTensorCount).first {
+                interpreter.getInputTensor(it).shape().size == 4
+            }
+            val imageShape = interpreter.getInputTensor(imageInputIndex).shape()
+            val isNCHW = imageShape[1] == 3
+            val modelH = if (isNCHW) imageShape[2] else imageShape[1]
+            val modelW = if (isNCHW) imageShape[3] else imageShape[2]
+            Log.d(
+                "LiteRtImageProcessor",
+                "Model layout: ${if (isNCHW) "NCHW" else "NHWC"}, tile size: ${modelW}x${modelH}"
+            )
+            val config = Bitmap.Config.ARGB_8888
+            val bitmapToProcess =
+                if (inputBitmap.config != config) inputBitmap.copy(config, true) else inputBitmap
+            val width = bitmapToProcess.width
+            val height = bitmapToProcess.height
+            val overlap = overlapSize ?: AppPreferences.DEFAULT_OVERLAP_SIZE
+            val mustTile = width > modelW || height > modelH
+            val result = if (!mustTile) {
+                withContext(Dispatchers.Main) {
+                    callback.onProgress(context.getString(R.string.processing))
+                }
+                processChunk(
+                    interpreter, bitmapToProcess, strength, modelW, modelH, isNCHW, imageInputIndex
+                )
+            } else {
+                processTiled(
+                    interpreter,
+                    bitmapToProcess,
+                    strength,
+                    modelW,
+                    modelH,
+                    isNCHW,
+                    imageInputIndex,
+                    overlap,
+                    callback
                 )
             }
-            val fixedSize = modelManager.getFixedInputSize(modelName)
-            val modelInfo =
-                ModelInfo(modelName, strength, interpreter, chunkSize, effectiveOverlap, fixedSize)
-            val result = processBitmap(
-                interpreter = interpreter,
-                inputBitmap = inputBitmap,
-                callback = callback,
-                info = modelInfo,
-                coresToUse = coresToUse
-            )
-            withContext(Dispatchers.Main) {
-                callback.onComplete(result)
-            }
+            withContext(Dispatchers.Main) { callback.onComplete(result) }
         } catch (e: Exception) {
-            val errorMessage = if (isCancelled) {
-                context.getString(R.string.error_processing_cancelled)
-            } else {
-                val message = e.message
-                if (message.isNullOrBlank()) {
-                    e.javaClass.simpleName
-                } else {
-                    "${e.javaClass.simpleName}: $message"
-                }
-            }
-            withContext(Dispatchers.Main) {
-                callback.onError(errorMessage)
-            }
+            val msg = if (isCancelled) context.getString(R.string.error_processing_cancelled)
+            else e.message?.takeIf { it.isNotBlank() } ?: e.javaClass.simpleName
+            withContext(Dispatchers.Main) { callback.onError(msg) }
         }
     }
 
-    private suspend fun processBitmap(
+    private suspend fun processTiled(
         interpreter: Interpreter,
         inputBitmap: Bitmap,
-        callback: ProcessCallback,
-        info: ModelInfo,
-        coresToUse: Int
+        strength: Float,
+        modelW: Int,
+        modelH: Int,
+        isNCHW: Boolean,
+        imageInputIndex: Int,
+        overlap: Int,
+        callback: ProcessCallback
     ): Bitmap {
-        val mustTile: Boolean
-        val effectiveMaxChunkSize: Int
-
         val width = inputBitmap.width
         val height = inputBitmap.height
-        val hasTransparency = inputBitmap.hasAlpha()
-        val processingConfig = Bitmap.Config.ARGB_8888
-
-        if (info.skipTiling) {
-            val bitmapToProcess =
-                if (inputBitmap.config != processingConfig) inputBitmap.copy(processingConfig, true)
-                else inputBitmap
-            withContext(Dispatchers.Main) {
-                callback.onProgress(context.getString(R.string.processing))
-            }
-            return processChunk(interpreter, bitmapToProcess, processingConfig, hasTransparency, info)
-        }
-
-        if (info.expectedWidth != null && info.expectedHeight != null) {
-            val expectedW = info.expectedWidth!!
-            val expectedH = info.expectedHeight!!
-            effectiveMaxChunkSize = minOf(expectedW, expectedH)
-            mustTile = width > expectedW || height > expectedH
-        } else {
-            effectiveMaxChunkSize = info.chunkSize
-            mustTile = width > effectiveMaxChunkSize || height > effectiveMaxChunkSize
-        }
-
-        val processedBitmap = if (mustTile) processTiled(
-            interpreter,
-            inputBitmap,
-            callback,
-            info,
-            processingConfig,
-            hasTransparency,
-            effectiveMaxChunkSize,
-            coresToUse
+        val maxTileW = (modelW - 2 * overlap).coerceAtLeast(overlap)
+        val maxTileH = (modelH - 2 * overlap).coerceAtLeast(overlap)
+        val colBounds = computeEvenTileBoundaries(width, maxTileW)
+        val rowBounds = computeEvenTileBoundaries(height, maxTileH)
+        val cols = colBounds.size
+        val rows = rowBounds.size
+        val totalChunks = cols * rows
+        Log.d(
+            "LiteRtImageProcessor",
+            "Tiling: image=${width}x${height}, tileMax=${maxTileW}x${maxTileH}, grid=${cols}x${rows}, overlap=$overlap"
         )
-        else {
-            val bitmapToProcess =
-                if (inputBitmap.config != processingConfig) inputBitmap.copy(processingConfig, true)
-                else inputBitmap
-            val progressMessage = { context.getString(R.string.processing) }
-            withContext(Dispatchers.Main) {
-                callback.onProgress(progressMessage())
-            }
-            val result =
-                processChunk(interpreter, bitmapToProcess, processingConfig, hasTransparency, info)
-            result
+        withContext(Dispatchers.Main) {
+            callback.onChunkProgress(0, totalChunks, 1)
         }
-        return processedBitmap
+        val result = createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(result)
+        var done = 0
+        for (row in 0 until rows) {
+            for (col in 0 until cols) {
+                if (isCancelled) throw Exception(context.getString(R.string.error_processing_cancelled))
+                val (tileX, tileW) = colBounds[col]
+                val (tileY, tileH) = rowBounds[row]
+                if (tileW <= 0 || tileH <= 0) continue
+                val expandLeft = if (col > 0) overlap else 0
+                val expandRight = if (col < cols - 1) overlap else 0
+                val expandTop = if (row > 0) overlap else 0
+                val expandBottom = if (row < rows - 1) overlap else 0
+                val extractX = tileX - expandLeft
+                val extractY = tileY - expandTop
+                val extractW = tileW + expandLeft + expandRight
+                val extractH = tileH + expandTop + expandBottom
+                val tileBitmap =
+                    Bitmap.createBitmap(inputBitmap, extractX, extractY, extractW, extractH)
+                val processed = processChunk(
+                    interpreter, tileBitmap, strength, modelW, modelH, isNCHW, imageInputIndex
+                )
+                tileBitmap.recycle()
+                val needsCrop =
+                    expandLeft > 0 || expandTop > 0 || processed.width != tileW || processed.height != tileH
+                val cropped = if (needsCrop) {
+                    Bitmap.createBitmap(processed, expandLeft, expandTop, tileW, tileH)
+                } else {
+                    processed
+                }
+                canvas.drawBitmap(cropped, tileX.toFloat(), tileY.toFloat(), null)
+                if (cropped !== processed) processed.recycle()
+                cropped.recycle()
+                done++
+                withContext(Dispatchers.Main) {
+                    callback.onChunkProgress(done, totalChunks, 1)
+                }
+            }
+        }
+
+        return result
     }
 
-    private fun computeEvenTileBoundaries(
-        totalSize: Int, maxTileSize: Int
-    ): List<Pair<Int, Int>> {
-        if (totalSize <= maxTileSize) return listOf(0 to totalSize)
+    private fun processChunk(
+        interpreter: Interpreter,
+        chunk: Bitmap,
+        strength: Float,
+        modelW: Int,
+        modelH: Int,
+        isNCHW: Boolean,
+        imageInputIndex: Int
+    ): Bitmap {
+        val originalW = chunk.width
+        val originalH = chunk.height
+        val scaled = if (chunk.width != modelW || chunk.height != modelH) {
+            chunk.scale(modelW, modelH)
+        } else chunk
+        val pixels = IntArray(modelW * modelH)
+        scaled.getPixels(pixels, 0, modelW, 0, 0, modelW, modelH)
+        val inputBuffer =
+            ByteBuffer.allocateDirect(4 * 3 * modelW * modelH).order(ByteOrder.nativeOrder())
+        if (isNCHW) {
+            for (i in 0 until modelW * modelH) inputBuffer.putFloat(Color.red(pixels[i]) / 255f)
+            for (i in 0 until modelW * modelH) inputBuffer.putFloat(Color.green(pixels[i]) / 255f)
+            for (i in 0 until modelW * modelH) inputBuffer.putFloat(Color.blue(pixels[i]) / 255f)
+        } else {
+            for (i in 0 until modelW * modelH) {
+                val c = pixels[i]
+                inputBuffer.putFloat(Color.red(c) / 255f)
+                inputBuffer.putFloat(Color.green(c) / 255f)
+                inputBuffer.putFloat(Color.blue(c) / 255f)
+            }
+        }
+        inputBuffer.rewind()
+        val imageOutputIndex = (0 until interpreter.outputTensorCount).first {
+            interpreter.getOutputTensor(it).shape().size == 4
+        }
+        val inputs = arrayOfNulls<Any>(interpreter.inputTensorCount)
+        for (i in 0 until interpreter.inputTensorCount) {
+            inputs[i] = when {
+                i == imageInputIndex -> inputBuffer
+                interpreter.getInputTensor(i).shape().fold(1) { a, b -> a * b } == 1 -> {
+                    ByteBuffer.allocateDirect(4).order(ByteOrder.nativeOrder()).also {
+                        it.putFloat(strength / 100f)
+                        it.rewind()
+                    }
+                }
 
-        val count = ceil(totalSize.toFloat() / maxTileSize).toInt().coerceAtLeast(1)
+                else -> throw RuntimeException(
+                    "Unhandled input tensor [${i}] shape: ${
+                        interpreter.getInputTensor(i).shape().joinToString()
+                    }"
+                )
+            }
+        }
+        val outputs = mutableMapOf<Int, Any>()
+        for (i in 0 until interpreter.outputTensorCount) {
+            val bytes = interpreter.getOutputTensor(i).numBytes()
+            outputs[i] = ByteBuffer.allocateDirect(bytes).order(ByteOrder.nativeOrder())
+        }
+        interpreter.runForMultipleInputsOutputs(inputs, outputs)
+        val outputBuffer = (outputs[imageOutputIndex] as ByteBuffer).also { it.rewind() }
+        val outputShape = interpreter.getOutputTensor(imageOutputIndex).shape()
+        val outputChannels = if (isNCHW) outputShape[1] else outputShape[3]
+        val outputSize = outputChannels * modelW * modelH
+        val outputArray = FloatArray(outputSize) { outputBuffer.getFloat() }
+
+        val outPixels = IntArray(modelW * modelH)
+        if (outputChannels == 1) {
+            for (i in 0 until modelW * modelH) {
+                val alpha = clamp255(outputArray[i] * 255f)
+                val orig = pixels[i]
+                outPixels[i] =
+                    Color.argb(alpha, Color.red(orig), Color.green(orig), Color.blue(orig))
+            }
+        } else {
+            for (i in 0 until modelW * modelH) {
+                val r: Int
+                val g: Int
+                val b: Int
+                if (isNCHW) {
+                    r = clamp255(outputArray[i] * 255f)
+                    g = clamp255(outputArray[modelW * modelH + i] * 255f)
+                    b = clamp255(outputArray[2 * modelW * modelH + i] * 255f)
+                } else {
+                    r = clamp255(outputArray[i * 3] * 255f)
+                    g = clamp255(outputArray[i * 3 + 1] * 255f)
+                    b = clamp255(outputArray[i * 3 + 2] * 255f)
+                }
+                outPixels[i] = Color.argb(255, r, g, b)
+            }
+        }
+        val modelResult = createBitmap(modelW, modelH, Bitmap.Config.ARGB_8888)
+        modelResult.setPixels(outPixels, 0, modelW, 0, 0, modelW, modelH)
+        if (scaled !== chunk) scaled.recycle()
+        return if (modelW != originalW || modelH != originalH) {
+            val resized = modelResult.scale(originalW, originalH)
+            modelResult.recycle()
+            resized
+        } else {
+            modelResult
+        }
+    }
+
+    private fun computeEvenTileBoundaries(totalSize: Int, maxTileSize: Int): List<Pair<Int, Int>> {
+        if (totalSize <= maxTileSize) return listOf(0 to totalSize)
+        val count = kotlin.math.ceil(totalSize.toFloat() / maxTileSize).toInt().coerceAtLeast(1)
         val baseSize = totalSize / count
         val remainder = totalSize % count
-
         val result = mutableListOf<Pair<Int, Int>>()
         var offset = 0
         for (i in 0 until count) {
@@ -187,402 +282,5 @@ class ImageProcessor(
         return result
     }
 
-    private suspend fun processTiled(
-        interpreter: Interpreter,
-        inputBitmap: Bitmap,
-        callback: ProcessCallback,
-        info: ModelInfo,
-        config: Bitmap.Config,
-        hasTransparency: Boolean,
-        maxChunkSize: Int,
-        coresToUse: Int
-    ): Bitmap {
-        val width = inputBitmap.width
-        val height = inputBitmap.height
-        val overlap = info.overlap
-        val maxTileSize = (maxChunkSize - 2 * overlap).coerceAtLeast(overlap)
-        val colBounds = computeEvenTileBoundaries(width, maxTileSize)
-        val rowBounds = computeEvenTileBoundaries(height, maxTileSize)
-        val cols = colBounds.size
-        val rows = rowBounds.size
-        Log.d(
-            "ImageProcessor",
-            "Processing tiled: image=${width}x${height}, maxChunkSize=$maxChunkSize, maxTileSize=$maxTileSize, grid=${cols}x${rows}, overlap=$overlap"
-        )
-        Log.d("ImageProcessor", "  Column bounds: $colBounds")
-        Log.d("ImageProcessor", "  Row bounds: $rowBounds")
-        val totalChunks = cols * rows
-        val chunksDir = CacheManager.getChunksDir(context)
-        val chunkInfoList = mutableListOf<ChunkInfo>()
-        try {
-            Log.d("ImageProcessor", "Phase 1: Extracting $totalChunks chunks to disk")
-            var chunkIndex = 0
-            for (row in 0 until rows) {
-                for (col in 0 until cols) {
-                    if (isCancelled) throw Exception(context.getString(R.string.error_processing_cancelled))
-                    val (tileX, tileW) = colBounds[col]
-                    val (tileY, tileH) = rowBounds[row]
-                    if (tileW <= 0 || tileH <= 0) continue
-                    val expandLeft = if (col > 0) overlap else 0
-                    val expandRight = if (col < cols - 1) overlap else 0
-                    val expandTop = if (row > 0) overlap else 0
-                    val expandBottom = if (row < rows - 1) overlap else 0
-                    val extractX = tileX - expandLeft
-                    val extractY = tileY - expandTop
-                    val extractW = tileW + expandLeft + expandRight
-                    val extractH = tileH + expandTop + expandBottom
-                    val chunk =
-                        Bitmap.createBitmap(inputBitmap, extractX, extractY, extractW, extractH)
-                    val converted = if (chunk.config != config) {
-                        val temp = chunk.copy(config, true)
-                        chunk.recycle()
-                        temp
-                    } else {
-                        chunk
-                    }
-                    val inputChunkFile = File(chunksDir, "chunk_${chunkIndex}.png")
-                    val processedChunkFile = File(chunksDir, "chunk_${chunkIndex}_processed.png")
-                    withContext(Dispatchers.IO) {
-                        FileOutputStream(inputChunkFile).use {
-                            converted.compress(Bitmap.CompressFormat.PNG, 100, it)
-                        }
-                    }
-                    converted.recycle()
-                    chunkInfoList.add(
-                        ChunkInfo(
-                            index = chunkIndex,
-                            inputFile = inputChunkFile,
-                            processedFile = processedChunkFile,
-                            x = tileX,
-                            y = tileY,
-                            width = tileW,
-                            height = tileH,
-                            col = col,
-                            row = row,
-                            expandLeft = expandLeft,
-                            expandTop = expandTop
-                        )
-                    )
-                    chunkIndex++
-                }
-            }
-            Log.d(
-                "ImageProcessor", "Saved ${chunkInfoList.size} chunks to ${chunksDir.absolutePath}"
-            )
-            Log.d("ImageProcessor", "Phase 2: Processing $totalChunks chunks")
-            val parallelWorkers = coresToUse.coerceIn(1, totalChunks.coerceAtLeast(1))
-            Log.d(
-                "ImageProcessor",
-                "Using $parallelWorkers worker(s) for chunk processing (deviceThreads=$coresToUse)"
-            )
-            if (totalChunks > 1) {
-                withContext(Dispatchers.Main) {
-                    callback.onChunkProgress(0, totalChunks, parallelWorkers)
-                }
-            }
-            val completedChunks = AtomicInteger(0)
-
-            suspend fun processSingleChunk(chunkInfo: ChunkInfo) {
-                if (isCancelled) throw Exception(context.getString(R.string.error_processing_cancelled))
-                val loadedChunk = withContext(Dispatchers.IO) {
-                    BitmapFactory.decodeFile(chunkInfo.inputFile.absolutePath)
-                } ?: throw Exception("Failed to load chunk ${chunkInfo.index}")
-                val processed = processChunk(interpreter, loadedChunk, config, hasTransparency, info)
-                loadedChunk.recycle()
-                val cropped =
-                    if (chunkInfo.expandLeft > 0 || chunkInfo.expandTop > 0 || processed.width > chunkInfo.width || processed.height > chunkInfo.height) {
-                        val c = Bitmap.createBitmap(
-                            processed,
-                            chunkInfo.expandLeft,
-                            chunkInfo.expandTop,
-                            chunkInfo.width,
-                            chunkInfo.height
-                        )
-                        processed.recycle()
-                        c
-                    } else {
-                        processed
-                    }
-                withContext(Dispatchers.IO) {
-                    FileOutputStream(chunkInfo.processedFile).use {
-                        cropped.compress(Bitmap.CompressFormat.PNG, 100, it)
-                    }
-                    chunkInfo.inputFile.delete()
-                }
-                cropped.recycle()
-                val completed = completedChunks.incrementAndGet()
-                withContext(Dispatchers.Main) {
-                    if (totalChunks > 1) {
-                        callback.onChunkProgress(completed, totalChunks, parallelWorkers)
-                    } else {
-                        callback.onProgress(context.getString(R.string.processing))
-                    }
-                }
-            }
-
-            if (parallelWorkers <= 1) {
-                for (chunkInfo in chunkInfoList) {
-                    processSingleChunk(chunkInfo)
-                }
-            } else {
-                val semaphore = Semaphore(parallelWorkers)
-                coroutineScope {
-                    for (chunkInfo in chunkInfoList) {
-                        launch {
-                            semaphore.withPermit {
-                                processSingleChunk(chunkInfo)
-                            }
-                        }
-                    }
-                }
-            }
-            Log.d("ImageProcessor", "Phase 3: Merging processed chunks")
-            withContext(Dispatchers.Main) {
-                callback.onProgress(context.getString(R.string.finishing_up))
-            }
-            val result = createBitmap(width, height, config)
-            val resultCanvas = Canvas(result)
-            for (chunkInfo in chunkInfoList) {
-                if (isCancelled) throw Exception(context.getString(R.string.error_processing_cancelled))
-                val loadedProcessed = withContext(Dispatchers.IO) {
-                    BitmapFactory.decodeFile(chunkInfo.processedFile.absolutePath)
-                } ?: throw Exception("Failed to load processed chunk ${chunkInfo.index}")
-                resultCanvas.drawBitmap(
-                    loadedProcessed, chunkInfo.x.toFloat(), chunkInfo.y.toFloat(), null
-                )
-                loadedProcessed.recycle()
-            }
-            CacheManager.clearChunks(context)
-            return result
-        } catch (e: Exception) {
-            throw e
-        }
-    }
-
-    private fun processChunk(
-        interpreter: Interpreter,
-        chunk: Bitmap,
-        config: Bitmap.Config,
-        hasAlpha: Boolean,
-        info: ModelInfo
-    ): Bitmap {
-        val originalW = chunk.width
-        val originalH = chunk.height
-        val modelW = info.expectedWidth ?: throw RuntimeException("Model width not set")
-        val modelH = info.expectedHeight ?: throw RuntimeException("Model height not set")
-
-        // Scale to model input size if needed
-        val scaled = if (chunk.width != modelW || chunk.height != modelH) {
-            chunk.scale(modelW, modelH)
-        } else chunk
-
-        val pixels = IntArray(modelW * modelH)
-        scaled.getPixels(pixels, 0, modelW, 0, 0, modelW, modelH)
-
-        // Convert pixels to input array (NCHW or NHWC)
-        val inputArray = FloatArray(info.inputChannels * modelW * modelH)
-        for (i in 0 until modelW * modelH) {
-            val c = pixels[i]
-            if (info.isNCHW) {
-                inputArray[i] = Color.red(c) / 255f
-                inputArray[modelW * modelH + i] = Color.green(c) / 255f
-                if (info.inputChannels == 3) {
-                    inputArray[2 * modelW * modelH + i] = Color.blue(c) / 255f
-                }
-            } else {
-                // NHWC: interleaved
-                inputArray[i * info.inputChannels] = Color.red(c) / 255f
-                inputArray[i * info.inputChannels + 1] = Color.green(c) / 255f
-                if (info.inputChannels == 3) {
-                    inputArray[i * info.inputChannels + 2] = Color.blue(c) / 255f
-                }
-            }
-        }
-
-        val inputBuffer = ByteBuffer.allocateDirect(4 * inputArray.size).order(ByteOrder.nativeOrder())
-        inputArray.forEach { inputBuffer.putFloat(it) }
-        inputBuffer.rewind()
-
-        // Find image input and output tensor indices
-        var imageInputIndex = 0
-        for (i in 0 until interpreter.inputTensorCount) {
-            val shape = interpreter.getInputTensor(i).shape()
-            if (shape.size == 4) {
-                imageInputIndex = i
-                break
-            }
-        }
-
-        var imageOutputIndex = 0
-        for (i in 0 until interpreter.outputTensorCount) {
-            val shape = interpreter.getOutputTensor(i).shape()
-            if (shape.size == 4) {
-                imageOutputIndex = i
-                break
-            }
-        }
-
-        // Prepare input arrays for runForMultipleInputsOutputs
-        val inputs = arrayOfNulls<Any>(interpreter.inputTensorCount)
-        for (i in 0 until interpreter.inputTensorCount) {
-            val shape = interpreter.getInputTensor(i).shape()
-            inputs[i] = when {
-                i == imageInputIndex -> inputBuffer
-                shape.fold(1L) { a, b -> a * b } == 1L -> {
-                    // Strength parameter
-                    val strengthBuffer = ByteBuffer.allocateDirect(4).order(ByteOrder.nativeOrder())
-                    strengthBuffer.putFloat(info.strength / 100f)
-                    strengthBuffer.rewind()
-                    strengthBuffer
-                }
-                else -> {
-                    // Unknown input, allocate buffer for its shape
-                    val size = shape.fold(1) { a, b -> (a * b).toInt() }
-                    ByteBuffer.allocateDirect(4 * size).order(ByteOrder.nativeOrder())
-                }
-            }
-        }
-
-        // Prepare output buffers
-        val outputs = mutableMapOf<Int, Any>()
-        for (i in 0 until interpreter.outputTensorCount) {
-            val outputTensor = interpreter.getOutputTensor(i)
-            val size = outputTensor.shape().fold(1) { a, b -> (a * b).toInt() }
-            val outputBuffer = ByteBuffer.allocateDirect(4 * size).order(ByteOrder.nativeOrder())
-            outputs[i] = outputBuffer
-        }
-
-        // Run inference
-        interpreter.runForMultipleInputsOutputs(inputs, outputs)
-
-        // Extract output
-        val outputBuffer = outputs[imageOutputIndex] as ByteBuffer
-        outputBuffer.rewind()
-        val outputSize = info.outputChannels * modelW * modelH
-        val outputArray = FloatArray(outputSize) { outputBuffer.getFloat() }
-
-        // Convert output back to pixels
-        val outPixels = IntArray(modelW * modelH)
-        for (i in 0 until modelW * modelH) {
-            val (r, g, b) = if (info.isNCHW) {
-                Triple(
-                    clamp255(outputArray[i] * 255f),
-                    clamp255(outputArray[modelW * modelH + i] * 255f),
-                    if (info.outputChannels == 3) clamp255(outputArray[2 * modelW * modelH + i] * 255f) else clamp255(outputArray[i] * 255f)
-                )
-            } else {
-                Triple(
-                    clamp255(outputArray[i * info.outputChannels] * 255f),
-                    clamp255(outputArray[i * info.outputChannels + 1] * 255f),
-                    if (info.outputChannels == 3) clamp255(outputArray[i * info.outputChannels + 2] * 255f) else clamp255(outputArray[i * info.outputChannels + 1] * 255f)
-                )
-            }
-            outPixels[i] = Color.argb(255, r, g, b)
-        }
-
-        val modelResult = createBitmap(modelW, modelH, Bitmap.Config.ARGB_8888)
-        modelResult.setPixels(outPixels, 0, modelW, 0, 0, modelW, modelH)
-
-        if (scaled !== chunk) scaled.recycle()
-
-        // Scale back to original size if needed
-        return if (modelW != originalW || modelH != originalH) {
-            val resized = modelResult.scale(originalW, originalH)
-            modelResult.recycle()
-            resized
-        } else {
-            modelResult
-        }
-    }
-
-    private fun clamp255(v: Float): Int {
-        return 0.coerceAtLeast(255.coerceAtMost(v.toInt()))
-    }
-
-    private data class ChunkInfo(
-        val index: Int,
-        val inputFile: File,
-        val processedFile: File,
-        val x: Int,
-        val y: Int,
-        val width: Int,
-        val height: Int,
-        val col: Int,
-        val row: Int,
-        val expandLeft: Int,
-        val expandTop: Int
-    )
-
-    private class ModelInfo(
-        val modelName: String?,
-        val strength: Float,
-        interpreter: Interpreter,
-        chunkSize: Int?,
-        overlapSize: Int?,
-        fixedInputSize: Pair<Int, Int>? = null
-    ) {
-        val chunkSize: Int = chunkSize ?: AppPreferences.DEFAULT_CHUNK_SIZE
-        val overlap: Int = overlapSize ?: AppPreferences.DEFAULT_OVERLAP_SIZE
-        var expectedWidth: Int? = null
-        var expectedHeight: Int? = null
-        val skipTiling: Boolean = fixedInputSize != null
-        var isNCHW: Boolean = false
-        var inputChannels: Int = 3
-        var outputChannels: Int = 3
-
-        init {
-            Log.d(
-                "ModelInfo",
-                "Initialized $modelName:: chunkSize: ${this.chunkSize}, overlapSize: ${this.overlap}, fixedInputSize: $fixedInputSize, skipTiling: $skipTiling"
-            )
-            
-            // Detect image input tensor (4D with at least 3 channels)
-            var imageInputIndex = 0
-            var foundImageInput = false
-            for (i in 0 until interpreter.inputTensorCount) {
-                val shape = interpreter.getInputTensor(i).shape()
-                if (shape.size == 4) {
-                    imageInputIndex = i
-                    foundImageInput = true
-                    break
-                }
-            }
-            
-            if (!foundImageInput) {
-                throw RuntimeException("Could not find 4D input tensor")
-            }
-            
-            val imageShape = interpreter.getInputTensor(imageInputIndex).shape()
-            // Determine layout: NCHW or NHWC
-            isNCHW = false || imageShape[1] == 1
-            
-            val (modelH, modelW, channels) = if (isNCHW) {
-                Triple(imageShape[2], imageShape[3], imageShape[1])
-            } else {
-                Triple(imageShape[1], imageShape[2], imageShape[3])
-            }
-            
-            inputChannels = if (channels == 1) 1 else 3
-            
-            // Detect output channels from first 4D output tensor
-            outputChannels = 3 // default
-            for (i in 0 until interpreter.outputTensorCount) {
-                val shape = interpreter.getOutputTensor(i).shape()
-                if (shape.size == 4) {
-                    val outChannels = if (isNCHW) shape[1].toInt() else shape[3].toInt()
-                    outputChannels = if (outChannels == 1) 1 else 3
-                    break
-                }
-            }
-            
-            // Use fixed size or inferred from model shape
-            expectedWidth = fixedInputSize?.first ?: modelW
-            expectedHeight = fixedInputSize?.second ?: modelH
-            
-            Log.d(
-                "ModelInfo",
-                "Model $modelName data:: layout: ${if (isNCHW) "NCHW" else "NHWC"}, input channels: $inputChannels, output channels: $outputChannels, expected dimensions: $expectedWidth x $expectedHeight, fixedInputSize: $fixedInputSize, skipTiling: $skipTiling"
-            )
-        }
-    }
+    private fun clamp255(v: Float): Int = 0.coerceAtLeast(255.coerceAtMost(v.toInt()))
 }
