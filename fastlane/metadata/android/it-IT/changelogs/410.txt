@@ -1,0 +1,14 @@
+Risolto:
+- Rotazione dell'immagine non applicata sulle immagini recuperate
+- Errore di battitura: Detoning > Detooning (Rimozione effetto cartone animato)
+- Traduzione mancante per "Condividi"
+- Rallentamento (lag) durante la visualizzazione di immagini di grandi dimensioni
+
+Aggiunto/Aggiornato:
+- Lingue: Arabo, Cinese, Olandese, Italiano, Giapponese, Russo, Turco
+- Design expressive migliorato
+- Slider in stile vetro opzionale (opt-in) per il confronto prima/dopo
+- Importazione diretta dell'immagine di output per l'elaborazione a più fasi senza necessità di salvataggio
+- Modello per la rimozione dello sfondo (Bria RMBG e u2netp)
+- Temi (OLED, chiaro, scuro, dinamico)
+- Sostituite le FAQ con una scheda informativa sui modelli

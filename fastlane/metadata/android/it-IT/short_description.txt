@@ -1,1 +1,1 @@
-Rimozione della compressione e riduzione del rumore da immagini offline
+Strumento offline per la compressione delle immagini e la rimozione del rumore
