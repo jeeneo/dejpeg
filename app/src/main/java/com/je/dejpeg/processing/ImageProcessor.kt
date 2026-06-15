@@ -11,6 +11,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
 import android.util.Log
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
@@ -22,7 +23,6 @@ import kotlinx.coroutines.withContext
 import org.tensorflow.lite.Interpreter
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import android.graphics.Paint
 
 class ImageProcessor(
     private val context: Context, private val modelManager: ModelManager
@@ -68,10 +68,11 @@ class ImageProcessor(
             val width = bitmapToProcess.width
             val height = bitmapToProcess.height
             val overlap = overlapSize ?: AppPreferences.DEFAULT_OVERLAP_SIZE
-    
-            val isRmbg = modelManager.getActiveModelName()?.contains("rmbg", ignoreCase = true) == true
+
+            val isRmbg =
+                modelManager.getActiveModelName()?.contains("rmbg", ignoreCase = true) == true
             val mustTile = !isRmbg && (width > modelW || height > modelH)
-    
+
             val result = if (!mustTile) {
                 withContext(Dispatchers.Main) {
                     callback.onProgress(context.getString(R.string.processing))
@@ -99,7 +100,7 @@ class ImageProcessor(
             withContext(Dispatchers.Main) { callback.onError(msg) }
         }
     }
-    
+
     private suspend fun processTiled(
         interpreter: Interpreter,
         inputBitmap: Bitmap,
@@ -181,16 +182,16 @@ class ImageProcessor(
     ): Bitmap {
         val originalW = chunk.width
         val originalH = chunk.height
-    
+
         val isRmbg = modelManager.getActiveModelName()?.contains("rmbg", ignoreCase = true) == true
-    
+
         val scaled = if (chunk.width != modelW || chunk.height != modelH) {
             scaleBitmap(chunk, modelW, modelH)  // same helper as ONNX version
         } else chunk
-    
+
         val pixels = IntArray(modelW * modelH)
         scaled.getPixels(pixels, 0, modelW, 0, 0, modelW, modelH)
-    
+
         val inputBuffer =
             ByteBuffer.allocateDirect(4 * 3 * modelW * modelH).order(ByteOrder.nativeOrder())
         if (isNCHW) {
@@ -206,7 +207,7 @@ class ImageProcessor(
             }
         }
         inputBuffer.rewind()
-    
+
         val imageOutputIndex = (0 until interpreter.outputTensorCount).first {
             interpreter.getOutputTensor(it).shape().size == 4
         }
@@ -220,6 +221,7 @@ class ImageProcessor(
                         it.rewind()
                     }
                 }
+
                 else -> throw RuntimeException(
                     "Unhandled input tensor [${i}] shape: ${
                         interpreter.getInputTensor(i).shape().joinToString()
@@ -227,24 +229,25 @@ class ImageProcessor(
                 )
             }
         }
-    
+
         val outputs = mutableMapOf<Int, Any>()
         for (i in 0 until interpreter.outputTensorCount) {
             val bytes = interpreter.getOutputTensor(i).numBytes()
             outputs[i] = ByteBuffer.allocateDirect(bytes).order(ByteOrder.nativeOrder())
         }
         interpreter.runForMultipleInputsOutputs(inputs, outputs)
-    
+
         val outputBuffer = (outputs[imageOutputIndex] as ByteBuffer).also { it.rewind() }
         val outputShape = interpreter.getOutputTensor(imageOutputIndex).shape()
         val outputChannels = if (isNCHW) outputShape[1] else outputShape[3]
-        val outputSize = outputChannels * modelW * modelH
+        val outH = if (isNCHW) outputShape[2] else outputShape[1]
+        val outW = if (isNCHW) outputShape[3] else outputShape[2]
+        val outputSize = outputChannels * outH * outW
         val outputArray = FloatArray(outputSize) { outputBuffer.getFloat() }
-    
+
         if (scaled !== chunk) scaled.recycle()
-    
+
         if (isRmbg) {
-            // RMBG: single-channel mask output -> normalize, scale to original size, apply as alpha
             var ma = outputArray[0]
             var mi = outputArray[0]
             for (v in outputArray) {
@@ -252,61 +255,86 @@ class ImageProcessor(
                 if (v < mi) mi = v
             }
             val range = (ma - mi).coerceAtLeast(1e-6f)
-    
-            val maskPixels = IntArray(modelW * modelH)
-            for (i in 0 until modelW * modelH) {
+
+            val maskPixels = IntArray(outW * outH)
+            for (i in 0 until outW * outH) {
                 val a = clamp255(((outputArray[i] - mi) / range) * 255f)
                 maskPixels[i] = Color.argb(a, 0, 0, 0)
             }
-            val maskBitmap = createBitmap(modelW, modelH, Bitmap.Config.ALPHA_8)
-            maskBitmap.setPixels(maskPixels, 0, modelW, 0, 0, modelW, modelH)
-    
-            val scaledMask = if (originalW != modelW || originalH != modelH) {
+            val maskBitmap = createBitmap(outW, outH, Bitmap.Config.ALPHA_8)
+            maskBitmap.setPixels(maskPixels, 0, outW, 0, 0, outW, outH)
+
+            val scaledMask = if (outW != originalW || outH != originalH) {
                 val resized = maskBitmap.scale(originalW, originalH)
                 maskBitmap.recycle()
                 resized
             } else {
                 maskBitmap
             }
-                
+
             val origPixels = IntArray(originalW * originalH)
             chunk.getPixels(origPixels, 0, originalW, 0, 0, originalW, originalH)
-            
+
             val maskAlphas = IntArray(originalW * originalH)
             scaledMask.getPixels(maskAlphas, 0, originalW, 0, 0, originalW, originalH)
             scaledMask.recycle()
-            
+
             // reuse origPixels in place instead of allocating outPixels
             for (i in origPixels.indices) {
                 val orig = origPixels[i]
                 origPixels[i] = Color.argb(
-                    Color.alpha(maskAlphas[i]),
-                    Color.red(orig), Color.green(orig), Color.blue(orig)
+                    Color.alpha(maskAlphas[i]), Color.red(orig), Color.green(orig), Color.blue(orig)
                 )
             }
             val result = createBitmap(originalW, originalH, Bitmap.Config.ARGB_8888)
             result.setPixels(origPixels, 0, originalW, 0, 0, originalW, originalH)
             return result
         }
-    
-        // Non-RMBG branch (unchanged)
-        val outPixels = IntArray(modelW * modelH)
+
+        val modelResult: Bitmap
         if (outputChannels == 1) {
-            for (i in 0 until modelW * modelH) {
+            val outPixels = IntArray(outW * outH)
+            for (i in 0 until outW * outH) {
                 val alpha = clamp255(outputArray[i] * 255f)
-                val orig = pixels[i]
-                outPixels[i] =
-                    Color.argb(alpha, Color.red(orig), Color.green(orig), Color.blue(orig))
+                outPixels[i] = Color.argb(alpha, 255, 255, 255)
             }
+            val alphaBitmap = createBitmap(outW, outH, Bitmap.Config.ARGB_8888)
+            alphaBitmap.setPixels(outPixels, 0, outW, 0, 0, outW, outH)
+
+            val scaledAlpha = if (outW != originalW || outH != originalH) {
+                val resized = alphaBitmap.scale(originalW, originalH)
+                alphaBitmap.recycle()
+                resized
+            } else {
+                alphaBitmap
+            }
+            val origPixels = IntArray(originalW * originalH)
+            chunk.getPixels(origPixels, 0, originalW, 0, 0, originalW, originalH)
+            val alphaPixels = IntArray(originalW * originalH)
+            scaledAlpha.getPixels(alphaPixels, 0, originalW, 0, 0, originalW, originalH)
+            scaledAlpha.recycle()
+            for (i in origPixels.indices) {
+                val orig = origPixels[i]
+                origPixels[i] = Color.argb(
+                    Color.alpha(alphaPixels[i]), 
+                    Color.red(orig), 
+                    Color.green(orig), 
+                    Color.blue(orig)
+                )
+            }
+            modelResult = createBitmap(originalW, originalH, Bitmap.Config.ARGB_8888)
+            modelResult.setPixels(origPixels, 0, originalW, 0, 0, originalW, originalH)
+            return modelResult
         } else {
-            for (i in 0 until modelW * modelH) {
+            val outPixels = IntArray(outW * outH)
+            for (i in 0 until outW * outH) {
                 val r: Int
                 val g: Int
                 val b: Int
                 if (isNCHW) {
                     r = clamp255(outputArray[i] * 255f)
-                    g = clamp255(outputArray[modelW * modelH + i] * 255f)
-                    b = clamp255(outputArray[2 * modelW * modelH + i] * 255f)
+                    g = clamp255(outputArray[outW * outH + i] * 255f)
+                    b = clamp255(outputArray[2 * outW * outH + i] * 255f)
                 } else {
                     r = clamp255(outputArray[i * 3] * 255f)
                     g = clamp255(outputArray[i * 3 + 1] * 255f)
@@ -314,10 +342,10 @@ class ImageProcessor(
                 }
                 outPixels[i] = Color.argb(255, r, g, b)
             }
+            modelResult = createBitmap(outW, outH, Bitmap.Config.ARGB_8888)
+            modelResult.setPixels(outPixels, 0, outW, 0, 0, outW, outH)
         }
-        val modelResult = createBitmap(modelW, modelH, Bitmap.Config.ARGB_8888)
-        modelResult.setPixels(outPixels, 0, modelW, 0, 0, modelW, modelH)
-        return if (modelW != originalW || modelH != originalH) {
+        return if (outW != originalW || outH != originalH) {
             val resized = modelResult.scale(originalW, originalH)
             modelResult.recycle()
             resized
@@ -325,7 +353,7 @@ class ImageProcessor(
             modelResult
         }
     }
-    
+
     private fun computeEvenTileBoundaries(totalSize: Int, maxTileSize: Int): List<Pair<Int, Int>> {
         if (totalSize <= maxTileSize) return listOf(0 to totalSize)
         val count = kotlin.math.ceil(totalSize.toFloat() / maxTileSize).toInt().coerceAtLeast(1)
@@ -340,7 +368,7 @@ class ImageProcessor(
         }
         return result
     }
-    
+
     private fun scaleBitmap(src: Bitmap, w: Int, h: Int): Bitmap {
         var current = src
         while (current.width > w * 2 || current.height > h * 2) {

@@ -165,7 +165,7 @@ class ModelManager(
         if (currentInterpreter != null && activeModel == currentModelName) {
             return currentInterpreter!!
         }
-        
+
         val oldInterpreter = currentInterpreter
         val oldDelegate = gpuDelegate
         currentInterpreter = null
@@ -195,34 +195,28 @@ class ModelManager(
             }
             
             val opts = Interpreter.Options()
-            
+
             if (useGpu) {
                 val compatList = CompatibilityList()
-                // massive cold startup boost but uses massive space, notify user for this and allow disabling
                 if (compatList.isDelegateSupportedOnThisDevice) {
-                    val delegateOptions = compatList.bestOptionsForThisDevice
-                    val serializationDir = File(context.cacheDir, "gpu_delegate_cache").apply { mkdirs() }
-                    delegateOptions.setSerializationParams(
-                        serializationDir.absolutePath,
-                        "model_${activeModel.hashCode()}"
-                    )
+                    val delegateOptions = compatList.bestOptionsForThisDevice.apply {
+                        isPrecisionLossAllowed = false
+                        val serializationDir = File(context.cacheDir, "gpu_delegate_cache").apply { mkdirs() }
+                        setSerializationParams(
+                            serializationDir.absolutePath,
+                            "model_${activeModel.hashCode()}"
+                        )
+                    }
                     gpuDelegate = GpuDelegate(delegateOptions)
                     opts.addDelegate(gpuDelegate)
-                    Log.d("ModelManager", "GPU delegate enabled for $activeModel")
-                }
-                if (compatList.isDelegateSupportedOnThisDevice) {
-                    val delegateOptions = compatList.bestOptionsForThisDevice
-                    gpuDelegate = GpuDelegate(delegateOptions)
-                    opts.addDelegate(gpuDelegate)
-                    Log.d("ModelManager", "GPU delegate enabled for $activeModel")
+                    Log.d("ModelManager", "GPU delegate enabled for $activeModel (fp32, serialized)")
                 } else {
-                    Log.w("ModelManager", "GPU delegate not supported, using CPU with multiple threads")
+                    Log.w("ModelManager", "GPU delegate not supported, using CPU")
                     opts.numThreads = Runtime.getRuntime().availableProcessors().coerceIn(1, 4)
                 }
             } else {
                 opts.numThreads = Runtime.getRuntime().availableProcessors().coerceIn(1, 4)
             }
-            
             currentInterpreter = Interpreter(mapped, opts)
             currentModelName = activeModel
             setCurrentProcessingModel(activeModel)
