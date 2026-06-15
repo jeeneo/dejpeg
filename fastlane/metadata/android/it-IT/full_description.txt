@@ -1,7 +1,5 @@
 <p>Rimuove la compressione e il rumore dalle foto</p>
 
-<p>Elaborazione offline (nessun permesso INTERNET)</p>
+<p>Elaborato offline (senza autorizzazione INTERNET) utilizzando modelli ONNX scaricabili disponibili <a href="https://codeberg.org/dryerlint/dejpeg/src/branch/main/models">qui</a></p>
 
 <p>Modelli: FBCNN (compressione), SCUNet (rumore), RMBG e U2NETP (rimozione dello sfondo)</p>
-
-<p>Lista dei modelli disponibile <a href="https://codeberg.org/dryerlint/dejpeg/src/branch/main/models">qui</a></p>
