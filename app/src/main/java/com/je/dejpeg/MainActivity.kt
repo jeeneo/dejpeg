@@ -17,7 +17,6 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -31,12 +30,9 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.je.dejpeg.ui.MainScreen
 import com.je.dejpeg.ui.theme.AppTheme
 import com.je.dejpeg.ui.theme.DeJPEGTheme
-import com.je.dejpeg.ui.viewmodel.SettingsViewModel
-import com.je.dejpeg.utils.ModelManager
 
 class MainActivity : ComponentActivity() {
     private var handledIntentHash: Int? = null
-    private val settingsViewModel: SettingsViewModel by viewModels()
     private val imageRepository by lazy { ImageRepository.getInstance() }
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -51,9 +47,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
-        val modelManager = ModelManager(this)
-        modelManager.initializeStarterModel()
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(
                     this, Manifest.permission.POST_NOTIFICATIONS
@@ -71,8 +64,7 @@ class MainActivity : ComponentActivity() {
 
             val isDarkTheme = when (theme) {
                 AppTheme.Dynamic -> systemDark
-                AppTheme.OLED,
-                AppTheme.Dark -> true
+                AppTheme.OLED, AppTheme.Dark -> true
 
                 AppTheme.Light -> false
             }
@@ -88,8 +80,7 @@ class MainActivity : ComponentActivity() {
                     )
                 } else {
                     val lightTransparentStyle = SystemBarStyle.light(
-                        scrim = Color.TRANSPARENT,
-                        darkScrim = Color.TRANSPARENT
+                        scrim = Color.TRANSPARENT, darkScrim = Color.TRANSPARENT
                     )
                     enableEdgeToEdge(
                         statusBarStyle = lightTransparentStyle,
@@ -103,8 +94,7 @@ class MainActivity : ComponentActivity() {
                 oledTheme = theme == AppTheme.OLED,
             ) {
                 Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
                 ) {
                     val sharedUris by imageRepository.sharedUris.collectAsState()
                     MainScreen(sharedUris = sharedUris)

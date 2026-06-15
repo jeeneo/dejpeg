@@ -48,7 +48,6 @@ class ProcessingService : Service() {
         const val EXTRA_STRENGTH = "extra_strength"
         const val EXTRA_CHUNK_SIZE = "extra_chunk_size"
         const val EXTRA_OVERLAP_SIZE = "extra_overlap_size"
-        const val EXTRA_ONNX_DEVICE_THREADS = "extra_onnx_device_threads"
         const val EXTRA_MODEL_NAME = "extra_model_name"
         const val EXTRA_PROCESSING_MODE = "extra_processing_mode"
         const val EXTRA_OIDN_WEIGHTS_PATH = "extra_oidn_weights_path"
@@ -207,22 +206,18 @@ class ProcessingService : Service() {
                 val overlapSize = intent.getIntExtra(
                     EXTRA_OVERLAP_SIZE, AppPreferences.DEFAULT_OVERLAP_SIZE
                 )
-                val onnxDeviceThreads = intent.getIntExtra(
-                    EXTRA_ONNX_DEVICE_THREADS, AppPreferences.DEFAULT_ONNX_DEVICE_THREADS
-                )
                 imageProcessor?.also {
                     it.chunkSize = chunkSize
                     it.overlapSize = overlapSize
-                    it.deviceThreadCount = onnxDeviceThreads
                     Log.d(
                         "ProcessingService",
-                        "Loaded settings from Intent - chunk_size: $chunkSize, overlap_size: $overlapSize, onnx_device_threads: $onnxDeviceThreads"
+                        "Loaded settings from Intent - chunk_size: $chunkSize, overlap_size: $overlapSize"
                     )
                 }
                 chunkProgressCompleted = 0
                 chunkProgressTotal = 0
                 chunkProgressParallelWorkers = 1
-                currentProgressMessage = getString(R.string.processing)
+                currentProgressMessage = getString(R.string.status_preparing)
                 notifyProgressChange()
                 broadcast(
                     PROGRESS_ACTION,
@@ -778,7 +773,6 @@ class ServiceCommunicationHelper(
         strength: Float,
         chunkSize: Int,
         overlapSize: Int,
-        onnxDeviceThreads: Int,
         modelName: String?,
         processingMode: String = "ONNX",
         oidnWeightsPath: String? = null,
@@ -801,7 +795,6 @@ class ServiceCommunicationHelper(
                     putExtra(ProcessingService.EXTRA_STRENGTH, strength)
                     putExtra(ProcessingService.EXTRA_CHUNK_SIZE, chunkSize)
                     putExtra(ProcessingService.EXTRA_OVERLAP_SIZE, overlapSize)
-                    putExtra(ProcessingService.EXTRA_ONNX_DEVICE_THREADS, onnxDeviceThreads)
                     putExtra(ProcessingService.EXTRA_PROCESSING_MODE, processingMode)
                     modelName?.let { putExtra(ProcessingService.EXTRA_MODEL_NAME, it) }
                     oidnWeightsPath?.let { putExtra(ProcessingService.EXTRA_OIDN_WEIGHTS_PATH, it) }

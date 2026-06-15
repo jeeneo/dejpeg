@@ -29,7 +29,6 @@ class ImageProcessor(
 ) {
     var chunkSize: Int? = null
     var overlapSize: Int? = null
-    var deviceThreadCount: Int? = null
 
     @Volatile
     private var isCancelled = false
@@ -115,7 +114,7 @@ class ImageProcessor(
         val width = inputBitmap.width
         val height = inputBitmap.height
         val maxTileW = (modelW - 2 * overlap).coerceAtLeast(overlap)
-        val maxTileH = (modelH - 2 * overlap).coerceAtLeast(overlap)
+        val maxTileH = ((modelH - (2 * overlap))).coerceAtLeast(overlap)
         val colBounds = computeEvenTileBoundaries(width, maxTileW)
         val rowBounds = computeEvenTileBoundaries(height, maxTileH)
         val cols = colBounds.size

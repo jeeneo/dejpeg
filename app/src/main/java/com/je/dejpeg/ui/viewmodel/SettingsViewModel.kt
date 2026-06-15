@@ -17,8 +17,8 @@ import com.je.dejpeg.App
 import com.je.dejpeg.AppPreferences
 import com.je.dejpeg.BuildConfig
 import com.je.dejpeg.ProcessingMode
+import com.je.dejpeg.utils.GpuCacheStatus
 import com.je.dejpeg.utils.ModelManager
-import com.je.dejpeg.utils.ModelMigrationHelper
 import com.je.dejpeg.utils.ModelType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -31,18 +31,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class SettingsViewModel : ViewModel() {
+    private val _processingMode = MutableStateFlow(ProcessingMode.ONNX)
     val installedModels = MutableStateFlow<List<String>>(emptyList())
     val installedOidnModels = MutableStateFlow<List<String>>(emptyList())
     val activeModelName = MutableStateFlow<String?>(null)
     val activeOidnModelName = MutableStateFlow<String?>(null)
     val hasCheckedModels = MutableStateFlow(false)
     val shouldShowNoModelDialog = MutableStateFlow(false)
-
     val chunkSize = MutableStateFlow(AppPreferences.DEFAULT_CHUNK_SIZE)
     val overlapSize = MutableStateFlow(AppPreferences.DEFAULT_OVERLAP_SIZE)
-    val onnxDeviceThreads = MutableStateFlow(AppPreferences.DEFAULT_ONNX_DEVICE_THREADS)
     val globalStrength = MutableStateFlow(AppPreferences.DEFAULT_GLOBAL_STRENGTH)
-    private val _processingMode = MutableStateFlow(ProcessingMode.ONNX)
     val processingMode: StateFlow<ProcessingMode> =
         _processingMode.map { saved -> if (!BuildConfig.OIDN_ENABLED && saved == ProcessingMode.OIDN) ProcessingMode.ONNX else saved }
             .stateIn(viewModelScope, SharingStarted.Eagerly, ProcessingMode.ONNX)
@@ -52,10 +50,10 @@ class SettingsViewModel : ViewModel() {
     val oidnMaxMemoryMB = MutableStateFlow(AppPreferences.DEFAULT_OIDN_MAX_MEMORY_MB)
     val oidnNumThreads = MutableStateFlow(AppPreferences.DEFAULT_OIDN_NUM_THREADS)
     val oidnInputScale = MutableStateFlow(AppPreferences.DEFAULT_OIDN_INPUT_SCALE)
+    val gpuCacheStatusMap = MutableStateFlow<Map<String, GpuCacheStatus>>(emptyMap())
 
     private var appPreferences: AppPreferences? = null
     var modelManager: ModelManager? = null
-        private set
     private var isInitialized = false
 
     private fun <T> syncPref(flow: MutableStateFlow<T>, prefFlow: Flow<T>) {
@@ -77,7 +75,6 @@ class SettingsViewModel : ViewModel() {
         val prefs = appPreferences!!
         syncPref(chunkSize, prefs.chunkSize)
         syncPref(overlapSize, prefs.overlapSize)
-        syncPref(onnxDeviceThreads, prefs.onnxDeviceThreads)
         syncPref(globalStrength, prefs.globalStrength)
         syncPref(_processingMode, prefs.processingMode)
         syncPref(oidnHdr, prefs.oidnHdr)
@@ -88,7 +85,6 @@ class SettingsViewModel : ViewModel() {
         syncPref(oidnInputScale, prefs.oidnInputScale)
 
         viewModelScope.launch {
-            ModelMigrationHelper.migrateModelsIfNeeded()
             installedModels.value = withContext(Dispatchers.IO) {
                 modelManager?.getInstalledModels(ModelType.LITERT) ?: emptyList()
             }
@@ -102,6 +98,7 @@ class SettingsViewModel : ViewModel() {
             activeOidnModelName.value = withContext(Dispatchers.IO) {
                 modelManager?.getActiveModelName(ModelType.OIDN)
             }
+            refreshGpuCacheStatus()
             val activeType =
                 if (processingMode.value == ProcessingMode.OIDN) ModelType.OIDN else ModelType.LITERT
             val activeList =
@@ -123,6 +120,7 @@ class SettingsViewModel : ViewModel() {
                         val name = modelManager?.getActiveModelName(ModelType.LITERT)
                         if (name != null && !installedModels.value.contains(name)) null else name
                     }
+                    refreshGpuCacheStatus()
                 }
 
                 ModelType.OIDN -> {
@@ -138,14 +136,23 @@ class SettingsViewModel : ViewModel() {
         }
     }
 
+    fun refreshGpuCacheStatus() {
+        viewModelScope.launch {
+            val manager = modelManager ?: return@launch
+            gpuCacheStatusMap.value = withContext(Dispatchers.IO) {
+                installedModels.value.associateWith { modelName ->
+                    manager.getGpuCacheStatus(modelName, ModelType.LITERT)
+                }
+            }
+        }
+    }
+
     fun importModel(
         uri: Uri,
         type: ModelType = ModelType.LITERT,
-        force: Boolean = false,
         onProgress: (Int) -> Unit = {},
         onSuccess: (String) -> Unit = {},
-        onError: (String) -> Unit = {},
-        onWarning: ((String, ModelManager.ModelWarning) -> Unit)? = null
+        onError: (String) -> Unit = {}
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -172,6 +179,9 @@ class SettingsViewModel : ViewModel() {
             models.forEach { name ->
                 modelManager?.deleteModel(name, type)
                 withContext(Dispatchers.Main) { onDeleted(name) }
+                val updated = gpuCacheStatusMap.value.toMutableMap()
+                updated.remove(name)
+                gpuCacheStatusMap.value = updated
             }
             refreshInstalledModels(type)
         }
@@ -189,19 +199,6 @@ class SettingsViewModel : ViewModel() {
 
     fun hasActiveModel(type: ModelType = ModelType.LITERT) =
         modelManager?.hasActiveModel(type) ?: false
-
-    fun getActiveModelName(type: ModelType = ModelType.LITERT) =
-        modelManager?.getActiveModelName(type)
-
-    fun setChunkSize(size: Int) =
-        persistPref(chunkSize, size) { appPreferences?.setChunkSize(it) ?: Unit }
-
-    fun setOverlapSize(size: Int) =
-        persistPref(overlapSize, size) { appPreferences?.setOverlapSize(it) ?: Unit }
-
-    fun setOnnxDeviceThreads(numThreads: Int) = persistPref(onnxDeviceThreads, numThreads) {
-        appPreferences?.setOnnxDeviceThreads(it) ?: Unit
-    }
 
     fun setGlobalStrength(strength: Float) {
         persistPref(globalStrength, strength) { appPreferences?.setGlobalStrength(it) ?: Unit }

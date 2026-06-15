@@ -29,8 +29,9 @@ import java.io.OutputStream
 import java.nio.channels.FileChannel
 
 enum class ModelType(val extensions: List<String>, val invalidFileTypeResId: Int) {
-    LITERT(listOf(".tflite"), R.string.invalid_file_type),
-    OIDN(listOf(".tza"), R.string.invalid_tza_file_type);
+    LITERT(listOf(".tflite"), R.string.invalid_file_type), OIDN(
+        listOf(".tza"), R.string.invalid_tza_file_type
+    );
 
     fun matches(filename: String): Boolean {
         val lower = filename.lowercase()
@@ -38,11 +39,24 @@ enum class ModelType(val extensions: List<String>, val invalidFileTypeResId: Int
     }
 }
 
+/**
+ * Represents the GPU delegate cache status for a model
+ */
+enum class GpuCacheStatus {
+    /** GPU cache does not exist yet (first run) */
+    NOT_AVAILABLE,
+
+    /** GPU cache exists and is ready for use */
+    READY,
+
+    /** GPU cache is currently being prepared */
+    PREPARING
+}
+
 class ModelManager(
     private val context: Context,
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
 ) {
-
     private var currentInterpreter: Interpreter? = null
     private var gpuDelegate: GpuDelegate? = null
     private var currentModelName: String? = null
@@ -50,52 +64,29 @@ class ModelManager(
     private val appPreferences = AppPreferences()
 
     private fun getModelsDir(type: ModelType = ModelType.LITERT): File = when (type) {
-        ModelType.LITERT -> ModelMigrationHelper.getLiteRtModelsDir(context)
-        ModelType.OIDN -> ModelMigrationHelper.getTzaModelsDir(context)
+        ModelType.LITERT -> File(context.filesDir, "models/litert")
+        ModelType.OIDN -> File(context.filesDir, "models/tza")
     }
 
     companion object {
-        private const val STARTER_MODELS_ASSET_DIR = "embedonnx"
-
         private val MODEL_INFO_RES_IDS = mapOf(
             "fbcnn_color_fp16.tflite" to R.string.model_info_fbcnn_color_fp16
         )
-
-        private val MIN_SPATIAL_SIZE_BY_NAME = mapOf(
-            "nafnet" to 512
-        )
-
-        private val MIN_OVERLAP_SIZE_BY_NAME = mapOf(
-            "scunet" to 128
-        )
-    }
-
-    fun getMinSpatialSize(modelName: String?): Int {
-        val normalized = modelName?.lowercase() ?: return 256
-        for ((pattern, size) in MIN_SPATIAL_SIZE_BY_NAME) {
-            if (normalized.contains(pattern)) {
-                return size
-            }
+        private const val GPU_DELEGATE_CACHE_DIR = "gpu_delegate_cache"
+        fun gpuCacheToken(modelName: String): String {
+            val stem = modelName.replace("[^a-zA-Z0-9_-]".toRegex(), "_").trimEnd('_')
+            return stem
         }
-        return 256
-    }
-
-    fun getMinOverlapSize(modelName: String?): Int {
-        val normalized = modelName?.lowercase() ?: return 0
-        for ((pattern, size) in MIN_OVERLAP_SIZE_BY_NAME) {
-            if (normalized.contains(pattern)) {
-                return size
-            }
+        fun gpuCacheDir(context: Context) = File(context.cacheDir, GPU_DELEGATE_CACHE_DIR)
+        fun gpuCacheFiles(context: Context, modelName: String): List<File> {
+            val dir = gpuCacheDir(context)
+            if (!dir.exists()) return emptyList()
+            val prefix = gpuCacheToken(modelName)
+            return dir.listFiles { f -> f.name.startsWith(prefix) }?.toList() ?: emptyList()
         }
-        return 0
+        fun gpuCacheExists(context: Context, modelName: String) =
+            gpuCacheFiles(context, modelName).isNotEmpty()
     }
-
-    data class ModelWarning(
-        val titleResId: Int,
-        val messageResId: Int,
-        val positiveButtonTextResId: Int,
-        val negativeButtonTextResId: Int
-    )
 
     fun hasActiveModel(type: ModelType = ModelType.LITERT): Boolean {
         val activeModel = getActiveModelName(type)
@@ -147,6 +138,7 @@ class ModelManager(
     }
 
     fun getInstalledModels(type: ModelType = ModelType.LITERT): List<String> {
+        // should run sweep
         val modelsDir = getModelsDir(type)
         if (!modelsDir.exists()) return emptyList()
         val files = modelsDir.listFiles { _, name -> type.matches(name) }
@@ -159,10 +151,10 @@ class ModelManager(
         return if (modelFile.exists()) modelFile.absolutePath else null
     }
 
-    fun loadModel(useGpu: Boolean = true): Interpreter {
-        val activeModel =
-            getActiveModelName(ModelType.LITERT) ?: throw Exception("No active model set")
-        if (currentInterpreter != null && activeModel == currentModelName) {
+    fun loadModel(modelName: String? = null, useGpu: Boolean = true): Interpreter {
+        val modelToLoad = modelName ?: getActiveModelName(ModelType.LITERT)
+        ?: throw Exception("No active model set")
+        if (currentInterpreter != null && modelToLoad == currentModelName) {
             return currentInterpreter!!
         }
 
@@ -171,7 +163,7 @@ class ModelManager(
         currentInterpreter = null
         currentModelName = null
         gpuDelegate = null
-        
+
         try {
             oldInterpreter?.close()
         } catch (e: Exception) {
@@ -185,31 +177,31 @@ class ModelManager(
         System.gc()
         System.runFinalization()
         System.gc()
-        
-        val modelFile = File(getModelsDir(ModelType.LITERT), activeModel)
+
+        val modelFile = File(getModelsDir(ModelType.LITERT), modelToLoad)
         if (!modelFile.exists()) throw Exception("Model file does not exist: ${modelFile.absolutePath}")
-        
+
         try {
             val mapped = FileInputStream(modelFile).use { fis ->
                 fis.channel.map(FileChannel.MapMode.READ_ONLY, 0, modelFile.length())
             }
-            
             val opts = Interpreter.Options()
-
             if (useGpu) {
                 val compatList = CompatibilityList()
                 if (compatList.isDelegateSupportedOnThisDevice) {
                     val delegateOptions = compatList.bestOptionsForThisDevice.apply {
                         isPrecisionLossAllowed = false
-                        val serializationDir = File(context.cacheDir, "gpu_delegate_cache").apply { mkdirs() }
+                        val serializationDir = gpuCacheDir(context).apply { mkdirs() }
                         setSerializationParams(
-                            serializationDir.absolutePath,
-                            "model_${activeModel.hashCode()}"
+                            serializationDir.absolutePath, gpuCacheToken(modelToLoad)
                         )
                     }
                     gpuDelegate = GpuDelegate(delegateOptions)
                     opts.addDelegate(gpuDelegate)
-                    Log.d("ModelManager", "GPU delegate enabled for $activeModel (fp32, serialized)")
+                    Log.d(
+                        "ModelManager",
+                        "GPU delegate enabled for $modelToLoad with options: $delegateOptions"
+                    )
                 } else {
                     Log.w("ModelManager", "GPU delegate not supported, using CPU")
                     opts.numThreads = Runtime.getRuntime().availableProcessors().coerceIn(1, 4)
@@ -218,9 +210,11 @@ class ModelManager(
                 opts.numThreads = Runtime.getRuntime().availableProcessors().coerceIn(1, 4)
             }
             currentInterpreter = Interpreter(mapped, opts)
-            currentModelName = activeModel
-            setCurrentProcessingModel(activeModel)
-            Log.d("ModelManager", "Successfully loaded LiteRT model: $activeModel (gpu=${gpuDelegate != null})")
+            currentModelName = modelToLoad
+            setCurrentProcessingModel(modelToLoad)
+            Log.d(
+                "ModelManager", "Successfully loaded LiteRT model: $modelToLoad (gpu=$useGpu)"
+            )
             return currentInterpreter!!
         } catch (e: Exception) {
             Log.e("ModelManager", "Error loading model: ${e.message}", e)
@@ -237,7 +231,7 @@ class ModelManager(
         currentInterpreter = null
         currentModelName = null
         gpuDelegate = null
-        
+
         try {
             interpreter?.close()
         } catch (e: Exception) {
@@ -342,7 +336,28 @@ class ModelManager(
         val modelFile = File(getModelsDir(type), modelName)
         if (modelFile.exists()) {
             modelFile.delete()
+            deleteGpuCache(modelName, type)
             onDeleted(modelName)
+            val cacheDir = gpuCacheDir(context)
+            if (!cacheDir.exists()) return
+            val modelsDir = File(context.filesDir, "models/litert")
+            val installedTokens = if (modelsDir.exists()) {
+                modelsDir.listFiles { f -> ModelType.LITERT.matches(f.name) }
+                    ?.map { gpuCacheToken(it.name) }.orEmpty().toSet()
+            } else {
+                emptySet()
+            }
+            var swept = 0
+            cacheDir.listFiles()?.forEach { file ->
+                val isOrphaned = installedTokens.none { token -> file.name.startsWith(token) }
+                if (isOrphaned) {
+                    file.delete()
+                    swept++
+                }
+            }
+            if (swept > 0) {
+                Log.d("ModelManager", "Swept $swept abandoned GPU cache file(s)")
+            }
         }
         if (modelName == getActiveModelName(type)) {
             val remaining = getInstalledModels(type)
@@ -374,86 +389,20 @@ class ModelManager(
         }
     }
 
-    fun initializeStarterModel(): Boolean {
-        try {
-            val alreadyExtracted = runBlocking {
-                appPreferences.getStarterModelExtractedImmediate()
-            }
-            if (alreadyExtracted) {
-                Log.d("ModelManager", "Starter model already extracted, skipping")
-                return false
-            }
-            val modelsDir = getModelsDir(ModelType.LITERT)
-            val hasModels = modelsDir.exists() && modelsDir.listFiles { _, name ->
-                ModelType.LITERT.matches(name)
-            }?.isNotEmpty() == true
-            if (hasModels) {
-                Log.d("ModelManager", "Models already exist, skipping starter model extraction")
-                markStarterModelExtracted()
-                return false
-            }
-            return extractStarterModel(setAsActive = true)
-        } catch (e: Exception) {
-            Log.e("ModelManager", "Error initializing starter model: ${e.message}", e)
-            return false
-        }
+    fun getGpuCacheStatus(modelName: String, type: ModelType = ModelType.LITERT): GpuCacheStatus {
+        if (type != ModelType.LITERT) return GpuCacheStatus.NOT_AVAILABLE
+        return if (gpuCacheExists(context, modelName)) GpuCacheStatus.READY
+        else GpuCacheStatus.NOT_AVAILABLE
     }
 
-    private fun markStarterModelExtracted() {
-        coroutineScope.launch {
-            appPreferences.setStarterModelExtracted(true)
-        }
-    }
-
-    fun extractStarterModel(
-        setAsActive: Boolean = false, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}
-    ): Boolean {
-        return try {
-            val modelsDir = getModelsDir(ModelType.LITERT)
-            val shouldSetAsActive =
-                setAsActive || !modelsDir.exists() || modelsDir.listFiles { _, name ->
-                    ModelType.LITERT.matches(name)
-                }?.isEmpty() == true
-            val extracted = copyStarterModelsFromAssets(modelsDir)
-            if (extracted) {
-                if (shouldSetAsActive) {
-                    setActiveModel("1x-span-anime-pretrain-fp16.tflite", ModelType.LITERT)
-                }
-                markStarterModelExtracted()
-                onSuccess()
-                return true
-            }
-            onError(context.getString(R.string.failed_to_extract_starter_models))
-            false
-        } catch (e: Exception) {
-            Log.e("ModelManager", "Error extracting starter models: ${e.message}", e)
-            onError(e.message ?: context.getString(R.string.unknown_error))
-            false
-        }
-    }
-
-    private fun copyStarterModelsFromAssets(targetDir: File): Boolean {
-        return try {
-            if (!targetDir.exists()) targetDir.mkdirs()
-            val assetFiles = context.assets.list(STARTER_MODELS_ASSET_DIR) ?: emptyArray()
-            if (assetFiles.isEmpty()) {
-                Log.w(
-                    "ModelManager",
-                    "No starter model files found in assets/$STARTER_MODELS_ASSET_DIR"
-                )
-                return false
-            }
-            for (filename in assetFiles) {
-                val outFile = File(targetDir, filename)
-                context.assets.open("$STARTER_MODELS_ASSET_DIR/$filename").use { input ->
-                    FileOutputStream(outFile).use { output -> input.copyTo(output) }
-                }
-                Log.d("ModelManager", "Copied starter model: $filename")
-            }
-            Log.d("ModelManager", "Successfully copied ${assetFiles.size} starter model(s)")
-            true
-        } catch (e: Exception) {
-            Log.e("ModelManager", "Error copying starter models from assets: ${e.message}", e)
+    fun deleteGpuCache(modelName: String, type: ModelType = ModelType.LITERT): Boolean {
+        if (type != ModelType.LITERT) return false
+        val files = gpuCacheFiles(context, modelName)
+        return if (files.isNotEmpty()) {
+            val result = files.all { it.delete() }
+            Log.d("ModelManager", "GPU cache deleted for $modelName: $result (${files.size} files)")
+            result
+        } else {
             false
         }
     }

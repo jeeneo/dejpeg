@@ -179,7 +179,7 @@ class AppPreferences {
     companion object {
         const val DEFAULT_CHUNK_SIZE = 512
         const val DEFAULT_OVERLAP_SIZE = 16
-        const val DEFAULT_ONNX_DEVICE_THREADS = 0
+        const val DEFAULT_ONNX_DEVICE_THREADS = 1
         const val DEFAULT_GLOBAL_STRENGTH = 50f
         const val DEFAULT_OIDN_QUALITY = 0
         const val DEFAULT_OIDN_MAX_MEMORY_MB = 0
@@ -213,10 +213,6 @@ class AppPreferences {
 
     val overlapSize: Flow<Int> = App.ctx.dataStore.data.map { prefs ->
         prefs[PreferenceKeys.OVERLAP_SIZE] ?: DEFAULT_OVERLAP_SIZE
-    }
-
-    val onnxDeviceThreads: Flow<Int> = App.ctx.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.ONNX_DEVICE_THREADS] ?: DEFAULT_ONNX_DEVICE_THREADS
     }
 
     val globalStrength: Flow<Float> = App.ctx.dataStore.data.map { prefs ->
@@ -292,13 +288,7 @@ class AppPreferences {
             prefs[PreferenceKeys.OVERLAP_SIZE] = size
         }
     }
-
-    suspend fun setOnnxDeviceThreads(numThreads: Int) {
-        App.ctx.dataStore.edit { prefs ->
-            prefs[PreferenceKeys.ONNX_DEVICE_THREADS] = numThreads
-        }
-    }
-
+    
     suspend fun setGlobalStrength(strength: Float) {
         App.ctx.dataStore.edit { prefs ->
             prefs[PreferenceKeys.GLOBAL_STRENGTH] = strength

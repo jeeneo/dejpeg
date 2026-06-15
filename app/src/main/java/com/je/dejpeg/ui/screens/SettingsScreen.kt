@@ -43,7 +43,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
@@ -116,11 +115,9 @@ import com.je.dejpeg.ui.components.rememberMaterialPressState
 import com.je.dejpeg.ui.theme.AppTheme
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
-import com.je.dejpeg.utils.ModelManager
+import com.je.dejpeg.utils.GpuCacheStatus
 import com.je.dejpeg.utils.ModelType
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -128,10 +125,10 @@ import kotlin.math.roundToInt
 fun SettingsScreen(
     viewModel: SettingsViewModel, processingViewModel: ProcessingViewModel, onBack: () -> Unit = {}
 ) {
-    val modelManager = remember { ModelManager(App.ctx) }
     val appPreferences = remember { AppPreferences() }
     val scope = rememberCoroutineScope()
     val installedModels by viewModel.installedModels.collectAsState()
+    val gpuCacheStatusMap by viewModel.gpuCacheStatusMap.collectAsState()
     val showImportProgress = remember { mutableStateOf(false) }
     var expandedSection by remember { mutableStateOf<SettingsSection?>(null) }
     fun toggle(section: SettingsSection) {
@@ -143,9 +140,6 @@ fun SettingsScreen(
     val importedModelMessage = stringResource(R.string.imported_model)
     val deletedModelMessage = stringResource(R.string.deleted_model)
     val blockedSwitchingMessage = stringResource(R.string.model_switch_blocked_processing)
-    val chunkSize by viewModel.chunkSize.collectAsState()
-    val overlapSize by viewModel.overlapSize.collectAsState()
-    val onnxDeviceThreads by viewModel.onnxDeviceThreads.collectAsState()
     val showSaveDialog by appPreferences.showSaveDialog.collectAsState(initial = true)
     val defaultImageSource by appPreferences.defaultImageSource.collectAsState(initial = null)
     val hapticFeedbackEnabled by appPreferences.hapticFeedbackEnabled.collectAsState(initial = true)
@@ -237,13 +231,13 @@ fun SettingsScreen(
 
                 ExtendedFloatingActionButton(
                     onClick = {
-                        HapticFeedbacks.light()
-                        if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN) {
-                            oidnModelPickerLauncher.launch("*/*")
-                        } else {
-                            modelPickerLauncher.launch("*/*")
-                        }
-                    },
+                    HapticFeedbacks.light()
+                    if (BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN) {
+                        oidnModelPickerLauncher.launch("*/*")
+                    } else {
+                        modelPickerLauncher.launch("*/*")
+                    }
+                },
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = {
                         Text(
@@ -363,9 +357,6 @@ fun SettingsScreen(
                             ellipsizeSubtitle = true,
                             expanded = expandedSection == SettingsSection.ModelManagement,
                             expandedContent = {
-                                val extractedMsg = stringResource(R.string.extracted_starter_models)
-                                val failedMsg =
-                                    stringResource(R.string.failed_to_extract_starter_models)
                                 Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                                     installedModels.forEachIndexed { index, modelName ->
                                         val isActive = modelName == activeModelName
@@ -374,6 +365,12 @@ fun SettingsScreen(
                                             index == 0 -> CardPosition.Leading
                                             index == installedModels.lastIndex -> CardPosition.Trailing
                                             else -> CardPosition.Center
+                                        }
+                                        val gpuCacheStatus = gpuCacheStatusMap[modelName] ?: GpuCacheStatus.NOT_AVAILABLE
+                                        val cacheStatusText = when (gpuCacheStatus) {
+                                            GpuCacheStatus.READY -> stringResource(R.string.gpu_cache_ready)
+                                            GpuCacheStatus.PREPARING -> stringResource(R.string.status_preparing)
+                                            GpuCacheStatus.NOT_AVAILABLE -> stringResource(R.string.gpu_cache_not_available)
                                         }
                                         Row(
                                             modifier = Modifier
@@ -408,15 +405,35 @@ fun SettingsScreen(
                                                 }
                                                 .padding(horizontal = 8.dp, vertical = 10.dp),
                                             verticalAlignment = Alignment.CenterVertically) {
-                                            Text(
-                                                modelName,
+                                            Column(
                                                 modifier = Modifier.weight(1f),
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onSurface,
-                                                maxLines = 1,
-                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                            )
-                                            modelManager.getModelInfo(modelName)?.let {
+                                                verticalArrangement = Arrangement.Center
+                                            ) {
+                                                Text(
+                                                    modelName,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                    maxLines = 1,
+                                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                                )
+                                                Text(
+                                                    cacheStatusText,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = when (gpuCacheStatus) {
+                                                        GpuCacheStatus.READY -> MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                                            alpha = 0.7f
+                                                        )
+
+                                                        GpuCacheStatus.PREPARING -> MaterialTheme.colorScheme.primary
+                                                        GpuCacheStatus.NOT_AVAILABLE -> MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                                            alpha = 0.5f
+                                                        )
+                                                    },
+                                                    maxLines = 1,
+                                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                                )
+                                            }
+                                            viewModel.modelManager?.getModelInfo(modelName)?.let {
                                                 IconButton(onClick = {
                                                     HapticFeedbacks.light(); modelInfoDialog.value =
                                                     modelName to it
@@ -481,38 +498,6 @@ fun SettingsScreen(
                                         }
                                         TextButton(onClick = {
                                             HapticFeedbacks.light()
-                                            scope.launch {
-                                                val extracted = withContext(Dispatchers.IO) {
-                                                    modelManager.extractStarterModel(setAsActive = true)
-                                                }
-                                                if (extracted) {
-                                                    viewModel.refreshInstalledModels(ModelType.LITERT)
-                                                    SnackySnackbarController.pushEvent(
-                                                        SnackySnackbarEvents.MessageEvent(
-                                                            message = extractedMsg,
-                                                            duration = SnackbarDuration.Short
-                                                        )
-                                                    )
-                                                } else {
-                                                    SnackySnackbarController.pushEvent(
-                                                        SnackySnackbarEvents.MessageEvent(
-                                                            message = failedMsg,
-                                                            duration = SnackbarDuration.Short
-                                                        )
-                                                    )
-                                                }
-                                            }
-                                        }) {
-                                            Icon(
-                                                Icons.Filled.Archive,
-                                                null,
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                            Spacer(Modifier.width(4.dp))
-                                            Text(stringResource(R.string.extract))
-                                        }
-                                        TextButton(onClick = {
-                                            HapticFeedbacks.light()
                                             uriHandler.openUri("https://codeberg.org/dryerlint/dejpeg/src/branch/main/models")
                                         }) {
                                             Icon(
@@ -530,56 +515,6 @@ fun SettingsScreen(
                                 toggle(SettingsSection.ModelManagement)
                             },
                             position = CardPosition.Leading,
-                        )
-                        val resolvedThreads = ThreadUtils.resolveThreadCount(onnxDeviceThreads)
-                        val threadValue = if (onnxDeviceThreads == 0) {
-                            stringResource(R.string.thread_value_auto, resolvedThreads)
-                        } else {
-                            onnxDeviceThreads.toString()
-                        }
-                        val threadLabel =
-                            "${stringResource(R.string.processing_threads_desc)} • $threadValue"
-                        PreferenceItem(
-                            icon = Icons.Filled.GridOn,
-                            iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
-                            iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
-                            title = stringResource(R.string.settings_item_title_processing),
-                            subtitle = stringResource(
-                                R.string.chunk_size_px, chunkSize
-                            ) + " • " + stringResource(
-                                R.string.overlap_size_px, overlapSize
-                            ) + " × $resolvedThreads",
-                            expanded = expandedSection == SettingsSection.Chunk,
-                            expandedContent = {
-                                val maxThreads = remember {
-                                    Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
-                                }
-                                Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
-                                    PowerSlider(
-                                        label = stringResource(R.string.chunk_size),
-                                        value = chunkSize,
-                                        powers = listOf(512, 1024, 2048),
-                                        onChange = { viewModel.setChunkSize(it) },
-                                        hapticAction = { HapticFeedbacks.light() })
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    PowerSlider(
-                                        label = stringResource(R.string.overlap_size),
-                                        value = overlapSize,
-                                        powers = listOf(16, 32, 64, 128),
-                                        onChange = { viewModel.setOverlapSize(it) },
-                                        hapticAction = { HapticFeedbacks.light() })
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    PowerSlider(
-                                        label = threadLabel,
-                                        value = onnxDeviceThreads,
-                                        hideValue = true,
-                                        powers = (0..maxThreads).toList(),
-                                        onChange = { viewModel.setOnnxDeviceThreads(it) },
-                                        hapticAction = { HapticFeedbacks.light() })
-                                }
-                            },
-                            onClick = { toggle(SettingsSection.Chunk) },
-                            position = if (BuildConfig.OIDN_ENABLED) CardPosition.Trailing else CardPosition.Center
                         )
                     }
                 }
@@ -719,128 +654,131 @@ fun SettingsScreen(
                             },
                             position = CardPosition.Leading
                         )
-                        PreferenceItem(
-                            icon = Icons.Filled.GridOn,
-                            iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
-                            iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
-                            title = stringResource(R.string.oidn_settings),
-                            subtitle = stringResource(R.string.oidn_settings_desc),
-                            expanded = expandedSection == SettingsSection.OidnSettings,
-                            expandedContent = {
-                                val maxThreads = remember {
-                                    Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
-                                }
+                        if (BuildConfig.OIDN_ENABLED) {
+                            PreferenceItem(
+                                icon = Icons.Filled.GridOn,
+                                iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
+                                iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                title = stringResource(R.string.oidn_settings),
+                                subtitle = stringResource(R.string.oidn_settings_desc),
+                                expanded = expandedSection == SettingsSection.OidnSettings,
+                                expandedContent = {
+                                    val maxThreads = remember {
+                                        Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
+                                    }
 
-                                Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
-                                    LabeledSwitch(
-                                        title = stringResource(R.string.oidn_hdr),
-                                        desc = stringResource(R.string.oidn_hdr_desc),
-                                        checked = oidnHdr,
-                                        onCheckedChange = { viewModel.setOidnHdrPref(it) })
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    LabeledSwitch(
-                                        title = stringResource(R.string.oidn_srgb),
-                                        desc = stringResource(R.string.oidn_srgb_desc),
-                                        checked = oidnSrgb,
-                                        onCheckedChange = { viewModel.setOidnSrgbPref(it) })
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        stringResource(R.string.oidn_quality),
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-
-                                    val qualityOptions = listOf(
-                                        0 to stringResource(R.string.oidn_quality_default),
-                                        4 to stringResource(R.string.oidn_quality_fast),
-                                        5 to stringResource(R.string.oidn_quality_balanced),
-                                        6 to stringResource(R.string.oidn_quality_high)
-                                    )
-                                    qualityOptions.chunked(2).forEach { rowOptions ->
-                                        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                                            rowOptions.forEachIndexed { index, (value, label) ->
-                                                SegmentedButton(
-                                                    selected = oidnQuality == value, onClick = {
-                                                        HapticFeedbacks.light(); viewModel.setOidnQualityPref(
-                                                        value
-                                                    )
-                                                    }, shape = SegmentedButtonDefaults.itemShape(
-                                                        index = index, count = rowOptions.size
-                                                    )
-                                                ) { Text(label) }
-                                            }
-                                        }
+                                    Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
+                                        LabeledSwitch(
+                                            title = stringResource(R.string.oidn_hdr),
+                                            desc = stringResource(R.string.oidn_hdr_desc),
+                                            checked = oidnHdr,
+                                            onCheckedChange = { viewModel.setOidnHdrPref(it) })
                                         Spacer(modifier = Modifier.height(8.dp))
-                                    }
-                                    val resolvedOidnThreads =
-                                        ThreadUtils.resolveThreadCount(oidnNumThreads)
-
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    val threadValue = if (oidnNumThreads == 0) {
-                                        stringResource(
-                                            R.string.thread_value_auto, resolvedOidnThreads
+                                        LabeledSwitch(
+                                            title = stringResource(R.string.oidn_srgb),
+                                            desc = stringResource(R.string.oidn_srgb_desc),
+                                            checked = oidnSrgb,
+                                            onCheckedChange = { viewModel.setOidnSrgbPref(it) })
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            stringResource(R.string.oidn_quality),
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = FontWeight.SemiBold
                                         )
-                                    } else {
-                                        oidnNumThreads.toString()
-                                    }
-                                    val threadLabel =
-                                        "${stringResource(R.string.oidn_num_threads)} • $threadValue"
-                                    PowerSlider(
-                                        label = threadLabel,
-                                        hideValue = true,
-                                        value = oidnNumThreads,
-                                        powers = (0..maxThreads).toList(),
-                                        onChange = { viewModel.setOidnNumThreadsPref(it) },
-                                        hapticAction = { HapticFeedbacks.light() })
-                                }
+                                        Spacer(modifier = Modifier.height(8.dp))
 
-                            },
-                            onClick = {
-                                toggle(SettingsSection.OidnSettings)
-                            },
-                            position = if (BuildConfig.OIDN_ENABLED) CardPosition.Trailing else CardPosition.Leading
-                        )
+                                        val qualityOptions = listOf(
+                                            0 to stringResource(R.string.oidn_quality_default),
+                                            4 to stringResource(R.string.oidn_quality_fast),
+                                            5 to stringResource(R.string.oidn_quality_balanced),
+                                            6 to stringResource(R.string.oidn_quality_high)
+                                        )
+                                        qualityOptions.chunked(2).forEach { rowOptions ->
+                                            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                                                rowOptions.forEachIndexed { index, (value, label) ->
+                                                    SegmentedButton(
+                                                        selected = oidnQuality == value,
+                                                        onClick = {
+                                                            HapticFeedbacks.light(); viewModel.setOidnQualityPref(
+                                                            value
+                                                        )
+                                                        },
+                                                        shape = SegmentedButtonDefaults.itemShape(
+                                                            index = index, count = rowOptions.size
+                                                        )
+                                                    ) { Text(label) }
+                                                }
+                                            }
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                        }
+                                        val resolvedOidnThreads =
+                                            ThreadUtils.resolveThreadCount(oidnNumThreads)
+
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        val threadValue = if (oidnNumThreads == 0) {
+                                            stringResource(
+                                                R.string.thread_value_auto, resolvedOidnThreads
+                                            )
+                                        } else {
+                                            oidnNumThreads.toString()
+                                        }
+                                        val threadLabel =
+                                            "${stringResource(R.string.oidn_num_threads)} • $threadValue"
+                                        PowerSlider(
+                                            label = threadLabel,
+                                            hideValue = true,
+                                            value = oidnNumThreads,
+                                            powers = (0..maxThreads).toList(),
+                                            onChange = { viewModel.setOidnNumThreadsPref(it) },
+                                            hapticAction = { HapticFeedbacks.light() })
+                                    }
+
+                                },
+                                onClick = {
+                                    toggle(SettingsSection.OidnSettings)
+                                },
+                                position = if (BuildConfig.OIDN_ENABLED) CardPosition.Trailing else CardPosition.Leading
+                            )
+                        }
                     }
                 }
 
                 val isOidn = BuildConfig.OIDN_ENABLED && processingMode == ProcessingMode.OIDN
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .onSizeChanged { containerWidth = it.width }
-                        .clip(MaterialTheme.shapes.large)
-                        .pointerInput(processingMode) {
-                            if (!BuildConfig.OIDN_ENABLED) return@pointerInput
-                            detectHorizontalDragGestures(onDragEnd = {
-                                val threshold = containerWidth * 0.35f
-                                scope.launch {
-                                    if (animatedOffset.value > threshold && processingMode == ProcessingMode.OIDN) {
-                                        animatedOffset.animateTo(containerWidth.toFloat(), spring())
-                                        viewModel.setProcessingMode(ProcessingMode.ONNX)
-                                        animatedOffset.snapTo(0f)
-                                    } else if (animatedOffset.value < -threshold && processingMode == ProcessingMode.ONNX) {
-                                        animatedOffset.animateTo(
-                                            -containerWidth.toFloat(), spring()
-                                        )
-                                        viewModel.setProcessingMode(ProcessingMode.OIDN)
-                                        animatedOffset.snapTo(0f)
-                                    } else {
-                                        animatedOffset.animateTo(0f, spring())
-                                    }
+                Box(modifier = Modifier
+                    .fillMaxWidth()
+                    .onSizeChanged { containerWidth = it.width }
+                    .clip(MaterialTheme.shapes.large)
+                    .pointerInput(processingMode) {
+                        if (!BuildConfig.OIDN_ENABLED) return@pointerInput
+                        detectHorizontalDragGestures(onDragEnd = {
+                            val threshold = containerWidth * 0.35f
+                            scope.launch {
+                                if (animatedOffset.value > threshold && processingMode == ProcessingMode.OIDN) {
+                                    animatedOffset.animateTo(containerWidth.toFloat(), spring())
+                                    viewModel.setProcessingMode(ProcessingMode.ONNX)
+                                    animatedOffset.snapTo(0f)
+                                } else if (animatedOffset.value < -threshold && processingMode == ProcessingMode.ONNX) {
+                                    animatedOffset.animateTo(
+                                        -containerWidth.toFloat(), spring()
+                                    )
+                                    viewModel.setProcessingMode(ProcessingMode.OIDN)
+                                    animatedOffset.snapTo(0f)
+                                } else {
+                                    animatedOffset.animateTo(0f, spring())
                                 }
-                            }, onDragCancel = {
-                                scope.launch { animatedOffset.animateTo(0f, spring()) }
-                            }, onHorizontalDrag = { change, dragAmount ->
-                                change.consume()
-                                val newOffset = animatedOffset.value + dragAmount
-                                val clamped = when (processingMode) {
-                                    ProcessingMode.OIDN -> newOffset.coerceAtLeast(0f)
-                                    ProcessingMode.ONNX -> newOffset.coerceAtMost(0f)
-                                }
-                                scope.launch { animatedOffset.snapTo(clamped) }
-                            })
-                        }) {
+                            }
+                        }, onDragCancel = {
+                            scope.launch { animatedOffset.animateTo(0f, spring()) }
+                        }, onHorizontalDrag = { change, dragAmount ->
+                            change.consume()
+                            val newOffset = animatedOffset.value + dragAmount
+                            val clamped = when (processingMode) {
+                                ProcessingMode.OIDN -> newOffset.coerceAtLeast(0f)
+                                ProcessingMode.ONNX -> newOffset.coerceAtMost(0f)
+                            }
+                            scope.launch { animatedOffset.snapTo(clamped) }
+                        })
+                    }) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1094,7 +1032,7 @@ fun SettingsScreen(
 }
 
 private enum class SettingsSection {
-    Chunk, Preferences, OidnSettings, ModelManagement, OidnModelManagement
+    Preferences, OidnSettings, ModelManagement, OidnModelManagement
 }
 
 @Composable
@@ -1204,31 +1142,31 @@ fun LabeledSwitch(
 
         Switch(
             checked = checked, onCheckedChange = {
-                onCheckedChange(it)
-                HapticFeedbacks.light()
-            }, thumbContent = if (checked) {
-                {
-                    Icon(
-                        imageVector = Icons.Filled.Check,
-                        contentDescription = null,
-                        modifier = Modifier.size(SwitchDefaults.IconSize),
-                    )
-                }
-            } else {
-                {
-                    Icon(
-                        imageVector = Icons.Filled.Close,
-                        contentDescription = null,
-                        modifier = Modifier.size(SwitchDefaults.IconSize),
-                    )
-                }
-            }, colors = SwitchDefaults.colors(
-                checkedThumbColor = MaterialTheme.colorScheme.primaryContainer,
-                checkedTrackColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                uncheckedThumbColor = MaterialTheme.colorScheme.secondary,
-                uncheckedTrackColor = MaterialTheme.colorScheme.secondaryContainer,
-                uncheckedBorderColor = Color.Transparent,
-            ))
+            onCheckedChange(it)
+            HapticFeedbacks.light()
+        }, thumbContent = if (checked) {
+            {
+                Icon(
+                    imageVector = Icons.Filled.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                )
+            }
+        } else {
+            {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = null,
+                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                )
+            }
+        }, colors = SwitchDefaults.colors(
+            checkedThumbColor = MaterialTheme.colorScheme.primaryContainer,
+            checkedTrackColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            uncheckedThumbColor = MaterialTheme.colorScheme.secondary,
+            uncheckedTrackColor = MaterialTheme.colorScheme.secondaryContainer,
+            uncheckedBorderColor = Color.Transparent,
+        ))
     }
 }
 

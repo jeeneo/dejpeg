@@ -29,7 +29,7 @@ android {
         version = release(37)
     }
     defaultConfig {
-        applicationId = "com.je.dejpeg"
+        applicationId = "com.je.dejpeg.litert"
         minSdk = 26
         //noinspection OldTargetApi
         targetSdk = 36

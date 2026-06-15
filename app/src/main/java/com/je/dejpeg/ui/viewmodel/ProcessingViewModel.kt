@@ -24,6 +24,7 @@ import com.je.dejpeg.ui.components.SnackbarDuration
 import com.je.dejpeg.ui.components.SnackySnackbarController
 import com.je.dejpeg.ui.components.SnackySnackbarEvents
 import com.je.dejpeg.utils.CacheManager
+import com.je.dejpeg.utils.GpuCacheStatus
 import com.je.dejpeg.utils.ImageActions
 import com.je.dejpeg.utils.ImagePickerHelper
 import com.je.dejpeg.utils.ModelType
@@ -148,6 +149,11 @@ class ProcessingViewModel : ViewModel() {
                             isProcessing = true, progress = message
                         )
                     }
+                    // Trigger GPU cache status refresh when processing actually starts
+                    // (message is no longer "preparing", meaning GPU cache is being built)
+                    if (message != statusPreparing) {
+                        _settingsViewModel?.refreshGpuCacheStatus()
+                    }
                 }
 
                 override fun onChunkProgress(
@@ -162,6 +168,7 @@ class ProcessingViewModel : ViewModel() {
 
                 override fun onComplete(imageId: String, path: String) {
                     handleProcessingComplete(imageId, path)
+                    _settingsViewModel?.refreshGpuCacheStatus()
                 }
 
                 override fun onError(imageId: String?, message: String) {
@@ -384,6 +391,17 @@ class ProcessingViewModel : ViewModel() {
             )
         }
 
+        val activeModelName = settingsViewModel.activeModelName.value
+        if (activeModelName != null) {
+            viewModelScope.launch {
+                val current = _settingsViewModel?.gpuCacheStatusMap?.value?.toMutableMap() ?: mutableMapOf()
+                if (current[activeModelName] != GpuCacheStatus.READY) {
+                    current[activeModelName] = GpuCacheStatus.PREPARING
+                    _settingsViewModel?.gpuCacheStatusMap?.value = current
+                }
+            }
+        }
+
         viewModelScope.launch {
             CacheManager.saveUnprocessedImage(ctx, imageId, uri)
             val mode = settingsViewModel.processingMode.value
@@ -394,7 +412,6 @@ class ProcessingViewModel : ViewModel() {
                 strength = strength,
                 chunkSize = settingsViewModel.chunkSize.value,
                 overlapSize = settingsViewModel.overlapSize.value,
-                onnxDeviceThreads = settingsViewModel.onnxDeviceThreads.value,
                 modelName = settingsViewModel.activeModelName.value,
                 processingMode = mode.name,
                 oidnWeightsPath = if (mode == ProcessingMode.OIDN) settingsViewModel.modelManager?.getActiveModelPath(
