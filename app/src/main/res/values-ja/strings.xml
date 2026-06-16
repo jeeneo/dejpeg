@@ -252,7 +252,7 @@
     <string name="processing_mode">処理モード</string>
     <string name="mode_onnx" translatable="false">ONNX</string>
     <string name="mode_oidn" translatable="false">OIDN</string>
-    <string name="oidn_settings">OIDN設定</string>
+    <string name="oidn_settings">OIDN処理</string>
     <string name="oidn_model_management">OIDNモデル管理</string>
     <string name="oidn_hdr">HDR入力</string>
     <string name="oidn_hdr_desc">入力画像がHDRの場合に有効にする</string>
@@ -271,7 +271,7 @@
     <string name="settings_title_models">モデル</string>
     <string name="settings_item_title_options">オプション</string>
     <string name="settings_item_subtitle_options">その他の設定</string>
-    <string name="settings_item_title_processing">処理</string>
+    <string name="settings_item_title_processing">ONNX処理</string>
     <string name="settings_item_title_help">ヘルプ</string>
     <string name="settings_item_subtitle_help_faq">FAQを表示</string>
     <string name="settings_item_subtitle_sourcecode">ソースコード</string>
