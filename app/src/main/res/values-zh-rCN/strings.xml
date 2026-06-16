@@ -251,7 +251,7 @@
     <string name="processing_mode">处理模式</string>
     <string name="mode_onnx" translatable="false">ONNX</string>
     <string name="mode_oidn" translatable="false">Oidn</string>
-    <string name="oidn_settings">Oidn 设置</string>
+    <string name="oidn_settings">Oidn 处理</string>
     <string name="oidn_model_management">Oidn 模型管理</string>
     <string name="oidn_hdr">HDR 输入</string>
     <string name="oidn_hdr_desc">输入 HDR 图像时启用</string>
@@ -270,7 +270,7 @@
     <string name="settings_title_models">模型</string>
     <string name="settings_item_title_options">选项</string>
     <string name="settings_item_subtitle_options">其他设置</string>
-    <string name="settings_item_title_processing">处理</string>
+    <string name="settings_item_title_processing">ONNX 处理</string>
     <string name="settings_item_title_help">帮助</string>
     <string name="settings_item_subtitle_help_faq">显示常见问题</string>
     <string name="settings_item_subtitle_sourcecode">源代码</string>
