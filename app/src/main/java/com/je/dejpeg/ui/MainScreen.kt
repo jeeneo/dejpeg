@@ -299,9 +299,15 @@ fun HomeWrapperScreen(
                                     shape = RoundedCornerShape(
                                         topStart = PillOuter,
                                         bottomStart = PillOuter,
+                                        topEnd = PillOuter,
+                                        bottomEnd = PillOuter
+                                    ),
+                                    pressedShape = RoundedCornerShape(
+                                        topStart = PillOuter,
+                                        bottomStart = PillOuter,
                                         topEnd = PillInner,
                                         bottomEnd = PillInner
-                                    ), pressedShape = RoundedCornerShape(PillOuter)
+                                    ),
                                 ),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = processingContainerColor,
@@ -359,11 +365,17 @@ fun HomeWrapperScreen(
                                 },
                                 shapes = ButtonDefaults.shapes(
                                     shape = RoundedCornerShape(
+                                        topStart = PillOuter,
+                                        bottomStart = PillOuter,
+                                        topEnd = PillOuter,
+                                        bottomEnd = PillOuter
+                                    ),
+                                    pressedShape = RoundedCornerShape(
                                         topStart = PillInner,
                                         bottomStart = PillInner,
                                         topEnd = PillOuter,
                                         bottomEnd = PillOuter
-                                    ), pressedShape = RoundedCornerShape(PillOuter)
+                                    ),
                                 ),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = settingsContainerColor,

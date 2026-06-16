@@ -9,6 +9,7 @@ package com.je.dejpeg.utils
 
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtException
+import ai.onnxruntime.OrtLoggingLevel
 import ai.onnxruntime.OrtSession
 import android.annotation.SuppressLint
 import android.content.Context
@@ -16,6 +17,7 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Log
 import com.je.dejpeg.AppPreferences
+import com.je.dejpeg.BuildConfig
 import com.je.dejpeg.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,9 +28,9 @@ import java.io.FileOutputStream
 import java.io.InputStream
 import java.io.OutputStream
 
-enum class ModelType(val extensions: List<String>, val invalidFileTypeResId: Int) {
-    ONNX(listOf(".onnx", ".ort"), R.string.invalid_file_type), OIDN(
-        listOf(".tza"), R.string.invalid_tza_file_type
+enum class ModelType(val extensions: List<String>) {
+    ONNX(listOf(".onnx", ".ort")), OIDN(
+        listOf(".tza")
     );
 
     fun matches(filename: String): Boolean {
@@ -173,13 +175,6 @@ class ModelManager(
         return 0
     }
 
-    data class ModelWarning(
-        val titleResId: Int,
-        val messageResId: Int,
-        val positiveButtonTextResId: Int,
-        val negativeButtonTextResId: Int
-    )
-
     fun hasActiveModel(type: ModelType = ModelType.ONNX): Boolean {
         val activeModel = getActiveModelName(type)
         return activeModel != null && File(getModelsDir(type), activeModel).exists()
@@ -269,7 +264,7 @@ class ModelManager(
         val modelFile = File(getModelsDir(ModelType.ONNX), activeModel)
         if (!modelFile.exists()) throw Exception("Model file does not exist: ${modelFile.absolutePath}")
         try {
-            ortEnv = OrtEnvironment.getEnvironment()
+            ortEnv = OrtEnvironment.getEnvironment(OrtLoggingLevel.ORT_LOGGING_LEVEL_VERBOSE, "ort")
             val opts = OrtSession.SessionOptions()
             configureSessionOptions(opts, activeModel)
             currentSession = ortEnv?.createSession(modelFile.absolutePath, opts)
@@ -293,7 +288,7 @@ class ModelManager(
             Log.e("ModelManager", "Error setting IntraOpNumThreads: ${e.message}")
         }
         try {
-            opts.setInterOpNumThreads(4)
+            opts.setInterOpNumThreads(if (processors <= 2) 1 else 2)
         } catch (e: OrtException) {
             Log.e("ModelManager", "Error setting InterOpNumThreads: ${e.message}")
         }
@@ -303,8 +298,10 @@ class ModelManager(
                     opts.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.NO_OPT)
                 }
 
-                modelName.startsWith("fbcnn_") -> opts.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.EXTENDED_OPT)
+                modelName.startsWith("fbcnn_") -> opts.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
                 modelName.startsWith("scunet_") -> opts.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.NO_OPT)
+                else -> opts.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
+
             }
         } catch (e: OrtException) {
             Log.e("ModelManager", "Error setting OptimizationLevel: ${e.message}")
@@ -333,20 +330,34 @@ class ModelManager(
         System.gc()
     }
 
+    @Suppress("KotlinConstantConditions")
     fun importModel(
         modelUri: Uri,
-        type: ModelType = ModelType.ONNX,
         onProgress: (Int) -> Unit = {},
-        onSuccess: (String) -> Unit = {},
+        onSuccess: (String, ModelType) -> Unit = { _, _ -> },
         onError: (String) -> Unit = {}
     ) {
         try {
             val filename = resolveFilename(modelUri)
-            if (!type.matches(filename)) {
-                onError(context.getString(type.invalidFileTypeResId))
-                return
+            val type = when {
+                ModelType.OIDN.matches(filename) -> {
+                    if (!BuildConfig.OIDN_ENABLED) {
+                        onError(context.getString(R.string.invalid_file_type))
+                        return
+                    }
+                    ModelType.OIDN
+                }
+
+                ModelType.ONNX.matches(filename) -> ModelType.ONNX
+                else -> {
+                    onError(context.getString(R.string.invalid_file_type))
+                    return
+                }
             }
-            importModelInternal(modelUri, filename, type, onProgress, onSuccess, onError)
+            importModelInternal(
+                modelUri, filename, type, onProgress,
+                onSuccess = { name -> onSuccess(name, type) }, onError
+            )
         } catch (e: Exception) {
             onError(e.message ?: context.getString(R.string.unknown_error))
         }

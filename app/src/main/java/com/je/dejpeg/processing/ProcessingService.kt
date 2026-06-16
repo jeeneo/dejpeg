@@ -468,19 +468,22 @@ class ProcessingService : Service() {
         completedChunks: Int, totalChunks: Int, parallelWorkers: Int
     ): String {
         if (totalChunks <= 1) return getString(R.string.processing)
+        val remaining = totalChunks - completedChunks
+        if (remaining <= 0) return getString(R.string.processing)
         if (parallelWorkers > 1) {
-            val rangeStart = (completedChunks + 1).coerceAtMost(totalChunks)
-            val rangeEnd = (completedChunks + parallelWorkers).coerceAtMost(totalChunks)
+            val rangeStart = completedChunks + 1
+            val activeWorkers = minOf(parallelWorkers, remaining)
+            val rangeEnd = completedChunks + activeWorkers
             return resources.getQuantityString(
                 R.plurals.processing_chunk_range_of_y_threads,
-                parallelWorkers,
+                activeWorkers,
                 rangeStart,
                 rangeEnd,
                 totalChunks,
-                parallelWorkers
+                activeWorkers
             )
         }
-        val displayChunk = completedChunks.coerceAtLeast(1).coerceAtMost(totalChunks)
+        val displayChunk = (completedChunks + 1).coerceAtMost(totalChunks)
         return getString(R.string.processing_chunk_x_of_y, displayChunk, totalChunks)
     }
 

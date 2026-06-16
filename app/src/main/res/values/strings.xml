@@ -259,7 +259,7 @@
     <string name="processing_mode">Processing mode</string>
     <string name="mode_onnx" translatable="false">ONNX</string>
     <string name="mode_oidn" translatable="false">Oidn</string>
-    <string name="oidn_settings">Oidn settings</string>
+    <string name="oidn_settings">OIDN Processing</string>
     <string name="oidn_model_management">Oidn model management</string>
     <string name="oidn_hdr">HDR input</string>
     <string name="oidn_hdr_desc">Enable if the input image is HDR</string>
@@ -278,7 +278,7 @@
     <string name="settings_title_models">Models</string>
     <string name="settings_item_title_options">Options</string>
     <string name="settings_item_subtitle_options">Other settings</string>
-    <string name="settings_item_title_processing">Processing</string>
+    <string name="settings_item_title_processing">ONNX Processing</string>
     <string name="settings_item_title_help">Help</string>
     <string name="settings_item_subtitle_help_faq">Show FAQ</string>
     <string name="settings_item_subtitle_sourcecode">Source code</string>

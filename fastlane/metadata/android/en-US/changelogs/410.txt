@@ -3,6 +3,8 @@ Fixed:
 - Typo: Detoning > Detooning
 - Missing translation for "Share"
 - Lag when viewing large images
+- Off By One error in chunk progress
+- Indefinite loading when saving with a single image
 
 Added/updated:
 - Languages: Arabic, Chinese, Dutch, Italian, Japanese, Russian, Turkish

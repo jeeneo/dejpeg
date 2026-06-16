@@ -10,7 +10,6 @@
 package com.je.dejpeg.ui.viewmodel
 
 import android.net.Uri
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.je.dejpeg.App
@@ -25,6 +24,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -33,6 +33,7 @@ import kotlinx.coroutines.withContext
 class SettingsViewModel : ViewModel() {
     val installedModels = MutableStateFlow<List<String>>(emptyList())
     val installedOidnModels = MutableStateFlow<List<String>>(emptyList())
+    val installedAllModels = MutableStateFlow<List<Pair<String, ModelType>>>(emptyList())
     val activeModelName = MutableStateFlow<String?>(null)
     val activeOidnModelName = MutableStateFlow<String?>(null)
     val hasCheckedModels = MutableStateFlow(false)
@@ -46,6 +47,15 @@ class SettingsViewModel : ViewModel() {
     val processingMode: StateFlow<ProcessingMode> =
         _processingMode.map { saved -> if (!BuildConfig.OIDN_ENABLED && saved == ProcessingMode.OIDN) ProcessingMode.ONNX else saved }
             .stateIn(viewModelScope, SharingStarted.Eagerly, ProcessingMode.ONNX)
+
+    val currentActiveModelName: StateFlow<String?> =
+        combine(activeModelName, activeOidnModelName, processingMode) { onnxName, oidnName, mode ->
+            when (mode) {
+                ProcessingMode.ONNX -> onnxName
+                ProcessingMode.OIDN -> oidnName
+            }
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
     val oidnHdr = MutableStateFlow(false)
     val oidnSrgb = MutableStateFlow(false)
     val oidnQuality = MutableStateFlow(AppPreferences.DEFAULT_OIDN_QUALITY)
@@ -92,20 +102,26 @@ class SettingsViewModel : ViewModel() {
             installedModels.value = withContext(Dispatchers.IO) {
                 modelManager?.getInstalledModels(ModelType.ONNX) ?: emptyList()
             }
-            installedOidnModels.value = withContext(Dispatchers.IO) {
-                modelManager?.getInstalledModels(ModelType.OIDN) ?: emptyList()
+            if (BuildConfig.OIDN_ENABLED) {
+                installedOidnModels.value = withContext(Dispatchers.IO) {
+                    modelManager?.getInstalledModels(ModelType.OIDN) ?: emptyList()
+                }
             }
+            installedAllModels.value =
+                installedModels.value.map { it to ModelType.ONNX } + if (BuildConfig.OIDN_ENABLED) installedOidnModels.value.map { it to ModelType.OIDN } else emptyList()
             hasCheckedModels.value = true
             activeModelName.value = withContext(Dispatchers.IO) {
                 modelManager?.getActiveModelName(ModelType.ONNX)
             }
-            activeOidnModelName.value = withContext(Dispatchers.IO) {
-                modelManager?.getActiveModelName(ModelType.OIDN)
+            if (BuildConfig.OIDN_ENABLED) {
+                activeOidnModelName.value = withContext(Dispatchers.IO) {
+                    modelManager?.getActiveModelName(ModelType.OIDN)
+                }
             }
             val activeType =
                 if (processingMode.value == ProcessingMode.OIDN) ModelType.OIDN else ModelType.ONNX
             val activeList =
-                if (activeType == ModelType.OIDN) installedOidnModels.value else installedModels.value
+                if (activeType == ModelType.OIDN && BuildConfig.OIDN_ENABLED) installedOidnModels.value else installedModels.value
             if (activeList.isEmpty()) {
                 shouldShowNoModelDialog.value = true
             }
@@ -135,33 +151,41 @@ class SettingsViewModel : ViewModel() {
                     }
                 }
             }
+            installedAllModels.value =
+                installedModels.value.map { it to ModelType.ONNX } + installedOidnModels.value.map { it to ModelType.OIDN }
         }
     }
 
     fun importModel(
         uri: Uri,
-        type: ModelType = ModelType.ONNX,
-        force: Boolean = false,
         onProgress: (Int) -> Unit = {},
-        onSuccess: (String) -> Unit = {},
-        onError: (String) -> Unit = {},
-        onWarning: ((String, ModelManager.ModelWarning) -> Unit)? = null
+        onSuccess: (String, ModelType) -> Unit = { _, _ -> },
+        onError: (String) -> Unit = {}
     ) {
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                modelManager?.importModel(
-                    modelUri = uri,
-                    type = type,
-                    onProgress = { launch(Dispatchers.Main) { onProgress(it) } },
-                    onSuccess = { modelName ->
-                        modelManager?.setActiveModel(modelName, type)
-                        refreshInstalledModels(type)
-                        launch(Dispatchers.Main) { onSuccess(modelName) }
-                    },
-                    onError = { launch(Dispatchers.Main) { onError(it) } })
-            } catch (e: Exception) {
-                launch(Dispatchers.Main) { onError(e.message ?: "Unknown error") }
-            }
+            modelManager?.importModel(
+                modelUri = uri,
+                onProgress = { launch(Dispatchers.Main) { onProgress(it) } },
+                onSuccess = { modelName, modelType ->
+                    when (modelType) {
+                        ModelType.ONNX -> {
+                            installedModels.value += modelName
+                            activeModelName.value = modelName
+                        }
+
+                        ModelType.OIDN -> {
+                            installedOidnModels.value += modelName
+                            activeOidnModelName.value = modelName
+                        }
+                    }
+                    installedAllModels.value =
+                        installedModels.value.map { it to ModelType.ONNX } + installedOidnModels.value.map { it to ModelType.OIDN }
+                    if (BuildConfig.OIDN_ENABLED) {
+                        setProcessingMode(if (modelType == ModelType.OIDN) ProcessingMode.OIDN else ProcessingMode.ONNX)
+                    }
+                    launch(Dispatchers.Main) { onSuccess(modelName, modelType) }
+                },
+                onError = { launch(Dispatchers.Main) { onError(it) } })
         }
     }
 
@@ -177,13 +201,16 @@ class SettingsViewModel : ViewModel() {
         }
     }
 
-    fun setActiveModelByName(name: String, type: ModelType = ModelType.ONNX) {
-        modelManager?.setActiveModel(name, type) ?: Log.e(
-            "SettingsViewModel", "modelManager is null!"
-        )
+    fun setActiveModelByName(
+        name: String, type: ModelType = ModelType.ONNX, switchMode: Boolean = false
+    ) {
+        modelManager?.setActiveModel(name, type)
         when (type) {
             ModelType.ONNX -> activeModelName.value = name
             ModelType.OIDN -> activeOidnModelName.value = name
+        }
+        if (BuildConfig.OIDN_ENABLED && switchMode) {
+            setProcessingMode(if (type == ModelType.OIDN) ProcessingMode.OIDN else ProcessingMode.ONNX)
         }
     }
 

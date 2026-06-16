@@ -154,80 +154,78 @@ fun ImageScreen(
                         glassSlider = glassSlider,
                         modifier = Modifier.fillMaxSize()
                     )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .navigationBarsPadding()
+                            .padding(bottom = 28.dp)
+                            .zIndex(1f)
+                    ) {
+                        Button(
+                            modifier = Modifier.height(56.dp),
+                            onClick = {
+                                HapticFeedbacks.light()
+                                isPreparingShare = true
+                                ImageActions.shareImage(
+                                    context = context,
+                                    bitmap = afterBitmap,
+                                    onReady = { isPreparingShare = false },
+                                    onError = { isPreparingShare = false })
+                            },
+                            shapes = ButtonDefaults.shapes(
+                                shape = RoundedCornerShape(
+                                    topStart = PillOuter,
+                                    bottomStart = PillOuter,
+                                    topEnd = PillInner,
+                                    bottomEnd = PillInner
+                                ), pressedShape = RoundedCornerShape(PillOuter)
+                            ),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.inverseOnSurface,
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            ),
+                            contentPadding = PaddingValues(horizontal = 20.dp),
+                        ) {
+                            Icon(
+                                Icons.Filled.Share,
+                                contentDescription = stringResource(id = R.string.share_image),
+                            )
+                            Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                            Text(
+                                text = stringResource(id = R.string.share_image),
+                            )
+                        }
+                        Button(
+                            modifier = Modifier.height(56.dp),
+                            onClick = { HapticFeedbacks.medium(); saveOrPrompt(imageId, filename) },
+                            shapes = ButtonDefaults.shapes(
+                                shape = RoundedCornerShape(
+                                    topStart = PillInner,
+                                    bottomStart = PillInner,
+                                    topEnd = PillOuter,
+                                    bottomEnd = PillOuter
+                                ), pressedShape = RoundedCornerShape(PillOuter)
+                            ),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.inverseOnSurface,
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            ),
+                            contentPadding = PaddingValues(horizontal = 20.dp),
+                        ) {
+                            Icon(
+                                Icons.Filled.Save,
+                                contentDescription = stringResource(id = R.string.save),
+                            )
+                            Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                            Text(
+                                text = stringResource(id = R.string.save),
+                            )
+                        }
+                    }
                 } else {
                     SingleImageView(beforeBitmap, needsChecker)
-                }
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(2.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .navigationBarsPadding()
-                        .padding(bottom = 28.dp)
-                        .zIndex(1f)
-                ) {
-                    Button(
-                        modifier = Modifier.height(56.dp),
-                        onClick = {
-                            HapticFeedbacks.light()
-                            isPreparingShare = true
-                            ImageActions.shareImage(
-                                context = context,
-                                bitmap = afterBitmap ?: beforeBitmap,
-                                onReady = { isPreparingShare = false },
-                                onError = { isPreparingShare = false })
-                        },
-                        shapes = ButtonDefaults.shapes(
-                            shape = RoundedCornerShape(
-                                topStart = PillOuter,
-                                bottomStart = PillOuter,
-                                topEnd = PillInner,
-                                bottomEnd = PillInner
-                            ), pressedShape = RoundedCornerShape(PillOuter)
-                        ),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.inverseOnSurface,
-                            contentColor = MaterialTheme.colorScheme.onSurface
-                        ),
-                        contentPadding = PaddingValues(horizontal = 20.dp),
-                    ) {
-                        Icon(
-                            Icons.Filled.Share,
-                            contentDescription = stringResource(id = R.string.share_image),
-                        )
-                        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                        Text(
-                            text = stringResource(id = R.string.share_image),
-                        )
-                    }
-
-                    Button(
-                        modifier = Modifier.height(56.dp),
-                        onClick = { HapticFeedbacks.medium(); saveOrPrompt(imageId, filename) },
-                        shapes = ButtonDefaults.shapes(
-                            shape = RoundedCornerShape(
-                                topStart = PillInner,
-                                bottomStart = PillInner,
-                                topEnd = PillOuter,
-                                bottomEnd = PillOuter
-                            ), pressedShape = RoundedCornerShape(PillOuter)
-                        ),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.inverseOnSurface,
-                            contentColor = MaterialTheme.colorScheme.onSurface
-                        ),
-                        contentPadding = PaddingValues(horizontal = 20.dp),
-                    ) {
-                        Icon(
-                            Icons.Filled.Save,
-                            contentDescription = stringResource(id = R.string.save),
-                        )
-                        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                        Text(
-                            text = stringResource(id = R.string.save),
-                        )
-                    }
                 }
             }
         }
