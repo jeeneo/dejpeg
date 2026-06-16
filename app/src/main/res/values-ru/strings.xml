@@ -267,7 +267,7 @@
     <string name="processing_mode">Режим обработки</string>
     <string name="mode_onnx" translatable="false">ONNX</string>
     <string name="mode_oidn" translatable="false">Oidn</string>
-    <string name="oidn_settings">Настройки Oidn</string>
+    <string name="oidn_settings">Обработка Oidn</string>
     <string name="oidn_model_management">Управление моделями Oidn</string>
     <string name="oidn_hdr">HDR-ввод</string>
     <string name="oidn_hdr_desc">Включите, если входное изображение HDR</string>
@@ -286,7 +286,7 @@
     <string name="settings_title_models">Модели</string>
     <string name="settings_item_title_options">Параметры</string>
     <string name="settings_item_subtitle_options">Другие настройки</string>
-    <string name="settings_item_title_processing">Обработка</string>
+    <string name="settings_item_title_processing">ONNX Обработка</string>
     <string name="settings_item_title_help">Помощь</string>
     <string name="settings_item_subtitle_help_faq">Показать FAQ</string>
     <string name="settings_item_subtitle_sourcecode">Исходный код</string>
