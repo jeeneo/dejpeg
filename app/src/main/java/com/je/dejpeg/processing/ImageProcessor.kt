@@ -193,16 +193,17 @@ class ImageProcessor(
 
         val inputBuffer =
             ByteBuffer.allocateDirect(4 * 3 * modelW * modelH).order(ByteOrder.nativeOrder())
+        val normOffset = if (isRmbg) 0.5f else 0f
         if (isNCHW) {
-            for (i in 0 until modelW * modelH) inputBuffer.putFloat(Color.red(pixels[i]) / 255f)
-            for (i in 0 until modelW * modelH) inputBuffer.putFloat(Color.green(pixels[i]) / 255f)
-            for (i in 0 until modelW * modelH) inputBuffer.putFloat(Color.blue(pixels[i]) / 255f)
+            for (i in 0 until modelW * modelH) inputBuffer.putFloat(Color.red(pixels[i]) / 255f - normOffset)
+            for (i in 0 until modelW * modelH) inputBuffer.putFloat(Color.green(pixels[i]) / 255f - normOffset)
+            for (i in 0 until modelW * modelH) inputBuffer.putFloat(Color.blue(pixels[i]) / 255f - normOffset)
         } else {
             for (i in 0 until modelW * modelH) {
                 val c = pixels[i]
-                inputBuffer.putFloat(Color.red(c) / 255f)
-                inputBuffer.putFloat(Color.green(c) / 255f)
-                inputBuffer.putFloat(Color.blue(c) / 255f)
+                inputBuffer.putFloat(Color.red(c) / 255f - normOffset)
+                inputBuffer.putFloat(Color.green(c) / 255f - normOffset)
+                inputBuffer.putFloat(Color.blue(c) / 255f - normOffset)
             }
         }
         inputBuffer.rewind()
@@ -258,9 +259,9 @@ class ImageProcessor(
             val maskPixels = IntArray(outW * outH)
             for (i in 0 until outW * outH) {
                 val a = clamp255(((outputArray[i] - mi) / range) * 255f)
-                maskPixels[i] = Color.argb(a, 0, 0, 0)
+                maskPixels[i] = Color.argb(255, a, a, a)
             }
-            val maskBitmap = createBitmap(outW, outH, Bitmap.Config.ALPHA_8)
+            val maskBitmap = createBitmap(outW, outH, Bitmap.Config.ARGB_8888)
             maskBitmap.setPixels(maskPixels, 0, outW, 0, 0, outW, outH)
 
             val scaledMask = if (outW != originalW || outH != originalH) {
@@ -282,7 +283,7 @@ class ImageProcessor(
             for (i in origPixels.indices) {
                 val orig = origPixels[i]
                 origPixels[i] = Color.argb(
-                    Color.alpha(maskAlphas[i]), Color.red(orig), Color.green(orig), Color.blue(orig)
+                    Color.red(maskAlphas[i]), Color.red(orig), Color.green(orig), Color.blue(orig)
                 )
             }
             val result = createBitmap(originalW, originalH, Bitmap.Config.ARGB_8888)
@@ -315,9 +316,9 @@ class ImageProcessor(
             for (i in origPixels.indices) {
                 val orig = origPixels[i]
                 origPixels[i] = Color.argb(
-                    Color.alpha(alphaPixels[i]), 
-                    Color.red(orig), 
-                    Color.green(orig), 
+                    Color.alpha(alphaPixels[i]),
+                    Color.red(orig),
+                    Color.green(orig),
                     Color.blue(orig)
                 )
             }
