@@ -256,7 +256,7 @@
     <string name="processing_mode">Verwerkingsmodus</string>
     <string name="mode_onnx" translatable="false">ONNX</string>
     <string name="mode_oidn" translatable="false">Oidn</string>
-    <string name="oidn_settings">Oidn-instellingen</string>
+    <string name="oidn_settings">Oidn Verwerking</string>
     <string name="oidn_model_management">Oidn-modelbeheer</string>
     <string name="oidn_hdr">HDR-invoer</string>
     <string name="oidn_hdr_desc">Inschakelen als de invoerafbeelding HDR is</string>
@@ -275,7 +275,7 @@
     <string name="settings_title_models">Modellen</string>
     <string name="settings_item_title_options">Opties</string>
     <string name="settings_item_subtitle_options">Overige instellingen</string>
-    <string name="settings_item_title_processing">Verwerking</string>
+    <string name="settings_item_title_processing">ONNX Verwerking</string>
     <string name="settings_item_title_help">Hulp</string>
     <string name="settings_item_subtitle_help_faq">FAQ tonen</string>
     <string name="settings_item_subtitle_sourcecode">Broncode</string>

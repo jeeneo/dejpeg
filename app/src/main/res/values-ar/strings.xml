@@ -294,7 +294,7 @@
     <string name="settings_title_models">النماذج</string>
     <string name="settings_item_title_options">الخيارات</string>
     <string name="settings_item_subtitle_options">إعدادات أخرى</string>
-    <string name="settings_item_title_processing">المعالجة</string>
+    <string name="settings_item_title_processing">المعالجة ONNX</string>
     <string name="settings_item_title_help">المساعدة</string>
     <string name="settings_item_subtitle_help_faq">عرض الأسئلة الشائعة</string>
     <string name="settings_item_subtitle_sourcecode">الكود المصدري</string>
