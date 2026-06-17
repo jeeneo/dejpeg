@@ -12,7 +12,7 @@ Speed:
 
 - FBCNN ([source](https://github.com/jiaxi-jiang/FBCNN)) - usage: compression
   - [Color](https://huggingface.co/colpona/dejpeg-models/resolve/main/fbcnn/fbcnn_color_fp16.onnx)
-  - [grayscale](https://huggingface.co/colpona/dejpeg-models/resolve/main/fbcnn/fbcnn_gray_fp16.onnx)
+  - [Grayscale](https://huggingface.co/colpona/dejpeg-models/resolve/main/fbcnn/fbcnn_gray_fp16.onnx)
   - [Double grayscale](https://huggingface.co/colpona/dejpeg-models/resolve/main/fbcnn/fbcnn_gray_double_fp16.onnx)
 
 - SCUNet ([source](https://github.com/cszn/SCUNet)) - usage: general noise removal.
@@ -25,9 +25,9 @@ Speed:
   - [Color, 15](https://huggingface.co/colpona/dejpeg-models/resolve/main/scunet/scunet_color_15_fp16.onnx)
   - [Color, 25](https://huggingface.co/colpona/dejpeg-models/resolve/main/scunet/scunet_color_25_fp16.onnx)
   - [Color, 50](https://huggingface.co/colpona/dejpeg-models/resolve/main/scunet/scunet_color_50_fp16.onnx)
-  - [grayscale 15](https://huggingface.co/colpona/dejpeg-models/resolve/main/scunet/scunet_gray_15_fp16.onnx)
-  - [grayscale 25](https://huggingface.co/colpona/dejpeg-models/resolve/main/scunet/scunet_gray_25_fp16.onnx)
-  - [grayscale 50](https://huggingface.co/colpona/dejpeg-models/resolve/main/scunet/scunet_gray_50_fp16.onnx)
+  - [Grayscale 15](https://huggingface.co/colpona/dejpeg-models/resolve/main/scunet/scunet_gray_15_fp16.onnx)
+  - [Grayscale 25](https://huggingface.co/colpona/dejpeg-models/resolve/main/scunet/scunet_gray_25_fp16.onnx)
+  - [Grayscale 50](https://huggingface.co/colpona/dejpeg-models/resolve/main/scunet/scunet_gray_50_fp16.onnx)
 
 ## Special models
 
