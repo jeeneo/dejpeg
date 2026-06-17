@@ -15,10 +15,9 @@ import android.graphics.Paint
 import android.util.Log
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
-import com.je.dejpeg.AppPreferences
 import com.je.dejpeg.R
-import com.je.dejpeg.processing.Processor
 import com.je.dejpeg.processing.ProcessingParams
+import com.je.dejpeg.processing.Processor
 import com.je.dejpeg.utils.ModelManager
 import com.je.dejpeg.utils.ModelType
 import kotlinx.coroutines.Dispatchers
@@ -39,9 +38,7 @@ class ImageProcessor(
     }
 
     override suspend fun processImage(
-        inputBitmap: Bitmap,
-        params: ProcessingParams,
-        callback: Processor.ProcessCallback
+        inputBitmap: Bitmap, params: ProcessingParams, callback: Processor.ProcessCallback
     ) = withContext(Dispatchers.Default) {
         if (params !is ProcessingParams.LiteRt) {
             throw IllegalArgumentException("LiteRtImageProcessor requires ProcessingParams.LiteRt")
@@ -65,10 +62,9 @@ class ImageProcessor(
                 if (inputBitmap.config != config) inputBitmap.copy(config, true) else inputBitmap
             val width = bitmapToProcess.width
             val height = bitmapToProcess.height
-            val overlap = params.overlapSize
 
-            val isRmbg =
-                modelManager.getActiveModelName(ModelType.LITERT)?.contains("rmbg", ignoreCase = true) == true
+            val isRmbg = modelManager.getActiveModelName(ModelType.LITERT)
+                ?.contains("rmbg", ignoreCase = true) == true
             val mustTile = !isRmbg && (width > modelW || height > modelH)
 
             val result = if (!mustTile) {
@@ -76,7 +72,13 @@ class ImageProcessor(
                     callback.onProgress(context.getString(R.string.processing))
                 }
                 processChunk(
-                    interpreter, bitmapToProcess, params.strength, modelW, modelH, isNCHW, imageInputIndex
+                    interpreter,
+                    bitmapToProcess,
+                    params.strength,
+                    modelW,
+                    modelH,
+                    isNCHW,
+                    imageInputIndex
                 )
             } else {
                 processTiled(
@@ -165,7 +167,9 @@ class ImageProcessor(
                 cropped.recycle()
                 done++
                 withContext(Dispatchers.Main) {
-                    (callback as? Processor.OnnxProcessCallback)?.onChunkProgress(done, totalChunks, 1)
+                    (callback as? Processor.OnnxProcessCallback)?.onChunkProgress(
+                        done, totalChunks, 1
+                    )
                 }
             }
         }
@@ -184,8 +188,9 @@ class ImageProcessor(
     ): Bitmap {
         val originalW = chunk.width
         val originalH = chunk.height
-        
-        val isRmbg = modelManager.getActiveModelName(ModelType.LITERT)?.contains("rmbg", ignoreCase = true) == true
+
+        val isRmbg = modelManager.getActiveModelName(ModelType.LITERT)
+            ?.contains("rmbg", ignoreCase = true) == true
         val needsResize = isRmbg && (originalW != modelW || originalH != modelH)
         val needsPadding = !isRmbg && (originalW != modelW || originalH != modelH)
 
@@ -195,14 +200,14 @@ class ImageProcessor(
                 val p = createBitmap(modelW, modelH, Bitmap.Config.ARGB_8888)
                 val canvas = Canvas(p)
                 canvas.drawBitmap(chunk, 0f, 0f, null)
-                if (originalW < modelW && originalW > 0) {
+                if (originalW in 1..<modelW) {
                     val rightStrip = Bitmap.createBitmap(chunk, originalW - 1, 0, 1, originalH)
                     for (x in originalW until modelW) {
                         canvas.drawBitmap(rightStrip, x.toFloat(), 0f, null)
                     }
                     rightStrip.recycle()
                 }
-                if (originalH < modelH && originalH > 0) {
+                if (originalH in 1..<modelH) {
                     val bottomStrip = Bitmap.createBitmap(p, 0, originalH - 1, modelW, 1)
                     for (y in originalH until modelH) {
                         canvas.drawBitmap(bottomStrip, 0f, y.toFloat(), null)

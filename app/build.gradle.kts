@@ -95,14 +95,6 @@ android {
             initWith(getByName("release"))
             buildConfigField("boolean", "OIDN_ENABLED", "true")
         }
-        create("litertDebug") {
-            initWith(getByName("debug"))
-            buildConfigField("boolean", "LITERT_ENABLED", "true")
-        }
-        create("litertRelease") {
-            initWith(getByName("release"))
-            buildConfigField("boolean", "LITERT_ENABLED", "true")
-        }
     }
     sourceSets {
         getByName("litertDebug") {
@@ -156,10 +148,6 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.compose.animation.core)
     implementation(libs.backdrop)
-    if (buildLiteRt || true) {
-        //noinspection GradleDependency UseTomlInstead
-        implementation("com.google.ai.edge.litert:litert:1.4.2")
-        //noinspection UseTomlInstead
-        implementation("com.google.ai.edge.litert:litert-gpu:1.4.2")
-    }
+    implementation("com.google.ai.edge.litert:litert:1.4.2")
+    implementation("com.google.ai.edge.litert:litert-gpu:1.4.2")
 }
