@@ -18,6 +18,9 @@ An offline compression artifact remover and denoise application for Android
 
 [Models list available here](models/), see [examples](examples/) for how to use them.
 
+> [!CAUTION]
+> Running for an extended amount of time can make your device run hot, please monitor device temperature
+
 ### Contributing
 
 Translate:

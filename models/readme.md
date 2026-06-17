@@ -1,8 +1,5 @@
-> [!IMPORTANT]
-> Links may change from time to time.
-
 > [!CAUTION]
-> Some of these models can make your device run hot, please monitor device temperature
+> Running for an extended amount of time can make your device run hot, please monitor device temperature
 
 Each model has an <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAABcElEQVRIS2NkoDFgpLH5DAQtePDggRELC8va////KyA7Bsi/z8TEFCgjI3MRnyNxWvD48WN7oMYDxPjw79+/1goKCsewqcVqwZMnT5YDXRhBjOEwNUD1c+Xk5FLQ9WBY8OjRo+2MjIwepBgOUwvUtwIYZJHIelEsAAaLOVDyBDmGw/QA40VDWlr6JtxSZMOAFvzHZ7isrCzYQcSqA6mF+wAYNG5AL+6khgWsrKy6EhISV1AsALrqJVBAjJLgQdJ7HuhbI3QL8AYPqRbDghMeRITCFWQBsXGArHZ4WXAL6DVVaqQioBnXgMGpjRLJwOLBEpjdsZYnMEuJjQNg2WQMLJvOoVhASgYilCBgDsGwAOgLA6AvzpOaJJHV4y0qoL7YAqS9ybEE6LgVwBIVd2EHM5TM4no60PAsdIfhq3AcgIr3E+MToMvNgIafxqaWYJUJLARNgYXgGqBmOTQDbgGr0kBJSclr+BxB0AJifDCgFgAA79ikGbsxV9sAAAAASUVORK5CYII=" width="24" alt="Info icon"> icon which contains information regarding it's purpose that you can view after importing.
 
@@ -95,9 +92,6 @@ note: after downloading these models, rename to contain either `u2net` or `rmbg`
 - ✚ ➠ [1x_DeSharpen-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_DeSharpen-fp16.onnx) ([source](https://openmodeldb.info/models/1x-DeSharpen)) - usage: removes oversharpening
 - ✧ ➽ [1x_DitherDeleterV3-Smooth-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_DitherDeleterV3-Smooth-fp16.onnx) ([source](https://openmodeldb.info/models/1x-DitherDeleterV3-Smooth)) - usage: dithering
 - ✧ ➠ [1x_GainresV4-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_GainresV4-fp16.onnx) ([source](https://openmodeldb.info/models/1x-GainRESV4)) - usage: anti-aliasing, general artifacts, CGI
-
-- ✚ ➽ [deblurring_nafnet_2025may](https://huggingface.co/opencv/deblurring_nafnet/resolve/main/deblurring_nafnet_2025may.onnx?download=true)  ([source](https://github.com/megvii-research/NAFNet)), additional models [here](https://huggingface.co/deepghs/image_restoration/tree/main)
-
 - ✚ ➠ [1x-Debandurh-FS-Ultra-lite-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x-Debandurh-FS-Ultra-lite-fp16.onnx) ([source](https://openmodeldb.info/models/1x-Debandurh-FS-Ultra-lite)) - usage: debanding
 - ✚ ➽ [1x_NMKD-BrightenRedux_200k-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_NMKD-BrightenRedux_200k-fp16.onnx) - usage: brightness reduction
 - ✚ ➽ [1x_NMKDDetoon_97500_G-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_NMKDDetoon_97500_G-fp16.onnx) - usage: detooning
@@ -109,5 +103,7 @@ note: after downloading these models, rename to contain either `u2net` or `rmbg`
 - ✚ ➽ [1x_Repainter_20000_G-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_Repainter_20000_G-fp16.onnx) - usage: repainting(?)
 - ✚ ➽ [1x_artifacts_dithering_alsa-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_artifacts_dithering_alsa-fp16.onnx) - usage: dithering
 - ✚ ➽ [1x_nmkdbrighten_10000_G-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_nmkdbrighten_10000_G-fp16.onnx) - usage: brightening
+- ✚ ➽ [deblurring_nafnet_2025may](https://huggingface.co/opencv/deblurring_nafnet/resolve/main/deblurring_nafnet_2025may.onnx?download=true)  ([source](https://github.com/megvii-research/NAFNet)), additional models [here](https://huggingface.co/deepghs/image_restoration/tree/main) - it's meant for deblurring (and denoising) but this model behaves really weirdly. use at own risk.
+
 
 <!-- this readme was typed out by a real human -->
