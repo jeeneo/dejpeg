@@ -43,40 +43,33 @@ import kotlin.math.ceil
 
 class ImageProcessor(
     private val context: Context, private val modelManager: ModelManager
-) {
+) : Processor {
 
     private companion object {
         const val MODEL_PAD_FACTOR = 8
     }
 
-    var chunkSize: Int? = null
-    var overlapSize: Int? = null
-    var deviceThreadCount: Int? = null
-
     @Volatile
     private var isCancelled = false
 
-    interface ProcessCallback {
-        fun onComplete(result: Bitmap)
-        fun onError(error: String)
-        fun onProgress(message: String)
-        fun onChunkProgress(currentChunkIndex: Int, totalChunks: Int, parallelWorkers: Int)
-    }
-
-    fun cancelProcessing() {
+    override fun cancelProcessing() {
         isCancelled = true
     }
 
-    suspend fun processImage(
-        inputBitmap: Bitmap, strength: Float, callback: ProcessCallback
+    override suspend fun processImage(
+        inputBitmap: Bitmap, params: ProcessingParams, callback: Processor.ProcessCallback
     ) = withContext(Dispatchers.Default) {
+        if (params !is ProcessingParams.Onnx) {
+            throw IllegalArgumentException("ImageProcessor requires ProcessingParams.Onnx")
+        }
         isCancelled = false
         try {
-            val coresToUse = ThreadUtils.resolveThreadCount(deviceThreadCount)
+
+            val coresToUse = ThreadUtils.resolveThreadCount(params.onnxDeviceThreads)
             val modelName = modelManager.getActiveModelName()
             val session = modelManager.loadModel()
             val minOverlap = modelManager.getMinOverlapSize(modelName)
-            val baseOverlap = overlapSize ?: AppPreferences.DEFAULT_OVERLAP_SIZE
+            val baseOverlap = params.overlapSize
             val effectiveOverlap = maxOf(baseOverlap, minOverlap)
             if (effectiveOverlap > baseOverlap) {
                 Log.d(
@@ -85,8 +78,9 @@ class ImageProcessor(
                 )
             }
             val fixedSize = modelManager.getFixedInputSize(modelName)
-            val modelInfo =
-                ModelInfo(modelName, strength, session, chunkSize, effectiveOverlap, fixedSize)
+            val modelInfo = ModelInfo(
+                modelName, params.strength, session, params.chunkSize, effectiveOverlap, fixedSize
+            )
             val result = processBitmap(
                 session = session,
                 inputBitmap = inputBitmap,
@@ -117,7 +111,7 @@ class ImageProcessor(
     private suspend fun processBitmap(
         session: OrtSession,
         inputBitmap: Bitmap,
-        callback: ProcessCallback,
+        callback: Processor.ProcessCallback,
         info: ModelInfo,
         coresToUse: Int
     ): Bitmap {
@@ -129,7 +123,12 @@ class ImageProcessor(
         val hasTransparency = inputBitmap.hasAlpha()
         val processingConfig = Bitmap.Config.ARGB_8888
 
-        if (info.skipTiling) {
+        val isRmbg = info.modelName?.contains("rmbg", ignoreCase = true) == true
+        val isU2NET = info.modelName?.contains("u2net", ignoreCase = true) == true
+        val isBackgroundRemover = isRmbg || isU2NET
+        val expNotNull = info.expectedWidth != null && info.expectedHeight != null
+
+        if (isBackgroundRemover && expNotNull) {
             val bitmapToProcess =
                 if (inputBitmap.config != processingConfig) inputBitmap.copy(processingConfig, true)
                 else inputBitmap
@@ -139,7 +138,7 @@ class ImageProcessor(
             return processChunk(session, bitmapToProcess, processingConfig, hasTransparency, info)
         }
 
-        if (info.expectedWidth != null && info.expectedHeight != null) {
+        if (expNotNull) {
             effectiveMaxChunkSize = minOf(info.expectedWidth, info.expectedHeight)
             mustTile = width > info.expectedWidth || height > info.expectedHeight
         } else {
@@ -194,7 +193,7 @@ class ImageProcessor(
     private suspend fun processTiled(
         session: OrtSession,
         inputBitmap: Bitmap,
-        callback: ProcessCallback,
+        callback: Processor.ProcessCallback,
         info: ModelInfo,
         config: Bitmap.Config,
         hasTransparency: Boolean,
@@ -281,7 +280,9 @@ class ImageProcessor(
             )
             if (totalChunks > 1) {
                 withContext(Dispatchers.Main) {
-                    callback.onChunkProgress(0, totalChunks, parallelWorkers)
+                    (callback as? Processor.OnnxProcessCallback)?.onChunkProgress(
+                        0, totalChunks, parallelWorkers
+                    )
                 }
             }
             val completedChunks = AtomicInteger(0)
@@ -317,7 +318,9 @@ class ImageProcessor(
                 val completed = completedChunks.incrementAndGet()
                 withContext(Dispatchers.Main) {
                     if (totalChunks > 1) {
-                        callback.onChunkProgress(completed, totalChunks, parallelWorkers)
+                        (callback as? Processor.OnnxProcessCallback)?.onChunkProgress(
+                            completed, totalChunks, parallelWorkers
+                        )
                     } else {
                         callback.onProgress(context.getString(R.string.processing))
                     }
@@ -402,7 +405,13 @@ class ImageProcessor(
     ): Bitmap {
         val originalW = chunk.width
         val originalH = chunk.height
-        if (info.skipTiling && info.expectedWidth != null && info.expectedHeight != null) {
+
+        val isRmbg = info.modelName?.contains("rmbg", ignoreCase = true) == true
+        val isU2NET = info.modelName?.contains("u2net", ignoreCase = true) == true
+        val isBackgroundRemover = isRmbg || isU2NET
+        val expNotNull = info.expectedWidth != null && info.expectedHeight != null
+
+        if (isBackgroundRemover && expNotNull) {
             val modelW = info.expectedWidth
             val modelH = info.expectedHeight
             val scaledBitmap = scaleBitmap(chunk, modelW, modelH)
@@ -410,11 +419,12 @@ class ImageProcessor(
             scaledBitmap.getPixels(pixels, 0, modelW, 0, 0, modelW, modelH)
             scaledBitmap.recycle()
             val inputArray = FloatArray(3 * modelW * modelH)
+            val normOffset = if (isRmbg) 0.5f else 0f
             for (i in 0 until modelW * modelH) {
                 val color = pixels[i]
-                inputArray[i] = (Color.red(color) / 255f) - 0.5f
-                inputArray[modelW * modelH + i] = (Color.green(color) / 255f) - 0.5f
-                inputArray[2 * modelW * modelH + i] = (Color.blue(color) / 255f) - 0.5f
+                inputArray[i] = (Color.red(color) / 255f) - normOffset
+                inputArray[modelW * modelH + i] = (Color.green(color) / 255f) - normOffset
+                inputArray[2 * modelW * modelH + i] = (Color.blue(color) / 255f) - normOffset
             }
             val env = info.env ?: OrtEnvironment.getEnvironment()
             val inputShape = longArrayOf(1, 3, modelH.toLong(), modelW.toLong())
@@ -431,25 +441,25 @@ class ImageProcessor(
                         if (v > ma) ma = v; if (v < mi) mi = v
                     }
                     val range = (ma - mi).coerceAtLeast(1e-6f)
-                    val maskBitmap = createBitmap(modelW, modelH, Bitmap.Config.ALPHA_8)
+                    val maskBitmap = createBitmap(modelW, modelH, Bitmap.Config.ARGB_8888)
                     val maskPixels = IntArray(modelW * modelH)
                     for (i in 0 until modelW * modelH) {
                         val a = clamp255(((outputArray[i] - mi) / range) * 255f)
-                        maskPixels[i] = Color.argb(a, 0, 0, 0)
+                        maskPixels[i] = Color.argb(255, a, a, a)
                     }
                     maskBitmap.setPixels(maskPixels, 0, modelW, 0, 0, modelW, modelH)
                     val scaledMask = maskBitmap.scale(originalW, originalH)
                     maskBitmap.recycle()
                     val origPixels = IntArray(originalW * originalH)
                     chunk.getPixels(origPixels, 0, originalW, 0, 0, originalW, originalH)
-                    val maskAlphas = IntArray(originalW * originalH)
-                    scaledMask.getPixels(maskAlphas, 0, originalW, 0, 0, originalW, originalH)
+                    val maskPixelsScaled = IntArray(originalW * originalH)
+                    scaledMask.getPixels(maskPixelsScaled, 0, originalW, 0, 0, originalW, originalH)
                     scaledMask.recycle()
                     val result = createBitmap(originalW, originalH, config)
                     val outPixels = IntArray(originalW * originalH)
                     for (i in 0 until originalW * originalH) {
                         outPixels[i] = Color.argb(
-                            Color.alpha(maskAlphas[i]),
+                            Color.red(maskPixelsScaled[i]),
                             Color.red(origPixels[i]),
                             Color.green(origPixels[i]),
                             Color.blue(origPixels[i])
@@ -461,7 +471,7 @@ class ImageProcessor(
             }
         }
         val minImgSize =
-            modelManager.getMinSpatialSize(info.modelName) // redirected to modelManager
+            modelManager.getMinSpatialSize(info.modelName)
         val w = if (info.expectedWidth != null && info.expectedWidth > 0) {
             info.expectedWidth
         } else {
@@ -736,12 +746,11 @@ class ImageProcessor(
         val overlap: Int = overlapSize ?: AppPreferences.DEFAULT_OVERLAP_SIZE
         val expectedWidth: Int?
         val expectedHeight: Int?
-        val skipTiling: Boolean = fixedInputSize != null
 
         init {
             Log.d(
                 "ModelInfo",
-                "Initialized $modelName:: chunkSize: $chunkSize, overlapSize: $overlapSize -> chunkSize: $chunkSize, overlap: $overlap, fixedInputSize: $fixedInputSize, skipTiling: $skipTiling"
+                "Initialized $modelName:: chunkSize: $chunkSize, overlapSize: $overlapSize -> chunkSize: $chunkSize, overlap: $overlap, fixedInputSize: $fixedInputSize"
             )
             inputInfoMap = session.inputInfo
             env = OrtEnvironment.getEnvironment()
@@ -781,7 +790,7 @@ class ImageProcessor(
             expectedHeight = fixedInputSize?.second ?: foundExpectedHeight
             Log.d(
                 "ModelInfo",
-                "Model $modelName data:: input type: ${if (isFp16) "FP16" else "FP32"}, input channels: $inputChannels, output channels: $outputChannels, expected dimensions: ${expectedWidth ?: "dynamic"}x${expectedHeight ?: "dynamic"}, fixedInputSize: $fixedInputSize, skipTiling: $skipTiling"
+                "Model $modelName data:: input type: ${if (isFp16) "FP16" else "FP32"}, input channels: $inputChannels, output channels: $outputChannels, expected dimensions: ${expectedWidth ?: "dynamic"}x${expectedHeight ?: "dynamic"}, fixedInputSize: $fixedInputSize"
             )
         }
     }

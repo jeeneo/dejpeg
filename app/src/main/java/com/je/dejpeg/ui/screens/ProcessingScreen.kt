@@ -137,7 +137,7 @@ import com.je.dejpeg.App
 import com.je.dejpeg.AppPreferences
 import com.je.dejpeg.HapticFeedbacks
 import com.je.dejpeg.ImageRepository
-import com.je.dejpeg.ProcessingMode
+
 import com.je.dejpeg.R
 import com.je.dejpeg.ui.components.CancelProcessingDialog
 import com.je.dejpeg.ui.components.ErrorAlertDialog
@@ -201,13 +201,15 @@ fun ProcessingScreen(
     val globalStrength by settingsViewModel.globalStrength.collectAsState()
     val processingMode by settingsViewModel.processingMode.collectAsState()
     val oidnInputScale by settingsViewModel.oidnInputScale.collectAsState()
-    val isOidnMode = processingMode == ProcessingMode.OIDN
-    val activeModelType = if (isOidnMode) ModelType.OIDN else ModelType.ONNX
 
-    val activeModelName by settingsViewModel.activeModelName.collectAsState()
+    val isOidnMode = processingMode == ModelType.OIDN
+    val activeModels by settingsViewModel.activeModels.collectAsState()
+    val activeModelName = activeModels[processingMode]
+
     val supportsStrength = if (isOidnMode) true else activeModelName?.contains(
-        "fbcnn", ignoreCase = true
-    ) == true && processingMode == ProcessingMode.ONNX
+        "fbcnn",
+        ignoreCase = true
+    ) == true && processingMode == ModelType.ONNX
 
     val noModelMessage = stringResource(R.string.no_model_installed_title)
     val scope = rememberCoroutineScope()
@@ -268,7 +270,7 @@ fun ProcessingScreen(
     }
 
     fun tryProcess(block: () -> Unit) {
-        if (!settingsViewModel.hasActiveModel(activeModelType)) scope.launch {
+        if (!settingsViewModel.hasActiveModel(processingMode)) scope.launch {
             SnackySnackbarController.pushEvent(
                 SnackySnackbarEvents.MessageEvent(
                     message = noModelMessage, duration = SnackbarDuration.Long
@@ -880,58 +882,60 @@ fun SwipeToDismissWrapper(
             alignment = Alignment.CenterEnd,
             modifier = Modifier.matchParentSize()
         )
-        Box(Modifier
-            .fillMaxWidth()
-            .offset { IntOffset(animatedOffset.roundToInt(), 0) }
-            .pointerInput(widthPx, enabled) {
-                if (!enabled) return@pointerInput
-                detectHorizontalDragGestures(onHorizontalDrag = { _, dragAmount ->
-                    val newValue = swipeState.value + dragAmount
-                    swipeState.value = if (currentAllowLeftSwipe) newValue else maxOf(0f, newValue)
-                    val absOffset = kotlin.math.abs(swipeState.value)
-                    val threshold = widthPx * swipeThreshold
-                    when {
-                        widthPx > 0 && absOffset > threshold && !hasReachedThreshold -> {
-                            HapticFeedbacks.medium(); hasReachedThreshold = true
-                        }
-
-                        absOffset <= threshold -> hasReachedThreshold = false
-                    }
-                }, onDragEnd = {
-                    val absOffset = kotlin.math.abs(swipeState.value)
-                    val threshold = widthPx * swipeThreshold
-                    if (widthPx > 0 && absOffset > threshold) {
-                        HapticFeedbacks.heavy()
-                        val isRight = swipeState.value > 0
-                        val willSlideOff =
-                            if (isRight) rightSwipeImmediate else (currentAllowLeftSwipe && leftSwipeImmediate)
-                        scope.launch {
-                            if (willSlideOff) {
-                                animate(
-                                    initialValue = swipeState.value,
-                                    targetValue = if (isRight) widthPx * 2f else -widthPx * 2f,
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioNoBouncy,
-                                        stiffness = Spring.StiffnessHigh
-                                    )
-                                ) { value, _ -> swipeState.value = value }
-                                if (isRight) currentOnRightSwipe() else currentOnLeftSwipe()
-                                swipeState.value = 0f
-                            } else {
-                                if (isRight) currentOnRightSwipe()
-                                else if (currentAllowLeftSwipe) currentOnLeftSwipe()
-                                swipeState.value = 0f
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .offset { IntOffset(animatedOffset.roundToInt(), 0) }
+                .pointerInput(widthPx, enabled) {
+                    if (!enabled) return@pointerInput
+                    detectHorizontalDragGestures(onHorizontalDrag = { _, dragAmount ->
+                        val newValue = swipeState.value + dragAmount
+                        swipeState.value =
+                            if (currentAllowLeftSwipe) newValue else maxOf(0f, newValue)
+                        val absOffset = kotlin.math.abs(swipeState.value)
+                        val threshold = widthPx * swipeThreshold
+                        when {
+                            widthPx > 0 && absOffset > threshold && !hasReachedThreshold -> {
+                                HapticFeedbacks.medium(); hasReachedThreshold = true
                             }
-                            hasReachedThreshold = false
+
+                            absOffset <= threshold -> hasReachedThreshold = false
                         }
-                    } else {
-                        scope.launch {
-                            swipeState.value = 0f
-                            hasReachedThreshold = false
+                    }, onDragEnd = {
+                        val absOffset = kotlin.math.abs(swipeState.value)
+                        val threshold = widthPx * swipeThreshold
+                        if (widthPx > 0 && absOffset > threshold) {
+                            HapticFeedbacks.heavy()
+                            val isRight = swipeState.value > 0
+                            val willSlideOff =
+                                if (isRight) rightSwipeImmediate else (currentAllowLeftSwipe && leftSwipeImmediate)
+                            scope.launch {
+                                if (willSlideOff) {
+                                    animate(
+                                        initialValue = swipeState.value,
+                                        targetValue = if (isRight) widthPx * 2f else -widthPx * 2f,
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioNoBouncy,
+                                            stiffness = Spring.StiffnessHigh
+                                        )
+                                    ) { value, _ -> swipeState.value = value }
+                                    if (isRight) currentOnRightSwipe() else currentOnLeftSwipe()
+                                    swipeState.value = 0f
+                                } else {
+                                    if (isRight) currentOnRightSwipe()
+                                    else if (currentAllowLeftSwipe) currentOnLeftSwipe()
+                                    swipeState.value = 0f
+                                }
+                                hasReachedThreshold = false
+                            }
+                        } else {
+                            scope.launch {
+                                swipeState.value = 0f
+                                hasReachedThreshold = false
+                            }
                         }
-                    }
-                })
-            }) { content() }
+                    })
+                }) { content() }
     }
 }
 

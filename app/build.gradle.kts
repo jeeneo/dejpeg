@@ -21,6 +21,7 @@ val hasReleaseSigning = listOf(
 ).all { !it.isNullOrBlank() } && releaseStoreFile?.let { file(it).exists() } == true
 
 val buildOidn = gradle.startParameter.taskNames.any { "oidn" in it.lowercase() }
+val buildLiteRt = gradle.startParameter.taskNames.any { "litert" in it.lowercase() }
 
 android {
     namespace = "com.je.dejpeg"
@@ -38,7 +39,8 @@ android {
         ndk {
             abiFilters += "arm64-v8a"
         }
-        buildConfigField("boolean", "OIDN_ENABLED", "false")
+        buildConfigField("boolean", "OIDN_ENABLED", "true")
+        buildConfigField("boolean", "LITERT_ENABLED", "true")
         applicationVariants.all {
             val variant = this
             val abi = ndk.abiFilters.first()
@@ -50,7 +52,7 @@ android {
             }
         }
     }
-    if (buildOidn) {
+    if (buildOidn || true) {
         externalNativeBuild {
             cmake {
                 path = file("src/main/cpp/CMakeLists.txt")
@@ -92,6 +94,22 @@ android {
         create("oidnRelease") {
             initWith(getByName("release"))
             buildConfigField("boolean", "OIDN_ENABLED", "true")
+        }
+        create("litertDebug") {
+            initWith(getByName("debug"))
+            buildConfigField("boolean", "LITERT_ENABLED", "true")
+        }
+        create("litertRelease") {
+            initWith(getByName("release"))
+            buildConfigField("boolean", "LITERT_ENABLED", "true")
+        }
+    }
+    sourceSets {
+        getByName("litertDebug") {
+            java.srcDirs("src/litert/java")
+        }
+        getByName("litertRelease") {
+            java.srcDirs("src/litert/java")
         }
     }
     compileOptions {
@@ -138,4 +156,10 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.compose.animation.core)
     implementation(libs.backdrop)
+    if (buildLiteRt || true) {
+        //noinspection GradleDependency UseTomlInstead
+        implementation("com.google.ai.edge.litert:litert:1.4.2")
+        //noinspection UseTomlInstead
+        implementation("com.google.ai.edge.litert:litert-gpu:1.4.2")
+    }
 }

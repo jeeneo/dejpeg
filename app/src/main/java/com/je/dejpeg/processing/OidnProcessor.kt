@@ -8,7 +8,7 @@ import com.je.dejpeg.utils.PortableFloatMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class OidnProcessor(private val context: Context) {
+class OIDNProcessor(private val context: Context) : Processor {
     companion object {
         init {
             @Suppress("KotlinConstantConditions")
@@ -34,40 +34,31 @@ class OidnProcessor(private val context: Context) {
     @Volatile
     private var isCancelled = false
 
-    interface ProcessCallback {
-        fun onComplete(result: Bitmap)
-        fun onError(error: String)
-        fun onProgress(message: String)
-    }
-
-    fun cancelProcessing() {
+    override fun cancelProcessing() {
         isCancelled = true
     }
 
-    suspend fun processImage(
+    override suspend fun processImage(
         inputBitmap: Bitmap,
-        weightsPath: String? = null,
-        numThreads: Int = 0,
-        quality: Int = 0,
-        maxMemoryMB: Int = 0,
-        hdr: Boolean = false,
-        srgb: Boolean = false,
-        inputScale: Float = 0f,
-        callback: ProcessCallback
+        params: ProcessingParams,
+        callback: Processor.ProcessCallback
     ) = withContext(Dispatchers.Default) {
+        if (params !is ProcessingParams.Oidn) {
+            throw IllegalArgumentException("OIDNProcessor requires ProcessingParams.Oidn")
+        }
         isCancelled = false
         try {
             withContext(Dispatchers.Main) { callback.onProgress(context.getString(R.string.processing)) }
             val config = Bitmap.Config.ARGB_8888
             val result = processChunk(
                 inputBitmap,
-                weightsPath,
-                numThreads,
-                quality,
-                maxMemoryMB,
-                hdr,
-                srgb,
-                inputScale,
+                params.weightsPath,
+                params.numThreads,
+                params.quality,
+                params.maxMemoryMB,
+                params.hdr,
+                params.srgb,
+                params.inputScale,
                 config
             )
             withContext(Dispatchers.Main) { callback.onComplete(result) }

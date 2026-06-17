@@ -109,7 +109,7 @@ import androidx.compose.ui.util.lerp
 import com.je.dejpeg.App
 import com.je.dejpeg.AppPreferences
 import com.je.dejpeg.HapticFeedbacks
-import com.je.dejpeg.ProcessingMode
+
 import com.je.dejpeg.R
 import com.je.dejpeg.ThreadUtils
 import com.je.dejpeg.ui.components.SnackbarDuration
@@ -160,12 +160,12 @@ fun SettingsScreen(
     val processingMode by viewModel.processingMode.collectAsState()
     val oidnHdr by viewModel.oidnHdr.collectAsState()
 
-    // Reset expanded section when processing mode changes to prevent flicker
     LaunchedEffect(processingMode) {
         if (expandedSection == SettingsSection.Chunk || expandedSection == SettingsSection.OidnSettings) {
             expandedSection = null
         }
     }
+
     @Suppress("SpellCheckingInspection") val oidnSrgb by viewModel.oidnSrgb.collectAsState()
     val oidnQuality by viewModel.oidnQuality.collectAsState()
     val oidnNumThreads by viewModel.oidnNumThreads.collectAsState()
@@ -176,8 +176,7 @@ fun SettingsScreen(
         if (expandedSection != null) expandedSection = null else onBack()
     }
 
-    val activeModelName by viewModel.activeModelName.collectAsState()
-    val activeOidnModelName by viewModel.activeOidnModelName.collectAsState()
+    val activeModels by viewModel.activeModels.collectAsState()
     val currentActiveModelName by viewModel.currentActiveModelName.collectAsState()
     val installedAllModels by viewModel.installedAllModels.collectAsState()
 
@@ -187,20 +186,24 @@ fun SettingsScreen(
         uri?.let { it ->
             showImportProgress.value = true
             importProgress = 0
-            viewModel.importModel(it, onProgress = { importProgress = it }, onSuccess = { name, _ ->
-                showImportProgress.value = false
-                scope.launch {
-                    SnackySnackbarController.pushEvent(
-                        SnackySnackbarEvents.MessageEvent(
-                            message = importedModelMessage.format(name),
-                            duration = SnackbarDuration.Short
+            viewModel.importModel(
+                it,
+                onProgress = { importProgress = it },
+                onSuccess = { name, _ ->
+                    showImportProgress.value = false
+                    scope.launch {
+                        SnackySnackbarController.pushEvent(
+                            SnackySnackbarEvents.MessageEvent(
+                                message = importedModelMessage.format(name),
+                                duration = SnackbarDuration.Short
+                            )
                         )
-                    )
-                }
-            }, onError = { error ->
-                importProgress = 0
-                importError.value = error
-            })
+                    }
+                },
+                onError = { error ->
+                    importProgress = 0
+                    importError.value = error
+                })
         }
     }
 
@@ -212,9 +215,9 @@ fun SettingsScreen(
                 val animatedFabCorner = lerp(16f, 28f, fabPress)
                 ExtendedFloatingActionButton(
                     onClick = {
-                    HapticFeedbacks.light()
-                    modelPickerLauncher.launch("*/*")
-                },
+                        HapticFeedbacks.light()
+                        modelPickerLauncher.launch("*/*")
+                    },
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = {
                         Text(stringResource(R.string.import_model_text))
@@ -254,10 +257,8 @@ fun SettingsScreen(
                                 stringResource(R.string.failed_to_extract_starter_models)
                             Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                                 installedAllModels.forEachIndexed { index, (modelName, modelType) ->
-                                    val isActive = when (modelType) {
-                                        ModelType.ONNX -> modelName == activeModelName && processingMode == ProcessingMode.ONNX
-                                        ModelType.OIDN -> modelName == activeOidnModelName && processingMode == ProcessingMode.OIDN
-                                    }
+                                    val isActive =
+                                        modelName == activeModels[modelType] && processingMode == modelType
                                     val position = when {
                                         installedAllModels.size == 1 -> CardPosition.Solo
                                         index == 0 -> CardPosition.Leading
@@ -293,9 +294,7 @@ fun SettingsScreen(
                                                             )
                                                         }
                                                     } else {
-                                                        viewModel.setActiveModelByName(
-                                                            modelName, modelType, switchMode = true
-                                                        )
+                                                        viewModel.setActiveModel(modelName)
                                                     }
                                                 }
                                                 .padding(horizontal = 8.dp, vertical = 10.dp),
@@ -324,8 +323,8 @@ fun SettingsScreen(
                                             IconButton(
                                                 onClick = {
                                                     HapticFeedbacks.light()
-                                                    viewModel.deleteModels(
-                                                        listOf(modelName), modelType
+                                                    viewModel.deleteModel(
+                                                        modelName, modelType
                                                     ) {
                                                         scope.launch {
                                                             SnackySnackbarController.pushEvent(
@@ -432,7 +431,7 @@ fun SettingsScreen(
                         "${stringResource(R.string.processing_threads_desc)} • $threadValue"
 
                     AnimatedVisibility(
-                        visible = processingMode == ProcessingMode.ONNX,
+                        visible = processingMode == ModelType.ONNX,
                         enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
                         exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
                     ) {
@@ -481,7 +480,7 @@ fun SettingsScreen(
                         )
                     }
                     AnimatedVisibility(
-                        visible = processingMode == ProcessingMode.OIDN,
+                        visible = processingMode == ModelType.OIDN,
                         enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
                         exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
                     ) {
@@ -956,14 +955,15 @@ fun MaterialSwitchThumb(
                 HapticFeedbacks.light()
             }, contentAlignment = Alignment.CenterStart
     ) {
-        Box(Modifier
-            .offset {
-                IntOffset(
-                    thumbOffset.roundToPx(), 0
-                )
-            }
-            .background(thumbColor, CircleShape)
-            .size(thumbSize),
+        Box(
+            Modifier
+                .offset {
+                    IntOffset(
+                        thumbOffset.roundToPx(), 0
+                    )
+                }
+                .background(thumbColor, CircleShape)
+                .size(thumbSize),
             contentAlignment = Alignment.Center) {
             Crossfade(targetState = checked, label = "thumbIcon") { isChecked ->
                 Icon(

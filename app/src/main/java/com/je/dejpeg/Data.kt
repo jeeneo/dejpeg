@@ -32,6 +32,7 @@ import com.je.dejpeg.ui.theme.AppTheme
 import com.je.dejpeg.ui.viewmodel.ImageItem
 import com.je.dejpeg.utils.ImageLoadingHelper
 import com.je.dejpeg.utils.ImageSource
+import com.je.dejpeg.utils.ModelType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -119,14 +120,6 @@ object HapticFeedbacks {
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "app_prefs")
 
-enum class ProcessingMode {
-    ONNX, OIDN;
-
-    companion object {
-        fun fromString(value: String?): ProcessingMode = entries.find { it.name == value } ?: ONNX
-    }
-}
-
 object PreferenceKeys {
     val SHOW_SAVE_DIALOG = booleanPreferencesKey("showSaveDialog")
     val DEFAULT_IMAGE_SOURCE = stringPreferencesKey("defaultImageSource")
@@ -156,6 +149,7 @@ object PreferenceKeys {
     val OIDN_INPUT_SCALE = floatPreferencesKey("oidn_input_scale")
     val APP_THEME = stringPreferencesKey("app_theme")
     val GLASS_SLIDER = booleanPreferencesKey("before_after_screen_glasseffect")
+    val ACTIVE_LITERT_MODEL = stringPreferencesKey("activeLiteRtModel")
 }
 
 data class BrisqueSettings(
@@ -344,11 +338,11 @@ class AppPreferences {
 
     suspend fun getStarterModelExtractedImmediate(): Boolean = starterModelExtracted.first()
 
-    val processingMode: Flow<ProcessingMode> = App.ctx.dataStore.data.map { prefs ->
-        ProcessingMode.fromString(prefs[PreferenceKeys.PROCESSING_MODE])
+    val processingMode: Flow<ModelType> = App.ctx.dataStore.data.map { prefs ->
+        ModelType.fromString(prefs[PreferenceKeys.PROCESSING_MODE])
     }
 
-    suspend fun setProcessingMode(mode: ProcessingMode) {
+    suspend fun setProcessingMode(mode: ModelType) {
         App.ctx.dataStore.edit { prefs ->
             prefs[PreferenceKeys.PROCESSING_MODE] = mode.name
         }
@@ -415,6 +409,24 @@ class AppPreferences {
     suspend fun setOidnInputScale(inputScale: Float) {
         App.ctx.dataStore.edit { prefs -> prefs[PreferenceKeys.OIDN_INPUT_SCALE] = inputScale }
     }
+
+    val activeLiteRtModel: Flow<String?> = App.ctx.dataStore.data.map { prefs ->
+        prefs[PreferenceKeys.ACTIVE_LITERT_MODEL]
+    }
+
+    suspend fun setActiveLiteRtModel(modelName: String) {
+        App.ctx.dataStore.edit { prefs ->
+            prefs[PreferenceKeys.ACTIVE_LITERT_MODEL] = modelName
+        }
+    }
+
+    suspend fun clearActiveLiteRtModel() {
+        App.ctx.dataStore.edit { prefs ->
+            prefs.remove(PreferenceKeys.ACTIVE_LITERT_MODEL)
+        }
+    }
+
+    suspend fun getActiveLiteRtModel(): String? = activeLiteRtModel.first()
 
     fun loadAppTheme(): AppTheme {
         return runCatching {

@@ -15,7 +15,7 @@ import androidx.lifecycle.viewModelScope
 import com.je.dejpeg.App
 import com.je.dejpeg.AppPreferences
 import com.je.dejpeg.BuildConfig
-import com.je.dejpeg.ProcessingMode
+
 import com.je.dejpeg.utils.ModelManager
 import com.je.dejpeg.utils.ModelMigrationHelper
 import com.je.dejpeg.utils.ModelType
@@ -31,30 +31,28 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class SettingsViewModel : ViewModel() {
-    val installedModels = MutableStateFlow<List<String>>(emptyList())
-    val installedOidnModels = MutableStateFlow<List<String>>(emptyList())
-    val installedAllModels = MutableStateFlow<List<Pair<String, ModelType>>>(emptyList())
-    val activeModelName = MutableStateFlow<String?>(null)
-    val activeOidnModelName = MutableStateFlow<String?>(null)
+    val installedModels = MutableStateFlow<Map<ModelType, List<String>>>(emptyMap())
+    val activeModels = MutableStateFlow<Map<ModelType, String?>>(emptyMap())
     val hasCheckedModels = MutableStateFlow(false)
     val shouldShowNoModelDialog = MutableStateFlow(false)
-
     val chunkSize = MutableStateFlow(AppPreferences.DEFAULT_CHUNK_SIZE)
     val overlapSize = MutableStateFlow(AppPreferences.DEFAULT_OVERLAP_SIZE)
     val onnxDeviceThreads = MutableStateFlow(AppPreferences.DEFAULT_ONNX_DEVICE_THREADS)
     val globalStrength = MutableStateFlow(AppPreferences.DEFAULT_GLOBAL_STRENGTH)
-    private val _processingMode = MutableStateFlow(ProcessingMode.ONNX)
-    val processingMode: StateFlow<ProcessingMode> =
-        _processingMode.map { saved -> if (!BuildConfig.OIDN_ENABLED && saved == ProcessingMode.OIDN) ProcessingMode.ONNX else saved }
-            .stateIn(viewModelScope, SharingStarted.Eagerly, ProcessingMode.ONNX)
+    private val _processingMode = MutableStateFlow(ModelType.ONNX)
+    val processingMode: StateFlow<ModelType> =
+        _processingMode.map { saved -> if (!BuildConfig.OIDN_ENABLED && saved == ModelType.OIDN) ModelType.ONNX else saved }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, ModelType.ONNX)
 
-    val currentActiveModelName: StateFlow<String?> =
-        combine(activeModelName, activeOidnModelName, processingMode) { onnxName, oidnName, mode ->
-            when (mode) {
-                ProcessingMode.ONNX -> onnxName
-                ProcessingMode.OIDN -> oidnName
-            }
-        }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    val installedAllModels: StateFlow<List<Pair<String, ModelType>>> =
+        installedModels
+            .map { map -> map.flatMap { (type, names) -> names.map { name -> name to type } } }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    val currentActiveModelName: StateFlow<String?> = combine(
+        activeModels, processingMode
+    ) { active, mode -> active[mode] }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     val oidnHdr = MutableStateFlow(false)
     val oidnSrgb = MutableStateFlow(false)
@@ -75,6 +73,16 @@ class SettingsViewModel : ViewModel() {
     private fun <T> persistPref(flow: MutableStateFlow<T>, value: T, save: suspend (T) -> Unit) {
         flow.value = value
         viewModelScope.launch { save(value) }
+    }
+
+    fun setActiveModel(name: String) {
+        // Derive model type from filename
+        val modelType = ModelType.fromFilename(name)
+        modelType?.let { type ->
+            modelManager?.setActiveModel(name)
+            activeModels.value += (type to name)
+            setProcessingMode(type)
+        }
     }
 
     fun initialize() {
@@ -99,30 +107,35 @@ class SettingsViewModel : ViewModel() {
 
         viewModelScope.launch {
             ModelMigrationHelper.migrateModelsIfNeeded()
-            installedModels.value = withContext(Dispatchers.IO) {
-                modelManager?.getInstalledModels(ModelType.ONNX) ?: emptyList()
-            }
-            if (BuildConfig.OIDN_ENABLED) {
-                installedOidnModels.value = withContext(Dispatchers.IO) {
-                    modelManager?.getInstalledModels(ModelType.OIDN) ?: emptyList()
+
+            val newInstalled = mutableMapOf<ModelType, List<String>>()
+            val newActive = mutableMapOf<ModelType, String?>()
+
+            ModelType.entries.forEach { type ->
+                newInstalled[type] = withContext(Dispatchers.IO) {
+                    modelManager?.getInstalledModels(type) ?: emptyList()
+                }
+                newActive[type] = withContext(Dispatchers.IO) {
+                    modelManager?.getActiveModelName(type)
                 }
             }
-            installedAllModels.value =
-                installedModels.value.map { it to ModelType.ONNX } + if (BuildConfig.OIDN_ENABLED) installedOidnModels.value.map { it to ModelType.OIDN } else emptyList()
+
+            installedModels.value = newInstalled
+            activeModels.value = newActive
             hasCheckedModels.value = true
-            activeModelName.value = withContext(Dispatchers.IO) {
-                modelManager?.getActiveModelName(ModelType.ONNX)
+
+            val starterExtracted = withContext(Dispatchers.IO) {
+                modelManager?.initializeStarterModel() ?: false
             }
-            if (BuildConfig.OIDN_ENABLED) {
-                activeOidnModelName.value = withContext(Dispatchers.IO) {
-                    modelManager?.getActiveModelName(ModelType.OIDN)
-                }
+            if (starterExtracted) {
+                installedModels.value += (ModelType.ONNX to (modelManager?.getInstalledModels(
+                    ModelType.ONNX
+                ) ?: emptyList()))
+                activeModels.value += (ModelType.ONNX to (modelManager?.getActiveModelName(ModelType.ONNX)))
             }
-            val activeType =
-                if (processingMode.value == ProcessingMode.OIDN) ModelType.OIDN else ModelType.ONNX
-            val activeList =
-                if (activeType == ModelType.OIDN && BuildConfig.OIDN_ENABLED) installedOidnModels.value else installedModels.value
-            if (activeList.isEmpty()) {
+
+            val anyModelInstalled = installedModels.value.values.any { it.isNotEmpty() }
+            if (!anyModelInstalled) {
                 shouldShowNoModelDialog.value = true
             }
         }
@@ -130,29 +143,15 @@ class SettingsViewModel : ViewModel() {
 
     fun refreshInstalledModels(type: ModelType = ModelType.ONNX) {
         viewModelScope.launch {
-            when (type) {
-                ModelType.ONNX -> {
-                    installedModels.value = withContext(Dispatchers.IO) {
-                        modelManager?.getInstalledModels(ModelType.ONNX) ?: emptyList()
-                    }
-                    activeModelName.value = withContext(Dispatchers.IO) {
-                        val name = modelManager?.getActiveModelName(ModelType.ONNX)
-                        if (name != null && !installedModels.value.contains(name)) null else name
-                    }
-                }
-
-                ModelType.OIDN -> {
-                    installedOidnModels.value = withContext(Dispatchers.IO) {
-                        modelManager?.getInstalledModels(ModelType.OIDN) ?: emptyList()
-                    }
-                    activeOidnModelName.value = withContext(Dispatchers.IO) {
-                        val name = modelManager?.getActiveModelName(ModelType.OIDN)
-                        if (name != null && !installedOidnModels.value.contains(name)) null else name
-                    }
-                }
+            val installed = withContext(Dispatchers.IO) {
+                modelManager?.getInstalledModels(type) ?: emptyList()
             }
-            installedAllModels.value =
-                installedModels.value.map { it to ModelType.ONNX } + installedOidnModels.value.map { it to ModelType.OIDN }
+            val active = withContext(Dispatchers.IO) {
+                val name = modelManager?.getActiveModelName(type)
+                if (name != null && !installed.contains(name)) null else name
+            }
+            installedModels.value = installedModels.value + (type to installed)
+            activeModels.value = activeModels.value + (type to active)
         }
     }
 
@@ -167,58 +166,33 @@ class SettingsViewModel : ViewModel() {
                 modelUri = uri,
                 onProgress = { launch(Dispatchers.Main) { onProgress(it) } },
                 onSuccess = { modelName, modelType ->
-                    when (modelType) {
-                        ModelType.ONNX -> {
-                            installedModels.value += modelName
-                            activeModelName.value = modelName
-                        }
-
-                        ModelType.OIDN -> {
-                            installedOidnModels.value += modelName
-                            activeOidnModelName.value = modelName
-                        }
-                    }
-                    installedAllModels.value =
-                        installedModels.value.map { it to ModelType.ONNX } + installedOidnModels.value.map { it to ModelType.OIDN }
-                    if (BuildConfig.OIDN_ENABLED) {
-                        setProcessingMode(if (modelType == ModelType.OIDN) ProcessingMode.OIDN else ProcessingMode.ONNX)
-                    }
+                    installedModels.value = installedModels.value +
+                            (modelType to (installedModels.value[modelType].orEmpty() + modelName))
+                    activeModels.value = activeModels.value + (modelType to modelName)
+                    shouldShowNoModelDialog.value = false
+                    setProcessingMode(modelType)
                     launch(Dispatchers.Main) { onSuccess(modelName, modelType) }
                 },
                 onError = { launch(Dispatchers.Main) { onError(it) } })
         }
     }
 
-    fun deleteModels(
-        models: List<String>, type: ModelType = ModelType.ONNX, onDeleted: (String) -> Unit = {}
+    fun deleteModel(
+        modelName: String, type: ModelType = ModelType.ONNX, onDeleted: (String) -> Unit = {}
     ) {
         viewModelScope.launch(Dispatchers.IO) {
-            models.forEach { name ->
-                modelManager?.deleteModel(name, type)
-                withContext(Dispatchers.Main) { onDeleted(name) }
-            }
+            modelManager?.deleteModel(modelName, type)
+            withContext(Dispatchers.Main) { onDeleted(modelName) }
             refreshInstalledModels(type)
-        }
-    }
-
-    fun setActiveModelByName(
-        name: String, type: ModelType = ModelType.ONNX, switchMode: Boolean = false
-    ) {
-        modelManager?.setActiveModel(name, type)
-        when (type) {
-            ModelType.ONNX -> activeModelName.value = name
-            ModelType.OIDN -> activeOidnModelName.value = name
-        }
-        if (BuildConfig.OIDN_ENABLED && switchMode) {
-            setProcessingMode(if (type == ModelType.OIDN) ProcessingMode.OIDN else ProcessingMode.ONNX)
+            val anyLeft = installedModels.value.values.any { it.isNotEmpty() }
+            if (!anyLeft) {
+                withContext(Dispatchers.Main) { shouldShowNoModelDialog.value = true }
+            }
         }
     }
 
     fun hasActiveModel(type: ModelType = ModelType.ONNX) =
         modelManager?.hasActiveModel(type) ?: false
-
-    fun getActiveModelName(type: ModelType = ModelType.ONNX) =
-        modelManager?.getActiveModelName(type)
 
     fun setChunkSize(size: Int) =
         persistPref(chunkSize, size) { appPreferences?.setChunkSize(it) ?: Unit }
@@ -234,7 +208,7 @@ class SettingsViewModel : ViewModel() {
         persistPref(globalStrength, strength) { appPreferences?.setGlobalStrength(it) ?: Unit }
     }
 
-    fun setProcessingMode(mode: ProcessingMode) {
+    fun setProcessingMode(mode: ModelType) {
         persistPref(_processingMode, mode) { appPreferences?.setProcessingMode(it) ?: Unit }
     }
 
@@ -252,5 +226,4 @@ class SettingsViewModel : ViewModel() {
 
     fun setOidnNumThreadsPref(numThreads: Int) =
         persistPref(oidnNumThreads, numThreads) { appPreferences?.setOidnNumThreads(it) ?: Unit }
-
 }

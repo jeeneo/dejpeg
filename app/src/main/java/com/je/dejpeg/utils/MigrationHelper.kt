@@ -25,6 +25,7 @@ object ModelMigrationHelper {
     fun getOnnxModelsDir(context: Context): File = File(context.filesDir, "models/onnx")
     fun getTzaModelsDir(context: Context): File = File(context.filesDir, "models/tza")
     fun getBrisqueModelsDir(context: Context): File = File(context.filesDir, "models/brisque")
+    fun getLiteRtModelsDir(context: Context): File = File(context.filesDir, "models/litert")
 
     suspend fun migrateModelsIfNeeded(): Boolean = withContext(Dispatchers.IO) {
         val prefs = AppPreferences()

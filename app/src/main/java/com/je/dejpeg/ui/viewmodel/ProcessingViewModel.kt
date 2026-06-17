@@ -16,7 +16,6 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.je.dejpeg.ImageRepository
-import com.je.dejpeg.ProcessingMode
 import com.je.dejpeg.R
 import com.je.dejpeg.processing.ProcessingService
 import com.je.dejpeg.processing.ServiceCommunicationHelper
@@ -199,12 +198,7 @@ class ProcessingViewModel : ViewModel() {
             }
         }
         viewModelScope.launch {
-            settings.activeModelName.collect {
-                markOutputsStale()
-            }
-        }
-        viewModelScope.launch {
-            settings.activeOidnModelName.collect {
+            settings.activeModels.collect {
                 markOutputsStale()
             }
         }
@@ -387,6 +381,7 @@ class ProcessingViewModel : ViewModel() {
         viewModelScope.launch {
             CacheManager.saveUnprocessedImage(ctx, imageId, uri)
             val mode = settingsViewModel.processingMode.value
+            val modelName = settingsViewModel.activeModels.value[mode]
             serviceHelper?.startProcessing(
                 imageId = imageId,
                 uriString = uriString,
@@ -395,9 +390,9 @@ class ProcessingViewModel : ViewModel() {
                 chunkSize = settingsViewModel.chunkSize.value,
                 overlapSize = settingsViewModel.overlapSize.value,
                 onnxDeviceThreads = settingsViewModel.onnxDeviceThreads.value,
-                modelName = settingsViewModel.activeModelName.value,
+                modelName = modelName,
                 processingMode = mode.name,
-                oidnWeightsPath = if (mode == ProcessingMode.OIDN) settingsViewModel.modelManager?.getActiveModelPath(
+                oidnWeightsPath = if (mode == ModelType.OIDN) settingsViewModel.modelManager?.getActiveModelPath(
                     ModelType.OIDN
                 ) else null,
                 oidnHdr = settingsViewModel.oidnHdr.value,
