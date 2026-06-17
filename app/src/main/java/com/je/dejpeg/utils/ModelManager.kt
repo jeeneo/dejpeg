@@ -190,7 +190,7 @@ class ModelManager(
                 val compatList = CompatibilityList()
                 if (compatList.isDelegateSupportedOnThisDevice) {
                     val delegateOptions = compatList.bestOptionsForThisDevice.apply {
-                        isPrecisionLossAllowed = false
+                        isPrecisionLossAllowed = true
                         val serializationDir = gpuCacheDir(context).apply { mkdirs() }
                         setSerializationParams(
                             serializationDir.absolutePath, gpuCacheToken(modelToLoad)
@@ -226,23 +226,19 @@ class ModelManager(
 
     fun unloadModel() {
         Log.d("ModelManager", "unloadModel called, clearing interpreter for: $currentModelName")
-        val interpreter = currentInterpreter
-        val delegate = gpuDelegate
-        currentInterpreter = null
         currentModelName = null
-        gpuDelegate = null
-
         try {
-            interpreter?.close()
+            currentInterpreter?.close()
+            currentInterpreter = null
         } catch (e: Exception) {
             Log.e("ModelManager", "Error closing interpreter: ${e.message}")
         }
         try {
-            delegate?.close()
+            gpuDelegate?.close()
+            gpuDelegate = null
         } catch (e: Exception) {
             Log.e("ModelManager", "Error closing GPU delegate: ${e.message}")
         }
-        System.gc()
         System.runFinalization()
         System.gc()
     }

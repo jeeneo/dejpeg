@@ -157,6 +157,10 @@ class ImageProcessor(
                 } else {
                     processed
                 }
+                Log.d(
+                    "LiteRtImageProcessor",
+                    "crop processed=${processed.width}x${processed.height} " + "expand=$expandLeft,$expandTop tile=$tileW x $tileH"
+                )
                 canvas.drawBitmap(cropped, tileX.toFloat(), tileY.toFloat(), null)
                 if (cropped !== processed) processed.recycle()
                 cropped.recycle()
@@ -184,12 +188,39 @@ class ImageProcessor(
 
         val isRmbg = modelManager.getActiveModelName()?.contains("rmbg", ignoreCase = true) == true
 
-        val scaled = if (chunk.width != modelW || chunk.height != modelH) {
-            scaleBitmap(chunk, modelW, modelH)  // same helper as ONNX version
-        } else chunk
+        // rmbg: scale to model size (mask must cover the whole image anyway)
+        // all other models: pad to model size
+        val needsResize = isRmbg && (originalW != modelW || originalH != modelH)
+        val needsPadding = !isRmbg && (originalW != modelW || originalH != modelH)
+
+        val prepared = when {
+            needsResize -> scaleBitmap(chunk, modelW, modelH)
+            needsPadding -> {
+                val p = createBitmap(modelW, modelH, Bitmap.Config.ARGB_8888)
+                val canvas = Canvas(p)
+                canvas.drawBitmap(chunk, 0f, 0f, null)
+                if (originalW < modelW && originalW > 0) {
+                    val rightStrip = Bitmap.createBitmap(chunk, originalW - 1, 0, 1, originalH)
+                    for (x in originalW until modelW) {
+                        canvas.drawBitmap(rightStrip, x.toFloat(), 0f, null)
+                    }
+                    rightStrip.recycle()
+                }
+                if (originalH < modelH && originalH > 0) {
+                    val bottomStrip = Bitmap.createBitmap(p, 0, originalH - 1, modelW, 1)
+                    for (y in originalH until modelH) {
+                        canvas.drawBitmap(bottomStrip, 0f, y.toFloat(), null)
+                    }
+                    bottomStrip.recycle()
+                }
+                p
+            }
+
+            else -> chunk
+        }
 
         val pixels = IntArray(modelW * modelH)
-        scaled.getPixels(pixels, 0, modelW, 0, 0, modelW, modelH)
+        prepared.getPixels(pixels, 0, modelW, 0, 0, modelW, modelH)
 
         val inputBuffer =
             ByteBuffer.allocateDirect(4 * 3 * modelW * modelH).order(ByteOrder.nativeOrder())
@@ -223,7 +254,7 @@ class ImageProcessor(
                 }
 
                 else -> throw RuntimeException(
-                    "Unhandled input tensor [${i}] shape: ${
+                    "Unhandled input tensor [$i] shape: ${
                         interpreter.getInputTensor(i).shape().joinToString()
                     }"
                 )
@@ -237,15 +268,21 @@ class ImageProcessor(
         }
         interpreter.runForMultipleInputsOutputs(inputs, outputs)
 
+        if (needsResize) prepared.recycle()
+        // needsPadding bitmap recycled below after output is done with it
+
         val outputBuffer = (outputs[imageOutputIndex] as ByteBuffer).also { it.rewind() }
         val outputShape = interpreter.getOutputTensor(imageOutputIndex).shape()
-        val outputChannels = if (isNCHW) outputShape[1] else outputShape[3]
-        val outH = if (isNCHW) outputShape[2] else outputShape[1]
-        val outW = if (isNCHW) outputShape[3] else outputShape[2]
+        val isOutputNCHW = outputShape[1] == 3 || outputShape[1] == 1
+        val outputChannels = if (isOutputNCHW) outputShape[1] else outputShape[3]
+        val outH = if (isOutputNCHW) outputShape[2] else outputShape[1]
+        val outW = if (isOutputNCHW) outputShape[3] else outputShape[2]
         val outputSize = outputChannels * outH * outW
         val outputArray = FloatArray(outputSize) { outputBuffer.getFloat() }
-
-        if (scaled !== chunk) scaled.recycle()
+        // Log.d(
+        //     "LiteRtImageProcessor",
+        //     "processChunk model=${modelManager.getActiveModelName()} " + "input=${modelW}x${modelH} output=${outW}x${outH} channels=$outputChannels " + "original=${originalW}x${originalH} needsPadding=$needsPadding needsResize=$needsResize"
+        // )
 
         if (isRmbg) {
             var ma = outputArray[0]
@@ -255,7 +292,6 @@ class ImageProcessor(
                 if (v < mi) mi = v
             }
             val range = (ma - mi).coerceAtLeast(1e-6f)
-
             val maskPixels = IntArray(outW * outH)
             for (i in 0 until outW * outH) {
                 val a = clamp255(((outputArray[i] - mi) / range) * 255f)
@@ -263,7 +299,7 @@ class ImageProcessor(
             }
             val maskBitmap = createBitmap(outW, outH, Bitmap.Config.ARGB_8888)
             maskBitmap.setPixels(maskPixels, 0, outW, 0, 0, outW, outH)
-
+            // rmbg always scales the mask back — this is intentional
             val scaledMask = if (outW != originalW || outH != originalH) {
                 val resized = maskBitmap.scale(originalW, originalH)
                 maskBitmap.recycle()
@@ -271,15 +307,11 @@ class ImageProcessor(
             } else {
                 maskBitmap
             }
-
             val origPixels = IntArray(originalW * originalH)
             chunk.getPixels(origPixels, 0, originalW, 0, 0, originalW, originalH)
-
             val maskAlphas = IntArray(originalW * originalH)
             scaledMask.getPixels(maskAlphas, 0, originalW, 0, 0, originalW, originalH)
             scaledMask.recycle()
-
-            // reuse origPixels in place instead of allocating outPixels
             for (i in origPixels.indices) {
                 val orig = origPixels[i]
                 origPixels[i] = Color.argb(
@@ -301,18 +333,23 @@ class ImageProcessor(
             val alphaBitmap = createBitmap(outW, outH, Bitmap.Config.ARGB_8888)
             alphaBitmap.setPixels(outPixels, 0, outW, 0, 0, outW, outH)
 
-            val scaledAlpha = if (outW != originalW || outH != originalH) {
-                val resized = alphaBitmap.scale(originalW, originalH)
+            // outputChannels == 1: crop back to original size if padded
+            val trimmedAlpha = if (needsPadding) {
+                val cw = originalW.coerceAtMost(outW)
+                val ch = originalH.coerceAtMost(outH)
+                val c = Bitmap.createBitmap(alphaBitmap, 0, 0, cw, ch)
                 alphaBitmap.recycle()
-                resized
+                c
             } else {
                 alphaBitmap
             }
+
             val origPixels = IntArray(originalW * originalH)
             chunk.getPixels(origPixels, 0, originalW, 0, 0, originalW, originalH)
             val alphaPixels = IntArray(originalW * originalH)
-            scaledAlpha.getPixels(alphaPixels, 0, originalW, 0, 0, originalW, originalH)
-            scaledAlpha.recycle()
+            trimmedAlpha.getPixels(alphaPixels, 0, originalW, 0, 0, originalW, originalH)
+            trimmedAlpha.recycle()
+
             for (i in origPixels.indices) {
                 val orig = origPixels[i]
                 origPixels[i] = Color.argb(
@@ -324,14 +361,13 @@ class ImageProcessor(
             }
             modelResult = createBitmap(originalW, originalH, Bitmap.Config.ARGB_8888)
             modelResult.setPixels(origPixels, 0, originalW, 0, 0, originalW, originalH)
-            return modelResult
         } else {
             val outPixels = IntArray(outW * outH)
             for (i in 0 until outW * outH) {
                 val r: Int
                 val g: Int
                 val b: Int
-                if (isNCHW) {
+                if (isOutputNCHW) {
                     r = clamp255(outputArray[i] * 255f)
                     g = clamp255(outputArray[outW * outH + i] * 255f)
                     b = clamp255(outputArray[2 * outW * outH + i] * 255f)
@@ -342,16 +378,24 @@ class ImageProcessor(
                 }
                 outPixels[i] = Color.argb(255, r, g, b)
             }
-            modelResult = createBitmap(outW, outH, Bitmap.Config.ARGB_8888)
-            modelResult.setPixels(outPixels, 0, outW, 0, 0, outW, outH)
+            val fullResult = createBitmap(outW, outH, Bitmap.Config.ARGB_8888)
+            fullResult.setPixels(outPixels, 0, outW, 0, 0, outW, outH)
+
+            // outputChannels != 1: crop back to original size if padded
+            modelResult = if (needsPadding) {
+                val cw = originalW.coerceAtMost(outW)
+                val ch = originalH.coerceAtMost(outH)
+                val c = Bitmap.createBitmap(fullResult, 0, 0, cw, ch)
+                fullResult.recycle()
+                c
+            } else {
+                fullResult
+            }
         }
-        return if (outW != originalW || outH != originalH) {
-            val resized = modelResult.scale(originalW, originalH)
-            modelResult.recycle()
-            resized
-        } else {
-            modelResult
-        }
+
+
+        if (needsPadding) prepared.recycle()
+        return modelResult
     }
 
     private fun computeEvenTileBoundaries(totalSize: Int, maxTileSize: Int): List<Pair<Int, Int>> {

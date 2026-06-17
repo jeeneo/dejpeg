@@ -131,7 +131,7 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.core.ktx)
     implementation(libs.google.material)
-    implementation(libs.onnxruntime.android)
+    // implementation(libs.onnxruntime.android)
     implementation(libs.zoomable)
     implementation(libs.androidx.exifinterface)
     implementation(libs.androidx.core.splashscreen)
@@ -140,4 +140,6 @@ dependencies {
     implementation(libs.backdrop)
     implementation("com.google.ai.edge.litert:litert:1.4.2")
     implementation("com.google.ai.edge.litert:litert-gpu:1.4.2")
+    // implementation("com.google.ai.edge.litert:litert-gpu-api:1.4.2")
+    // implementation("io.github.google-ai-edge:litert-select-tf-ops:0.1.0")
 }
