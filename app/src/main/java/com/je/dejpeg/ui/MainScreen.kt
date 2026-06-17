@@ -6,7 +6,13 @@
 package com.je.dejpeg.ui
 
 import android.content.Intent
+import android.graphics.Color
 import android.net.Uri
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
@@ -21,6 +27,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -44,9 +51,12 @@ import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -74,8 +84,10 @@ import com.je.dejpeg.R
 import com.je.dejpeg.ui.components.RecoveryDialog
 import com.je.dejpeg.ui.components.SnackySnackbarBox
 import com.je.dejpeg.ui.components.SnackySnackbarHostState
+import com.je.dejpeg.ui.screens.ImageScreen
 import com.je.dejpeg.ui.screens.ProcessingScreen
 import com.je.dejpeg.ui.screens.SettingsScreen
+import com.je.dejpeg.ui.theme.DeJPEGTheme
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
 import kotlinx.coroutines.launch
@@ -85,7 +97,6 @@ private val PillInner = 6.dp
 
 sealed class Screen(val route: String) {
     object Home : Screen("home")
-
 }
 
 @Composable
@@ -157,53 +168,55 @@ fun HomeWrapperScreen(
     var containerWidthPx by remember { mutableIntStateOf(0) }
     val pageOffset = remember { Animatable(0f) }
     val settleSpec = tween<Float>(durationMillis = 250, easing = LinearOutSlowInEasing)
+
+    val isSettingsActive by remember { derivedStateOf { pageOffset.value >= 0.5f } }
+
     Scaffold { paddingValues ->
-        Box(
-            Modifier
-                .fillMaxSize()
-                .onSizeChanged { containerWidthPx = it.width }
-                .padding(paddingValues)
-                .pointerInput(Unit) {
-                    awaitEachGesture {
-                        val down = awaitFirstDown(requireUnconsumed = true)
-                        var velocity = 0f
-                        var lastTime = down.uptimeMillis
-                        var lastX = down.position.x
-                        var totalDx = 0f
+        Box(Modifier
+            .fillMaxSize()
+            .onSizeChanged { containerWidthPx = it.width }
+            .padding(paddingValues)
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = true)
+                    var velocity = 0f
+                    var lastTime = down.uptimeMillis
+                    var lastX = down.position.x
+                    var totalDx = 0f
 
-                        while (true) {
-                            val event = awaitPointerEvent(PointerEventPass.Main)
-                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                            if (!change.pressed) break
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Main)
+                        val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                        if (!change.pressed) break
 
-                            val now = change.uptimeMillis
-                            val dt = (now - lastTime).coerceAtLeast(1L)
-                            val dx = change.position.x - lastX
-                            totalDx += dx
-                            velocity = dx / dt * 1000f
-                            lastTime = now
-                            lastX = change.position.x
+                        val now = change.uptimeMillis
+                        val dt = (now - lastTime).coerceAtLeast(1L)
+                        val dx = change.position.x - lastX
+                        totalDx += dx
+                        velocity = dx / dt * 1000f
+                        lastTime = now
+                        lastX = change.position.x
 
-                            if (containerWidthPx > 0 && kotlin.math.abs(totalDx) > 10f) {
-                                val delta = -dx / containerWidthPx
-                                scope.launch {
-                                    pageOffset.snapTo((pageOffset.value + delta).coerceIn(0f, 1f))
-                                }
+                        if (containerWidthPx > 0 && kotlin.math.abs(totalDx) > 10f) {
+                            val delta = -dx / containerWidthPx
+                            scope.launch {
+                                pageOffset.snapTo((pageOffset.value + delta).coerceIn(0f, 1f))
                             }
-                        }
-                        if (kotlin.math.abs(totalDx) < 16f) return@awaitEachGesture
-                        scope.launch {
-                            val target = when {
-                                velocity > 10f -> 0f
-                                velocity < -10f -> 1f
-                                pageOffset.value > 0.5f -> 1f
-                                else -> 0f
-                            }
-                            pageOffset.animateTo(target, settleSpec)
-                            currentTab.value = if (target == 0f) "processing" else "settings"
                         }
                     }
-                }) {
+                    if (kotlin.math.abs(totalDx) < 16f) return@awaitEachGesture
+                    scope.launch {
+                        val target = when {
+                            velocity > 10f -> 0f
+                            velocity < -10f -> 1f
+                            pageOffset.value > 0.5f -> 1f
+                            else -> 0f
+                        }
+                        pageOffset.animateTo(target, settleSpec)
+                        currentTab.value = if (target == 0f) "processing" else "settings"
+                    }
+                }
+            }) {
             Box(
                 Modifier
                     .fillMaxSize()
@@ -224,6 +237,13 @@ fun HomeWrapperScreen(
                             Intent(context, BrisqueActivity::class.java).putExtra("imageId", id)
                         )
                     },
+                    onNavigateToCompare = { idA, idB ->
+                        context.startActivity(
+                            Intent(context, CompareActivity::class.java).putExtra("imageIdA", idA)
+                                .putExtra("imageIdB", idB)
+                        )
+                    },
+                    isActive = !isSettingsActive,
                     initialSharedUris = sharedUris,
                     onRemoveSharedUri = { },
                     lazyListState = lazyListState
@@ -242,7 +262,8 @@ fun HomeWrapperScreen(
                             pageOffset.animateTo(0f, settleSpec)
                             currentTab.value = "processing"
                         }
-                    })
+                    }, isActive = isSettingsActive
+                )
             }
             AnimatedVisibility(
                 visible = toolbarVisible,
@@ -402,6 +423,125 @@ fun HomeWrapperScreen(
                                 }
                             }
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+class BeforeAfterActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val imageId = intent.getStringExtra("imageId") ?: return finish()
+        setContent {
+            val isDarkTheme = isSystemInDarkTheme()
+            SideEffect {
+                if (!isDarkTheme) {
+                    val lightTransparentStyle = SystemBarStyle.light(
+                        scrim = Color.TRANSPARENT, darkScrim = Color.TRANSPARENT
+                    )
+                    enableEdgeToEdge(
+                        statusBarStyle = lightTransparentStyle,
+                        navigationBarStyle = lightTransparentStyle
+                    )
+                } else {
+                    enableEdgeToEdge(
+                        statusBarStyle = SystemBarStyle.dark(scrim = Color.TRANSPARENT),
+                        navigationBarStyle = SystemBarStyle.dark(scrim = Color.TRANSPARENT)
+                    )
+                }
+            }
+            DeJPEGTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
+                ) {
+                    val viewModel: ProcessingViewModel = viewModel()
+                    val imageRepository = remember { ImageRepository.getInstance() }
+                    val snackbarHostState = remember { SnackySnackbarHostState() }
+                    val snackbarController =
+                        remember { com.je.dejpeg.ui.components.ActivitySnackySnackbarController() }
+                    DisposableEffect(snackbarController) {
+                        com.je.dejpeg.ui.components.SnackySnackbarController.bind(snackbarController)
+                        onDispose {
+                            com.je.dejpeg.ui.components.SnackySnackbarController.unbind(
+                                snackbarController
+                            )
+                        }
+                    }
+                    LaunchedEffect(Unit) {
+                        viewModel.imageRepository = imageRepository
+                        viewModel.initialize(this@BeforeAfterActivity)
+                    }
+                    SnackySnackbarBox(
+                        snackbarHostState = snackbarHostState, controller = snackbarController
+                    ) {
+                        ImageScreen(
+                            viewModel = viewModel,
+                            imageRepository = imageRepository,
+                            imageId = imageId,
+                            onBack = { finish() })
+                    }
+                }
+            }
+        }
+    }
+}
+
+class CompareActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val imageIdA = intent.getStringExtra("imageIdA") ?: return finish()
+        val imageIdB = intent.getStringExtra("imageIdB") ?: return finish()
+        setContent {
+            val isDarkTheme = isSystemInDarkTheme()
+            SideEffect {
+                if (!isDarkTheme) {
+                    val lightTransparentStyle = SystemBarStyle.light(
+                        scrim = Color.TRANSPARENT, darkScrim = Color.TRANSPARENT
+                    )
+                    enableEdgeToEdge(
+                        statusBarStyle = lightTransparentStyle,
+                        navigationBarStyle = lightTransparentStyle
+                    )
+                } else {
+                    enableEdgeToEdge(
+                        statusBarStyle = SystemBarStyle.dark(scrim = Color.TRANSPARENT),
+                        navigationBarStyle = SystemBarStyle.dark(scrim = Color.TRANSPARENT)
+                    )
+                }
+            }
+            DeJPEGTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
+                ) {
+                    val viewModel: ProcessingViewModel = viewModel()
+                    val imageRepository = remember { ImageRepository.getInstance() }
+                    val snackbarHostState = remember { SnackySnackbarHostState() }
+                    val snackbarController =
+                        remember { com.je.dejpeg.ui.components.ActivitySnackySnackbarController() }
+                    DisposableEffect(snackbarController) {
+                        com.je.dejpeg.ui.components.SnackySnackbarController.bind(snackbarController)
+                        onDispose {
+                            com.je.dejpeg.ui.components.SnackySnackbarController.unbind(
+                                snackbarController
+                            )
+                        }
+                    }
+                    LaunchedEffect(Unit) {
+                        viewModel.imageRepository = imageRepository
+                        viewModel.initialize(this@CompareActivity)
+                    }
+                    SnackySnackbarBox(
+                        snackbarHostState = snackbarHostState, controller = snackbarController
+                    ) {
+                        ImageScreen(
+                            viewModel = viewModel,
+                            imageRepository = imageRepository,
+                            imageId = imageIdA,
+                            compareImageId = imageIdB,
+                            onBack = { finish() })
                     }
                 }
             }

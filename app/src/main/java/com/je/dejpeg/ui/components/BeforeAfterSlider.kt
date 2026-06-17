@@ -275,7 +275,9 @@ fun BeforeAfterSlider(
                                             )
                                         })
                                 } else {
-                                    Modifier.shadow(8.dp, CircleShape).clip(CircleShape)
+                                    Modifier
+                                        .shadow(8.dp, CircleShape)
+                                        .clip(CircleShape)
                                         .background(sliderColor)
                                 }
                             )

@@ -11,6 +11,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -38,7 +39,9 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -64,11 +67,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.outlined.AddPhotoAlternate
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -181,6 +186,8 @@ fun ProcessingScreen(
     imageRepository: ImageRepository,
     onNavigateToBeforeAfter: (String) -> Unit = {},
     onNavigateToBrisque: (String) -> Unit = {},
+    onNavigateToCompare: (String, String) -> Unit = { _, _ -> },
+    isActive: Boolean = true,
     initialSharedUris: List<Uri> = emptyList(),
     onRemoveSharedUri: (Uri) -> Unit = {},
     lazyListState: androidx.compose.foundation.lazy.LazyListState = androidx.compose.foundation.lazy.rememberLazyListState(),
@@ -215,12 +222,33 @@ fun ProcessingScreen(
     var overwriteDialogState by remember { mutableStateOf<Pair<String, String>?>(null) }
     val showSaveDialog by appPreferences.showSaveDialog.collectAsState(initial = true)
 
+    var selectedImageIds by remember { mutableStateOf<List<String>>(emptyList()) }
+    val isSelectionMode = selectedImageIds.isNotEmpty()
+    val isCompareReady = selectedImageIds.size == 2
+
+
+    val toggleSelection: (String) -> Unit = { id ->
+        HapticFeedbacks.light()
+        selectedImageIds = if (selectedImageIds.contains(id)) {
+            selectedImageIds - id
+        } else {
+            selectedImageIds + id
+        }
+    }
+    val clearSelection: () -> Unit = { selectedImageIds = emptyList() }
+
     val performRemoval: (String) -> Unit = { imageId ->
         val targetUri = images.firstOrNull { it.id == imageId }?.uri
         targetUri?.let { uri -> releaseUri(uri, context, onRemoveSharedUri) }
         viewModel.removeImage(imageId, force = true, cleanupCache = true)
         imageIdToRemove = null
         imageIdToCancel = null
+        selectedImageIds = selectedImageIds - imageId
+    }
+
+    BackHandler(enabled = isActive && isSelectionMode) {
+        HapticFeedbacks.light()
+        clearSelection()
     }
 
     val handleImageRemoval: (String) -> Unit = { imageId ->
@@ -265,6 +293,7 @@ fun ProcessingScreen(
         imageIdToCancel = imageIdToCancel?.takeIf { id -> images.any { it.id == id } }
         overwriteDialogState = overwriteDialogState.prune(images)
         saveDialogState = saveDialogState.prune(images)
+        selectedImageIds = selectedImageIds.filter { id -> images.any { it.id == id } }
     }
 
     LaunchedEffect(Unit) {
@@ -456,7 +485,6 @@ fun ProcessingScreen(
                 }
             }
         }
-
         if (images.isNotEmpty() && supportsStrength) {
             Card(
                 Modifier
@@ -594,6 +622,7 @@ fun ProcessingScreen(
                         val hasOutput = image.outputBitmap != null
 
                         val position = cardPosition(index, images.size)
+                        val isSelected = selectedImageIds.contains(image.id)
 
                         SwipeToDismissWrapper(
                             swipeState,
@@ -607,6 +636,7 @@ fun ProcessingScreen(
                                 else tryProcess { viewModel.processImage(image.id) }
                             },
                             swapActions = swapSwipeActions,
+                            enabled = !isSelectionMode,
                             modifier = Modifier.animateItem(
                                 fadeInSpec = spring(
                                     dampingRatio = Spring.DampingRatioMediumBouncy,
@@ -624,12 +654,26 @@ fun ProcessingScreen(
                             ImageCard(
                                 image = image,
                                 position = position,
+                                isSelected = isSelected,
+                                isCompareReady = isCompareReady,
                                 onRemove = { handleImageRemoval(image.id) },
                                 onProcess = { tryProcess { viewModel.processImage(image.id) } },
                                 onBrisque = { HapticFeedbacks.light(); onNavigateToBrisque(image.id) },
-                                onClick = { onNavigateToBeforeAfter(image.id) },
-                                onBeforeOnly = { onNavigateToBeforeAfter(image.id) },
+                                onClick = {
+                                    if (isSelectionMode) toggleSelection(image.id)
+                                    else onNavigateToBeforeAfter(image.id)
+                                },
+                                onBeforeOnly = {
+                                    if (isSelectionMode) toggleSelection(image.id)
+                                    else onNavigateToBeforeAfter(image.id)
+                                },
+                                onLongClick = { toggleSelection(image.id) },
                                 onSave = { saveOrPrompt(image.id, image.filename) },
+                                onCompare = {
+                                    val (idA, idB) = selectedImageIds
+                                    onNavigateToCompare(idA, idB)
+                                    clearSelection()
+                                },
                                 isProcessing = image.isProcessing,
                                 haptic = HapticFeedbacks,
                                 onImportOutput = {
@@ -771,6 +815,7 @@ fun ProcessingScreen(
     }
 }
 
+
 @Composable
 fun SwipeToDismissWrapper(
     swipeState: MutableState<Float>,
@@ -782,6 +827,7 @@ fun SwipeToDismissWrapper(
     swapActions: Boolean = false,
     rightSwipeImmediate: Boolean = !isProcessing,
     leftSwipeImmediate: Boolean = false,
+    enabled: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -837,7 +883,8 @@ fun SwipeToDismissWrapper(
         Box(Modifier
             .fillMaxWidth()
             .offset { IntOffset(animatedOffset.roundToInt(), 0) }
-            .pointerInput(widthPx) {
+            .pointerInput(widthPx, enabled) {
+                if (!enabled) return@pointerInput
                 detectHorizontalDragGestures(onHorizontalDrag = { _, dragAmount ->
                     val newValue = swipeState.value + dragAmount
                     swipeState.value = if (currentAllowLeftSwipe) newValue else maxOf(0f, newValue)
@@ -1057,7 +1104,11 @@ fun ImageCard(
     onSave: () -> Unit,
     onImportOutput: () -> Unit,
     isProcessing: Boolean = false,
-    haptic: HapticFeedbacks
+    haptic: HapticFeedbacks,
+    isSelected: Boolean = false,
+    isCompareReady: Boolean = false,
+    onLongClick: () -> Unit = {},
+    onCompare: () -> Unit = {}
 ) {
     val cardInteractionSource = remember { MutableInteractionSource() }
     val progressTint = MaterialTheme.colorScheme.primary
@@ -1069,19 +1120,31 @@ fun ImageCard(
             animation = tween(1200, easing = EaseInOutSine), repeatMode = RepeatMode.Reverse
         )
     )
+    val selectionBorderColor by animateColorAsState(
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+        label = "selection_border"
+    )
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(
+            .border(
+                width = if (isSelected) 2.dp else 0.dp,
+                color = selectionBorderColor,
+                shape = cardShape(position)
+            )
+            .combinedClickable(
                 interactionSource = cardInteractionSource,
                 indication = ripple(),
-                enabled = !isProcessing
-            ) {
-                haptic.light()
-                if (image.outputBitmap != null) onClick() else onBeforeOnly()
-            },
-        shape = cardShape(position),
-        colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceContainer)
+                enabled = !isProcessing,
+                onLongClick = { haptic.medium(); onLongClick() },
+                onClick = {
+                    haptic.light()
+                    if (image.outputBitmap != null) onClick() else onBeforeOnly()
+                }), shape = cardShape(position), colors = CardDefaults.cardColors(
+            if (isSelected) MaterialTheme.colorScheme.surfaceContainerHigh
+            else MaterialTheme.colorScheme.surfaceContainer
+        )
     ) {
         Box(
             Modifier
@@ -1123,18 +1186,36 @@ fun ImageCard(
                         (image.thumbnailBitmap ?: image.outputBitmap
                         ?: image.inputBitmap).asImageBitmap()
                     }
-                Surface(
-                    Modifier
-                        .size(84.dp)
-                        .clip(RoundedCornerShape(12.dp)),
-                    color = MaterialTheme.colorScheme.surfaceVariant
-                ) {
-                    Image(
-                        imageBitmap,
-                        image.filename,
-                        Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
+                Box {
+                    Surface(
+                        Modifier
+                            .size(84.dp)
+                            .clip(RoundedCornerShape(12.dp)),
+                        color = MaterialTheme.colorScheme.surfaceVariant
+                    ) {
+                        Image(
+                            imageBitmap,
+                            image.filename,
+                            Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                    if (isSelected) {
+                        Box(
+                            Modifier
+                                .padding(4.dp)
+                                .size(22.dp)
+                                .background(MaterialTheme.colorScheme.primary, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Filled.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    }
                 }
                 Column(
                     Modifier
@@ -1213,7 +1294,9 @@ fun ImageCard(
                         onBrisque = onBrisque,
                         onSave = onSave,
                         haptic = haptic,
-                        onImportOutput = onImportOutput
+                        onImportOutput = onImportOutput,
+                        isCompareReady = isCompareReady,
+                        onCompare = onCompare
                     )
                 }
             }
@@ -1224,6 +1307,7 @@ fun ImageCard(
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ImageCardSplitButton(
+    modifier: Modifier = Modifier,
     image: ImageItem,
     isProcessing: Boolean,
     onProcess: () -> Unit,
@@ -1232,7 +1316,8 @@ private fun ImageCardSplitButton(
     onSave: () -> Unit,
     onImportOutput: () -> Unit,
     haptic: HapticFeedbacks,
-    modifier: Modifier = Modifier,
+    isCompareReady: Boolean = false,
+    onCompare: () -> Unit = {},
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     val fastSpatialSpec = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
@@ -1334,6 +1419,16 @@ private fun ImageCardSplitButton(
 
             DropdownMenu(
                 expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                if (isCompareReady) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.compare)) },
+                        leadingIcon = { Icon(Icons.Filled.SwapHoriz, null) },
+                        onClick = {
+                            haptic.medium()
+                            menuExpanded = false
+                            onCompare()
+                        })
+                }
                 if (cardState == CardState.Complete) {
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.reprocess)) },

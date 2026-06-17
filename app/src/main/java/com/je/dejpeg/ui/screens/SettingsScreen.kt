@@ -129,7 +129,10 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun SettingsScreen(
-    viewModel: SettingsViewModel, processingViewModel: ProcessingViewModel, onBack: () -> Unit = {}
+    viewModel: SettingsViewModel,
+    processingViewModel: ProcessingViewModel,
+    onBack: () -> Unit = {},
+    isActive: Boolean = true,
 ) {
     val modelManager = remember { ModelManager(App.ctx) }
     val appPreferences = remember { AppPreferences() }
@@ -169,7 +172,7 @@ fun SettingsScreen(
     val uriHandler = LocalUriHandler.current
     val importError = remember { mutableStateOf<String?>(null) }
 
-    BackHandler {
+    BackHandler(enabled = isActive) {
         if (expandedSection != null) expandedSection = null else onBack()
     }
 
@@ -209,9 +212,9 @@ fun SettingsScreen(
                 val animatedFabCorner = lerp(16f, 28f, fabPress)
                 ExtendedFloatingActionButton(
                     onClick = {
-                        HapticFeedbacks.light()
-                        modelPickerLauncher.launch("*/*")
-                    },
+                    HapticFeedbacks.light()
+                    modelPickerLauncher.launch("*/*")
+                },
                     icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                     text = {
                         Text(stringResource(R.string.import_model_text))
@@ -953,15 +956,14 @@ fun MaterialSwitchThumb(
                 HapticFeedbacks.light()
             }, contentAlignment = Alignment.CenterStart
     ) {
-        Box(
-            Modifier
-                .offset {
-                    IntOffset(
-                        thumbOffset.roundToPx(), 0
-                    )
-                }
-                .background(thumbColor, CircleShape)
-                .size(thumbSize),
+        Box(Modifier
+            .offset {
+                IntOffset(
+                    thumbOffset.roundToPx(), 0
+                )
+            }
+            .background(thumbColor, CircleShape)
+            .size(thumbSize),
             contentAlignment = Alignment.Center) {
             Crossfade(targetState = checked, label = "thumbIcon") { isChecked ->
                 Icon(

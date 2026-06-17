@@ -291,4 +291,7 @@
     <string name="theme_oled">OLED</string>
     <string name="glass_slider">Glass slider</string>
     <string name="import_output">Import output image</string>
+    <string name="compare_title">Comparison</string>
+    <string name="compare">Compare</string>
+    <string name="selected_count">%1$d selected</string>
 </resources>

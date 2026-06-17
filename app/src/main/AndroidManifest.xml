@@ -54,6 +54,10 @@
             android:name=".ui.BrisqueActivity"
             android:exported="false"
             android:theme="@style/Theme.DeJPEG" />
+        <activity
+            android:name=".ui.CompareActivity"
+            android:exported="false"
+            android:theme="@style/Theme.DeJPEG" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

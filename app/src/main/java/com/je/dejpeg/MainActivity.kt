@@ -71,9 +71,7 @@ class MainActivity : ComponentActivity() {
 
             val isDarkTheme = when (theme) {
                 AppTheme.Dynamic -> systemDark
-                AppTheme.OLED,
-                AppTheme.Dark -> true
-
+                AppTheme.OLED, AppTheme.Dark -> true
                 AppTheme.Light -> false
             }
 
@@ -88,8 +86,7 @@ class MainActivity : ComponentActivity() {
                     )
                 } else {
                     val lightTransparentStyle = SystemBarStyle.light(
-                        scrim = Color.TRANSPARENT,
-                        darkScrim = Color.TRANSPARENT
+                        scrim = Color.TRANSPARENT, darkScrim = Color.TRANSPARENT
                     )
                     enableEdgeToEdge(
                         statusBarStyle = lightTransparentStyle,
@@ -103,8 +100,7 @@ class MainActivity : ComponentActivity() {
                 oledTheme = theme == AppTheme.OLED,
             ) {
                 Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
                 ) {
                     val sharedUris by imageRepository.sharedUris.collectAsState()
                     MainScreen(sharedUris = sharedUris)

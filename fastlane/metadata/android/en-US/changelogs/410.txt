@@ -14,3 +14,4 @@ Added/updated:
 - Background removal model (Bria RMBG and u2netp)
 - Themes (OLED, light, dark, dynamic)
 - Replaced FAQ with model info sheet
+- Compare custom images by tapping and holding
