@@ -30,6 +30,8 @@ If you'd like to use models on PCs (Linux/Mac/Windows), look at [chaiNNer](https
 
 Regarding the recent restriction of 3rd party apps, this won't be on the Play Store and I will not be involved with [Developer Verification](https://developer.android.com/developer-verification).
 
+There's an experimental version using the LiteRT backend with `.tflite` models in the [LiteRT](src/branch/litert) branch, however, model conversion is tedious, but the performance boost is significant for FBCNN and RMBG, SCUNet is *incompatible* and others have negligible performance boosts. It exists purely for experimentation with a premade LiteRT backend for image processing. The onnx version will still be updated.
+
 <details>
 <summary><h3>building</h3></summary>
 
