@@ -120,7 +120,8 @@ fun ImageScreen(
         return
     }
     val nonNullImage = image!!
-    val beforeBitmap = if (isCompareMode) nonNullImage.outputBitmap ?: nonNullImage.inputBitmap else nonNullImage.inputBitmap
+    val beforeBitmap = if (isCompareMode) nonNullImage.outputBitmap
+        ?: nonNullImage.inputBitmap else nonNullImage.inputBitmap
     val afterBitmap = if (isCompareMode) compareImage!!.inputBitmap
     else if (showAfter) nonNullImage.outputBitmap else null
     val filename = if (isCompareMode) {

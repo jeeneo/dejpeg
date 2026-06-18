@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">DeJPEG</string>
     <string name="image">图像</string>
     <string name="save">保存</string>
     <string name="before">前</string>
@@ -247,12 +246,7 @@
     <string name="brisque_phase_fine_scan">细扫</string>
     <string name="brisque_phase_fine_done">细扫完成</string>
     <string name="brisque_phase_finalizing">即将完成</string>
-    <string name="invalid_tza_file_type">Oidn 模式仅支持 .tza 格式的模型文件</string>
-    <string name="processing_mode">处理模式</string>
-    <string name="mode_onnx" translatable="false">ONNX</string>
-    <string name="mode_oidn" translatable="false">Oidn</string>
     <string name="oidn_settings">Oidn 处理</string>
-    <string name="oidn_model_management">Oidn 模型管理</string>
     <string name="oidn_hdr">HDR 输入</string>
     <string name="oidn_hdr_desc">输入 HDR 图像时启用</string>
     <string name="oidn_srgb">sRGB 输入</string>
@@ -264,14 +258,12 @@
     <string name="oidn_quality_high">高</string>
     <string name="oidn_num_threads">线程</string>
     <string name="oidn_settings_desc">HDR，sRGB，质量，线程</string>
-    <string name="import_tza_model">导入 .tza 模型</string>
     <string name="model_switch_blocked_processing">处理中无法切换模型</string>
     <string name="header_settings">设置</string>
     <string name="settings_title_models">模型</string>
     <string name="settings_item_title_options">选项</string>
     <string name="settings_item_subtitle_options">其他设置</string>
     <string name="settings_item_title_processing">ONNX 处理</string>
-    <string name="settings_item_title_help">帮助</string>
     <string name="settings_item_subtitle_help_faq">显示常见问题</string>
     <string name="settings_item_subtitle_sourcecode">源代码</string>
     <string name="settings_item_sourcecode_description">在浏览器中打开开源代码</string>

@@ -251,12 +251,7 @@
     <string name="brisque_phase_fine_scan">İnce tarama</string>
     <string name="brisque_phase_fine_done">İnce tarama tamamlandı</string>
     <string name="brisque_phase_finalizing">Sonuçlandırılıyor</string>
-    <string name="invalid_tza_file_type">Oidn modunda yalnızca .tza model dosyaları desteklenir</string>
-    <string name="processing_mode">İşleme modu</string>
-    <string name="mode_onnx" translatable="false">ONNX</string>
-    <string name="mode_oidn" translatable="false">Oidn</string>
     <string name="oidn_settings">Oidn İşleme</string>
-    <string name="oidn_model_management">Oidn model yönetimi</string>
     <string name="oidn_hdr">HDR girdisi</string>
     <string name="oidn_hdr_desc">Girdi görseli HDR ise etkinleştir</string>
     <string name="oidn_srgb">sRGB girdisi</string>
@@ -268,14 +263,12 @@
     <string name="oidn_quality_high">Yüksek</string>
     <string name="oidn_num_threads">İş parçacıkları</string>
     <string name="oidn_settings_desc">HDR, sRGB, kalite, iş parçacıkları</string>
-    <string name="import_tza_model">.tza modelini içe aktar</string>
     <string name="model_switch_blocked_processing">İşlem sırasında model değiştiremezsiniz</string>
     <string name="header_settings">Ayarlar</string>
     <string name="settings_title_models">Modeller</string>
     <string name="settings_item_title_options">Seçenekler</string>
     <string name="settings_item_subtitle_options">Diğer ayarlar</string>
     <string name="settings_item_title_processing">ONNX İşleme</string>
-    <string name="settings_item_title_help">Yardım</string>
     <string name="settings_item_subtitle_help_faq">SSS\'yi göster</string>
     <string name="settings_item_subtitle_sourcecode">Kaynak kodu</string>
     <string name="settings_item_sourcecode_description">Kaynak kodunu tarayıcıda aç</string>

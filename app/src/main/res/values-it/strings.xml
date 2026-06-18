@@ -256,12 +256,7 @@
     <string name="brisque_phase_fine_scan">Scansione fine</string>
     <string name="brisque_phase_fine_done">Scansione fine completata</string>
     <string name="brisque_phase_finalizing">Finalizzazione</string>
-    <string name="invalid_tza_file_type">Solo i file di modello .tza sono supportati in modalità Oidn</string>
-    <string name="processing_mode">Modalità di elaborazione</string>
-    <string name="mode_onnx" translatable="false">ONNX</string>
-    <string name="mode_oidn" translatable="false">Oidn</string>
     <string name="oidn_settings">Elaborazione Oidn</string>
-    <string name="oidn_model_management">Gestione modelli Oidn</string>
     <string name="oidn_hdr">Input HDR</string>
     <string name="oidn_hdr_desc">Abilita se l\'immagine di input è HDR</string>
     <string name="oidn_srgb">Input sRGB</string>
@@ -273,14 +268,12 @@
     <string name="oidn_quality_high">Alta</string>
     <string name="oidn_num_threads">Thread</string>
     <string name="oidn_settings_desc">HDR, sRGB, qualità, thread</string>
-    <string name="import_tza_model">Importa modello .tza</string>
     <string name="model_switch_blocked_processing">Non puoi cambiare modello durante l\'elaborazione</string>
     <string name="header_settings">Impostazioni</string>
     <string name="settings_title_models">Modelli</string>
     <string name="settings_item_title_options">Opzioni</string>
     <string name="settings_item_subtitle_options">Altre impostazioni</string>
     <string name="settings_item_title_processing">ONNX Elaborazione</string>
-    <string name="settings_item_title_help">Aiuto</string>
     <string name="settings_item_subtitle_help_faq">Mostra FAQ</string>
     <string name="settings_item_subtitle_sourcecode">Codice sorgente</string>
     <string name="settings_item_sourcecode_description">Apri codice sorgente nel browser</string>

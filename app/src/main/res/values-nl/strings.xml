@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">DeJPEG</string>
     <string name="image">Afbeelding</string>
     <string name="save">Opslaan</string>
     <string name="before">Voor</string>
@@ -252,12 +251,7 @@
     <string name="brisque_phase_fine_scan">Fijne scan</string>
     <string name="brisque_phase_fine_done">Fijne scan voltooid</string>
     <string name="brisque_phase_finalizing">Afronden</string>
-    <string name="invalid_tza_file_type">Alleen .tza-modelbestanden worden ondersteund in de Oidn-modus</string>
-    <string name="processing_mode">Verwerkingsmodus</string>
-    <string name="mode_onnx" translatable="false">ONNX</string>
-    <string name="mode_oidn" translatable="false">Oidn</string>
     <string name="oidn_settings">Oidn Verwerking</string>
-    <string name="oidn_model_management">Oidn-modelbeheer</string>
     <string name="oidn_hdr">HDR-invoer</string>
     <string name="oidn_hdr_desc">Inschakelen als de invoerafbeelding HDR is</string>
     <string name="oidn_srgb">sRGB-invoer</string>
@@ -269,14 +263,12 @@
     <string name="oidn_quality_high">Hoog</string>
     <string name="oidn_num_threads">Threads</string>
     <string name="oidn_settings_desc">HDR, sRGB, kwaliteit, threads</string>
-    <string name="import_tza_model">.tza-model importeren</string>
     <string name="model_switch_blocked_processing">Je kunt niet van model wisselen tijdens de verwerking</string>
     <string name="header_settings">Instellingen</string>
     <string name="settings_title_models">Modellen</string>
     <string name="settings_item_title_options">Opties</string>
     <string name="settings_item_subtitle_options">Overige instellingen</string>
     <string name="settings_item_title_processing">ONNX Verwerking</string>
-    <string name="settings_item_title_help">Hulp</string>
     <string name="settings_item_subtitle_help_faq">FAQ tonen</string>
     <string name="settings_item_subtitle_sourcecode">Broncode</string>
     <string name="settings_item_sourcecode_description">Broncode openen in browser</string>
