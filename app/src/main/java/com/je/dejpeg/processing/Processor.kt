@@ -46,11 +46,4 @@ sealed class ProcessingParams {
         val numThreads: Int = 0,
         val inputScale: Float = 0f,
     ) : ProcessingParams()
-
-    data class LiteRt(
-        val modelName: String? = null,
-        val strength: Float = 50f,
-        val overlapSize: Int = AppPreferences.DEFAULT_OVERLAP_SIZE,
-        val useGpu: Boolean = true,
-    ) : ProcessingParams()
 }
