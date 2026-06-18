@@ -340,6 +340,7 @@ class AppPreferences {
             prefs[PreferenceKeys.PROCESSING_MODE] = mode.name
         }
     }
+
     val oidnHdr: Flow<Boolean> = App.ctx.dataStore.data.map { prefs ->
         prefs[PreferenceKeys.OIDN_HDR] ?: false
     }
