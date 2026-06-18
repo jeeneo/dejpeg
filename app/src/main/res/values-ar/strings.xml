@@ -271,12 +271,7 @@
     <string name="brisque_phase_fine_scan">مسح دقيق</string>
     <string name="brisque_phase_fine_done">اكتمل المسح الدقيق</string>
     <string name="brisque_phase_finalizing">إنهاء</string>
-    <string name="invalid_tza_file_type">فقط ملفات النماذج .tza مدعومة في وضع Oidn</string>
-    <string name="processing_mode">وضع المعالجة</string>
-    <string name="mode_onnx" translatable="false">ONNX</string>
-    <string name="mode_oidn" translatable="false">Oidn</string>
     <string name="oidn_settings">إعدادات Oidn</string>
-    <string name="oidn_model_management">إدارة نماذج Oidn</string>
     <string name="oidn_hdr">إدخال HDR</string>
     <string name="oidn_hdr_desc">تفعيل إذا كانت صورة الإدخال HDR</string>
     <string name="oidn_srgb">إدخال sRGB</string>
@@ -288,14 +283,12 @@
     <string name="oidn_quality_high">عالي</string>
     <string name="oidn_num_threads">المسارات</string>
     <string name="oidn_settings_desc">HDR، sRGB، الجودة، المسارات</string>
-    <string name="import_tza_model">استيراد نموذج .tza</string>
     <string name="model_switch_blocked_processing">لا يمكنك تبديل النماذج أثناء المعالجة</string>
     <string name="header_settings">الإعدادات</string>
     <string name="settings_title_models">النماذج</string>
     <string name="settings_item_title_options">الخيارات</string>
     <string name="settings_item_subtitle_options">إعدادات أخرى</string>
     <string name="settings_item_title_processing">المعالجة ONNX</string>
-    <string name="settings_item_title_help">المساعدة</string>
     <string name="settings_item_subtitle_help_faq">عرض الأسئلة الشائعة</string>
     <string name="settings_item_subtitle_sourcecode">الكود المصدري</string>
     <string name="settings_item_sourcecode_description">فتح الكود المصدري في المتصفح</string>

@@ -263,12 +263,7 @@
     <string name="brisque_phase_fine_scan">Точное сканирование</string>
     <string name="brisque_phase_fine_done">Точное сканирование выполнено</string>
     <string name="brisque_phase_finalizing">Завершение</string>
-    <string name="invalid_tza_file_type">В режиме Oidn поддерживаются только файлы моделей .tza</string>
-    <string name="processing_mode">Режим обработки</string>
-    <string name="mode_onnx" translatable="false">ONNX</string>
-    <string name="mode_oidn" translatable="false">Oidn</string>
     <string name="oidn_settings">Обработка Oidn</string>
-    <string name="oidn_model_management">Управление моделями Oidn</string>
     <string name="oidn_hdr">HDR-ввод</string>
     <string name="oidn_hdr_desc">Включите, если входное изображение HDR</string>
     <string name="oidn_srgb">sRGB-ввод</string>
@@ -280,14 +275,12 @@
     <string name="oidn_quality_high">Высокое</string>
     <string name="oidn_num_threads">Потоки</string>
     <string name="oidn_settings_desc">HDR, sRGB, качество, потоки</string>
-    <string name="import_tza_model">Импортировать модель .tza</string>
     <string name="model_switch_blocked_processing">Нельзя переключать модели во время обработки</string>
     <string name="header_settings">Настройки</string>
     <string name="settings_title_models">Модели</string>
     <string name="settings_item_title_options">Параметры</string>
     <string name="settings_item_subtitle_options">Другие настройки</string>
     <string name="settings_item_title_processing">ONNX Обработка</string>
-    <string name="settings_item_title_help">Помощь</string>
     <string name="settings_item_subtitle_help_faq">Показать FAQ</string>
     <string name="settings_item_subtitle_sourcecode">Исходный код</string>
     <string name="settings_item_sourcecode_description">Открыть исходный код в браузере</string>

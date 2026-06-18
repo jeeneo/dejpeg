@@ -263,7 +263,6 @@ class BrisqueViewModel : ViewModel() {
     }
 
     override fun onCleared() {
-        super.onCleared()
         imageState.value?.descaledBitmap?.recycle()
     }
 }

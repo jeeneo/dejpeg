@@ -248,12 +248,7 @@
     <string name="brisque_phase_fine_scan">細かいスキャン</string>
     <string name="brisque_phase_fine_done">細かいスキャン完了</string>
     <string name="brisque_phase_finalizing">最終処理中</string>
-    <string name="invalid_tza_file_type">OIDNモードでは.tzaモデルファイルのみサポートされています</string>
-    <string name="processing_mode">処理モード</string>
-    <string name="mode_onnx" translatable="false">ONNX</string>
-    <string name="mode_oidn" translatable="false">OIDN</string>
     <string name="oidn_settings">OIDN処理</string>
-    <string name="oidn_model_management">OIDNモデル管理</string>
     <string name="oidn_hdr">HDR入力</string>
     <string name="oidn_hdr_desc">入力画像がHDRの場合に有効にする</string>
     <string name="oidn_srgb">sRGB入力</string>
@@ -265,14 +260,12 @@
     <string name="oidn_quality_high">高品質</string>
     <string name="oidn_num_threads">スレッド</string>
     <string name="oidn_settings_desc">HDR、sRGB、品質、スレッド</string>
-    <string name="import_tza_model">.tzaモデルをインポート</string>
     <string name="model_switch_blocked_processing">処理中はモデルを切り替えることはできません</string>
     <string name="header_settings">設定</string>
     <string name="settings_title_models">モデル</string>
     <string name="settings_item_title_options">オプション</string>
     <string name="settings_item_subtitle_options">その他の設定</string>
     <string name="settings_item_title_processing">ONNX処理</string>
-    <string name="settings_item_title_help">ヘルプ</string>
     <string name="settings_item_subtitle_help_faq">FAQを表示</string>
     <string name="settings_item_subtitle_sourcecode">ソースコード</string>
     <string name="settings_item_sourcecode_description">ブラウザでソースコードを開く</string>

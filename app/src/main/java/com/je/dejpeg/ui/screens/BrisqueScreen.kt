@@ -378,7 +378,7 @@ fun BRISQUEScreen(
         onDismiss = { showBRISQUESettings = false })
 
     if (showImageModal) {
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        val sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden)
         (brisqueState?.descaledBitmap ?: brisqueState?.originalBitmap)?.let { bitmap ->
             ImageViewerModal(
                 bitmap = bitmap,

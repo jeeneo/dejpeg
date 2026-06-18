@@ -216,7 +216,6 @@ class ProcessingViewModel : ViewModel() {
     }
 
     override fun onCleared() {
-        super.onCleared()
         serviceHelper?.unregister()
     }
 
