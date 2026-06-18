@@ -38,7 +38,7 @@ android {
         ndk {
             abiFilters += "arm64-v8a"
         }
-        buildConfigField("boolean", "OIDN_ENABLED", "true")
+        buildConfigField("boolean", "OIDN_ENABLED", "false")
         applicationVariants.all {
             val variant = this
             val abi = ndk.abiFilters.first()

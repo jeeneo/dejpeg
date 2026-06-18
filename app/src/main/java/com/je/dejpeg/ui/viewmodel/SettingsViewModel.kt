@@ -168,6 +168,7 @@ class SettingsViewModel : ViewModel() {
                 onSuccess = { modelName, modelType ->
                     installedModels.value = installedModels.value +
                             (modelType to (installedModels.value[modelType].orEmpty() + modelName))
+                    setActiveModel(modelName)
                     activeModels.value = activeModels.value + (modelType to modelName)
                     shouldShowNoModelDialog.value = false
                     setProcessingMode(modelType)
