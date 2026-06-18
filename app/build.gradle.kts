@@ -38,8 +38,7 @@ android {
         ndk {
             abiFilters += "arm64-v8a"
         }
-        buildConfigField("boolean", "OIDN_ENABLED", "true")
-        buildConfigField("boolean", "LITERT_ENABLED", "true")
+        buildConfigField("boolean", "OIDN_ENABLED", "false")
         applicationVariants.all {
             val variant = this
             val abi = ndk.abiFilters.first()
@@ -51,7 +50,7 @@ android {
             }
         }
     }
-    if (buildOidn || true) {
+    if (buildOidn) {
         externalNativeBuild {
             cmake {
                 path = file("src/main/cpp/CMakeLists.txt")
