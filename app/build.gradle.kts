@@ -39,7 +39,6 @@ android {
             abiFilters += "arm64-v8a"
         }
         buildConfigField("boolean", "OIDN_ENABLED", "true")
-        buildConfigField("boolean", "LITERT_ENABLED", "true")
         applicationVariants.all {
             val variant = this
             val abi = ndk.abiFilters.first()
@@ -51,7 +50,7 @@ android {
             }
         }
     }
-    if (buildOidn || true) {
+    if (buildOidn) {
         externalNativeBuild {
             cmake {
                 path = file("src/main/cpp/CMakeLists.txt")
@@ -139,6 +138,4 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.compose.animation.core)
     implementation(libs.backdrop)
-    implementation("com.google.ai.edge.litert:litert:1.4.2")
-    implementation("com.google.ai.edge.litert:litert-gpu:1.4.2")
 }

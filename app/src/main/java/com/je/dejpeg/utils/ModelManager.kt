@@ -23,18 +23,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import org.tensorflow.lite.Interpreter
-import org.tensorflow.lite.gpu.CompatibilityList
-import org.tensorflow.lite.gpu.GpuDelegate
 import java.io.File
-import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.InputStream
 import java.io.OutputStream
-import java.nio.channels.FileChannel
 
 enum class ModelType(val extensions: List<String>) {
-    ONNX(listOf(".onnx", ".ort")), OIDN(listOf(".tza")), LITERT(listOf(".tflite"));
+    ONNX(listOf(".onnx", ".ort")), OIDN(listOf(".tza"));
 
     fun matches(filename: String): Boolean {
         val lower = filename.lowercase()
@@ -53,31 +48,22 @@ class ModelManager(
 ) {
     private var currentSession: OrtSession? = null
     private var ortEnv: OrtEnvironment? = null
-
-    private var currentInterpreter: Interpreter? = null
-    private var gpuDelegate: GpuDelegate? = null
-
     private val cachedActiveModels = mutableMapOf<ModelType, String?>()
     private val appPreferences = AppPreferences()
 
     private fun getModelsDir(type: ModelType = ModelType.ONNX): File = when (type) {
         ModelType.ONNX -> ModelMigrationHelper.getOnnxModelsDir(context)
         ModelType.OIDN -> ModelMigrationHelper.getTzaModelsDir(context)
-        ModelType.LITERT -> ModelMigrationHelper.getLiteRtModelsDir(context)
     }
 
     companion object {
         private const val STARTER_MODELS_ASSET_DIR = "embedonnx"
-        private const val GPU_DELEGATE_CACHE_DIR = "gpu_delegate_cache"
 
         private val MODEL_INFO_RES_IDS = mapOf(
             // fbcnn (jpeg model)
             "fbcnn_color_fp16.onnx" to R.string.model_info_fbcnn_color_fp16,
             "fbcnn_gray_fp16.onnx" to R.string.model_info_fbcnn_gray_fp16,
             "fbcnn_gray_double_fp16.onnx" to R.string.model_info_fbcnn_gray_double_fp16,
-
-            // fbcnn litert variant
-            "fbcnn_color_fp16.tflite" to R.string.model_info_fbcnn_color_fp16,
 
             // scunet (noise model)
             "scunet_color_real_gan_fp16.onnx" to R.string.model_info_scunet_color_real_gan_fp16,
@@ -163,21 +149,6 @@ class ModelManager(
         private val FIXED_INPUT_SIZE_BY_NAME = mapOf(
             "rmbg" to Pair(1024, 1024), "u2net" to Pair(320, 320)
         )
-
-        fun gpuCacheToken(modelName: String): String =
-            modelName.replace("[^a-zA-Z0-9_-]".toRegex(), "_").trimEnd('_')
-
-        fun gpuCacheDir(context: Context): File = File(context.cacheDir, GPU_DELEGATE_CACHE_DIR)
-
-        fun gpuCacheFiles(context: Context, modelName: String): List<File> {
-            val dir = gpuCacheDir(context)
-            if (!dir.exists()) return emptyList()
-            val prefix = gpuCacheToken(modelName)
-            return dir.listFiles { f -> f.name.startsWith(prefix) }?.toList() ?: emptyList()
-        }
-
-//        fun gpuCacheExists(context: Context, modelName: String): Boolean =
-//            gpuCacheFiles(context, modelName).isNotEmpty()
     }
 
     fun getFixedInputSize(modelName: String?): Pair<Int, Int>? {
@@ -234,7 +205,6 @@ class ModelManager(
         cachedActiveModels[modelType] = modelName
         when (modelType) {
             ModelType.ONNX -> unloadModel()
-            ModelType.LITERT -> unloadLiteRtModel()
             ModelType.OIDN -> {}
         }
         coroutineScope.launch {
@@ -352,117 +322,6 @@ class ModelManager(
         System.gc(); System.runFinalization(); System.gc()
     }
 
-    fun loadLiteRtModel(modelName: String? = null, useGpu: Boolean = true): Interpreter {
-        val modelToLoad = modelName ?: getActiveModelName(ModelType.LITERT)
-        ?: throw Exception("No active LiteRT model set")
-        if (currentInterpreter != null && modelToLoad == cachedActiveModels[ModelType.LITERT]) {
-            return currentInterpreter!!
-        }
-
-        val modelFile = File(getModelsDir(ModelType.LITERT), modelToLoad)
-        if (!modelFile.exists()) throw Exception("LiteRT model file does not exist: ${modelFile.absolutePath}")
-
-        // Create new interpreter and delegate first, before closing old ones
-        val mapped = FileInputStream(modelFile).use { fis ->
-            fis.channel.map(FileChannel.MapMode.READ_ONLY, 0, modelFile.length())
-        }
-        val opts = Interpreter.Options()
-        var newDelegate: GpuDelegate? = null
-
-        try {
-            if (useGpu) {
-                val compatList = CompatibilityList()
-                if (compatList.isDelegateSupportedOnThisDevice) {
-                    val delegateOptions = compatList.bestOptionsForThisDevice.apply {
-                        isPrecisionLossAllowed = true
-                        val serializationDir = gpuCacheDir(context).apply { mkdirs() }
-                        setSerializationParams(
-                            serializationDir.absolutePath, gpuCacheToken(modelToLoad)
-                        )
-                    }
-                    newDelegate = GpuDelegate(delegateOptions)
-                    opts.addDelegate(newDelegate)
-                    Log.d("ModelManager", "GPU delegate enabled for $modelToLoad")
-                } else {
-                    Log.w("ModelManager", "GPU delegate not supported for $modelToLoad, using CPU")
-                    opts.numThreads = Runtime.getRuntime().availableProcessors().coerceIn(1, 4)
-                }
-            } else {
-                opts.numThreads = Runtime.getRuntime().availableProcessors().coerceIn(1, 4)
-            }
-
-            // Create new interpreter with the new delegate
-            val newInterpreter = Interpreter(mapped, opts)
-
-            // Only now close the old resources - new ones are confirmed valid
-            val oldInterpreter = currentInterpreter
-            val oldDelegate = gpuDelegate
-            currentInterpreter = newInterpreter
-            gpuDelegate = newDelegate
-
-            try {
-                oldInterpreter?.close()
-            } catch (e: Exception) {
-                Log.e("ModelManager", "Error closing old interpreter: ${e.message}")
-            }
-            try {
-                oldDelegate?.close()
-            } catch (e: Exception) {
-                Log.e("ModelManager", "Error closing old GPU delegate: ${e.message}")
-            }
-
-            System.runFinalization()
-            System.gc()
-
-            cachedActiveModels[ModelType.LITERT] = modelToLoad
-            setCurrentProcessingModel(modelToLoad)
-            Log.d("ModelManager", "Successfully loaded LiteRT model: $modelToLoad (gpu=$useGpu)")
-            return newInterpreter
-
-        } catch (e: Exception) {
-            Log.e("ModelManager", "Error loading LiteRT model: ${e.message}", e)
-            // Clean up new delegate if creation failed
-            newDelegate?.close()
-            throw e
-        }
-    }
-
-    fun unloadLiteRtModel() {
-        val currentModel = cachedActiveModels[ModelType.LITERT]
-        Log.d("ModelManager", "unloadLiteRtModel called for: $currentModel")
-        try {
-            currentInterpreter?.close(); currentInterpreter = null
-        } catch (e: Exception) {
-            Log.e("ModelManager", "Error closing interpreter: ${e.message}")
-        }
-        try {
-            gpuDelegate?.close(); gpuDelegate = null
-        } catch (e: Exception) {
-            Log.e("ModelManager", "Error closing GPU delegate: ${e.message}")
-        }
-        System.runFinalization(); System.gc()
-    }
-
-//    fun getGpuCacheStatus(
-//        modelName: String, type: ModelType = ModelType.LITERT
-//    ): GpuCacheStatus {
-//        if (type != ModelType.LITERT) return GpuCacheStatus.NOT_AVAILABLE
-//        return if (gpuCacheExists(context, modelName)) GpuCacheStatus.READY
-//        else GpuCacheStatus.NOT_AVAILABLE
-//    }
-
-    fun deleteGpuCache(modelName: String, type: ModelType = ModelType.LITERT): Boolean {
-        if (type != ModelType.LITERT) return false
-        val files = gpuCacheFiles(context, modelName)
-        return if (files.isNotEmpty()) {
-            val result = files.all { it.delete() }
-            Log.d("ModelManager", "GPU cache deleted for $modelName: $result (${files.size} files)")
-            result
-        } else {
-            false
-        }
-    }
-
     @Suppress("KotlinConstantConditions")
     fun importModel(
         modelUri: Uri,
@@ -481,7 +340,6 @@ class ModelManager(
                     ModelType.OIDN
                 }
 
-                ModelType.LITERT.matches(filename) -> ModelType.LITERT
                 ModelType.ONNX.matches(filename) -> ModelType.ONNX
                 else -> {
                     onError(context.getString(R.string.invalid_file_type))
@@ -568,24 +426,6 @@ class ModelManager(
         val modelFile = File(getModelsDir(type), modelName)
         if (modelFile.exists()) {
             modelFile.delete()
-            if (type == ModelType.LITERT) {
-                deleteGpuCache(modelName, type)
-                val cacheDir = gpuCacheDir(context)
-                if (cacheDir.exists()) {
-                    val modelsDir = getModelsDir(ModelType.LITERT)
-                    val installedTokens = if (modelsDir.exists()) {
-                        modelsDir.listFiles { f -> ModelType.LITERT.matches(f.name) }
-                            ?.map { gpuCacheToken(it.name) }.orEmpty().toSet()
-                    } else emptySet()
-                    var swept = 0
-                    cacheDir.listFiles()?.forEach { file ->
-                        if (installedTokens.none { token -> file.name.startsWith(token) }) {
-                            file.delete(); swept++
-                        }
-                    }
-                    if (swept > 0) Log.d("ModelManager", "Swept $swept abandoned GPU cache file(s)")
-                }
-            }
             onDeleted(modelName)
         }
         if (modelName == getActiveModelName(type)) {

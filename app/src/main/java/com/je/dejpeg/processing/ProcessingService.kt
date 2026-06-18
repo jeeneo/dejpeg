@@ -37,7 +37,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
-import com.je.dejpeg.processing.litert.ImageProcessor as LiteRtImageProcessor
 
 class ProcessingService : Service() {
     companion object {
@@ -142,7 +141,6 @@ class ProcessingService : Service() {
         modelManager = ModelManager(applicationContext)
         processors = mapOf(
             ModelType.ONNX to ImageProcessor(applicationContext, modelManager!!),
-            ModelType.LITERT to LiteRtImageProcessor(applicationContext, modelManager!!),
             ModelType.OIDN to OIDNProcessor(applicationContext),
         )
     }
@@ -200,15 +198,6 @@ class ProcessingService : Service() {
                         ),
                     )
 
-                    ModelType.LITERT -> ProcessingParams.LiteRt(
-                        modelName = modelName,
-                        strength = intent.getFloatExtra(EXTRA_STRENGTH, 50f),
-                        overlapSize = intent.getIntExtra(
-                            EXTRA_OVERLAP_SIZE, AppPreferences.DEFAULT_OVERLAP_SIZE
-                        ),
-                        useGpu = intent.getBooleanExtra(EXTRA_USE_GPU, true),
-                    )
-
                     ModelType.OIDN -> ProcessingParams.Oidn(
                         weightsPath = intent.getStringExtra(EXTRA_OIDN_WEIGHTS_PATH),
                         hdr = intent.getBooleanExtra(EXTRA_OIDN_HDR, false),
@@ -255,9 +244,8 @@ class ProcessingService : Service() {
                             ImageLoadingHelper.loadBitmap(ImageSource.FromFile(unprocessedFile))
                                 ?: throw Exception("Failed to decode bitmap")
 
-                        // Create the appropriate callback based on processor type
                         val callback = when (processingMode) {
-                            ModelType.ONNX, ModelType.LITERT -> object :
+                            ModelType.ONNX -> object :
                                 Processor.OnnxProcessCallback {
                                 override fun onComplete(result: Bitmap) {
                                     try {
