@@ -5,7 +5,6 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.kotlin.android)
 }
 
 val localProperties = Properties().apply {
@@ -21,6 +20,9 @@ val hasReleaseSigning = listOf(
 ).all { !it.isNullOrBlank() } && releaseStoreFile?.let { file(it).exists() } == true
 
 val buildOidn = gradle.startParameter.taskNames.any { "oidn" in it.lowercase() }
+val abi = "arm64-v8a"
+val signingState = if (hasReleaseSigning) "" else "-unsigned"
+val fileName = "${rootProject.name.lowercase()}-$abi$signingState"
 
 android {
     namespace = "com.je.dejpeg"
@@ -31,24 +33,13 @@ android {
     defaultConfig {
         applicationId = "com.je.dejpeg"
         minSdk = 26
-        //noinspection OldTargetApi
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 410
         versionName = "4.1.0"
         ndk {
-            abiFilters += "arm64-v8a"
+            abiFilters += abi
         }
         buildConfigField("boolean", "OIDN_ENABLED", "false")
-        applicationVariants.all {
-            val variant = this
-            val abi = ndk.abiFilters.first()
-            val signingState = if (hasReleaseSigning) "" else "-unsigned"
-            val fileName = "${rootProject.name.lowercase()}-$abi$signingState"
-            variant.outputs.all {
-                val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
-                output.outputFileName = "$fileName.apk"
-            }
-        }
     }
     if (buildOidn) {
         externalNativeBuild {
@@ -116,6 +107,14 @@ android {
     }
 }
 
+androidComponents {
+    onVariants { variant ->
+        variant.outputs.forEach { output ->
+            (output as? com.android.build.api.variant.impl.VariantOutputImpl)?.outputFileName?.set("$fileName.apk")
+        }
+    }
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -129,7 +128,6 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.material.icons.extended)
-    implementation(libs.core.ktx)
     implementation(libs.google.material)
     implementation(libs.onnxruntime.android)
     implementation(libs.zoomable)

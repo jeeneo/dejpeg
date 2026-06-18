@@ -14,7 +14,6 @@ import android.os.Build
 import android.os.VibrationAttributes
 import android.os.VibrationEffect
 import android.os.Vibrator
-import android.provider.Settings
 import android.util.Log
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
@@ -70,14 +69,10 @@ object HapticFeedbacks {
         App.ctx.getSystemService(Vibrator::class.java)
     }
 
-    private fun isEnabled() = Settings.System.getInt(
-        App.ctx.contentResolver, Settings.System.HAPTIC_FEEDBACK_ENABLED, 1
-    ) != 0
-
     var appHapticsEnabled = true
 
     private fun vibrate(effect: VibrationEffect, force: Boolean = false) {
-        if (!force && (!isEnabled() || !appHapticsEnabled)) return
+        if (!force && !appHapticsEnabled) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             vibrator.vibrate(
                 effect,

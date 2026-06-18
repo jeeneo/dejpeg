@@ -50,10 +50,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -439,15 +440,12 @@ fun ImageSourceDialog(
     val scope = rememberCoroutineScope()
     var setAsDefault by remember { mutableStateOf(false) }
     var helpTarget by remember { mutableStateOf<HelpTarget?>(null) }
-
     val handleSelection: suspend (String, () -> Unit) -> Unit = { key, action ->
         if (setAsDefault) appPreferences.setDefaultImageSource(key)
         onDismiss()
         action()
     }
-
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
+    val sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden)
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -656,8 +654,7 @@ private fun GroupedSourceTile(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HelpDialog(title: String, text: String, onDismiss: () -> Unit) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
+    val sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden)
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
