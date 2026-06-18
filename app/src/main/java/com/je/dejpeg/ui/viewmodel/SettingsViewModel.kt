@@ -76,7 +76,6 @@ class SettingsViewModel : ViewModel() {
     }
 
     fun setActiveModel(name: String) {
-        // Derive model type from filename
         val modelType = ModelType.fromFilename(name)
         modelType?.let { type ->
             modelManager?.setActiveModel(name)

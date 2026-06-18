@@ -140,7 +140,6 @@ object PreferenceKeys {
     val BRISQUE_WEIGHT = floatPreferencesKey("brisque_weight")
     val BRISQUE_SHARPNESS_WEIGHT = floatPreferencesKey("brisque_sharpness_weight")
     val PROCESSING_MODE = stringPreferencesKey("processing_mode")
-    val ACTIVE_OIDN_MODEL = stringPreferencesKey("activeOidnModel")
     val OIDN_HDR = booleanPreferencesKey("oidn_hdr")
     val OIDN_SRGB = booleanPreferencesKey("oidn_srgb")
     val OIDN_QUALITY = intPreferencesKey("oidn_quality")
@@ -347,25 +346,6 @@ class AppPreferences {
             prefs[PreferenceKeys.PROCESSING_MODE] = mode.name
         }
     }
-
-    val activeOidnModel: Flow<String?> = App.ctx.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.ACTIVE_OIDN_MODEL]
-    }
-
-    suspend fun setActiveOidnModel(modelName: String) {
-        App.ctx.dataStore.edit { prefs ->
-            prefs[PreferenceKeys.ACTIVE_OIDN_MODEL] = modelName
-        }
-    }
-
-    suspend fun clearActiveOidnModel() {
-        App.ctx.dataStore.edit { prefs ->
-            prefs.remove(PreferenceKeys.ACTIVE_OIDN_MODEL)
-        }
-    }
-
-    suspend fun getActiveOidnModel(): String? = activeOidnModel.first()
-
     val oidnHdr: Flow<Boolean> = App.ctx.dataStore.data.map { prefs ->
         prefs[PreferenceKeys.OIDN_HDR] ?: false
     }
@@ -409,24 +389,6 @@ class AppPreferences {
     suspend fun setOidnInputScale(inputScale: Float) {
         App.ctx.dataStore.edit { prefs -> prefs[PreferenceKeys.OIDN_INPUT_SCALE] = inputScale }
     }
-
-    val activeLiteRtModel: Flow<String?> = App.ctx.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.ACTIVE_LITERT_MODEL]
-    }
-
-    suspend fun setActiveLiteRtModel(modelName: String) {
-        App.ctx.dataStore.edit { prefs ->
-            prefs[PreferenceKeys.ACTIVE_LITERT_MODEL] = modelName
-        }
-    }
-
-    suspend fun clearActiveLiteRtModel() {
-        App.ctx.dataStore.edit { prefs ->
-            prefs.remove(PreferenceKeys.ACTIVE_LITERT_MODEL)
-        }
-    }
-
-    suspend fun getActiveLiteRtModel(): String? = activeLiteRtModel.first()
 
     fun loadAppTheme(): AppTheme {
         return runCatching {
