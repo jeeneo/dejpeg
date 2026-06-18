@@ -1,19 +1,15 @@
 [versions]
-#noinspection AndroidGradlePluginVersion
-agp = "8.13.2"
+agp = "9.2.1"
 backdrop = "2.0.0"
 coreSplashscreen = "1.2.0"
-#noinspection GradleDependency
-foundation = "1.10.3"
-kotlin = "2.2.0"
-#noinspection GradleDependency
-coreKtx = "1.18.0"
-lifecycleRuntimeKtx = "2.10.0"
+foundation = "1.11.3"
+kotlin = "2.4.0"
+coreKtx = "1.19.0"
+lifecycleRuntimeKtx = "2.11.0"
 activityCompose = "1.13.0"
-composeBom = "2026.05.01"
+composeBom = "2026.06.00"
 material = "1.14.0"
-#noinspection GradleDependency
-material3 = "1.5.0-alpha18"
+material3 = "1.5.0-alpha22"
 materialIconsExtended = "1.7.8"
 navigationCompose = "2.9.8"
 #noinspection NewerVersionAvailable
@@ -21,8 +17,7 @@ onnxruntimeAndroid = "1.23.2"
 zoomable = "0.19.0"
 exifinterface = "1.4.2"
 datastore = "1.2.1"
-animationCore = "1.11.2"
-coreKtxVersion = "1.18.0"
+animationCore = "1.11.3"
 
 [libraries]
 androidx-compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "foundation" }
@@ -32,16 +27,12 @@ androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", versi
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 backdrop = { module = "io.github.kyant0:backdrop", version.ref = "backdrop" }
 google-material = { group = "com.google.android.material", name = "material", version.ref = "material" }
-#junit = { group = "junit", name = "junit", version.ref = "junit" }
-#androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
-#androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
 androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
-#androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
 androidx-compose-material3-adaptive-navigation-suite = { group = "androidx.compose.material3", name = "material3-adaptive-navigation-suite" }
 onnxruntime-android = { module = "com.microsoft.onnxruntime:onnxruntime-android", version.ref = "onnxruntimeAndroid" }
@@ -49,9 +40,8 @@ zoomable = { module = "me.saket.telephoto:zoomable", version.ref = "zoomable" }
 androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 androidx-compose-animation-core = { group = "androidx.compose.animation", name = "animation-core", version.ref = "animationCore" }
-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtxVersion" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version = "2.2.20" }
+#kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
