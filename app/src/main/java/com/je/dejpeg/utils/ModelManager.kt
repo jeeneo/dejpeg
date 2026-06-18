@@ -211,7 +211,6 @@ class ModelManager(
         return runBlocking {
             val name = appPreferences.getActiveModel()
             name?.also {
-                // Derive model type from filename and populate cache
                 val detectedType = ModelType.fromFilename(name) ?: type
                 cachedActiveModels[detectedType] = name
             }
@@ -223,7 +222,6 @@ class ModelManager(
     fun getActiveModelName(): String? = cachedActiveModels.values.firstOrNull { it != null }
 
     fun setActiveModel(modelName: String) {
-        // Derive model type from filename
         val modelType = ModelType.fromFilename(modelName)
         if (modelType == null) {
             Log.w(
@@ -232,35 +230,22 @@ class ModelManager(
             )
             return
         }
-
         Log.d("ModelManager", "setActiveModel($modelType) called with: $modelName")
-
-        // Update cache synchronously
         cachedActiveModels[modelType] = modelName
-
-        // Unload the current model for this type
         when (modelType) {
             ModelType.ONNX -> unloadModel()
             ModelType.LITERT -> unloadLiteRtModel()
             ModelType.OIDN -> {}
         }
-
-        // Persist to DataStore asynchronously
         coroutineScope.launch {
             appPreferences.setActiveModel(modelName)
             Log.d("ModelManager", "Active $modelType model saved to DataStore: $modelName")
         }
     }
 
-    fun clearActiveModel() {
-        cachedActiveModels.clear()
-        coroutineScope.launch {
-            appPreferences.clearActiveModel()
-        }
-    }
-
     private fun clearActiveModel(type: ModelType) {
         cachedActiveModels.remove(type)
+        coroutineScope.launch { appPreferences.clearActiveModel() }
     }
 
     private fun setCurrentProcessingModel(modelName: String) {

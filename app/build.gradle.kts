@@ -21,7 +21,6 @@ val hasReleaseSigning = listOf(
 ).all { !it.isNullOrBlank() } && releaseStoreFile?.let { file(it).exists() } == true
 
 val buildOidn = gradle.startParameter.taskNames.any { "oidn" in it.lowercase() }
-val buildLiteRt = gradle.startParameter.taskNames.any { "litert" in it.lowercase() }
 
 android {
     namespace = "com.je.dejpeg"
@@ -94,14 +93,6 @@ android {
         create("oidnRelease") {
             initWith(getByName("release"))
             buildConfigField("boolean", "OIDN_ENABLED", "true")
-        }
-    }
-    sourceSets {
-        getByName("litertDebug") {
-            java.srcDirs("src/litert/java")
-        }
-        getByName("litertRelease") {
-            java.srcDirs("src/litert/java")
         }
     }
     compileOptions {
