@@ -181,7 +181,7 @@
     <string name="yes">Yes</string>
     <string name="error">Error</string>
     <string name="unknown_error">Unknown error</string>
-    <string name="invalid_file_type">Only .onnx and .ort model files are supported</string>
+    <string name="invalid_file_type">Only the following model files are supported: %1$s</string>
     <string name="failed_to_import_model">Failed to import model</string>
     <string name="extract">Extract</string>
     <string name="extracted_starter_models">Small models extracted</string>

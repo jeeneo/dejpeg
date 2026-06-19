@@ -33,17 +33,23 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.nio.channels.FileChannel
 
-enum class ModelType(val extensions: List<String>) {
-    ONNX(listOf(".onnx", ".ort")), OIDN(listOf(".tza")), LITERT(listOf(".tflite"));
+enum class ModelType(val extensions: List<String>, val enabled: Boolean = true) {
+    ONNX(listOf(".onnx", ".ort"), true),
+    OIDN(listOf(".tza"), BuildConfig.OIDN_ENABLED),
+    LITERT(listOf(".tflite"), true);
 
     fun matches(filename: String): Boolean {
+        if (!enabled) return false
         val lower = filename.lowercase()
         return extensions.any { lower.endsWith(it) }
     }
 
     companion object {
-        fun fromFilename(filename: String): ModelType? = entries.find { it.matches(filename) }
-        fun fromString(value: String?): ModelType = entries.find { it.name == value } ?: ONNX
+        fun fromFilename(filename: String): ModelType? =
+            entries.find { it.enabled && it.matches(filename) }
+
+        fun fromString(value: String?): ModelType =
+            entries.find { it.enabled && it.name == value } ?: ONNX
     }
 }
 
@@ -358,17 +364,13 @@ class ModelManager(
         if (currentInterpreter != null && modelToLoad == cachedActiveModels[ModelType.LITERT]) {
             return currentInterpreter!!
         }
-
         val modelFile = File(getModelsDir(ModelType.LITERT), modelToLoad)
         if (!modelFile.exists()) throw Exception("LiteRT model file does not exist: ${modelFile.absolutePath}")
-
-        // Create new interpreter and delegate first, before closing old ones
         val mapped = FileInputStream(modelFile).use { fis ->
             fis.channel.map(FileChannel.MapMode.READ_ONLY, 0, modelFile.length())
         }
         val opts = Interpreter.Options()
         var newDelegate: GpuDelegate? = null
-
         try {
             if (useGpu) {
                 val compatList = CompatibilityList()
@@ -390,16 +392,11 @@ class ModelManager(
             } else {
                 opts.numThreads = Runtime.getRuntime().availableProcessors().coerceIn(1, 4)
             }
-
-            // Create new interpreter with the new delegate
             val newInterpreter = Interpreter(mapped, opts)
-
-            // Only now close the old resources - new ones are confirmed valid
             val oldInterpreter = currentInterpreter
             val oldDelegate = gpuDelegate
             currentInterpreter = newInterpreter
             gpuDelegate = newDelegate
-
             try {
                 oldInterpreter?.close()
             } catch (e: Exception) {
@@ -410,18 +407,14 @@ class ModelManager(
             } catch (e: Exception) {
                 Log.e("ModelManager", "Error closing old GPU delegate: ${e.message}")
             }
-
             System.runFinalization()
             System.gc()
-
             cachedActiveModels[ModelType.LITERT] = modelToLoad
             setCurrentProcessingModel(modelToLoad)
             Log.d("ModelManager", "Successfully loaded LiteRT model: $modelToLoad (gpu=$useGpu)")
             return newInterpreter
-
         } catch (e: Exception) {
             Log.e("ModelManager", "Error loading LiteRT model: ${e.message}", e)
-            // Clean up new delegate if creation failed
             newDelegate?.close()
             throw e
         }
@@ -474,17 +467,12 @@ class ModelManager(
             val filename = resolveFilename(modelUri)
             val type = when {
                 ModelType.OIDN.matches(filename) -> {
-                    if (!BuildConfig.OIDN_ENABLED) {
-                        onError(context.getString(R.string.invalid_file_type))
-                        return
-                    }
                     ModelType.OIDN
                 }
-
                 ModelType.LITERT.matches(filename) -> ModelType.LITERT
                 ModelType.ONNX.matches(filename) -> ModelType.ONNX
                 else -> {
-                    onError(context.getString(R.string.invalid_file_type))
+                    onError(invalidFileTypeMessage())
                     return
                 }
             }
@@ -499,6 +487,13 @@ class ModelManager(
         } catch (e: Exception) {
             onError(e.message ?: context.getString(R.string.unknown_error))
         }
+    }
+
+    @SuppressLint("StringFormatInvalid")
+    private fun invalidFileTypeMessage(): String {
+        val supportedTypes =
+            ModelType.entries.filter { it.enabled }.flatMap { it.extensions }.joinToString(", ")
+        return context.getString(R.string.invalid_file_type, supportedTypes)
     }
 
     @SuppressLint("Recycle")

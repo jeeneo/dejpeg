@@ -175,7 +175,6 @@
     <string name="yes">はい</string>
     <string name="error">エラー</string>
     <string name="unknown_error">不明なエラー</string>
-    <string name="invalid_file_type">.onnxおよび.ortモデルファイルのみサポートされています</string>
     <string name="failed_to_import_model">モデルのインポートに失敗しました</string>
     <string name="extract">抽出</string>
     <string name="extracted_starter_models">小型モデルを抽出しました</string>
