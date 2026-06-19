@@ -39,9 +39,9 @@ android {
         ndk {
             abiFilters += abi
         }
-        buildConfigField("boolean", "OIDN_ENABLED", "true")
+        buildConfigField("boolean", "OIDN_ENABLED", "false")
     }
-    if (buildOidn || true) {
+    if (buildOidn) {
         externalNativeBuild {
             cmake {
                 path = file("src/main/cpp/CMakeLists.txt")
