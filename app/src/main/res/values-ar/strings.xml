@@ -193,7 +193,6 @@
     <string name="yes">نعم</string>
     <string name="error">خطأ</string>
     <string name="unknown_error">خطأ غير معروف</string>
-    <string name="invalid_file_type">فقط ملفات النماذج .onnx و .ort مدعومة</string>
     <string name="failed_to_import_model">فشل استيراد النموذج</string>
     <string name="extract">استخراج</string>
     <string name="extracted_starter_models">تم استخراج النماذج الصغيرة</string>

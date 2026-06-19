@@ -187,7 +187,6 @@
     <string name="yes">Да</string>
     <string name="error">Ошибка</string>
     <string name="unknown_error">Неизвестная ошибка</string>
-    <string name="invalid_file_type">Поддерживаются только файлы моделей .onnx и .ort</string>
     <string name="failed_to_import_model">Не удалось импортировать модель</string>
     <string name="extract">Извлечь</string>
     <string name="extracted_starter_models">Малые модели извлечены</string>

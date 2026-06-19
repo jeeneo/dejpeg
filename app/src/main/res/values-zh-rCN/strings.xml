@@ -173,7 +173,6 @@
     <string name="yes">是</string>
     <string name="error">错误</string>
     <string name="unknown_error">未知错误</string>
-    <string name="invalid_file_type">仅支持 .onnx 和 .ort 格式的模型文件</string>
     <string name="failed_to_import_model">导入模型失败</string>
     <string name="extract">提取</string>
     <string name="extracted_starter_models">入门模型已提取</string>

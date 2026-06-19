@@ -28,17 +28,22 @@ import java.io.FileOutputStream
 import java.io.InputStream
 import java.io.OutputStream
 
-enum class ModelType(val extensions: List<String>) {
-    ONNX(listOf(".onnx", ".ort")), OIDN(listOf(".tza"));
+enum class ModelType(val extensions: List<String>, val enabled: Boolean = true) {
+    ONNX(listOf(".onnx", ".ort"), true),
+    OIDN(listOf(".tza"), BuildConfig.OIDN_ENABLED);
 
     fun matches(filename: String): Boolean {
+        if (!enabled) return false
         val lower = filename.lowercase()
         return extensions.any { lower.endsWith(it) }
     }
 
     companion object {
-        fun fromFilename(filename: String): ModelType? = entries.find { it.matches(filename) }
-        fun fromString(value: String?): ModelType = entries.find { it.name == value } ?: ONNX
+        fun fromFilename(filename: String): ModelType? =
+            entries.find { it.enabled && it.matches(filename) }
+
+        fun fromString(value: String?): ModelType =
+            entries.find { it.enabled && it.name == value } ?: ONNX
     }
 }
 
@@ -333,16 +338,11 @@ class ModelManager(
             val filename = resolveFilename(modelUri)
             val type = when {
                 ModelType.OIDN.matches(filename) -> {
-                    if (!BuildConfig.OIDN_ENABLED) {
-                        onError(context.getString(R.string.invalid_file_type))
-                        return
-                    }
                     ModelType.OIDN
                 }
-
                 ModelType.ONNX.matches(filename) -> ModelType.ONNX
                 else -> {
-                    onError(context.getString(R.string.invalid_file_type))
+                    onError(invalidFileTypeMessage())
                     return
                 }
             }
@@ -357,6 +357,13 @@ class ModelManager(
         } catch (e: Exception) {
             onError(e.message ?: context.getString(R.string.unknown_error))
         }
+    }
+
+    @SuppressLint("StringFormatInvalid")
+    private fun invalidFileTypeMessage(): String {
+        val supportedTypes =
+            ModelType.entries.filter { it.enabled }.flatMap { it.extensions }.joinToString(", ")
+        return context.getString(R.string.invalid_file_type, supportedTypes)
     }
 
     @SuppressLint("Recycle")

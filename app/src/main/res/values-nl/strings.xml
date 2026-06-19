@@ -177,7 +177,6 @@
     <string name="yes">Ja</string>
     <string name="error">Fout</string>
     <string name="unknown_error">Onbekende fout</string>
-    <string name="invalid_file_type">Alleen .onnx- en .ort-modelbestanden worden ondersteund</string>
     <string name="failed_to_import_model">Model importeren mislukt</string>
     <string name="extract">Uitpakken</string>
     <string name="extracted_starter_models">Kleine modellen uitgepakt</string>

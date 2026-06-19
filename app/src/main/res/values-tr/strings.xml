@@ -177,7 +177,6 @@
     <string name="yes">Evet</string>
     <string name="error">Hata</string>
     <string name="unknown_error">Bilinmeyen hata</string>
-    <string name="invalid_file_type">Yalnızca .onnx ve .ort model dosyaları desteklenir</string>
     <string name="failed_to_import_model">Model içe aktarılamadı</string>
     <string name="extract">Çıkar</string>
     <string name="extracted_starter_models">Küçük modeller çıkarıldı</string>
