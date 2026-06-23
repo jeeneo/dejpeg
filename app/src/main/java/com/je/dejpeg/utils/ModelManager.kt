@@ -462,8 +462,6 @@ class ModelManager(
         }
     }
 
-    // ── Starter model (ONNX) ─────────────────────────────────────────────────
-
     fun initializeStarterModel(): Boolean {
         return try {
             val alreadyExtracted =
