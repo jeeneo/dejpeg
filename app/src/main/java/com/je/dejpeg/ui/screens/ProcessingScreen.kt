@@ -425,10 +425,7 @@ fun ProcessingScreen(
                                 val imageIds =
                                     images.filter { it.outputBitmap != null }.map { it.id }
                                 if (imageIds.isNotEmpty()) {
-                                    saveOrPrompt(
-                                        imageIds.first(),
-                                        images.first { it.id == imageIds.first() }.filename
-                                    )
+                                    viewModel.saveImage(context, imageIds)
                                 }
                             } else {
                                 tryProcess { HapticFeedbacks.medium(); viewModel.processImages() }

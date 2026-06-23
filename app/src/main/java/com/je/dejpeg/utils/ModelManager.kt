@@ -249,9 +249,9 @@ class ModelManager(
         }
     }
 
-    private fun clearActiveModel(type: ModelType) {
-        cachedActiveModels.remove(type)
-        coroutineScope.launch { appPreferences.clearActiveModel() }
+    private fun clearActiveModel() {
+        cachedActiveModels.clear()
+        runBlocking { appPreferences.clearActiveModel() }
     }
 
     private fun setCurrentProcessingModel(modelName: String) {
@@ -586,7 +586,7 @@ class ModelManager(
         if (modelName == getActiveModelName(type)) {
             val remaining = getInstalledModels(type)
             if (remaining.isNotEmpty()) setActiveModel(remaining.first())
-            else clearActiveModel(type)
+            else clearActiveModel()
         }
     }
 
@@ -609,8 +609,6 @@ class ModelManager(
             else -> info
         }
     }
-
-    // ── Starter model (ONNX) ─────────────────────────────────────────────────
 
     fun initializeStarterModel(): Boolean {
         return try {
