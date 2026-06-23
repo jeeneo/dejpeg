@@ -294,5 +294,4 @@
     <string name="import_output">Импорт результата</string>
     <string name="compare_title">Сравнение</string>
     <string name="compare">Сравнить</string>
-    <string name="selected_count">Выбрано %1$d</string>
 </resources>
