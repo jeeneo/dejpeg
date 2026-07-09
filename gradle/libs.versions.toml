@@ -9,7 +9,16 @@ lifecycleRuntimeKtx = "2.11.0"
 activityCompose = "1.13.0"
 composeBom = "2026.06.00"
 material = "1.14.0"
-material3 = "1.5.0-alpha22"
+
+# https://issuetracker.google.com/issues/529423493
+# not mentioned in the issue but
+# setting PopupProperties `dismissOnBackPress` to `false` can fix in newer releases
+# added july 4th - latest 1.5.0-alpha23
+# for now pin to old version
+#noinspection GradleDependency
+material3 = "1.5.0-alpha23"
+# fix rememberBottomSheetState prior to doing so
+
 materialIconsExtended = "1.7.8"
 navigationCompose = "2.9.8"
 #noinspection NewerVersionAvailable
