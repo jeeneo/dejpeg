@@ -208,9 +208,7 @@ fun ProcessingScreen(
     val activeModels by settingsViewModel.activeModels.collectAsState()
     val activeModelName = activeModels[processingMode]
 
-    val supportsStrength = if (isOidnMode) true else activeModelName?.contains(
-        "fbcnn", ignoreCase = true
-    ) == true && processingMode == ModelType.ONNX
+    val supportsStrength = activeModelName?.contains("fbcnn", ignoreCase = true) == true
 
     val noModelMessage = stringResource(R.string.no_model_installed_title)
     val scope = rememberCoroutineScope()
