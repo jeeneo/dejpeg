@@ -294,4 +294,10 @@
     <string name="import_output">Импорт результата</string>
     <string name="compare_title">Сравнение</string>
     <string name="compare">Сравнить</string>
+    <plurals name="selected_count">
+        <item quantity="one">Выбрано (%1$d)</item>
+        <item quantity="few">Выбрано (%1$d)</item>
+        <item quantity="many">Выбрано (%1$d)</item>
+        <item quantity="other">Выбрано (%1$d)</item>
+    </plurals> 
 </resources>
