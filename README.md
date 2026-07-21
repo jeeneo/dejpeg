@@ -1,4 +1,4 @@
-<img src="fastlane/appassets/logo/dejpeg_logo_curved.svg" alt="A gray mountain rotated 45 degrees clockwise with a lowercase letter j rotated 90 degrees clockwise" height="72" >
+<img src="fastlane/assets/logo/dejpeg_logo_curved.svg" alt="A gray mountain rotated 45 degrees clockwise with a lowercase letter j rotated 90 degrees clockwise" height="72" >
 
 <br>
 
@@ -10,9 +10,9 @@
 
 <br>
 
-<a href="https://apt.izzysoft.de/fdroid/index/apk/com.je.dejpeg"><img src="fastlane/appassets/IzzyOnDroid.png" width="180" alt="IzzyOnDroid"></a>
-<a href="https://codeberg.org/dryerlint/dejpeg/releases/download/latest/dejpeg-arm64-v8a.apk"><img src="fastlane/appassets/codeberg-badge.png" width="180" alt="Codeberg direct apk"></a>
-<a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.je.dejpeg%22%2C%22url%22%3A%22https%3A%2F%2Fcodeberg.org%2Fdryerlint%2Fdejpeg%22%2C%22author%22%3A%22dryerlint%22%2C%22name%22%3A%22DeJPEG%22%2C%22preferredApkIndex%22%3A0%2C%22overrideSource%22%3A%22Codeberg%22%7D"><img src="fastlane/appassets/obtanium.png" width="180" alt="Obtainium config"></a>
+<a href="https://apt.izzysoft.de/fdroid/index/apk/com.je.dejpeg"><img src="fastlane/assets/IzzyOnDroid.png" width="180" alt="IzzyOnDroid"></a>
+<a href="https://codeberg.org/dryerlint/dejpeg/releases/download/latest/dejpeg-arm64-v8a.apk"><img src="fastlane/assets/codeberg-badge.png" width="180" alt="Codeberg direct apk"></a>
+<a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.je.dejpeg%22%2C%22url%22%3A%22https%3A%2F%2Fcodeberg.org%2Fdryerlint%2Fdejpeg%22%2C%22author%22%3A%22dryerlint%22%2C%22name%22%3A%22DeJPEG%22%2C%22preferredApkIndex%22%3A0%2C%22overrideSource%22%3A%22Codeberg%22%7D"><img src="fastlane/assets/obtanium.png" width="180" alt="Obtainium config"></a>
 
 An offline compression artifact remover and denoise application for Android
 
