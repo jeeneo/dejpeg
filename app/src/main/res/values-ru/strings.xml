@@ -299,5 +299,6 @@
         <item quantity="few">Выбрано (%1$d)</item>
         <item quantity="many">Выбрано (%1$d)</item>
         <item quantity="other">Выбрано (%1$d)</item>
-    </plurals> 
+    </plurals>
+    <string name="invalid_file_type">Поддерживаются только следующие файлы моделей: %1$s</string>
 </resources>
