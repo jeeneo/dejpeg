@@ -16,7 +16,6 @@ material = "1.14.0"
 # for now pin to old version
 #noinspection GradleDependency
 material3 = "1.5.0-alpha19"
-# fix rememberBottomSheetState prior to doing so
 
 materialIconsExtended = "1.7.8"
 navigationCompose = "2.9.8"
