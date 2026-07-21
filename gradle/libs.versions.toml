@@ -13,7 +13,6 @@ material = "1.14.0"
 # https://issuetracker.google.com/issues/529423493
 # not mentioned in the issue but
 # setting PopupProperties `dismissOnBackPress` to `false` can fix in newer releases
-# added july 4th - latest 1.5.0-alpha23
 # for now pin to old version
 #noinspection GradleDependency
 material3 = "1.5.0-alpha19"

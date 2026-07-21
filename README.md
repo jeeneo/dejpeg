@@ -29,16 +29,16 @@ Translate:
 ### Additional details
 
 If you'd like to use models on PCs (Linux/Mac/Windows), look at [chaiNNer](https://chainner.app/)
-(for FBCNN, install this [custom node](chainner/) and use PyTorch models from the [FBCNN repo](https://github.com/jiaxi-jiang/FBCNN))
+(for FBCNN, install this [custom node](chainner/) and use PyTorch models from the [FBCNN repo](https://github.com/jiaxi-jiang/FBCNN)).
 
-Regarding the recent restriction of 3rd party apps, this won't be on the Play Store and I will not be involved with [Developer Verification](https://developer.android.com/developer-verification).
+This app will not be be on the Play Store and I will not be involved with [Developer "Verification"](https://developer.android.com/developer-verification), the code can be freely audited here.
 
-There's an experimental version using the LiteRT backend with `.tflite` models in the [LiteRT](https://codeberg.org/dryerlint/dejpeg/src/branch/litert) branch, however, model conversion is tedious, but the performance boost is significant for FBCNN and RMBG, SCUNet is *incompatible* and others have negligible performance boosts. It exists purely for experimentation with a premade LiteRT backend for image processing. The onnx version will still be updated.
+There's an experimental version using the LiteRT backend with [converted `.tflite` models](https://huggingface.co/colpona/dejpeg-models/tree/main/litert) in the [LiteRT](https://codeberg.org/dryerlint/dejpeg/src/branch/litert) branch. Conversion is difficult but the performance boost is significant for FBCNN and RMBG, SCUNet is *incompatible* and others have negligible performance boosts. You can download this version in Releases (merged with Oidn) and import as normal. Feel free to experiment with. The onnx version will still remain updated.
 
 <details>
 <summary><h3>building</h3></summary>
 
-Standard gradle build proceses. For building with [Intel® Oidn Denoising](https://www.openimagedenoise.org/), see [oidn/readme.md](oidn/readme.md)
+Standard gradle build proceses. For building with [Intel® Oidn Denoising](https://www.openimagedenoise.org/), see [oidn/readme.md](oidn/readme.md).
 
 </details>
 

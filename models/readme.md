@@ -37,6 +37,10 @@ Speed:
 
 note: after downloading these models, rename to contain either `u2net` or `rmbg` (e.g. `bria_rmbg_1.4.onnx`) respectively to their type for correct operation otherwise issues may occur when processing
 
+## LiteRT GPU
+
+there's an *experimental* version of DeJPEG using GPU acceleration (LiteRT) with [converted `.tflite` models](https://huggingface.co/colpona/dejpeg-models/tree/main/litert), you can download this version in Releases and import as normal.
+
 ----
 
 # Other compatible models:
