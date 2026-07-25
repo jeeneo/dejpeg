@@ -105,6 +105,10 @@ android {
         @Suppress("UnstableApiUsage")
         generateLocaleConfig = true
     }
+    dependenciesInfo {
+        // Disables dependency metadata when building APKs (for IzzyOnDroid/F-Droid)
+        includeInApk = false
+    }
 }
 
 androidComponents {
