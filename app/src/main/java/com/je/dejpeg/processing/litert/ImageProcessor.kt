@@ -294,7 +294,7 @@ class ImageProcessor(
             }
             val maskBitmap = createBitmap(outW, outH, Bitmap.Config.ARGB_8888)
             maskBitmap.setPixels(maskPixels, 0, outW, 0, 0, outW, outH)
-            // rmbg always scales the mask back — this is intentional
+            
             val scaledMask = if (outW != originalW || outH != originalH) {
                 val resized = maskBitmap.scale(originalW, originalH)
                 maskBitmap.recycle()
