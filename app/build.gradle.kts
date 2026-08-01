@@ -34,8 +34,8 @@ android {
         applicationId = "com.je.dejpeg"
         minSdk = 26
         targetSdk = 37
-        versionCode = 410
-        versionName = "4.1.0"
+        versionCode = 411
+        versionName = "4.1.1"
         ndk {
             abiFilters += abi
         }
