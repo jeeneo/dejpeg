@@ -25,6 +25,7 @@ import com.je.dejpeg.ui.components.SnackySnackbarEvents
 import com.je.dejpeg.utils.CacheManager
 import com.je.dejpeg.utils.ImageActions
 import com.je.dejpeg.utils.ImagePickerHelper
+import com.je.dejpeg.utils.ModelManager
 import com.je.dejpeg.utils.ModelType
 import com.je.dejpeg.utils.ProcessingQueueManager
 import kotlinx.coroutines.Dispatchers
@@ -68,6 +69,7 @@ class ProcessingViewModel : ViewModel() {
     val uiState = MutableStateFlow<ProcessingUiState>(ProcessingUiState.Idle)
     val processingErrorDialog = MutableStateFlow<String?>(null)
     val saveState = MutableStateFlow<SaveState>(SaveState.Idle)
+    val gpuCacheCreatingDialog = MutableStateFlow(false)
 
     private var appContext: Context? = null
     private var serviceHelper: ServiceCommunicationHelper? = null
@@ -381,6 +383,11 @@ class ProcessingViewModel : ViewModel() {
             CacheManager.saveUnprocessedImage(ctx, imageId, uri)
             val mode = settingsViewModel.processingMode.value
             val modelName = settingsViewModel.activeModels.value[mode]
+            if (mode == ModelType.LITERT && modelName != null &&
+                !ModelManager.gpuCacheExists(ctx, modelName)
+            ) {
+                gpuCacheCreatingDialog.value = true
+            }
             serviceHelper?.startProcessing(
                 imageId = imageId,
                 uriString = uriString,
@@ -634,6 +641,10 @@ class ProcessingViewModel : ViewModel() {
 
     fun dismissProcessingErrorDialog() {
         processingErrorDialog.value = null
+    }
+
+    fun dismissGpuCacheCreatingDialog() {
+        gpuCacheCreatingDialog.value = false
     }
 
     fun saveImage(

@@ -30,8 +30,8 @@ import java.io.OutputStream
 
 enum class ModelType(val extensions: List<String>, val enabled: Boolean = true) {
     ONNX(listOf(".onnx", ".ort"), true),
-    OIDN(listOf(".tza"), BuildConfig.OIDN_ENABLED);
-
+    OIDN(listOf(".tza"), BuildConfig.OIDN_ENABLED),
+    LITERT(listOf(".tflite"), BuildConfig.LITERT_ENABLED);
     fun matches(filename: String): Boolean {
         if (!enabled) return false
         val lower = filename.lowercase()
@@ -47,28 +47,34 @@ enum class ModelType(val extensions: List<String>, val enabled: Boolean = true) 
     }
 }
 
-class ModelManager(
-    private val context: Context,
-    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
+open class ModelManager(
+    protected val context: Context,
+    protected val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
 ) {
     private var currentSession: OrtSession? = null
     private var ortEnv: OrtEnvironment? = null
-    private val cachedActiveModels = mutableMapOf<ModelType, String?>()
+
+    protected val cachedActiveModels = mutableMapOf<ModelType, String?>()
     private val appPreferences = AppPreferences()
 
-    private fun getModelsDir(type: ModelType = ModelType.ONNX): File = when (type) {
+    protected fun getModelsDir(type: ModelType = ModelType.ONNX): File = when (type) {
         ModelType.ONNX -> ModelMigrationHelper.getOnnxModelsDir(context)
         ModelType.OIDN -> ModelMigrationHelper.getTzaModelsDir(context)
+        ModelType.LITERT -> ModelMigrationHelper.getLiteRtModelsDir(context)
     }
 
     companion object {
         private const val STARTER_MODELS_ASSET_DIR = "embedonnx"
+        private const val GPU_DELEGATE_CACHE_DIR = "gpu_delegate_cache"
 
         private val MODEL_INFO_RES_IDS = mapOf(
             // fbcnn (jpeg model)
             "fbcnn_color_fp16.onnx" to R.string.model_info_fbcnn_color_fp16,
             "fbcnn_gray_fp16.onnx" to R.string.model_info_fbcnn_gray_fp16,
             "fbcnn_gray_double_fp16.onnx" to R.string.model_info_fbcnn_gray_double_fp16,
+
+            // fbcnn litert variant
+            "fbcnn_color_float16.tflite" to R.string.model_info_fbcnn_color_fp16,
 
             // scunet (noise model)
             "scunet_color_real_gan_fp16.onnx" to R.string.model_info_scunet_color_real_gan_fp16,
@@ -154,6 +160,34 @@ class ModelManager(
         private val FIXED_INPUT_SIZE_BY_NAME = mapOf(
             "rmbg" to Pair(1024, 1024), "u2net" to Pair(320, 320)
         )
+
+        fun gpuCacheToken(modelName: String): String =
+            modelName.replace("[^a-zA-Z0-9_-]".toRegex(), "_").trimEnd('_')
+
+        fun gpuCacheDir(context: Context): File = File(context.cacheDir, GPU_DELEGATE_CACHE_DIR)
+
+        fun gpuCacheFiles(context: Context, modelName: String): List<File> {
+            val dir = gpuCacheDir(context)
+            if (!dir.exists()) return emptyList()
+            val prefix = gpuCacheToken(modelName)
+            return dir.listFiles { f -> f.name.startsWith(prefix) }?.toList() ?: emptyList()
+        }
+
+        fun gpuCacheExists(context: Context, modelName: String): Boolean =
+            gpuCacheFiles(context, modelName).isNotEmpty()
+
+        fun create(
+            context: Context,
+            coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
+        ): ModelManager {
+            return if (BuildConfig.LITERT_ENABLED) {
+                Class.forName("com.je.dejpeg.utils.LiteRtModelManager")
+                    .getDeclaredConstructor(Context::class.java, CoroutineScope::class.java)
+                    .newInstance(context, coroutineScope) as ModelManager
+            } else {
+                ModelManager(context, coroutineScope)
+            }
+        }
     }
 
     fun getFixedInputSize(modelName: String?): Pair<Int, Int>? {
@@ -210,6 +244,7 @@ class ModelManager(
         cachedActiveModels[modelType] = modelName
         when (modelType) {
             ModelType.ONNX -> unloadModel()
+            ModelType.LITERT -> unloadLiteRtModel()
             ModelType.OIDN -> {}
         }
         coroutineScope.launch {
@@ -223,7 +258,7 @@ class ModelManager(
         runBlocking { appPreferences.clearActiveModel() }
     }
 
-    private fun setCurrentProcessingModel(modelName: String) {
+    protected fun setCurrentProcessingModel(modelName: String) {
         coroutineScope.launch { appPreferences.setCurrentProcessingModel(modelName) }
     }
 
@@ -327,6 +362,15 @@ class ModelManager(
         System.gc(); System.runFinalization(); System.gc()
     }
 
+    open fun loadLiteRtModel(modelName: String? = null, useGpu: Boolean = true): Any =
+        throw UnsupportedOperationException("LiteRT not available in this build")
+
+    open fun unloadLiteRtModel() {
+        // no-op in ONNX-only builds
+    }
+    
+    open fun deleteGpuCache(modelName: String, type: ModelType = ModelType.LITERT): Boolean = false
+
     @Suppress("KotlinConstantConditions")
     fun importModel(
         modelUri: Uri,
@@ -340,6 +384,7 @@ class ModelManager(
                 ModelType.OIDN.matches(filename) -> {
                     ModelType.OIDN
                 }
+                ModelType.LITERT.matches(filename) -> ModelType.LITERT
                 ModelType.ONNX.matches(filename) -> ModelType.ONNX
                 else -> {
                     onError(invalidFileTypeMessage())
@@ -433,6 +478,24 @@ class ModelManager(
         val modelFile = File(getModelsDir(type), modelName)
         if (modelFile.exists()) {
             modelFile.delete()
+            if (type == ModelType.LITERT) {
+                deleteGpuCache(modelName, type)
+                val cacheDir = gpuCacheDir(context)
+                if (cacheDir.exists()) {
+                    val modelsDir = getModelsDir(ModelType.LITERT)
+                    val installedTokens = if (modelsDir.exists()) {
+                        modelsDir.listFiles { f -> ModelType.LITERT.matches(f.name) }
+                            ?.map { gpuCacheToken(it.name) }.orEmpty().toSet()
+                    } else emptySet()
+                    var swept = 0
+                    cacheDir.listFiles()?.forEach { file ->
+                        if (installedTokens.none { token -> file.name.startsWith(token) }) {
+                            file.delete(); swept++
+                        }
+                    }
+                    if (swept > 0) Log.d("ModelManager", "Swept $swept abandoned GPU cache file(s)")
+                }
+            }
             onDeleted(modelName)
         }
         if (modelName == getActiveModelName(type)) {

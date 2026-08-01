@@ -147,6 +147,7 @@ import com.je.dejpeg.ui.components.ImageSourceDialog
 import com.je.dejpeg.ui.components.PreparingShareDialog
 import com.je.dejpeg.ui.components.RemoveImageDialog
 import com.je.dejpeg.ui.components.SaveImageDialog
+import com.je.dejpeg.ui.components.SimpleAlertDialog
 import com.je.dejpeg.ui.components.SnackbarDuration
 import com.je.dejpeg.ui.components.SnackySnackbarController
 import com.je.dejpeg.ui.components.SnackySnackbarEvents
@@ -215,6 +216,7 @@ fun ProcessingScreen(
     val isLoadingImages by imageRepository.isLoadingImages.collectAsState()
     val loadingImagesProgress by imageRepository.loadingImagesProgress.collectAsState()
     val processingErrorDialog by viewModel.processingErrorDialog.collectAsState()
+    val gpuCacheCreatingDialog by viewModel.gpuCacheCreatingDialog.collectAsState()
     var imageIdToRemove by remember { mutableStateOf<String?>(null) }
     var imageIdToCancel by remember { mutableStateOf<String?>(null) }
     var showImageSourceDialog by remember { mutableStateOf(false) }
@@ -813,6 +815,14 @@ fun ProcessingScreen(
             errorMessage = errorMsg,
             onDismiss = { viewModel.dismissProcessingErrorDialog() },
             context = context
+        )
+    }
+    if (gpuCacheCreatingDialog) {
+        SimpleAlertDialog(
+            title = stringResource(R.string.gpu_cache_title),
+            message = stringResource(R.string.gpu_cache_text),
+            onDismiss = { viewModel.dismissGpuCacheCreatingDialog() },
+            confirmButtonText = stringResource(R.string.ok)
         )
     }
     if (isLoadingImages) {

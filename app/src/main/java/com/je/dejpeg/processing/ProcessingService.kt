@@ -21,6 +21,7 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import com.je.dejpeg.AppPreferences
+import com.je.dejpeg.BuildConfig
 import com.je.dejpeg.R
 import com.je.dejpeg.utils.CacheManager
 import com.je.dejpeg.utils.ImageLoadingHelper
@@ -138,11 +139,24 @@ class ProcessingService : Service() {
             putExtra(PID_EXTRA_VALUE, pid)
         }.also { sendBroadcast(it) }
         Log.d("ProcessingService", "Service started with PID: $pid")
-        modelManager = ModelManager(applicationContext)
-        processors = mapOf(
-            ModelType.ONNX to ImageProcessor(applicationContext, modelManager!!),
-            ModelType.OIDN to OIDNProcessor(applicationContext),
+        modelManager = ModelManager.create(applicationContext)
+        processors = buildProcessors(applicationContext, modelManager!!)
+    }
+
+    private fun buildProcessors(
+        context: Context, modelManager: ModelManager
+    ): Map<ModelType, Processor> {
+        val map = mutableMapOf(
+            ModelType.ONNX to ImageProcessor(context, modelManager),
+            ModelType.OIDN to OIDNProcessor(context),
         )
+        if (BuildConfig.LITERT_ENABLED) {
+            map[ModelType.LITERT] =
+                Class.forName("com.je.dejpeg.processing.litert.ImageProcessor")
+                    .getDeclaredConstructor(Context::class.java, ModelManager::class.java)
+                    .newInstance(context, modelManager) as Processor
+        }
+        return map
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -198,6 +212,15 @@ class ProcessingService : Service() {
                         ),
                     )
 
+                    ModelType.LITERT -> ProcessingParams.LiteRt(
+                        modelName = modelName,
+                        strength = intent.getFloatExtra(EXTRA_STRENGTH, 50f),
+                        overlapSize = intent.getIntExtra(
+                            EXTRA_OVERLAP_SIZE, AppPreferences.DEFAULT_OVERLAP_SIZE
+                        ),
+                        useGpu = intent.getBooleanExtra(EXTRA_USE_GPU, true),
+                    )
+
                     ModelType.OIDN -> ProcessingParams.Oidn(
                         weightsPath = intent.getStringExtra(EXTRA_OIDN_WEIGHTS_PATH),
                         hdr = intent.getBooleanExtra(EXTRA_OIDN_HDR, false),
@@ -244,8 +267,9 @@ class ProcessingService : Service() {
                             ImageLoadingHelper.loadBitmap(ImageSource.FromFile(unprocessedFile))
                                 ?: throw Exception("Failed to decode bitmap")
 
+                        // Create the appropriate callback based on processor type
                         val callback = when (processingMode) {
-                            ModelType.ONNX -> object :
+                            ModelType.ONNX, ModelType.LITERT -> object :
                                 Processor.OnnxProcessCallback {
                                 override fun onComplete(result: Bitmap) {
                                     try {
