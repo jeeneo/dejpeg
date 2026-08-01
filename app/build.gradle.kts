@@ -19,7 +19,7 @@ val hasReleaseSigning = listOf(
     releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword
 ).all { !it.isNullOrBlank() } && releaseStoreFile?.let { file(it).exists() } == true
 
-val buildOidn = gradle.startParameter.taskNames.any { "oidn" in it.lowercase() }
+val onnxOnly = gradle.startParameter.taskNames.any { "onnx" in it.lowercase() }
 val abi = "arm64-v8a"
 val signingState = if (hasReleaseSigning) "" else "-unsigned"
 val fileName = "${rootProject.name.lowercase()}-$abi$signingState"
@@ -39,9 +39,10 @@ android {
         ndk {
             abiFilters += abi
         }
-        buildConfigField("boolean", "OIDN_ENABLED", "false")
+        buildConfigField("boolean", "OIDN_ENABLED", "${!onnxOnly}")
+        buildConfigField("boolean", "LITERT_ENABLED", "${!onnxOnly}")
     }
-    if (buildOidn) {
+    if (!onnxOnly) {
         externalNativeBuild {
             cmake {
                 path = file("src/main/cpp/CMakeLists.txt")
@@ -76,13 +77,23 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
             )
         }
-        create("oidnDebug") {
+        create("onnxOnlyDebug") {
             initWith(getByName("debug"))
-            buildConfigField("boolean", "OIDN_ENABLED", "true")
+            buildConfigField("boolean", "OIDN_ENABLED", "false")
+            buildConfigField("boolean", "LITERT_ENABLED", "false")
         }
-        create("oidnRelease") {
+        create("onnxOnlyRelease") {
             initWith(getByName("release"))
-            buildConfigField("boolean", "OIDN_ENABLED", "true")
+            buildConfigField("boolean", "OIDN_ENABLED", "false")
+            buildConfigField("boolean", "LITERT_ENABLED", "false")
+        }
+    }
+    sourceSets {
+        if (!onnxOnly) {
+            getByName("main") {
+                java.srcDir("src/litert/java")
+                kotlin.srcDir("src/litert/java")
+            }
         }
     }
     compileOptions {
@@ -108,6 +119,7 @@ android {
     dependenciesInfo {
         // Disables dependency metadata when building APKs (for IzzyOnDroid/F-Droid)
         includeInApk = false
+        includeInBundle = false
     }
 }
 
@@ -140,7 +152,9 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.compose.animation.core)
     implementation(libs.backdrop)
-    //noinspection GradleDependency
-    implementation("com.google.ai.edge.litert:litert:1.4.2")
-    implementation("com.google.ai.edge.litert:litert-gpu:1.4.2")
+
+    if (!onnxOnly) {
+        implementation("com.google.ai.edge.litert:litert:1.4.2")
+        implementation("com.google.ai.edge.litert:litert-gpu:1.4.2")
+    }
 }

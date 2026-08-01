@@ -21,6 +21,7 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import com.je.dejpeg.AppPreferences
+import com.je.dejpeg.BuildConfig
 import com.je.dejpeg.R
 import com.je.dejpeg.utils.CacheManager
 import com.je.dejpeg.utils.ImageLoadingHelper
@@ -37,7 +38,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
-import com.je.dejpeg.processing.litert.ImageProcessor as LiteRtImageProcessor
 
 class ProcessingService : Service() {
     companion object {
@@ -139,12 +139,24 @@ class ProcessingService : Service() {
             putExtra(PID_EXTRA_VALUE, pid)
         }.also { sendBroadcast(it) }
         Log.d("ProcessingService", "Service started with PID: $pid")
-        modelManager = ModelManager(applicationContext)
-        processors = mapOf(
-            ModelType.ONNX to ImageProcessor(applicationContext, modelManager!!),
-            ModelType.LITERT to LiteRtImageProcessor(applicationContext, modelManager!!),
-            ModelType.OIDN to OIDNProcessor(applicationContext),
+        modelManager = ModelManager.create(applicationContext)
+        processors = buildProcessors(applicationContext, modelManager!!)
+    }
+
+    private fun buildProcessors(
+        context: Context, modelManager: ModelManager
+    ): Map<ModelType, Processor> {
+        val map = mutableMapOf(
+            ModelType.ONNX to ImageProcessor(context, modelManager),
+            ModelType.OIDN to OIDNProcessor(context),
         )
+        if (BuildConfig.LITERT_ENABLED) {
+            map[ModelType.LITERT] =
+                Class.forName("com.je.dejpeg.processing.litert.ImageProcessor")
+                    .getDeclaredConstructor(Context::class.java, ModelManager::class.java)
+                    .newInstance(context, modelManager) as Processor
+        }
+        return map
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

@@ -134,7 +134,7 @@ fun SettingsScreen(
     onBack: () -> Unit = {},
     isActive: Boolean = true,
 ) {
-    val modelManager = remember { ModelManager(App.ctx) }
+    val modelManager = remember { ModelManager.create(App.ctx) }
     val appPreferences = remember { AppPreferences() }
     val scope = rememberCoroutineScope()
     val showImportProgress = remember { mutableStateOf(false) }

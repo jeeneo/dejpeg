@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
-@file:Suppress("GrazieInspection", "SpellCheckingInspection")
-
 package com.je.dejpeg.processing.litert
 
 import android.content.Context
@@ -45,7 +43,9 @@ class ImageProcessor(
         }
         isCancelled = false
         try {
-            val interpreter = modelManager.loadLiteRtModel(params.modelName, useGpu = params.useGpu)
+            val interpreter = modelManager.loadLiteRtModel(
+                params.modelName, useGpu = params.useGpu
+            ) as Interpreter
             val imageInputIndex = (0 until interpreter.inputTensorCount).first {
                 interpreter.getInputTensor(it).shape().size == 4
             }

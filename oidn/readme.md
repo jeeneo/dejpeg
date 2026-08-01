@@ -33,4 +33,4 @@ choose a patch config and run in the repos root:
 
 then run the build script `bash oidn/build.sh`
 
-and finally run gradlew `./gradlew clean assembleOidnDebug` (or `./gradlew clean assembleOidnRelease`)
+and finally `./gradlew clean assembleDebug` (or release)

@@ -14,7 +14,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.je.dejpeg.App
 import com.je.dejpeg.AppPreferences
-import com.je.dejpeg.BuildConfig
 
 import com.je.dejpeg.utils.ModelManager
 import com.je.dejpeg.utils.ModelMigrationHelper
@@ -41,7 +40,9 @@ class SettingsViewModel : ViewModel() {
     val globalStrength = MutableStateFlow(AppPreferences.DEFAULT_GLOBAL_STRENGTH)
     private val _processingMode = MutableStateFlow(ModelType.ONNX)
     val processingMode: StateFlow<ModelType> =
-        _processingMode.map { saved -> if (!BuildConfig.OIDN_ENABLED && saved == ModelType.OIDN) ModelType.ONNX else saved }
+        _processingMode.map { saved ->
+            if (!saved.enabled) ModelType.ONNX else saved
+        }
             .stateIn(viewModelScope, SharingStarted.Eagerly, ModelType.ONNX)
 
     val installedAllModels: StateFlow<List<Pair<String, ModelType>>> =
@@ -89,7 +90,7 @@ class SettingsViewModel : ViewModel() {
         isInitialized = true
         val context = App.ctx
         appPreferences = AppPreferences()
-        modelManager = ModelManager(context)
+        modelManager = ModelManager.create(context)
 
         val prefs = appPreferences!!
         syncPref(chunkSize, prefs.chunkSize)

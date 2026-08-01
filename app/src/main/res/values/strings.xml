@@ -92,6 +92,8 @@
     </plurals>
     <string name="loading_images">Loading…</string>
     <string name="loading_image_progress">Loading %1$d of %2$d</string>
+    <string name="gpu_cache_title">GPU cache</string>
+    <string name="gpu_cache_text">Creating GPU cache for model, this may take a few seconds but only needs to be done once.</string>
     <string name="saving_images">Saving…</string>
     <string name="saving_image_progress">Saving %1$d of %2$d</string>
     <string name="error_processing_title">Processing error</string>
