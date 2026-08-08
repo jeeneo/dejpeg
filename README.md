@@ -47,7 +47,7 @@ To set up [Intel® Oidn Denoising](https://www.openimagedenoise.org/), see [oidn
 <details>
 <summary><h3>credits and license</h3></summary>
 
-This is a GUI for a select amount of `1x` ONNX processing models, used under their respective licenses (Apache 2.0)
+This is a GUI for `1x` image processing models, used under their respective licenses
 
 DeJPEG v4 and onward is licensed under [AGPLv3-or-later](https://spdx.org/licenses/AGPL-3.0-or-later.html)
 Older versions (v3 and under) are under GPLv3-only.
