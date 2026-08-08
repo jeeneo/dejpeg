@@ -301,4 +301,6 @@
         <item quantity="other">Выбрано (%1$d)</item>
     </plurals>
     <string name="invalid_file_type">Поддерживаются только следующие файлы моделей: %1$s</string>
+    <string name="gpu_cache_title">GPU кэш</string>
+    <string name="gpu_cache_text">Создание кэша GPU для модели; это может занять несколько секунд, но выполняется только один раз.</string>
 </resources>
