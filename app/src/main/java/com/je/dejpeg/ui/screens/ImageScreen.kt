@@ -80,9 +80,6 @@ import me.saket.telephoto.zoomable.ZoomSpec
 import me.saket.telephoto.zoomable.rememberZoomableState
 import me.saket.telephoto.zoomable.zoomable
 
-private val PillOuter = 50.dp
-private val PillInner = 6.dp
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ImageScreen(
@@ -184,11 +181,11 @@ fun ImageScreen(
                                 },
                                 shapes = ButtonDefaults.shapes(
                                     shape = RoundedCornerShape(
-                                        topStart = PillOuter,
-                                        bottomStart = PillOuter,
-                                        topEnd = PillInner,
-                                        bottomEnd = PillInner
-                                    ), pressedShape = RoundedCornerShape(PillOuter)
+                                        topStart = 50.dp,
+                                        bottomStart = 50.dp,
+                                        topEnd = 6.dp,
+                                        bottomEnd = 6.dp
+                                    ), pressedShape = RoundedCornerShape(50.dp)
                                 ),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.inverseOnSurface,
@@ -214,11 +211,11 @@ fun ImageScreen(
                                 },
                                 shapes = ButtonDefaults.shapes(
                                     shape = RoundedCornerShape(
-                                        topStart = PillInner,
-                                        bottomStart = PillInner,
-                                        topEnd = PillOuter,
-                                        bottomEnd = PillOuter
-                                    ), pressedShape = RoundedCornerShape(PillOuter)
+                                        topStart = 50.dp,
+                                        bottomStart = 50.dp,
+                                        topEnd = 6.dp,
+                                        bottomEnd = 6.dp
+                                    ), pressedShape = RoundedCornerShape(6.dp)
                                 ),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.inverseOnSurface,

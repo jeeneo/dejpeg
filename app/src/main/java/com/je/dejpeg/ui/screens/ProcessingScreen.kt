@@ -41,9 +41,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -69,7 +67,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -95,7 +92,6 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SplitButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -139,10 +135,11 @@ import com.je.dejpeg.App
 import com.je.dejpeg.AppPreferences
 import com.je.dejpeg.HapticFeedbacks
 import com.je.dejpeg.ImageRepository
-
 import com.je.dejpeg.R
 import com.je.dejpeg.ui.components.CancelProcessingDialog
 import com.je.dejpeg.ui.components.ErrorAlertDialog
+import com.je.dejpeg.ui.components.GroupedListSpacing
+import com.je.dejpeg.ui.components.GroupedRow
 import com.je.dejpeg.ui.components.ImageSourceDialog
 import com.je.dejpeg.ui.components.PreparingShareDialog
 import com.je.dejpeg.ui.components.RemoveImageDialog
@@ -151,6 +148,7 @@ import com.je.dejpeg.ui.components.SimpleAlertDialog
 import com.je.dejpeg.ui.components.SnackbarDuration
 import com.je.dejpeg.ui.components.SnackySnackbarController
 import com.je.dejpeg.ui.components.SnackySnackbarEvents
+import com.je.dejpeg.ui.components.positionFor
 import com.je.dejpeg.ui.components.rememberMaterialPressState
 import com.je.dejpeg.ui.viewmodel.ImageItem
 import com.je.dejpeg.ui.viewmodel.ProcessingUiState
@@ -174,13 +172,6 @@ private enum class CardState { Idle, Processing, Complete, Stale }
 private val springStandard = spring<Float>(
     dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium
 )
-
-private fun cardPosition(index: Int, count: Int): CardPosition = when {
-    count <= 1 -> CardPosition.Solo
-    index == 0 -> CardPosition.Leading
-    index == count - 1 -> CardPosition.Trailing
-    else -> CardPosition.Center
-}
 
 @Composable
 fun ProcessingScreen(
@@ -485,7 +476,6 @@ fun ProcessingScreen(
                         }
                     }
                 }
-
                 val addInteraction = remember { MutableInteractionSource() }
                 val addPress by rememberMaterialPressState(addInteraction)
                 val addCorner = lerp(18f, 28f, addPress)
@@ -635,10 +625,7 @@ fun ProcessingScreen(
                         items = images, key = { _, image -> image.id }) { index, image ->
                         val swipeState = remember { mutableFloatStateOf(0f) }
                         val hasOutput = image.outputBitmap != null
-
-                        val position = cardPosition(index, images.size)
                         val isSelected = selectedImageIds.contains(image.id)
-
                         SwipeToDismissWrapper(
                             swipeState,
                             image.isProcessing,
@@ -666,36 +653,43 @@ fun ProcessingScreen(
                             ),
                             rightSwipeImmediate = !image.isProcessing && !(image.outputBitmap != null && !image.hasBeenSaved),
                         ) {
-                            ImageCard(
-                                image = image,
-                                position = position,
-                                isSelected = isSelected,
-                                isCompareReady = isCompareReady,
-                                onRemove = { handleImageRemoval(image.id) },
-                                onProcess = { tryProcess { viewModel.processImage(image.id) } },
-                                onBrisque = { HapticFeedbacks.light(); onNavigateToBrisque(image.id) },
+                            GroupedRow(
+                                position = positionFor(index + 1, images.size),
                                 onClick = {
-                                    if (isSelectionMode) toggleSelection(image.id)
-                                    else onNavigateToBeforeAfter(image.id)
-                                },
-                                onBeforeOnly = {
-                                    if (isSelectionMode) toggleSelection(image.id)
+                                    if (image.outputBitmap != null) if (isSelectionMode) toggleSelection(
+                                        image.id
+                                    )
+                                    else onNavigateToBeforeAfter(image.id) else if (isSelectionMode) toggleSelection(
+                                        image.id
+                                    )
                                     else onNavigateToBeforeAfter(image.id)
                                 },
                                 onLongClick = { toggleSelection(image.id) },
-                                onSave = { saveOrPrompt(image.id, image.filename) },
-                                onCompare = {
-                                    val (idA, idB) = selectedImageIds
-                                    onNavigateToCompare(idA, idB)
-                                    clearSelection()
-                                },
-                                isProcessing = image.isProcessing,
-                                haptic = HapticFeedbacks,
-                                onImportOutput = {
-                                    HapticFeedbacks.light()
-                                    viewModel.importOutputAsNewImage(image.id)
-                                },
-                            )
+                                selected = isSelected,
+                                // GroupedRow has internal padding we collapse
+                                verticalPadding = 0.dp,
+                                horizontalPadding = 0.dp
+                            ) {
+                                ImageCard(
+                                    image = image,
+                                    isCompareReady = isCompareReady,
+                                    onRemove = { handleImageRemoval(image.id) },
+                                    onProcess = { tryProcess { viewModel.processImage(image.id) } },
+                                    onBrisque = { HapticFeedbacks.light(); onNavigateToBrisque(image.id) },
+                                    onSave = { saveOrPrompt(image.id, image.filename) },
+                                    onCompare = {
+                                        val (idA, idB) = selectedImageIds
+                                        onNavigateToCompare(idA, idB)
+                                        clearSelection()
+                                    },
+                                    isProcessing = image.isProcessing,
+                                    haptic = HapticFeedbacks,
+                                    onImportOutput = {
+                                        HapticFeedbacks.light()
+                                        viewModel.importOutputAsNewImage(image.id)
+                                    },
+                                )
+                            }
                         }
                     }
                 }
@@ -1118,22 +1112,16 @@ fun SaveProgressDialog(saveState: SaveState.Saving) {
 @Composable
 fun ImageCard(
     image: ImageItem,
-    position: CardPosition = CardPosition.Solo,
     onRemove: () -> Unit,
     onProcess: () -> Unit,
     onBrisque: () -> Unit,
-    onClick: () -> Unit,
-    onBeforeOnly: () -> Unit,
     onSave: () -> Unit,
     onImportOutput: () -> Unit,
     isProcessing: Boolean = false,
     haptic: HapticFeedbacks,
-    isSelected: Boolean = false,
     isCompareReady: Boolean = false,
-    onLongClick: () -> Unit = {},
     onCompare: () -> Unit = {}
 ) {
-    val cardInteractionSource = remember { MutableInteractionSource() }
     val progressTint = MaterialTheme.colorScheme.primary
     val chunkFraction = if (image.totalChunks > 1) {
         image.completedChunks.toFloat() / image.totalChunks.coerceAtLeast(1)
@@ -1143,185 +1131,142 @@ fun ImageCard(
             animation = tween(1200, easing = EaseInOutSine), repeatMode = RepeatMode.Reverse
         )
     )
-    val selectionBorderColor by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-        animationSpec = spring(stiffness = Spring.StiffnessMedium),
-        label = "selection_border"
-    )
-    Card(
-        modifier = Modifier
+    Box(
+        Modifier
             .fillMaxWidth()
-            .border(
-                width = if (isSelected) 2.dp else 0.dp,
-                color = selectionBorderColor,
-                shape = cardShape(position)
-            )
-            .combinedClickable(
-                interactionSource = cardInteractionSource,
-                indication = ripple(),
-                enabled = !isProcessing,
-                onLongClick = { haptic.medium(); onLongClick() },
-                onClick = {
-                    haptic.light()
-                    if (image.outputBitmap != null) onClick() else onBeforeOnly()
-                }), shape = cardShape(position), colors = CardDefaults.cardColors(
-            if (isSelected) MaterialTheme.colorScheme.surfaceContainerHigh
-            else MaterialTheme.colorScheme.surfaceContainer
-        )
-    ) {
-        Box(
+            .drawBehind {
+                if (!isProcessing) return@drawBehind
+                if (chunkFraction >= 0f) {
+                    if (chunkFraction >= 1f) {
+                        drawRect(progressTint.copy(alpha = 0.12f))
+                    } else {
+                        val fillEnd = size.width * chunkFraction
+                        val softEdge = 12.dp.toPx()
+                        val gradientEnd = (fillEnd + softEdge).coerceAtMost(size.width)
+                        if (gradientEnd > 0f) {
+                            val solidStop = (fillEnd / gradientEnd).coerceIn(0f, 1f)
+                            drawRect(
+                                brush = Brush.horizontalGradient(
+                                    colorStops = arrayOf(
+                                        0f to progressTint.copy(alpha = 0.16f),
+                                        solidStop to progressTint.copy(alpha = 0.10f),
+                                        1f to Color.Transparent
+                                    ), startX = 0f, endX = gradientEnd
+                                )
+                            )
+                        }
+                    }
+                } else {
+                    drawRect(progressTint.copy(alpha = pulseAlpha.value))
+                }
+            }) {
+        Row(
             Modifier
                 .fillMaxWidth()
-                .drawBehind {
-                    if (!isProcessing) return@drawBehind
-                    if (chunkFraction >= 0f) {
-                        if (chunkFraction >= 1f) {
-                            drawRect(progressTint.copy(alpha = 0.12f))
-                        } else {
-                            val fillEnd = size.width * chunkFraction
-                            val softEdge = 12.dp.toPx()
-                            val gradientEnd = (fillEnd + softEdge).coerceAtMost(size.width)
-                            if (gradientEnd > 0f) {
-                                val solidStop = (fillEnd / gradientEnd).coerceIn(0f, 1f)
-                                drawRect(
-                                    brush = Brush.horizontalGradient(
-                                        colorStops = arrayOf(
-                                            0f to progressTint.copy(alpha = 0.16f),
-                                            solidStop to progressTint.copy(alpha = 0.10f),
-                                            1f to Color.Transparent
-                                        ), startX = 0f, endX = gradientEnd
-                                    )
-                                )
-                            }
-                        }
-                    } else {
-                        drawRect(progressTint.copy(alpha = pulseAlpha.value))
-                    }
-                }) {
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                val imageBitmap =
-                    remember(image.thumbnailBitmap, image.outputBitmap, image.inputBitmap) {
-                        (image.thumbnailBitmap ?: image.outputBitmap
-                        ?: image.inputBitmap).asImageBitmap()
-                    }
-                Box {
-                    Surface(
-                        Modifier
-                            .size(84.dp)
-                            .clip(RoundedCornerShape(12.dp)),
-                        color = MaterialTheme.colorScheme.surfaceVariant
-                    ) {
-                        Image(
-                            imageBitmap,
-                            image.filename,
-                            Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                    if (isSelected) {
-                        Box(
-                            Modifier
-                                .padding(4.dp)
-                                .size(22.dp)
-                                .background(MaterialTheme.colorScheme.primary, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Filled.Check,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.onPrimary
-                            )
-                        }
-                    }
+                // then add here so the progress animation looks better
+                .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(GroupedListSpacing)
+        ) {
+            val imageBitmap =
+                remember(image.thumbnailBitmap, image.outputBitmap, image.inputBitmap) {
+                    (image.thumbnailBitmap ?: image.outputBitmap
+                    ?: image.inputBitmap).asImageBitmap()
                 }
-                Column(
+            Box {
+                Surface(
                     Modifier
-                        .weight(1f)
-                        .height(84.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                        .size(84.dp)
+                        .clip(RoundedCornerShape(12.dp)),
+                    color = MaterialTheme.colorScheme.surfaceVariant
                 ) {
-                    Row(
-                        Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            image.filename,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier
-                                .weight(1f, fill = false)
-                                .alignByBaseline()
-                        )
-                        Text(
-                            image.size,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.alignByBaseline()
-                        )
-                    }
-                    Spacer(Modifier.weight(1f))
-                    if (image.outputBitmap != null && !isProcessing) {
-                        Surface(
-                            shape = RoundedCornerShape(32.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer
-                        ) {
-                            Text(
-                                stringResource(R.string.status_complete_ui),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                fontWeight = FontWeight.Medium,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                            )
-                        }
-                    } else if (!isProcessing) {
-                        Surface(
-                            shape = RoundedCornerShape(32.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer
-                        ) {
-                            Text(
-                                stringResource(R.string.status_ready),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                fontWeight = FontWeight.Medium,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                            )
-                        }
-                    }
-                    if (isProcessing && image.progress.isNotEmpty()) {
-                        Surface(
-                            shape = RoundedCornerShape(32.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer
-                        ) {
-                            Text(
-                                image.progress,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                fontWeight = FontWeight.Medium,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                            )
-                        }
-                    }
-                    Spacer(Modifier.weight(1f))
-                    ImageCardSplitButton(
-                        image = image,
-                        isProcessing = isProcessing,
-                        onProcess = onProcess,
-                        onRemove = onRemove,
-                        onBrisque = onBrisque,
-                        onSave = onSave,
-                        haptic = haptic,
-                        onImportOutput = onImportOutput,
-                        isCompareReady = isCompareReady,
-                        onCompare = onCompare
+                    Image(
+                        imageBitmap,
+                        image.filename,
+                        Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
                     )
                 }
+            }
+            Column(
+                Modifier
+                    .weight(1f)
+                    .height(84.dp), verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Row(
+                    Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        image.filename,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .weight(1f, fill = false)
+                            .alignByBaseline()
+                    )
+                    Text(
+                        image.size,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.alignByBaseline()
+                    )
+                }
+                Spacer(Modifier.weight(1f))
+                if (image.outputBitmap != null && !isProcessing) {
+                    Surface(
+                        shape = RoundedCornerShape(32.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer
+                    ) {
+                        Text(
+                            stringResource(R.string.status_complete_ui),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                        )
+                    }
+                } else if (!isProcessing) {
+                    Surface(
+                        shape = RoundedCornerShape(32.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer
+                    ) {
+                        Text(
+                            stringResource(R.string.status_ready),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+                if (isProcessing && image.progress.isNotEmpty()) {
+                    Surface(
+                        shape = RoundedCornerShape(32.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer
+                    ) {
+                        Text(
+                            image.progress,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+                Spacer(Modifier.weight(1f))
+                ImageCardSplitButton(
+                    image = image,
+                    isProcessing = isProcessing,
+                    onProcess = onProcess,
+                    onRemove = onRemove,
+                    onBrisque = onBrisque,
+                    onSave = onSave,
+                    haptic = haptic,
+                    onImportOutput = onImportOutput,
+                    isCompareReady = isCompareReady,
+                    onCompare = onCompare
+                )
             }
         }
     }
