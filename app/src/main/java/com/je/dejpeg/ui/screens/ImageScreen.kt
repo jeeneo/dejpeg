@@ -68,6 +68,8 @@ import com.je.dejpeg.HapticFeedbacks
 import com.je.dejpeg.ImageRepository
 import com.je.dejpeg.R
 import com.je.dejpeg.ui.components.BeforeAfterSlider
+import com.je.dejpeg.ui.components.PillInner
+import com.je.dejpeg.ui.components.PillOuter
 import com.je.dejpeg.ui.components.PreparingShareDialog
 import com.je.dejpeg.ui.components.SaveImageDialog
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
@@ -102,7 +104,6 @@ fun ImageScreen(
     var overwriteDialogState by remember { mutableStateOf<Pair<String, String>?>(null) }
     var isPreparingShare by remember { mutableStateOf(false) }
     val saveState by viewModel.saveState.collectAsState()
-
     val saveOrPrompt = rememberSaveOrPrompt(
         showSaveDialog = showSaveDialog,
         context = context,
@@ -181,10 +182,10 @@ fun ImageScreen(
                                 },
                                 shapes = ButtonDefaults.shapes(
                                     shape = RoundedCornerShape(
-                                        topStart = 50.dp,
-                                        bottomStart = 50.dp,
-                                        topEnd = 6.dp,
-                                        bottomEnd = 6.dp
+                                        topStart = PillOuter,
+                                        bottomStart = PillOuter,
+                                        topEnd = PillInner,
+                                        bottomEnd = PillInner
                                     ), pressedShape = RoundedCornerShape(50.dp)
                                 ),
                                 colors = ButtonDefaults.buttonColors(
@@ -211,11 +212,11 @@ fun ImageScreen(
                                 },
                                 shapes = ButtonDefaults.shapes(
                                     shape = RoundedCornerShape(
-                                        topStart = 50.dp,
-                                        bottomStart = 50.dp,
-                                        topEnd = 6.dp,
-                                        bottomEnd = 6.dp
-                                    ), pressedShape = RoundedCornerShape(6.dp)
+                                        topStart = PillInner,
+                                        bottomStart = PillInner,
+                                        topEnd = PillOuter,
+                                        bottomEnd = PillOuter
+                                    ), pressedShape = RoundedCornerShape(50.dp)
                                 ),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.inverseOnSurface,

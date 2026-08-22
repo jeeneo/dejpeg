@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -35,10 +34,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -51,13 +54,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.je.dejpeg.HapticFeedbacks
 
 val PillOuter = 50.dp
 val PillInner = 6.dp
 
 @Composable
-fun ToolbarSegmentColors(isActive: Boolean): Triple<Color, Color, Color> {
+fun toolbarSegmentColors(isActive: Boolean): Triple<Color, Color, Color> {
     val iconColor by animateColorAsState(
         targetValue = if (isActive) MaterialTheme.colorScheme.onSecondaryContainer
         else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
@@ -84,8 +86,7 @@ fun ToolbarSegmentButton(
     isLeading: Boolean, // controls which corners pinch on press
     onClick: () -> Unit,
 ) {
-    val (iconColor, containerColor, contentColor) = ToolbarSegmentColors(isActive)
-
+    val (iconColor, containerColor, contentColor) = toolbarSegmentColors(isActive)
     Button(
         onClick = onClick,
         shapes = ButtonDefaults.shapes(
@@ -148,20 +149,21 @@ fun positionFor(index: Int, count: Int): CardPosition = when {
 inline fun Modifier.thenIf(condition: Boolean, factory: Modifier.() -> Modifier): Modifier =
     if (condition) factory() else this
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun GroupedRow(
-    modifier: Modifier = Modifier,
     position: CardPosition,
-    elevation: Dp = 10.dp,
+    modifier: Modifier = Modifier,
     selected: Boolean = false,
-    hideExtras: Boolean = false,
     enabled: Boolean = true,
     onClick: (() -> Unit)? = null,
+    elevation: Dp = 10.dp,
+    hideExtras: Boolean = false,
     onLongClick: (() -> Unit)? = null,
     verticalPadding: Dp = 14.dp,
     horizontalPadding: Dp = 14.dp,
     horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
+    tooltip: String = "",
     content: @Composable RowScope.() -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -181,77 +183,93 @@ fun GroupedRow(
         animationSpec = spring(stiffness = Spring.StiffnessMedium),
         label = "selectionBorder"
     )
-
-    Box(modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(shape)
-                .alpha(if (enabled) 1f else 0.6f)
-                .background(background, shape)
-                .border(2.dp, selectionBorderColor, shape)
-                .thenIf(enabled && (onClick != null || onLongClick != null)) {
-                    combinedClickable(
-                        interactionSource = interactionSource,
-                        indication = LocalIndication.current,
-                        onClick = { HapticFeedbacks.light(); onClick?.invoke() },
-                        onLongClick = onLongClick,
-                    )
-                }
-                .padding(
-                    horizontal = horizontalPadding,
-                    vertical = verticalPadding,
-                ),
-            horizontalArrangement = horizontalArrangement,
-            verticalAlignment = Alignment.CenterVertically,
-            content = content,
-        )
-        if (!hideExtras) {
-            AnimatedVisibility(
-                visible = selected,
-                modifier = Modifier.align(Alignment.TopEnd),
-                enter = scaleIn(spring(dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn(),
-                exit = scaleOut() + fadeOut(),
-            ) {
-                Box(
-                    Modifier
-                        .padding(6.dp)
-                        .size(22.dp)
-                        .background(MaterialTheme.colorScheme.primary, CircleShape),
-                    contentAlignment = Alignment.Center
+    val row = @Composable {
+        Box(modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(shape)
+                    .alpha(if (enabled) 1f else 0.6f)
+                    .background(background, shape)
+                    .border(2.dp, selectionBorderColor, shape)
+                    .thenIf(enabled && (onClick != null || onLongClick != null)) {
+                        combinedClickable(
+                            interactionSource = interactionSource,
+                            indication = LocalIndication.current,
+                            onClick = { onClick?.invoke() },
+                            onLongClick = onLongClick,
+                        )
+                    }
+                    .padding(
+                        horizontal = horizontalPadding,
+                        vertical = verticalPadding,
+                    ),
+                horizontalArrangement = horizontalArrangement,
+                verticalAlignment = Alignment.CenterVertically,
+                content = content,
+            )
+            if (!hideExtras) {
+                AnimatedVisibility(
+                    visible = selected,
+                    modifier = Modifier.align(Alignment.TopEnd),
+                    enter = scaleIn(spring(dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn(),
+                    exit = scaleOut() + fadeOut(),
                 ) {
-                    Icon(
-                        Icons.Filled.Check,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.onPrimary
-                    )
+                    Box(
+                        Modifier
+                            .padding(6.dp)
+                            .size(22.dp)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Filled.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
                 }
             }
         }
     }
+    if (tooltip.isNotEmpty()) {
+        val tooltipState = rememberTooltipState()
+        TooltipBox(
+            positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+            tooltip = {
+                PlainTooltip {
+                    Text(tooltip)
+                }
+            },
+            state = tooltipState,
+        ) {
+            row()
+        }
+    } else {
+        row()
+    }
 }
 
-@Composable
-fun ScreenScaffold(
-    modifier: Modifier = Modifier,
-    topBar: @Composable () -> Unit = {},
-    bottomBar: @Composable () -> Unit = {},
-    snackbarHost: @Composable () -> Unit = {},
-    content: @Composable (PaddingValues) -> Unit,
-) {
-    Scaffold(
-        modifier = modifier,
-        topBar = topBar,
-        bottomBar = bottomBar,
-        snackbarHost = snackbarHost,
-        content = content,
-    )
-}
-
-fun Modifier.screenContentPadding(innerPadding: PaddingValues): Modifier =
-    this
-        .padding(innerPadding)
-        .consumeWindowInsets(innerPadding)
-        .padding(horizontal = ScreenHorizontalPadding)
-
+//@Composable
+//fun ScreenScaffold(
+//    modifier: Modifier = Modifier,
+//    topBar: @Composable () -> Unit = {},
+//    bottomBar: @Composable () -> Unit = {},
+//    snackbarHost: @Composable () -> Unit = {},
+//    content: @Composable (PaddingValues) -> Unit,
+//) {
+//    Scaffold(
+//        modifier = modifier,
+//        topBar = topBar,
+//        bottomBar = bottomBar,
+//        snackbarHost = snackbarHost,
+//        content = content,
+//    )
+//}
+//
+//fun Modifier.screenContentPadding(innerPadding: PaddingValues): Modifier =
+//    this
+//        .padding(innerPadding)
+//        .consumeWindowInsets(innerPadding)
+//        .padding(horizontal = ScreenHorizontalPadding)

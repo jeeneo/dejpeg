@@ -74,6 +74,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.outlined.AddPhotoAlternate
+import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -683,7 +684,6 @@ fun ProcessingScreen(
                                         clearSelection()
                                     },
                                     isProcessing = image.isProcessing,
-                                    haptic = HapticFeedbacks,
                                     onImportOutput = {
                                         HapticFeedbacks.light()
                                         viewModel.importOutputAsNewImage(image.id)
@@ -1118,7 +1118,6 @@ fun ImageCard(
     onSave: () -> Unit,
     onImportOutput: () -> Unit,
     isProcessing: Boolean = false,
-    haptic: HapticFeedbacks,
     isCompareReady: Boolean = false,
     onCompare: () -> Unit = {}
 ) {
@@ -1262,7 +1261,6 @@ fun ImageCard(
                     onRemove = onRemove,
                     onBrisque = onBrisque,
                     onSave = onSave,
-                    haptic = haptic,
                     onImportOutput = onImportOutput,
                     isCompareReady = isCompareReady,
                     onCompare = onCompare
@@ -1283,7 +1281,6 @@ private fun ImageCardSplitButton(
     onBrisque: () -> Unit,
     onSave: () -> Unit,
     onImportOutput: () -> Unit,
-    haptic: HapticFeedbacks,
     isCompareReady: Boolean = false,
     onCompare: () -> Unit = {},
 ) {
@@ -1338,15 +1335,15 @@ private fun ImageCardSplitButton(
             onClick = {
                 when (cardState) {
                     CardState.Processing -> {
-                        haptic.heavy(); onRemove()
+                        HapticFeedbacks.light(); onRemove()
                     }
 
                     CardState.Complete -> {
-                        haptic.medium(); onSave()
+                        HapticFeedbacks.light(); onSave()
                     }
 
                     CardState.Idle, CardState.Stale -> {
-                        haptic.medium(); onProcess()
+                        HapticFeedbacks.light(); onProcess()
                     }
                 }
             },
@@ -1365,7 +1362,7 @@ private fun ImageCardSplitButton(
         Box {
             SplitButtonDefaults.TrailingButton(
                 checked = menuExpanded,
-                onCheckedChange = { haptic.light(); menuExpanded = it },
+                onCheckedChange = { HapticFeedbacks.light(); menuExpanded = it },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = containerColor,
                     contentColor = contentColor,
@@ -1392,7 +1389,7 @@ private fun ImageCardSplitButton(
                         text = { Text(stringResource(R.string.compare)) },
                         leadingIcon = { Icon(Icons.Filled.SwapHoriz, null) },
                         onClick = {
-                            haptic.medium()
+                            HapticFeedbacks.medium()
                             menuExpanded = false
                             onCompare()
                         })
@@ -1404,7 +1401,7 @@ private fun ImageCardSplitButton(
                             Icon(Icons.Filled.PlayArrow, null)
                         },
                         onClick = {
-                            haptic.medium()
+                            HapticFeedbacks.medium()
                             menuExpanded = false
                             onProcess()
                         })
@@ -1414,10 +1411,21 @@ private fun ImageCardSplitButton(
                         text = { Text(stringResource(R.string.import_output)) },
                         leadingIcon = { Icon(Icons.Outlined.AddPhotoAlternate, null) },
                         onClick = {
-                            haptic.light()
+                            HapticFeedbacks.light()
                             menuExpanded = false
                             onImportOutput()
                         })
+                }
+                if (cardState == CardState.Stale) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.save)) },
+                        leadingIcon = { Icon(Icons.Filled.Save, null) },
+                        onClick = {
+                            HapticFeedbacks.light()
+                            menuExpanded = false
+                            onSave()
+                        })
+
                 }
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.brisque_analysis)) },
@@ -1435,7 +1443,7 @@ private fun ImageCardSplitButton(
                         }
                     },
                     onClick = {
-                        haptic.light()
+                        HapticFeedbacks.light()
                         menuExpanded = false
                         onBrisque()
                     })
@@ -1448,7 +1456,7 @@ private fun ImageCardSplitButton(
                             )
                         },
                         onClick = {
-                            haptic.heavy()
+                            HapticFeedbacks.heavy()
                             menuExpanded = false
                             onRemove()
                         })
