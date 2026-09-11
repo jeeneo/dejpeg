@@ -127,6 +127,7 @@ fun GroupedRow(
     modifier: Modifier = Modifier,
     position: CardPosition,
     orientation: GroupOrientation = GroupOrientation.Vertical,
+    cornerRole: CornerRole? = null,
     selected: Boolean = false,
     enabled: Boolean = true,
     onClick: (() -> Unit)? = null,
@@ -145,7 +146,7 @@ fun GroupedRow(
         targetValue = if (isPressed) 16.dp else 6.dp,
         label = "groupedRowOuterCorner",
     )
-    val shape = position.toCornerRole(orientation).toShape(inner = animatedOuter)
+    val shape = (cornerRole ?: position.toCornerRole(orientation)).toShape(inner = animatedOuter)
     val background = if (selected) {
         MaterialTheme.colorScheme.surfaceColorAtElevation(elevation * 4)
     } else {

@@ -49,8 +49,6 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -100,12 +98,11 @@ import com.je.dejpeg.ui.components.CardPosition
 import com.je.dejpeg.ui.components.CornerRole
 import com.je.dejpeg.ui.components.GroupedListSpacing
 import com.je.dejpeg.ui.components.GroupedRow
+import com.je.dejpeg.ui.components.SnackbarController
 import com.je.dejpeg.ui.components.SnackbarDuration
-import com.je.dejpeg.ui.components.SnackySnackbarController
 import com.je.dejpeg.ui.components.SnackySnackbarEvents
 import com.je.dejpeg.ui.components.positionFor
 import com.je.dejpeg.ui.components.rememberMaterialPressState
-import com.je.dejpeg.ui.components.toShape
 import com.je.dejpeg.ui.theme.AppTheme
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
@@ -144,7 +141,8 @@ fun SettingsSheet(
     val hapticFeedbackEnabled by appPreferences.hapticFeedbackEnabled.collectAsState(initial = true)
     val swapSwipeActions by appPreferences.swapSwipeActions.collectAsState(initial = false)
     val modelInfoDialog = remember { mutableStateOf<Pair<String, String>?>(null) }
-    val processingMode by viewModel.processingMode.collectAsState()
+    val activeSelection by viewModel.activeSelection.collectAsState()
+    val processingMode = activeSelection.type
     val oidnHdr by viewModel.oidnHdr.collectAsState()
     LaunchedEffect(processingMode) {
         if (expandedSection == SettingsSection.OnnxSettings || expandedSection == SettingsSection.OidnSettings) {
@@ -157,8 +155,8 @@ fun SettingsSheet(
     val oidnNumThreads by viewModel.oidnNumThreads.collectAsState()
     val uriHandler = LocalUriHandler.current
     val importError = remember { mutableStateOf<String?>(null) }
-    val activeModels by viewModel.activeModels.collectAsState()
-    val installedAllModels by viewModel.installedAllModels.collectAsState()
+    val importedModels by viewModel.importedModels.collectAsState()
+    val allModels = importedModels.flatMap { (type, names) -> names.map { name -> name to type } }
 
     val modelPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -169,7 +167,7 @@ fun SettingsSheet(
             viewModel.importModel(it, onProgress = { importProgress = it }, onSuccess = { name, _ ->
                 showImportProgress.value = false
                 scope.launch {
-                    SnackySnackbarController.pushEvent(
+                    SnackbarController.pushEvent(
                         SnackySnackbarEvents.MessageEvent(
                             message = importedModelMessage.format(name),
                             duration = SnackbarDuration.Short
@@ -190,9 +188,7 @@ fun SettingsSheet(
         containerColor = MaterialTheme.colorScheme.background
     ) {
         Box(
-            Modifier
-                .fillMaxWidth()
-//                .fillMaxHeight()
+            Modifier.fillMaxWidth()
         ) {
             Column(
                 modifier = Modifier
@@ -215,20 +211,21 @@ fun SettingsSheet(
 
                 val extractedMsg = stringResource(R.string.extracted_starter_models)
                 val failedMsg = stringResource(R.string.failed_to_extract_starter_models)
-                installedAllModels.forEachIndexed { index, (modelName, modelType) ->
+                allModels.forEachIndexed { index, (modelName, modelType) ->
                     val isActive =
-                        modelName == activeModels[modelType] && processingMode == modelType
+                        modelName == activeSelection.modelName && processingMode == modelType
                     key(modelName, modelType) {
                         if (index >= 1) {
                             Spacer(modifier = Modifier.height(GroupedListSpacing))
                         }
                         GroupedRow(
                             position = positionFor(
-                                index + 1, (installedAllModels.size + 1)
-                            ), onClick = {
+                                index + 1, (allModels.size + 1)
+                            ),
+                            onClick = {
                                 if (processingViewModel.isProcessingOrQueueActive()) {
                                     scope.launch {
-                                        SnackySnackbarController.pushEvent(
+                                        SnackbarController.pushEvent(
                                             SnackySnackbarEvents.MessageEvent(
                                                 message = blockedSwitchingMessage,
                                                 duration = SnackbarDuration.Short
@@ -238,7 +235,11 @@ fun SettingsSheet(
                                 } else {
                                     viewModel.setActiveModel(modelName)
                                 }
-                            }, selected = isActive, hideExtras = true, elevation = 24.dp
+                            },
+                            selected = isActive,
+                            hideExtras = true,
+                            elevation = 24.dp,
+                            verticalPadding = 8.dp,
                         ) {
                             Text(
                                 modelName,
@@ -268,7 +269,7 @@ fun SettingsSheet(
                                         modelName, modelType
                                     ) {
                                         scope.launch {
-                                            SnackySnackbarController.pushEvent(
+                                            SnackbarController.pushEvent(
                                                 SnackySnackbarEvents.MessageEvent(
                                                     message = deletedModelMessage.format(
                                                         it
@@ -290,35 +291,42 @@ fun SettingsSheet(
                     }
                 }
 
-                val hasModels = installedAllModels.isNotEmpty()
+                val hasModels = allModels.isNotEmpty()
                 val hasCard = processingMode == ModelType.OIDN || processingMode == ModelType.ONNX
+                if (hasModels) Spacer(modifier = Modifier.height(GroupedListSpacing))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(GroupedListSpacing),
                 ) {
-                    Button(
+                    GroupedRow(
+                        modifier = Modifier.weight(1f),
+                        position = CardPosition.Leading,
+                        cornerRole = CornerRole(topStart = !hasModels, bottomStart = !hasCard),
+                        hideExtras = true,
+                        horizontalArrangement = Arrangement.Center,
                         onClick = {
                             HapticFeedbacks.light()
                             modelPickerLauncher.launch("*/*")
                         },
-                        modifier = Modifier.weight(1f),
-                        shape = CornerRole(topStart = !hasModels, bottomStart = !hasCard).toShape(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        verticalPadding = 12.dp,
                     ) {
-                        Icon(
-                            Icons.Filled.Add, null, modifier = Modifier.size(16.dp)
-                        )
+                        Icon(Icons.Filled.Add, null, modifier = Modifier.size(21.dp))
                         Spacer(Modifier.width(4.dp))
                         Text(
                             stringResource(R.string.import_model_text),
-                            overflow = TextOverflow.Ellipsis,
-                            maxLines = 1
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
-                    Button(
+
+                    GroupedRow(
+                        modifier = Modifier.weight(1f),
+                        position = CardPosition.Center,
+                        cornerRole = CornerRole.None,
+                        hideExtras = true,
+                        horizontalArrangement = Arrangement.Center,
                         onClick = {
                             HapticFeedbacks.light()
                             scope.launch {
@@ -327,14 +335,14 @@ fun SettingsSheet(
                                 }
                                 if (extracted) {
                                     viewModel.refreshInstalledModels(ModelType.ONNX)
-                                    SnackySnackbarController.pushEvent(
+                                    SnackbarController.pushEvent(
                                         SnackySnackbarEvents.MessageEvent(
                                             message = extractedMsg,
                                             duration = SnackbarDuration.Short
                                         )
                                     )
                                 } else {
-                                    SnackySnackbarController.pushEvent(
+                                    SnackbarController.pushEvent(
                                         SnackySnackbarEvents.MessageEvent(
                                             message = failedMsg, duration = SnackbarDuration.Short
                                         )
@@ -342,53 +350,51 @@ fun SettingsSheet(
                                 }
                             }
                         },
-                        shape = CornerRole.None.toShape(),
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        verticalPadding = 12.dp,
                     ) {
-                        Icon(
-                            Icons.Filled.Archive, null, modifier = Modifier.size(16.dp)
-                        )
+                        Icon(Icons.Filled.Archive, null, modifier = Modifier.size(21.dp))
                         Spacer(Modifier.width(4.dp))
                         Text(
                             stringResource(R.string.extract),
-                            overflow = TextOverflow.Ellipsis,
-                            maxLines = 1
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
-                    Button(
+
+                    GroupedRow(
+                        modifier = Modifier.weight(1f),
+                        position = CardPosition.Trailing,
+                        cornerRole = CornerRole(topEnd = !hasModels, bottomEnd = !hasCard),
+                        hideExtras = true,
+                        horizontalArrangement = Arrangement.Center,
                         onClick = {
                             HapticFeedbacks.light()
                             uriHandler.openUri("https://codeberg.org/dryerlint/dejpeg/src/branch/main/models")
                         },
-                        modifier = Modifier.weight(1f),
-                        shape = CornerRole(topEnd = !hasModels, bottomEnd = !hasCard).toShape(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        verticalPadding = 12.dp,
                     ) {
-                        Icon(
-                            Icons.Filled.Download, null, modifier = Modifier.size(16.dp)
-                        )
+                        Icon(Icons.Filled.Download, null, modifier = Modifier.size(21.dp))
                         Spacer(Modifier.width(4.dp))
                         Text(
                             stringResource(R.string.download),
-                            overflow = TextOverflow.Ellipsis,
-                            maxLines = 1
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
+                Spacer(modifier = Modifier.height(GroupedListSpacing))
 
                 AnimatedVisibility(
                     visible = hasModels,
                     enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
                     exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
                 ) {
-                    val isExpanded = expandedSection == SettingsSection.OidnSettings || expandedSection == SettingsSection.OnnxSettings
+                    val isExpanded =
+                        expandedSection == SettingsSection.OidnSettings || expandedSection == SettingsSection.OnnxSettings
                     val count = if (isExpanded) 3 else 2
                     AnimatedVisibility(
                         visible = processingMode == ModelType.ONNX,
@@ -519,10 +525,8 @@ fun SettingsSheet(
                             })
                     }
                 }
-
                 val isExpanded = expandedSection == SettingsSection.MainSettings
                 val count = if (isExpanded) 2 else 1
-
                 Spacer(Modifier.height(6.dp))
                 PreferenceGroupHeading("Settings")
                 PreferenceItem(
@@ -596,7 +600,7 @@ fun SettingsSheet(
                             position = positionFor(5, 6), elevation = 24.dp, onClick = {
                                 scope.launch {
                                     appPreferences.setDefaultImageSource(null)
-                                    SnackySnackbarController.pushEvent(
+                                    SnackbarController.pushEvent(
                                         SnackySnackbarEvents.MessageEvent(
                                             message = clearedDefaultSourceMsg,
                                             duration = SnackbarDuration.Short
@@ -621,7 +625,7 @@ fun SettingsSheet(
                                     HapticFeedbacks.light()
                                     scope.launch {
                                         appPreferences.setDefaultImageSource(null)
-                                        SnackySnackbarController.pushEvent(
+                                        SnackbarController.pushEvent(
                                             SnackySnackbarEvents.MessageEvent(
                                                 message = clearedDefaultSourceMsg,
                                                 duration = SnackbarDuration.Short
@@ -975,7 +979,9 @@ fun PreferenceItem(
             Column(modifier = Modifier.fillMaxWidth()) {
                 Spacer(modifier = Modifier.height(GroupedListSpacing))
                 GroupedRow(
-                    position = CardPosition.Trailing, verticalPadding = 0.dp, horizontalPadding = 0.dp
+                    position = CardPosition.Trailing,
+                    verticalPadding = 0.dp,
+                    horizontalPadding = 0.dp
                 ) {
                     Column(
                         Modifier.padding(

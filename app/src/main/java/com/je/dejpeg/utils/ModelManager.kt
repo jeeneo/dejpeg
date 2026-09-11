@@ -11,7 +11,6 @@ import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtException
 import ai.onnxruntime.OrtLoggingLevel
 import ai.onnxruntime.OrtSession
-import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -29,9 +28,11 @@ import java.io.InputStream
 import java.io.OutputStream
 
 enum class ModelType(val extensions: List<String>, val enabled: Boolean = true) {
-    ONNX(listOf(".onnx", ".ort"), true),
-    OIDN(listOf(".tza"), BuildConfig.OIDN_ENABLED),
-    LITERT(listOf(".tflite"), BuildConfig.LITERT_ENABLED);
+    ONNX(listOf(".onnx", ".ort"), true), OIDN(listOf(".tza"), BuildConfig.OIDN_ENABLED), LITERT(
+        listOf(".tflite"),
+        BuildConfig.LITERT_ENABLED
+    );
+
     fun matches(filename: String): Boolean {
         if (!enabled) return false
         val lower = filename.lowercase()
@@ -53,7 +54,6 @@ open class ModelManager(
 ) {
     private var currentSession: OrtSession? = null
     private var ortEnv: OrtEnvironment? = null
-
     protected val cachedActiveModels = mutableMapOf<ModelType, String?>()
     private val appPreferences = AppPreferences()
 
@@ -69,82 +69,83 @@ open class ModelManager(
 
         private val MODEL_INFO_RES_IDS = mapOf(
             // fbcnn (jpeg model)
-            "fbcnn_color_fp16.onnx" to R.string.model_info_fbcnn_color_fp16,
-            "fbcnn_gray_fp16.onnx" to R.string.model_info_fbcnn_gray_fp16,
-            "fbcnn_gray_double_fp16.onnx" to R.string.model_info_fbcnn_gray_double_fp16,
-
-            // fbcnn litert variant
-            "fbcnn_color_float16.tflite" to R.string.model_info_fbcnn_color_fp16,
+            "fbcnn_color" to R.string.model_info_fbcnn_color,
+            "fbcnn_gray" to R.string.model_info_fbcnn_gray,
+            "fbcnn_gray_double" to R.string.model_info_fbcnn_gray_double,
 
             // scunet (noise model)
-            "scunet_color_real_gan_fp16.onnx" to R.string.model_info_scunet_color_real_gan_fp16,
-            "scunet_color_real_psnr_fp16.onnx" to R.string.model_info_scunet_color_real_psnr_fp16,
-            "scunet_color_15_fp16.onnx" to R.string.model_info_scunet_color_15_fp16,
-            "scunet_color_25_fp16.onnx" to R.string.model_info_scunet_color_25_fp16,
-            "scunet_color_50_fp16.onnx" to R.string.model_info_scunet_color_50_fp16,
-            "scunet_gray_15_fp16.onnx" to R.string.model_info_scunet_gray_15_fp16,
-            "scunet_gray_25_fp16.onnx" to R.string.model_info_scunet_gray_25_fp16,
-            "scunet_gray_50_fp16.onnx" to R.string.model_info_scunet_gray_50_fp16,
+            "scunet_color_real_gan" to R.string.model_info_scunet_color_real_gan,
+            "scunet_color_real_psnr" to R.string.model_info_scunet_color_real_psnr,
+            "scunet_color_15" to R.string.model_info_scunet_color_15,
+            "scunet_color_25" to R.string.model_info_scunet_color_25,
+            "scunet_color_50" to R.string.model_info_scunet_color_50,
+            "scunet_gray_15" to R.string.model_info_scunet_gray_15,
+            "scunet_gray_25" to R.string.model_info_scunet_gray_25,
+            "scunet_gray_50" to R.string.model_info_scunet_gray_50,
 
-            "deblurring_nafnet_2025may.onnx" to R.string.model_info_deblurring_nafnet_2025may,
+            "deblurring_nafnet_2025may" to R.string.model_info_deblurring_nafnet_2025may,
 
             // small models
-            "1x-AnimeUndeint-Compact-fp16.onnx" to R.string.model_info_1x_anime_undeint_compact_fp16,
-            "1x-BroadcastToStudio_Compact-fp16.onnx" to R.string.model_info_1x_broadcast_to_studio_compact_fp16,
-            "1x-WB-Denoise-fp16.onnx" to R.string.model_info_1x_wb_denoise_fp16,
-            "1xBook-Compact-fp16.onnx" to R.string.model_info_1x_book_compact_fp16,
-            "1xOverExposureCorrection_compact-fp16.onnx" to R.string.model_info_1x_over_exposure_correction_compact_fp16,
-            "1x-RGB-max-Denoise-fp16.onnx" to R.string.model_info_1x_rgb_max_denoise_fp16,
-            "1x-span-anime-pretrain-fp16.onnx" to R.string.model_info_1x_span_anime_pretrain_fp16,
+            "1x-AnimeUndeint-Compact-fp16" to R.string.model_info_1x_anime_undeint_compact,
+            "1x-BroadcastToStudio_Compact-fp16" to R.string.model_info_1x_broadcast_to_studio_compact,
+            "1x-WB-Denoise-fp16" to R.string.model_info_1x_wb_denoise,
+            "1xBook-Compact-fp16" to R.string.model_info_1x_book_compact,
+            "1xOverExposureCorrection_compact-fp16" to R.string.model_info_1x_over_exposure_correction_compact,
+            "1x-RGB-max-Denoise-fp16" to R.string.model_info_1x_rgb_max_denoise,
+            "1x-span-anime-pretrain-fp16" to R.string.model_info_1x_span_anime_pretrain,
 
             // other compression
-            "1x_JPEGDestroyerV2_96000G-fp16.onnx" to R.string.model_info_1x_jpeg_destroyer_v2_96000g_fp16,
-            "1x-NMKD-Jaywreck3-Lite-fp16.onnx" to R.string.model_info_1x_nmkd_jaywreck3_lite_fp16,
-            "1x_NMKD-h264Texturize-fp16.onnx" to R.string.model_info_1x_nmkd_h264_texturize_fp16,
-            "VHS-Sharpen-1x_46000_G-fp16.onnx" to R.string.model_info_vhs_sharpen_1x_46000_g_fp16,
-            "1x_BCGone_Smooth_110000_G-fp16.onnx" to R.string.model_info_1x_bc_gone_smooth_110000_g_fp16,
-            "1x-cinepak-fp16.onnx" to R.string.model_info_1x_cinepak_fp16,
-            "1x_BCGone-DetailedV2_40-60_115000_G-fp16.onnx" to R.string.model_info_1x_bc_gone_detailed_v2_40_60_115000_g_fp16,
-            "1x-DeBink-v4.onnx" to R.string.model_info_1x_de_bink_v4,
-            "1x-DeBink-v5.onnx" to R.string.model_info_1x_de_bink_v5,
-            "1x-DeBink-v6.onnx" to R.string.model_info_1x_de_bink_v6,
+            "1x_JPEGDestroyerV2_96000G-fp16" to R.string.model_info_1x_jpeg_destroyer_v2_96000g,
+            "1x-NMKD-Jaywreck3-Lite-fp16" to R.string.model_info_1x_nmkd_jaywreck3_lite,
+            "1x_NMKD-h264Texturize-fp16" to R.string.model_info_1x_nmkd_h264_texturize,
+            "VHS-Sharpen-1x_46000_G-fp16" to R.string.model_info_vhs_sharpen_1x_46000_g,
+            "1x_BCGone_Smooth_110000_G-fp16" to R.string.model_info_1x_bc_gone_smooth_110000_g,
+            "1x-cinepak-fp16" to R.string.model_info_1x_cinepak,
+            "1x_BCGone-DetailedV2_40-60_115000_G-fp16" to R.string.model_info_1x_bc_gone_detailed_v2_40_60_115000_g,
+            "1x-DeBink-v4" to R.string.model_info_1x_de_bink_v4,
+            "1x-DeBink-v5" to R.string.model_info_1x_de_bink_v5,
+            "1x-DeBink-v6" to R.string.model_info_1x_de_bink_v6,
 
             // JPEG quality range models
-            "1x_JPEG_00-20-fp16.ort" to R.string.model_info_1x_jpeg_00_20_fp16,
-            "1x_JPEG_20-40-fp16.ort" to R.string.model_info_1x_jpeg_20_40_fp16,
-            "1x_JPEG_40-60-fp16.ort" to R.string.model_info_1x_jpeg_40_60_fp16,
-            "1x_JPEG_60-80-fp16.ort" to R.string.model_info_1x_jpeg_60_80_fp16,
-            "1x_JPEG_80-100-fp16.ort" to R.string.model_info_1x_jpeg_80_100_fp16,
-            "1x_artifacts_jpg_00_20_alsa-fp16.onnx" to R.string.model_info_1x_artifacts_jpg_00_20_alsa_fp16,
-            "1x_artifacts_jpg_20_40_alsa-fp16.onnx" to R.string.model_info_1x_artifacts_jpg_20_40_alsa_fp16,
-            "1x_artifacts_jpg_40_60_alsa-fp16.onnx" to R.string.model_info_1x_artifacts_jpg_40_60_alsa_fp16,
-            "1x_artifacts_jpg_60_80_alsa-fp16.onnx" to R.string.model_info_1x_artifacts_jpg_60_80_alsa_fp16,
-            "1x_artifacts_jpg_80_100_alsa-fp16.onnx" to R.string.model_info_1x_artifacts_jpg_80_100_alsa_fp16,
+            // why did we even have these, these are deathly slow, slate for removal in next release
+            // attempt maybe litert conversion
+            /*
+            "1x_JPEG_00-20-fp16.ort" to R.string.model_info_1x_jpeg_00_20,
+            "1x_JPEG_20-40-fp16.ort" to R.string.model_info_1x_jpeg_20_40,
+            "1x_JPEG_40-60-fp16.ort" to R.string.model_info_1x_jpeg_40_60,
+            "1x_JPEG_60-80-fp16.ort" to R.string.model_info_1x_jpeg_60_80,
+            "1x_JPEG_80-100-fp16.ort" to R.string.model_info_1x_jpeg_80_100,
+            "1x_artifacts_jpg_00_20_alsa-fp16" to R.string.model_info_1x_artifacts_jpg_00_20_alsa,
+            "1x_artifacts_jpg_20_40_alsa-fp16" to R.string.model_info_1x_artifacts_jpg_20_40_alsa,
+            "1x_artifacts_jpg_40_60_alsa-fp16" to R.string.model_info_1x_artifacts_jpg_40_60_alsa,
+            "1x_artifacts_jpg_60_80_alsa-fp16" to R.string.model_info_1x_artifacts_jpg_60_80_alsa,
+            "1x_artifacts_jpg_80_100_alsa-fp16" to R.string.model_info_1x_artifacts_jpg_80_100_alsa,
+            */
 
             // miscellaneous
-            "1x-Anti-Aliasing-fp16.onnx" to R.string.model_info_1x_anti_aliasing_fp16,
-            "1x-KDM003-scans-fp16.onnx" to R.string.model_info_1x_kdm003_scans_fp16,
-            "1x-SpongeColor-Lite-fp16.onnx" to R.string.model_info_1x_sponge_color_lite_fp16,
-            "1x_Bandage-Smooth-fp16.onnx" to R.string.model_info_1x_bandage_smooth_fp16,
-            "1x_Bendel_Halftone-fp32.onnx" to R.string.model_info_1x_bendel_halftone_fp32,
-            "1x_ColorizerV2_22000G-fp16.onnx" to R.string.model_info_1x_colorizer_v2_22000g_fp16,
-            "1x_DeEdge-fp16.onnx" to R.string.model_info_1x_de_edge_fp16,
-            "1x_DeSharpen-fp16.onnx" to R.string.model_info_1x_de_sharpen_fp16,
-            "1x_DitherDeleterV3-Smooth-fp16.onnx" to R.string.model_info_1x_dither_deleter_v3_smooth_fp16,
-            "1x_GainresV4-fp16.onnx" to R.string.model_info_1x_gainres_v4_fp16,
-            "1x-Debandurh-FS-Ultra-lite-fp16.onnx" to R.string.model_info_1x_debandurh_fs_ultra_lite_fp16,
-            "1x_NMKD-BrightenRedux_200k-fp16.onnx" to R.string.model_info_1x_nmkd_brighten_redux_200k_fp16,
-            "1x_NMKDDetoon_97500_G-fp16.onnx" to R.string.model_info_1x_nmkd_detoon_97500_g_fp16,
-            "1x_NoiseToner-Poisson-Detailed_108000_G-fp16.onnx" to R.string.model_info_1x_noise_toner_poisson_detailed_108000_g_fp16,
-            "1x_NoiseToner-Poisson-Soft_101000_G-fp16.onnx" to R.string.model_info_1x_noise_toner_poisson_soft_101000_g_fp16,
-            "1x_NoiseToner-Uniform-Detailed_100000_G-fp16.onnx" to R.string.model_info_1x_noise_toner_uniform_detailed_100000_g_fp16,
-            "1x_NoiseToner-Uniform-Soft_100000_G-fp16.onnx" to R.string.model_info_1x_noise_toner_uniform_soft_100000_g_fp16,
-            "1x_ReDetail_v2_126000_G-fp16.onnx" to R.string.model_info_1x_re_detail_v2_126000_g_fp16,
-            "1x_Repainter_20000_G-fp16.onnx" to R.string.model_info_1x_repainter_20000_g_fp16,
-            "1x_artifacts_dithering_alsa-fp16.onnx" to R.string.model_info_1x_artifacts_dithering_alsa_fp16,
-            "1x_nmkdbrighten_10000_G-fp16.onnx" to R.string.model_info_1x_nmkd_brighten_10000_g_fp16,
+            "1x-Anti-Aliasing-fp16" to R.string.model_info_1x_anti_aliasing,
+            "1x-KDM003-scans-fp16" to R.string.model_info_1x_kdm003_scans,
+            "1x-SpongeColor-Lite-fp16" to R.string.model_info_1x_sponge_color_lite,
+            "1x_Bandage-Smooth-fp16" to R.string.model_info_1x_bandage_smooth,
+            "1x_Bendel_Halftone-fp32" to R.string.model_info_1x_bendel_halftone_fp32,
+            "1x_ColorizerV2_22000G-fp16" to R.string.model_info_1x_colorizer_v2_22000g,
+            "1x_DeEdge-fp16" to R.string.model_info_1x_de_edge,
+            "1x_DeSharpen-fp16" to R.string.model_info_1x_de_sharpen,
+            "1x_DitherDeleterV3-Smooth-fp16" to R.string.model_info_1x_dither_deleter_v3_smooth,
+            "1x_GainresV4-fp16" to R.string.model_info_1x_gainres_v4,
+            "1x-Debandurh-FS-Ultra-lite-fp16" to R.string.model_info_1x_debandurh_fs_ultra_lite,
+            "1x_NMKD-BrightenRedux_200k-fp16" to R.string.model_info_1x_nmkd_brighten_redux_200k,
+            "1x_NMKDDetoon_97500_G-fp16" to R.string.model_info_1x_nmkd_detoon_97500_g,
+            "1x_NoiseToner-Poisson-Detailed_108000_G-fp16" to R.string.model_info_1x_noise_toner_poisson_detailed_108000_g,
+            "1x_NoiseToner-Poisson-Soft_101000_G-fp16" to R.string.model_info_1x_noise_toner_poisson_soft_101000_g,
+            "1x_NoiseToner-Uniform-Detailed_100000_G-fp16" to R.string.model_info_1x_noise_toner_uniform_detailed_100000_g,
+            "1x_NoiseToner-Uniform-Soft_100000_G-fp16" to R.string.model_info_1x_noise_toner_uniform_soft_100000_g,
+            "1x_ReDetail_v2_126000_G-fp16" to R.string.model_info_1x_re_detail_v2_126000_g,
+            "1x_Repainter_20000_G-fp16" to R.string.model_info_1x_repainter_20000_g,
+            "1x_artifacts_dithering_alsa-fp16" to R.string.model_info_1x_artifacts_dithering_alsa,
+            "1x_nmkdbrighten_10000_G-fp16" to R.string.model_info_1x_nmkd_brighten_10000_g,
 
-            // special
+            // "special", like me
             "rmbg" to R.string.model_info_background_removal_bria_rmbg,
             "u2net" to R.string.model_info_background_removal_u2net
         )
@@ -177,8 +178,7 @@ open class ModelManager(
             gpuCacheFiles(context, modelName).isNotEmpty()
 
         fun create(
-            context: Context,
-            coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
+            context: Context, coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
         ): ModelManager {
             return if (BuildConfig.LITERT_ENABLED) {
                 Class.forName("com.je.dejpeg.utils.LiteRtModelManager")
@@ -368,7 +368,7 @@ open class ModelManager(
     open fun unloadLiteRtModel() {
         // no-op in ONNX-only builds
     }
-    
+
     open fun deleteGpuCache(modelName: String, type: ModelType = ModelType.LITERT): Boolean = false
 
     @Suppress("KotlinConstantConditions")
@@ -384,6 +384,7 @@ open class ModelManager(
                 ModelType.OIDN.matches(filename) -> {
                     ModelType.OIDN
                 }
+
                 ModelType.LITERT.matches(filename) -> ModelType.LITERT
                 ModelType.ONNX.matches(filename) -> ModelType.ONNX
                 else -> {
@@ -404,14 +405,12 @@ open class ModelManager(
         }
     }
 
-    @SuppressLint("StringFormatInvalid")
     private fun invalidFileTypeMessage(): String {
         val supportedTypes =
             ModelType.entries.filter { it.enabled }.flatMap { it.extensions }.joinToString(", ")
         return context.getString(R.string.invalid_file_type, supportedTypes)
     }
 
-    @SuppressLint("Recycle")
     private fun resolveFilename(uri: Uri): String {
         context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
             if (cursor.moveToFirst()) {
@@ -425,7 +424,6 @@ open class ModelManager(
         return uri.lastPathSegment?.trim() ?: "model.onnx"
     }
 
-    @SuppressLint("Recycle")
     private fun importModelInternal(
         uri: Uri,
         filename: String,
@@ -438,6 +436,10 @@ open class ModelManager(
             val modelsDir = getModelsDir(type)
             if (!modelsDir.exists()) modelsDir.mkdirs()
             val modelFile = File(modelsDir, filename)
+            if (modelFile.exists()) {
+                onError(context.getString(R.string.model_already_imported, filename))
+                return
+            }
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
                 val size =
                     context.contentResolver.openFileDescriptor(uri, "r")?.use { it.statSize } ?: 0L

@@ -17,7 +17,7 @@ import com.je.dejpeg.R
 import com.je.dejpeg.processing.BRISQUEAssessor
 import com.je.dejpeg.processing.BRISQUEDescaler
 import com.je.dejpeg.ui.components.SnackbarDuration
-import com.je.dejpeg.ui.components.SnackySnackbarController
+import com.je.dejpeg.ui.components.SnackbarController
 import com.je.dejpeg.ui.components.SnackySnackbarEvents
 import com.je.dejpeg.utils.ImageActions
 import kotlinx.coroutines.Dispatchers
@@ -244,7 +244,7 @@ class BrisqueViewModel : ViewModel() {
         saveState.value = SaveState.Saving(0, 1)
         ImageActions.saveImage(context = context, bitmap = bmp, filename = name, onSuccess = {
             viewModelScope.launch {
-                SnackySnackbarController.pushEvent(
+                SnackbarController.pushEvent(
                     SnackySnackbarEvents.MessageEvent(
                         message = context.resources.getQuantityString(
                             R.plurals.image_saved_to_gallery, 1, 1

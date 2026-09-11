@@ -19,8 +19,8 @@ import com.je.dejpeg.ImageRepository
 import com.je.dejpeg.R
 import com.je.dejpeg.processing.ProcessingService
 import com.je.dejpeg.processing.ServiceCommunicationHelper
+import com.je.dejpeg.ui.components.SnackbarController
 import com.je.dejpeg.ui.components.SnackbarDuration
-import com.je.dejpeg.ui.components.SnackySnackbarController
 import com.je.dejpeg.ui.components.SnackySnackbarEvents
 import com.je.dejpeg.utils.CacheManager
 import com.je.dejpeg.utils.ImageActions
@@ -36,6 +36,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.resume
+import kotlin.time.Duration.Companion.milliseconds
 
 @Immutable
 data class ImageItem(
@@ -80,7 +81,7 @@ class ProcessingViewModel : ViewModel() {
     private fun startCancelWatchdog(imageId: String?) {
         cancelWatchdogJob?.cancel()
         cancelWatchdogJob = viewModelScope.launch {
-            delay(CANCEL_WATCHDOG_TIMEOUT_MS)
+            delay(CANCEL_WATCHDOG_TIMEOUT_MS.milliseconds)
             if (queue.cancelInProgress) {
                 Log.w(
                     "ProcessingViewModel",
@@ -195,12 +196,7 @@ class ProcessingViewModel : ViewModel() {
             }
         }
         viewModelScope.launch {
-            settings.processingMode.collect {
-                markOutputsStale()
-            }
-        }
-        viewModelScope.launch {
-            settings.activeModels.collect {
+            settings.activeSelection.collect {
                 markOutputsStale()
             }
         }
@@ -381,11 +377,13 @@ class ProcessingViewModel : ViewModel() {
 
         viewModelScope.launch {
             CacheManager.saveUnprocessedImage(ctx, imageId, uri)
-            val mode = settingsViewModel.processingMode.value
-            val modelName = mode?.let { settingsViewModel.activeModels.value[it] }
+            val selection = settingsViewModel.activeSelection.value
+            val mode = selection.type
+            val modelName = selection.modelName
             if (mode != null) {
-                if (mode == ModelType.LITERT && modelName != null &&
-                    !ModelManager.gpuCacheExists(ctx, modelName)
+                if (mode == ModelType.LITERT && modelName != null && !ModelManager.gpuCacheExists(
+                        ctx, modelName
+                    )
                 ) {
                     gpuCacheCreatingDialog.value = true
                 }
@@ -447,10 +445,7 @@ class ProcessingViewModel : ViewModel() {
         }
         if (!wasKilled && targetImageId != null) {
             stopProcessing(
-                targetImageId,
-                statusCancelled,
-                isCancelled = true,
-                serviceAlreadyDead = !wasActive
+                targetImageId, statusCancelled, isCancelled = true, serviceAlreadyDead = !wasActive
             )
         }
     }
@@ -686,7 +681,7 @@ class ProcessingViewModel : ViewModel() {
                     val message = context.resources.getQuantityString(
                         R.plurals.image_saved_to_gallery, savedCount, savedCount
                     )
-                    SnackySnackbarController.pushEvent(
+                    SnackbarController.pushEvent(
                         SnackySnackbarEvents.MessageEvent(
                             message = message, duration = SnackbarDuration.Short
                         )

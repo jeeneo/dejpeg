@@ -142,7 +142,7 @@ fun ErrorAlertDialog(
                     ClipData.newPlainText(context.getString(R.string.error), errorMessage)
                 )
                 scope.launch {
-                    SnackySnackbarController.pushEvent(
+                    SnackbarController.pushEvent(
                         SnackySnackbarEvents.MessageEvent(
                             message = context.getString(R.string.error_copied),
                             duration = SnackbarDuration.Short
@@ -509,7 +509,7 @@ private fun PickerContents(
                     modifier = Modifier.size(32.dp)
                 )
                 Text(
-                    text = stringResource(R.string.internal_picker),
+                    text = stringResource(R.string.media_picker),
                 )
             },
             onClick = {

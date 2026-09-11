@@ -38,7 +38,7 @@ import com.je.dejpeg.ImageRepository
 import com.je.dejpeg.ui.components.ActivitySnackySnackbarController
 import com.je.dejpeg.ui.components.RecoveryDialog
 import com.je.dejpeg.ui.components.SnackySnackbarBox
-import com.je.dejpeg.ui.components.SnackySnackbarController
+import com.je.dejpeg.ui.components.SnackbarController
 import com.je.dejpeg.ui.components.SnackySnackbarHostState
 import com.je.dejpeg.ui.screens.ImageScreen
 import com.je.dejpeg.ui.screens.ProcessingScreen
@@ -64,14 +64,14 @@ fun MainScreen(
     DisposableEffect(lifecycleOwner, snackbarController) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                SnackySnackbarController.bind(snackbarController)
+                SnackbarController.bind(snackbarController)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        SnackySnackbarController.bind(snackbarController)
+        SnackbarController.bind(snackbarController)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            SnackySnackbarController.unbind(snackbarController)
+            SnackbarController.unbind(snackbarController)
         }
     }
     LaunchedEffect(Unit) {
@@ -174,9 +174,9 @@ class BeforeAfterActivity : ComponentActivity() {
                     val snackbarHostState = remember { SnackySnackbarHostState() }
                     val snackbarController = remember { ActivitySnackySnackbarController() }
                     DisposableEffect(snackbarController) {
-                        SnackySnackbarController.bind(snackbarController)
+                        SnackbarController.bind(snackbarController)
                         onDispose {
-                            SnackySnackbarController.unbind(
+                            SnackbarController.unbind(
                                 snackbarController
                             )
                         }
@@ -232,9 +232,9 @@ class CompareActivity : ComponentActivity() {
                     val snackbarHostState = remember { SnackySnackbarHostState() }
                     val snackbarController = remember { ActivitySnackySnackbarController() }
                     DisposableEffect(snackbarController) {
-                        SnackySnackbarController.bind(snackbarController)
+                        SnackbarController.bind(snackbarController)
                         onDispose {
-                            SnackySnackbarController.unbind(
+                            SnackbarController.unbind(
                                 snackbarController
                             )
                         }

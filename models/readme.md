@@ -71,8 +71,8 @@ there's an *experimental* version of DeJPEG using GPU acceleration (LiteRT) with
 - ✚ ➠ [1x-DeBink-v5.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x-DeBink-v5.onnx) ([source](https://openmodeldb.info/models/1x-DeBink-v5)) - usage: bink compression, stronger
 - ✚ ➠ [1x-DeBink-v6.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x-DeBink-v6.onnx) ([source](https://openmodeldb.info/models/1x-DeBink-v6)) - usage: bink compression, soft, retains detail
 
-### JPEG compression models:
-
+<!-- ### JPEG compression models: -->
+<!-- 
 #### General quality range ([source](https://huggingface.co/utnah/esrgan))
 - ✚ ➽➽ [1x_JPEG_00-20-fp16.ort](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_JPEG_00-20-fp16.ort)
 - ✚ ➽➽ [1x_JPEG_20-40-fp16.ort](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_JPEG_20-40-fp16.ort)
@@ -83,7 +83,7 @@ there's an *experimental* version of DeJPEG using GPU acceleration (LiteRT) with
 - ✚ ➽ [1x_artifacts_jpg_20_40_alsa-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_artifacts_jpg_20_40_alsa-fp16.onnx)
 - ✚ ➽ [1x_artifacts_jpg_40_60_alsa-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_artifacts_jpg_40_60_alsa-fp16.onnx)
 - ✚ ➽ [1x_artifacts_jpg_60_80_alsa-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_artifacts_jpg_60_80_alsa-fp16.onnx)
-- ✚ ➽ [1x_artifacts_jpg_80_100_alsa-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_artifacts_jpg_80_100_alsa-fp16.onnx)
+- ✚ ➽ [1x_artifacts_jpg_80_100_alsa-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_artifacts_jpg_80_100_alsa-fp16.onnx) -->
 
 ### Miscellaneous
 - ✚ ➠ [1x-Anti-Aliasing-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x-Anti-Aliasing-fp16.onnx) ([source](https://openmodeldb.info/models/1x-Anti-Aliasing)) - usage: anti-aliasing

@@ -32,9 +32,11 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
@@ -76,6 +78,7 @@ import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.outlined.AddPhotoAlternate
+import androidx.compose.material.icons.rounded.AddPhotoAlternate
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -147,8 +150,8 @@ import com.je.dejpeg.ui.components.PreparingShareDialog
 import com.je.dejpeg.ui.components.RemoveImageDialog
 import com.je.dejpeg.ui.components.SaveImageDialog
 import com.je.dejpeg.ui.components.SimpleAlertDialog
+import com.je.dejpeg.ui.components.SnackbarController
 import com.je.dejpeg.ui.components.SnackbarDuration
-import com.je.dejpeg.ui.components.SnackySnackbarController
 import com.je.dejpeg.ui.components.SnackySnackbarEvents
 import com.je.dejpeg.ui.components.positionFor
 import com.je.dejpeg.ui.components.rememberMaterialPressState
@@ -195,12 +198,12 @@ fun ProcessingScreen(
 
     val images by imageRepository.images.collectAsState()
     val globalStrength by settingsViewModel.globalStrength.collectAsState()
-    val processingMode by settingsViewModel.processingMode.collectAsState()
+    val activeSelection by settingsViewModel.activeSelection.collectAsState()
+    val processingMode = activeSelection.type
     val oidnInputScale by settingsViewModel.oidnInputScale.collectAsState()
 
     val isOidnMode = processingMode == ModelType.OIDN
-    val activeModels by settingsViewModel.activeModels.collectAsState()
-    val activeModelName = processingMode?.let { activeModels[it] }
+    val activeModelName = activeSelection.modelName
 
     val supportsStrength = activeModelName?.contains("fbcnn", ignoreCase = true) == true
 
@@ -266,7 +269,7 @@ fun ProcessingScreen(
 
     fun tryProcess(block: () -> Unit) {
         if (!settingsViewModel.hasActiveModel(processingMode)) scope.launch {
-            SnackySnackbarController.pushEvent(
+            SnackbarController.pushEvent(
                 SnackySnackbarEvents.MessageEvent(
                     message = noModelMessage, duration = SnackbarDuration.Long
                 )
@@ -454,7 +457,7 @@ fun ProcessingScreen(
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            androidx.compose.animation.AnimatedContent(
+                            AnimatedContent(
                                 targetState = when {
                                     isProcessing -> 0
                                     allComplete -> 1
@@ -509,7 +512,12 @@ fun ProcessingScreen(
                 }
             }
         }
-        if (images.isNotEmpty() && supportsStrength) {
+        val showCard = images.isNotEmpty() && supportsStrength
+        AnimatedVisibility(
+            visible = showCard,
+            enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
+            exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
+        ) {
             Card(
                 Modifier
                     .fillMaxWidth()
@@ -589,7 +597,7 @@ fun ProcessingScreen(
                     Box(
                         Modifier
                             .width(280.dp)
-                            .height(220.dp)
+                            .height(240.dp)
                             .clip(RoundedCornerShape(28.dp))
                             .clickable(
                                 interactionSource = buttonInteractionSource, indication = null
@@ -597,9 +605,9 @@ fun ProcessingScreen(
                             .padding(20.dp), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
-                                Icons.Outlined.AddPhotoAlternate,
+                                Icons.Rounded.AddPhotoAlternate,
                                 stringResource(R.string.add_images),
-                                modifier = Modifier.size(64.dp),
+                                modifier = Modifier.size(82.dp),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                             Spacer(Modifier.height(8.dp))

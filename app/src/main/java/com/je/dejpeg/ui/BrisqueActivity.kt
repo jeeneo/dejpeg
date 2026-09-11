@@ -59,9 +59,9 @@ class BrisqueActivity : ComponentActivity() {
                     val snackbarController =
                         remember { com.je.dejpeg.ui.components.ActivitySnackySnackbarController() }
                     DisposableEffect(snackbarController) {
-                        com.je.dejpeg.ui.components.SnackySnackbarController.bind(snackbarController)
+                        com.je.dejpeg.ui.components.SnackbarController.bind(snackbarController)
                         onDispose {
-                            com.je.dejpeg.ui.components.SnackySnackbarController.unbind(
+                            com.je.dejpeg.ui.components.SnackbarController.unbind(
                                 snackbarController
                             )
                         }

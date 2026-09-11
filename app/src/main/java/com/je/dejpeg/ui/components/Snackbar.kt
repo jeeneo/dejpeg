@@ -121,7 +121,7 @@ class ActivitySnackySnackbarController {
     suspend fun pushEvent(event: SnackySnackbarEvents) = _events.send(event)
 }
 
-object SnackySnackbarController {
+object SnackbarController {
     @Volatile
     private var bound: ActivitySnackySnackbarController? = null
 

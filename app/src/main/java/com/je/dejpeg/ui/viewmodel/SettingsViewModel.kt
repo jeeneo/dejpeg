@@ -21,31 +21,25 @@ import com.je.dejpeg.utils.ModelType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+data class ActiveSelection(
+    val type: ModelType? = null,
+    val modelName: String? = null
+)
+
 class SettingsViewModel : ViewModel() {
-    val installedModels = MutableStateFlow<Map<ModelType, List<String>>>(emptyMap())
-    val activeModels = MutableStateFlow<Map<ModelType, String?>>(emptyMap())
+    val activeSelection = MutableStateFlow(ActiveSelection())
     val hasCheckedModels = MutableStateFlow(false)
     val shouldShowNoModelDialog = MutableStateFlow(false)
     val chunkSize = MutableStateFlow(AppPreferences.DEFAULT_CHUNK_SIZE)
     val overlapSize = MutableStateFlow(AppPreferences.DEFAULT_OVERLAP_SIZE)
     val onnxDeviceThreads = MutableStateFlow(AppPreferences.DEFAULT_ONNX_DEVICE_THREADS)
     val globalStrength = MutableStateFlow(AppPreferences.DEFAULT_GLOBAL_STRENGTH)
-    private val _processingMode = MutableStateFlow<ModelType?>(null)
-    val processingMode: StateFlow<ModelType?> = _processingMode.map { saved ->
-        saved?.takeIf { it.enabled }
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
-
-    val installedAllModels: StateFlow<List<Pair<String, ModelType>>> =
-        installedModels.map { map -> map.flatMap { (type, names) -> names.map { name -> name to type } } }
-            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
-
+    val importedModels = MutableStateFlow<Map<ModelType, List<String>>>(emptyMap())
     val oidnHdr = MutableStateFlow(false)
     val oidnSrgb = MutableStateFlow(false)
     val oidnQuality = MutableStateFlow(AppPreferences.DEFAULT_OIDN_QUALITY)
@@ -67,13 +61,15 @@ class SettingsViewModel : ViewModel() {
         viewModelScope.launch { save(value) }
     }
 
+    private fun updateSelection(selection: ActiveSelection) {
+        activeSelection.value = selection
+        viewModelScope.launch { appPreferences?.setProcessingMode(selection.type) }
+    }
+
     fun setActiveModel(name: String) {
-        val modelType = ModelType.fromFilename(name)
-        modelType?.let { type ->
-            modelManager?.setActiveModel(name)
-            activeModels.value += (type to name)
-            setProcessingMode(type)
-        }
+        val type = ModelType.fromFilename(name) ?: return
+        modelManager?.setActiveModel(name)
+        updateSelection(ActiveSelection(type, name))
     }
 
     fun initialize() {
@@ -88,7 +84,6 @@ class SettingsViewModel : ViewModel() {
         syncPref(overlapSize, prefs.overlapSize)
         syncPref(onnxDeviceThreads, prefs.onnxDeviceThreads)
         syncPref(globalStrength, prefs.globalStrength)
-        syncPref(_processingMode, prefs.processingMode)
         syncPref(oidnHdr, prefs.oidnHdr)
         syncPref(oidnSrgb, prefs.oidnSrgb)
         syncPref(oidnQuality, prefs.oidnQuality)
@@ -100,32 +95,40 @@ class SettingsViewModel : ViewModel() {
             ModelMigrationHelper.migrateModelsIfNeeded()
 
             val newInstalled = mutableMapOf<ModelType, List<String>>()
-            val newActive = mutableMapOf<ModelType, String?>()
 
             ModelType.entries.forEach { type ->
                 newInstalled[type] = withContext(Dispatchers.IO) {
                     modelManager?.getInstalledModels(type) ?: emptyList()
                 }
-                newActive[type] = withContext(Dispatchers.IO) {
-                    modelManager?.getActiveModelName(type)
-                }
             }
 
-            installedModels.value = newInstalled
-            activeModels.value = newActive
+            importedModels.value = newInstalled
+
+            val savedType = prefs.processingMode.first()?.takeIf { it.enabled }
+            val savedName = savedType?.let { type ->
+                withContext(Dispatchers.IO) { modelManager?.getActiveModelName(type) }
+                    ?.takeIf { name -> newInstalled[type]?.contains(name) == true }
+            }
+            activeSelection.value = ActiveSelection(savedType, savedName)
             hasCheckedModels.value = true
 
             val starterExtracted = withContext(Dispatchers.IO) {
                 modelManager?.initializeStarterModel() ?: false
             }
             if (starterExtracted) {
-                installedModels.value += (ModelType.ONNX to (modelManager?.getInstalledModels(
-                    ModelType.ONNX
-                ) ?: emptyList()))
-                activeModels.value += (ModelType.ONNX to (modelManager?.getActiveModelName(ModelType.ONNX)))
+                val onnxInstalled = withContext(Dispatchers.IO) {
+                    modelManager?.getInstalledModels(ModelType.ONNX) ?: emptyList()
+                }
+                importedModels.value += (ModelType.ONNX to onnxInstalled)
+                if (activeSelection.value.type == null) {
+                    val starterName = withContext(Dispatchers.IO) {
+                        modelManager?.getActiveModelName(ModelType.ONNX)
+                    }
+                    updateSelection(ActiveSelection(ModelType.ONNX, starterName))
+                }
             }
 
-            val anyModelInstalled = installedModels.value.values.any { it.isNotEmpty() }
+            val anyModelInstalled = importedModels.value.values.any { it.isNotEmpty() }
             if (!anyModelInstalled) {
                 shouldShowNoModelDialog.value = true
             }
@@ -141,8 +144,10 @@ class SettingsViewModel : ViewModel() {
                 val name = modelManager?.getActiveModelName(type)
                 if (name != null && !installed.contains(name)) null else name
             }
-            installedModels.value += (type to installed)
-            activeModels.value += (type to active)
+            importedModels.value += (type to installed)
+            activeSelection.update { sel ->
+                if (sel.type == type) sel.copy(modelName = active) else sel
+            }
         }
     }
 
@@ -157,11 +162,9 @@ class SettingsViewModel : ViewModel() {
                 modelUri = uri,
                 onProgress = { launch(Dispatchers.Main) { onProgress(it) } },
                 onSuccess = { modelName, modelType ->
-                    installedModels.value += (modelType to (installedModels.value[modelType].orEmpty() + modelName))
+                    importedModels.value += (modelType to (importedModels.value[modelType].orEmpty() + modelName))
                     setActiveModel(modelName)
-                    activeModels.value += (modelType to modelName)
                     shouldShowNoModelDialog.value = false
-                    setProcessingMode(modelType)
                     launch(Dispatchers.Main) { onSuccess(modelName, modelType) }
                 },
                 onError = { launch(Dispatchers.Main) { onError(it) } })
@@ -176,10 +179,10 @@ class SettingsViewModel : ViewModel() {
             withContext(Dispatchers.Main) { onDeleted(modelName) }
             refreshInstalledModels(type)
             val remaining = modelManager?.getInstalledModels(type).orEmpty()
-            if (remaining.isEmpty() && _processingMode.value == type) {
-                setProcessingMode(null)
+            if (remaining.isEmpty() && activeSelection.value.type == type) {
+                updateSelection(ActiveSelection())
             }
-            val anyLeft = installedModels.value.values.any { it.isNotEmpty() }
+            val anyLeft = importedModels.value.values.any { it.isNotEmpty() }
             if (!anyLeft) {
                 withContext(Dispatchers.Main) { shouldShowNoModelDialog.value = true }
             }
@@ -201,10 +204,6 @@ class SettingsViewModel : ViewModel() {
 
     fun setGlobalStrength(strength: Float) {
         persistPref(globalStrength, strength) { appPreferences?.setGlobalStrength(it) ?: Unit }
-    }
-
-    fun setProcessingMode(mode: ModelType?) {
-        persistPref(_processingMode, mode) { appPreferences?.setProcessingMode(it) ?: Unit }
     }
 
     fun setOidnInputScale(scale: Float) =
