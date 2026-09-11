@@ -279,12 +279,11 @@ class BeforeAfterActivity : ComponentActivity() {
                     val viewModel: ProcessingViewModel = viewModel()
                     val imageRepository = remember { ImageRepository.getInstance() }
                     val snackbarHostState = remember { SnackySnackbarHostState() }
-                    val snackbarController =
-                        remember { com.je.dejpeg.ui.components.ActivitySnackySnackbarController() }
+                    val snackbarController = remember { ActivitySnackySnackbarController() }
                     DisposableEffect(snackbarController) {
-                        com.je.dejpeg.ui.components.SnackySnackbarController.bind(snackbarController)
+                        SnackySnackbarController.bind(snackbarController)
                         onDispose {
-                            com.je.dejpeg.ui.components.SnackySnackbarController.unbind(
+                            SnackySnackbarController.unbind(
                                 snackbarController
                             )
                         }

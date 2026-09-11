@@ -74,7 +74,6 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.outlined.AddPhotoAlternate
-import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -667,7 +666,6 @@ fun ProcessingScreen(
                                 },
                                 onLongClick = { toggleSelection(image.id) },
                                 selected = isSelected,
-                                // GroupedRow has internal padding we collapse
                                 verticalPadding = 0.dp,
                                 horizontalPadding = 0.dp
                             ) {
@@ -727,11 +725,8 @@ fun ProcessingScreen(
 
     if (showImageSourceDialog) {
         ImageSourceDialog(
-            onDismiss = { showImageSourceDialog = false },
-            onGallerySelected = { viewModel.launchGalleryPicker() },
-            onInternalSelected = { viewModel.launchInternalPhotoPicker() },
-            onDocumentsSelected = { viewModel.launchDocumentsPicker() },
-            onCameraSelected = { viewModel.launchCamera() })
+            onDismiss = { showImageSourceDialog = false }, viewModel = viewModel
+        )
     }
 
     if (showCancelAllDialog) {
