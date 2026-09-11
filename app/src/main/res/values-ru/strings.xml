@@ -75,7 +75,7 @@
     <string name="overlap_size_px">%1$d px</string>
     <string name="imported_model">Импортировано: %1$s</string>
     <string name="deleted_model">Удалено: %1$s</string>
-    <string name="import_model_text">Импорт модели</string>
+    <string name="import_model_text">Импорт</string>
     <string name="show_save_dialog">Подтверждение сохранения</string>
     <string name="swap_swipe_actions">Поменять действия свайпа</string>
     <string name="processing_threads_desc">Потоки</string>
@@ -279,7 +279,7 @@
     <string name="settings_title_models">Модели</string>
     <string name="settings_item_title_options">Параметры</string>
     <string name="settings_item_subtitle_options">Другие настройки</string>
-    <string name="settings_item_title_processing">ONNX Обработка</string>
+    <string name="settings_item_onnx_processing">ONNX Обработка</string>
     <string name="settings_item_subtitle_help_faq">Показать FAQ</string>
     <string name="settings_item_subtitle_sourcecode">Исходный код</string>
     <string name="settings_item_sourcecode_description">Открыть исходный код в браузере</string>

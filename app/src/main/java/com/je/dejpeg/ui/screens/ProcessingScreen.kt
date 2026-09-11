@@ -14,6 +14,7 @@ import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.animateColor
@@ -72,6 +73,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.outlined.AddPhotoAlternate
 import androidx.compose.material3.BasicAlertDialog
@@ -198,7 +200,7 @@ fun ProcessingScreen(
 
     val isOidnMode = processingMode == ModelType.OIDN
     val activeModels by settingsViewModel.activeModels.collectAsState()
-    val activeModelName = activeModels[processingMode]
+    val activeModelName = processingMode?.let { activeModels[it] }
 
     val supportsStrength = activeModelName?.contains("fbcnn", ignoreCase = true) == true
 
@@ -211,6 +213,7 @@ fun ProcessingScreen(
     var imageIdToRemove by remember { mutableStateOf<String?>(null) }
     var imageIdToCancel by remember { mutableStateOf<String?>(null) }
     var showImageSourceDialog by remember { mutableStateOf(false) }
+    var showSettingsSheet by remember { mutableStateOf(false) }
     var showCancelAllDialog by remember { mutableStateOf(false) }
     var saveDialogState by remember { mutableStateOf<Pair<String, String>?>(null) }
     var overwriteDialogState by remember { mutableStateOf<Pair<String, String>?>(null) }
@@ -349,7 +352,7 @@ fun ProcessingScreen(
             Arrangement.SpaceBetween,
             Alignment.CenterVertically
         ) {
-            androidx.compose.animation.AnimatedContent(
+            AnimatedContent(
                 targetState = isSelectionMode, label = "header_text", transitionSpec = {
                     fadeIn(spring(stiffness = Spring.StiffnessMedium)) + slideInVertically(
                         spring(dampingRatio = Spring.DampingRatioMediumBouncy),
@@ -405,7 +408,23 @@ fun ProcessingScreen(
                     ),
                     label = "fab_content"
                 )
-
+                val settingsInteraction = remember { MutableInteractionSource() }
+                val settingsPress by rememberMaterialPressState(settingsInteraction)
+                FloatingActionButton(
+                    onClick = {
+                        HapticFeedbacks.medium()
+                        showSettingsSheet = true
+                    },
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    shape = RoundedCornerShape(lerp(16f, 28f, settingsPress).dp),
+                    interactionSource = settingsInteraction,
+                ) {
+                    Icon(
+                        Icons.Filled.Settings,
+                        contentDescription = stringResource(R.string.settings)
+                    )
+                }
                 if (images.isNotEmpty()) {
                     FloatingActionButton(
                         onClick = {
@@ -727,6 +746,13 @@ fun ProcessingScreen(
         ImageSourceDialog(
             onDismiss = { showImageSourceDialog = false }, viewModel = viewModel
         )
+    }
+
+    if (showSettingsSheet) {
+        SettingsSheet(
+            viewModel = settingsViewModel,
+            processingViewModel = viewModel,
+            onDismiss = { showSettingsSheet = false })
     }
 
     if (showCancelAllDialog) {

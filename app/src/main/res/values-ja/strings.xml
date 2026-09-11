@@ -72,7 +72,7 @@
     <string name="overlap_size_px">%1$d px</string>
     <string name="imported_model">%1$s をインポートしました</string>
     <string name="deleted_model">%1$s を削除しました</string>
-    <string name="import_model_text">モデルをインポート</string>
+    <string name="import_model_text">インポート</string>
     <string name="show_save_dialog">保存の確認</string>
     <string name="swap_swipe_actions">スワイプ操作の入れ替え</string>
     <string name="processing_threads_desc">並列チャンク</string>
@@ -264,7 +264,7 @@
     <string name="settings_title_models">モデル</string>
     <string name="settings_item_title_options">オプション</string>
     <string name="settings_item_subtitle_options">その他の設定</string>
-    <string name="settings_item_title_processing">ONNX処理</string>
+    <string name="settings_item_onnx_processing">ONNX処理</string>
     <string name="settings_item_subtitle_help_faq">FAQを表示</string>
     <string name="settings_item_subtitle_sourcecode">ソースコード</string>
     <string name="settings_item_sourcecode_description">ブラウザでソースコードを開く</string>

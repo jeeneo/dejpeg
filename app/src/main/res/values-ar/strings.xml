@@ -77,7 +77,7 @@
     <string name="overlap_size_px">%1$d بكسل</string>
     <string name="imported_model">تم استيراد %1$s</string>
     <string name="deleted_model">تم حذف %1$s</string>
-    <string name="import_model_text">استيراد نموذج</string>
+    <string name="import_model_text">استيراد</string>
     <string name="show_save_dialog">تأكيد الحفظ</string>
     <string name="swap_swipe_actions">تبديل إجراءات التمرير</string>
     <string name="processing_threads_desc">أجزاء متوازية</string>
@@ -287,7 +287,7 @@
     <string name="settings_title_models">النماذج</string>
     <string name="settings_item_title_options">الخيارات</string>
     <string name="settings_item_subtitle_options">إعدادات أخرى</string>
-    <string name="settings_item_title_processing">المعالجة ONNX</string>
+    <string name="settings_item_onnx_processing">المعالجة ONNX</string>
     <string name="settings_item_subtitle_help_faq">عرض الأسئلة الشائعة</string>
     <string name="settings_item_subtitle_sourcecode">الكود المصدري</string>
     <string name="settings_item_sourcecode_description">فتح الكود المصدري في المتصفح</string>

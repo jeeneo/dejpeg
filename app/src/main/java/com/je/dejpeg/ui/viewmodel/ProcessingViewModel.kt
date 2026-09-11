@@ -382,32 +382,34 @@ class ProcessingViewModel : ViewModel() {
         viewModelScope.launch {
             CacheManager.saveUnprocessedImage(ctx, imageId, uri)
             val mode = settingsViewModel.processingMode.value
-            val modelName = settingsViewModel.activeModels.value[mode]
-            if (mode == ModelType.LITERT && modelName != null &&
-                !ModelManager.gpuCacheExists(ctx, modelName)
-            ) {
-                gpuCacheCreatingDialog.value = true
+            val modelName = mode?.let { settingsViewModel.activeModels.value[it] }
+            if (mode != null) {
+                if (mode == ModelType.LITERT && modelName != null &&
+                    !ModelManager.gpuCacheExists(ctx, modelName)
+                ) {
+                    gpuCacheCreatingDialog.value = true
+                }
+                serviceHelper?.startProcessing(
+                    imageId = imageId,
+                    uriString = uriString,
+                    filename = image.filename,
+                    strength = strength,
+                    chunkSize = settingsViewModel.chunkSize.value,
+                    overlapSize = settingsViewModel.overlapSize.value,
+                    onnxDeviceThreads = settingsViewModel.onnxDeviceThreads.value,
+                    modelName = modelName,
+                    processingMode = mode.name,
+                    oidnWeightsPath = if (mode == ModelType.OIDN) settingsViewModel.modelManager?.getActiveModelPath(
+                        ModelType.OIDN
+                    ) else null,
+                    oidnHdr = settingsViewModel.oidnHdr.value,
+                    oidnSrgb = settingsViewModel.oidnSrgb.value,
+                    oidnQuality = settingsViewModel.oidnQuality.value,
+                    oidnMaxMemoryMB = settingsViewModel.oidnMaxMemoryMB.value,
+                    oidnNumThreads = settingsViewModel.oidnNumThreads.value,
+                    oidnInputScale = settingsViewModel.oidnInputScale.value
+                )
             }
-            serviceHelper?.startProcessing(
-                imageId = imageId,
-                uriString = uriString,
-                filename = image.filename,
-                strength = strength,
-                chunkSize = settingsViewModel.chunkSize.value,
-                overlapSize = settingsViewModel.overlapSize.value,
-                onnxDeviceThreads = settingsViewModel.onnxDeviceThreads.value,
-                modelName = modelName,
-                processingMode = mode.name,
-                oidnWeightsPath = if (mode == ModelType.OIDN) settingsViewModel.modelManager?.getActiveModelPath(
-                    ModelType.OIDN
-                ) else null,
-                oidnHdr = settingsViewModel.oidnHdr.value,
-                oidnSrgb = settingsViewModel.oidnSrgb.value,
-                oidnQuality = settingsViewModel.oidnQuality.value,
-                oidnMaxMemoryMB = settingsViewModel.oidnMaxMemoryMB.value,
-                oidnNumThreads = settingsViewModel.oidnNumThreads.value,
-                oidnInputScale = settingsViewModel.oidnInputScale.value
-            )
         }
     }
 

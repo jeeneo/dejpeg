@@ -75,7 +75,7 @@
     <string name="overlap_size_px">%1$d px</string>
     <string name="imported_model">Imported %1$s</string>
     <string name="deleted_model">Deleted %1$s</string>
-    <string name="import_model_text">Import model</string>
+    <string name="import_model_text">Import</string>
     <string name="show_save_dialog">Save confirmation</string>
     <string name="swap_swipe_actions">Swap swipe actions</string>
     <string name="processing_threads_desc">Parallel chunks</string>
@@ -274,7 +274,7 @@
     <string name="settings_title_models">Models</string>
     <string name="settings_item_title_options">Options</string>
     <string name="settings_item_subtitle_options">Other settings</string>
-    <string name="settings_item_title_processing">ONNX Processing</string>
+    <string name="settings_item_onnx_processing">ONNX options</string>
     <string name="settings_item_subtitle_help_faq">Show FAQ</string>
     <string name="settings_item_subtitle_sourcecode">Source code</string>
     <string name="settings_item_sourcecode_description">Open source code in browser</string>

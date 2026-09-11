@@ -23,7 +23,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -38,22 +37,14 @@ class SettingsViewModel : ViewModel() {
     val overlapSize = MutableStateFlow(AppPreferences.DEFAULT_OVERLAP_SIZE)
     val onnxDeviceThreads = MutableStateFlow(AppPreferences.DEFAULT_ONNX_DEVICE_THREADS)
     val globalStrength = MutableStateFlow(AppPreferences.DEFAULT_GLOBAL_STRENGTH)
-    private val _processingMode = MutableStateFlow(ModelType.ONNX)
-    val processingMode: StateFlow<ModelType> =
-        _processingMode.map { saved ->
-            if (!saved.enabled) ModelType.ONNX else saved
-        }
-            .stateIn(viewModelScope, SharingStarted.Eagerly, ModelType.ONNX)
+    private val _processingMode = MutableStateFlow<ModelType?>(null)
+    val processingMode: StateFlow<ModelType?> = _processingMode.map { saved ->
+        saved?.takeIf { it.enabled }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     val installedAllModels: StateFlow<List<Pair<String, ModelType>>> =
-        installedModels
-            .map { map -> map.flatMap { (type, names) -> names.map { name -> name to type } } }
+        installedModels.map { map -> map.flatMap { (type, names) -> names.map { name -> name to type } } }
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
-
-    val currentActiveModelName: StateFlow<String?> = combine(
-        activeModels, processingMode
-    ) { active, mode -> active[mode] }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     val oidnHdr = MutableStateFlow(false)
     val oidnSrgb = MutableStateFlow(false)
@@ -150,8 +141,8 @@ class SettingsViewModel : ViewModel() {
                 val name = modelManager?.getActiveModelName(type)
                 if (name != null && !installed.contains(name)) null else name
             }
-            installedModels.value = installedModels.value + (type to installed)
-            activeModels.value = activeModels.value + (type to active)
+            installedModels.value += (type to installed)
+            activeModels.value += (type to active)
         }
     }
 
@@ -166,10 +157,9 @@ class SettingsViewModel : ViewModel() {
                 modelUri = uri,
                 onProgress = { launch(Dispatchers.Main) { onProgress(it) } },
                 onSuccess = { modelName, modelType ->
-                    installedModels.value = installedModels.value +
-                            (modelType to (installedModels.value[modelType].orEmpty() + modelName))
+                    installedModels.value += (modelType to (installedModels.value[modelType].orEmpty() + modelName))
                     setActiveModel(modelName)
-                    activeModels.value = activeModels.value + (modelType to modelName)
+                    activeModels.value += (modelType to modelName)
                     shouldShowNoModelDialog.value = false
                     setProcessingMode(modelType)
                     launch(Dispatchers.Main) { onSuccess(modelName, modelType) }
@@ -185,6 +175,10 @@ class SettingsViewModel : ViewModel() {
             modelManager?.deleteModel(modelName, type)
             withContext(Dispatchers.Main) { onDeleted(modelName) }
             refreshInstalledModels(type)
+            val remaining = modelManager?.getInstalledModels(type).orEmpty()
+            if (remaining.isEmpty() && _processingMode.value == type) {
+                setProcessingMode(null)
+            }
             val anyLeft = installedModels.value.values.any { it.isNotEmpty() }
             if (!anyLeft) {
                 withContext(Dispatchers.Main) { shouldShowNoModelDialog.value = true }
@@ -192,8 +186,8 @@ class SettingsViewModel : ViewModel() {
         }
     }
 
-    fun hasActiveModel(type: ModelType = ModelType.ONNX) =
-        modelManager?.hasActiveModel(type) ?: false
+    fun hasActiveModel(type: ModelType? = ModelType.ONNX) =
+        type?.let { modelManager?.hasActiveModel(it) } ?: false
 
     fun setChunkSize(size: Int) =
         persistPref(chunkSize, size) { appPreferences?.setChunkSize(it) ?: Unit }
@@ -209,7 +203,7 @@ class SettingsViewModel : ViewModel() {
         persistPref(globalStrength, strength) { appPreferences?.setGlobalStrength(it) ?: Unit }
     }
 
-    fun setProcessingMode(mode: ModelType) {
+    fun setProcessingMode(mode: ModelType?) {
         persistPref(_processingMode, mode) { appPreferences?.setProcessingMode(it) ?: Unit }
     }
 

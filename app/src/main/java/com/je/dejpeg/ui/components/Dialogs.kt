@@ -479,7 +479,7 @@ private fun PickerContents(
     ) {
         GroupedSourceTile(
             modifier = Modifier.weight(1f),
-            corners = gridCorners(index = 1, count = 5, columns = 2),
+            corners = gridCornerRole(index = 1, count = 5, columns = 2),
             tooltip = stringResource(R.string.gallery_picker_desc),
             content = {
                 Icon(
@@ -499,7 +499,7 @@ private fun PickerContents(
 
         GroupedSourceTile(
             modifier = Modifier.weight(1f),
-            corners = gridCorners(index = 2, count = 5, columns = 2),
+            corners = gridCornerRole(index = 2, count = 5, columns = 2),
             tooltip = stringResource(R.string.internal_picker_desc),
             content = {
                 Icon(
@@ -522,7 +522,7 @@ private fun PickerContents(
         horizontalArrangement = Arrangement.spacedBy(GroupedListSpacing)
     ) {
         GroupedSourceTile(
-            corners = gridCorners(index = 3, count = 5, columns = 2),
+            corners = gridCornerRole(index = 3, count = 5, columns = 2),
             tooltip = stringResource(R.string.documents_picker_desc),
             modifier = Modifier.weight(1f),
             content = {
@@ -542,7 +542,7 @@ private fun PickerContents(
             })
         GroupedSourceTile(
             modifier = Modifier.weight(1f),
-            corners = gridCorners(index = 4, count = 5, columns = 2),
+            corners = gridCornerRole(index = 4, count = 5, columns = 2),
             tooltip = stringResource(R.string.camera_desc),
             content = {
                 Icon(

@@ -73,7 +73,7 @@
     <string name="overlap_size_px">%1$d px</string>
     <string name="imported_model">%1$s geïmporteerd</string>
     <string name="deleted_model">%1$s verwijderd</string>
-    <string name="import_model_text">Model importeren</string>
+    <string name="import_model_text">importeren</string>
     <string name="show_save_dialog">Opslagbevestiging</string>
     <string name="swap_swipe_actions">Veegacties omwisselen</string>
     <string name="processing_threads_desc">Parallelle chunks</string>
@@ -267,7 +267,7 @@
     <string name="settings_title_models">Modellen</string>
     <string name="settings_item_title_options">Opties</string>
     <string name="settings_item_subtitle_options">Overige instellingen</string>
-    <string name="settings_item_title_processing">ONNX Verwerking</string>
+    <string name="settings_item_onnx_processing">ONNX Verwerking</string>
     <string name="settings_item_subtitle_help_faq">FAQ tonen</string>
     <string name="settings_item_subtitle_sourcecode">Broncode</string>
     <string name="settings_item_sourcecode_description">Broncode openen in browser</string>

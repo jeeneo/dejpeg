@@ -331,13 +331,14 @@ class AppPreferences {
 
     suspend fun getStarterModelExtractedImmediate(): Boolean = starterModelExtracted.first()
 
-    val processingMode: Flow<ModelType> = App.ctx.dataStore.data.map { prefs ->
-        ModelType.fromString(prefs[PreferenceKeys.PROCESSING_MODE])
+    val processingMode: Flow<ModelType?> = App.ctx.dataStore.data.map { prefs ->
+        prefs[PreferenceKeys.PROCESSING_MODE]?.let { ModelType.fromString(it) }
     }
 
-    suspend fun setProcessingMode(mode: ModelType) {
+    suspend fun setProcessingMode(mode: ModelType?) {
         App.ctx.dataStore.edit { prefs ->
-            prefs[PreferenceKeys.PROCESSING_MODE] = mode.name
+            if (mode == null) prefs.remove(PreferenceKeys.PROCESSING_MODE)
+            else prefs[PreferenceKeys.PROCESSING_MODE] = mode.name
         }
     }
 

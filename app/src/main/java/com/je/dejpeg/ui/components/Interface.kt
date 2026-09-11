@@ -2,7 +2,6 @@ package com.je.dejpeg.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
@@ -21,21 +20,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
@@ -55,73 +49,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 val PillOuter = 50.dp
 val PillInner = 6.dp
-
-@Composable
-fun toolbarSegmentColors(isActive: Boolean): Triple<Color, Color, Color> {
-    val iconColor by animateColorAsState(
-        targetValue = if (isActive) MaterialTheme.colorScheme.onSecondaryContainer
-        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-        animationSpec = spring(stiffness = Spring.StiffnessMedium)
-    )
-    val containerColor by animateColorAsState(
-        targetValue = if (isActive) MaterialTheme.colorScheme.secondaryContainer
-        else MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.18f),
-        animationSpec = spring(stiffness = Spring.StiffnessMedium)
-    )
-    val contentColor by animateColorAsState(
-        targetValue = if (isActive) MaterialTheme.colorScheme.onSecondaryContainer
-        else MaterialTheme.colorScheme.onSurface,
-        animationSpec = spring(stiffness = Spring.StiffnessMedium)
-    )
-    return Triple(iconColor, containerColor, contentColor)
-}
-
-@Composable
-fun ToolbarSegmentButton(
-    isActive: Boolean,
-    icon: ImageVector,
-    label: String,
-    isLeading: Boolean, // controls which corners pinch on press
-    onClick: () -> Unit,
-) {
-    val (iconColor, containerColor, contentColor) = toolbarSegmentColors(isActive)
-    Button(
-        onClick = onClick,
-        shapes = ButtonDefaults.shapes(
-            shape = RoundedCornerShape(PillOuter),
-            pressedShape = RoundedCornerShape(
-                topStart = if (isLeading) PillOuter else PillInner,
-                bottomStart = if (isLeading) PillOuter else PillInner,
-                topEnd = if (isLeading) PillInner else PillOuter,
-                bottomEnd = if (isLeading) PillInner else PillOuter,
-            ),
-        ),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = containerColor, contentColor = contentColor
-        ),
-        modifier = Modifier
-            .height(52.dp)
-            .animateContentSize(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMedium
-                )
-            ),
-        contentPadding = PaddingValues(horizontal = 24.dp),
-    ) {
-        Icon(icon, contentDescription = label, tint = iconColor)
-        if (!isActive) {
-            Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-            Text(label)
-        }
-    }
-}
 
 enum class CardPosition { Leading, Center, Trailing, Solo }
 enum class GroupOrientation { Vertical, Horizontal }
@@ -129,70 +61,54 @@ enum class GroupOrientation { Vertical, Horizontal }
 val GroupedListSpacing: Dp = 2.dp
 val ScreenHorizontalPadding: Dp = 16.dp
 
-data class TileCorners(
-    val topStart: Boolean,
-    val topEnd: Boolean,
-    val bottomStart: Boolean,
-    val bottomEnd: Boolean,
-)
+data class CornerRole(
+    val topStart: Boolean = false,
+    val topEnd: Boolean = false,
+    val bottomStart: Boolean = false,
+    val bottomEnd: Boolean = false,
+) {
+    companion object {
+        val None = CornerRole()
+        val All = CornerRole(topStart = true, topEnd = true, bottomStart = true, bottomEnd = true)
+    }
+}
 
-fun gridCorners(index: Int, count: Int, columns: Int): TileCorners {
+fun CornerRole.toShape(outer: Dp = 16.dp, inner: Dp = 6.dp): RoundedCornerShape =
+    RoundedCornerShape(
+        topStart = if (topStart) outer else inner,
+        topEnd = if (topEnd) outer else inner,
+        bottomStart = if (bottomStart) outer else inner,
+        bottomEnd = if (bottomEnd) outer else inner,
+    )
+
+fun CardPosition.toCornerRole(orientation: GroupOrientation = GroupOrientation.Vertical): CornerRole =
+    when (orientation) {
+        GroupOrientation.Vertical -> when (this) {
+            CardPosition.Leading  -> CornerRole(topStart = true, topEnd = true)
+            CardPosition.Center   -> CornerRole.None
+            CardPosition.Trailing -> CornerRole(bottomStart = true, bottomEnd = true)
+            CardPosition.Solo     -> CornerRole.All
+        }
+        GroupOrientation.Horizontal -> when (this) {
+            CardPosition.Leading  -> CornerRole(topStart = true, bottomStart = true)
+            CardPosition.Center   -> CornerRole.None
+            CardPosition.Trailing -> CornerRole(topEnd = true, bottomEnd = true)
+            CardPosition.Solo     -> CornerRole.All
+        }
+    }
+
+fun gridCornerRole(index: Int, count: Int, columns: Int): CornerRole {
     val i = index - 1
     val row = i / columns
     val col = i % columns
     val lastRow = (count - 1) / columns
-    val isLastCol = col == columns - 1 || index == count // ragged last row
-
-    return TileCorners(
+    val isLastCol = col == columns - 1 || index == count
+    return CornerRole(
         topStart = row == 0 && col == 0,
         topEnd = row == 0 && isLastCol,
         bottomStart = row == lastRow && col == 0,
         bottomEnd = row == lastRow && isLastCol,
     )
-}
-
-fun gridShape(
-    corners: TileCorners,
-    outer: Dp = 16.dp,
-    inner: Dp = 6.dp,
-): RoundedCornerShape = RoundedCornerShape(
-    topStart = if (corners.topStart) outer else inner,
-    topEnd = if (corners.topEnd) outer else inner,
-    bottomStart = if (corners.bottomStart) outer else inner,
-    bottomEnd = if (corners.bottomEnd) outer else inner,
-)
-
-fun cardShape(
-    position: CardPosition,
-    outer: Dp = 16.dp,
-    inner: Dp = 6.dp,
-    orientation: GroupOrientation = GroupOrientation.Vertical,
-): RoundedCornerShape = when (orientation) {
-    GroupOrientation.Vertical -> when (position) {
-        CardPosition.Leading -> RoundedCornerShape(
-            topStart = outer, topEnd = outer, bottomStart = inner, bottomEnd = inner
-        )
-
-        CardPosition.Center -> RoundedCornerShape(inner)
-        CardPosition.Trailing -> RoundedCornerShape(
-            topStart = inner, topEnd = inner, bottomStart = outer, bottomEnd = outer
-        )
-
-        CardPosition.Solo -> RoundedCornerShape(outer)
-    }
-
-    GroupOrientation.Horizontal -> when (position) {
-        CardPosition.Leading -> RoundedCornerShape(
-            topStart = outer, bottomStart = outer, topEnd = inner, bottomEnd = inner
-        )
-
-        CardPosition.Center -> RoundedCornerShape(inner)
-        CardPosition.Trailing -> RoundedCornerShape(
-            topStart = inner, bottomStart = inner, topEnd = outer, bottomEnd = outer
-        )
-
-        CardPosition.Solo -> RoundedCornerShape(outer)
-    }
 }
 
 fun positionFor(index: Int, count: Int): CardPosition = when {
@@ -208,8 +124,9 @@ inline fun Modifier.thenIf(condition: Boolean, factory: Modifier.() -> Modifier)
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun GroupedRow(
-    position: CardPosition,
     modifier: Modifier = Modifier,
+    position: CardPosition,
+    orientation: GroupOrientation = GroupOrientation.Vertical,
     selected: Boolean = false,
     enabled: Boolean = true,
     onClick: (() -> Unit)? = null,
@@ -228,7 +145,7 @@ fun GroupedRow(
         targetValue = if (isPressed) 16.dp else 6.dp,
         label = "groupedRowOuterCorner",
     )
-    val shape = cardShape(position, inner = animatedOuter)
+    val shape = position.toCornerRole(orientation).toShape(inner = animatedOuter)
     val background = if (selected) {
         MaterialTheme.colorScheme.surfaceColorAtElevation(elevation * 4)
     } else {
@@ -311,7 +228,7 @@ fun GroupedRow(
 @Composable
 fun GroupedSourceTile(
     modifier: Modifier = Modifier,
-    corners: TileCorners,
+    corners: CornerRole,
     selected: Boolean = false,
     enabled: Boolean = true,
     onClick: (() -> Unit)? = null,
@@ -331,7 +248,7 @@ fun GroupedSourceTile(
         targetValue = if (isPressed) 16.dp else 6.dp,
         label = "groupedSourceTileOuterCorner",
     )
-    val shape = gridShape(corners, inner = animatedOuter)
+    val shape = corners.toShape(inner = animatedOuter)
     val background = containerColor ?: if (selected) {
         MaterialTheme.colorScheme.surfaceColorAtElevation(elevation * 4)
     } else {

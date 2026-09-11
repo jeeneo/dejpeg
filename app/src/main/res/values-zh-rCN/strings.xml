@@ -72,7 +72,7 @@
     <string name="overlap_size_px">%1$d 像素</string>
     <string name="imported_model">已导入 %1$s</string>
     <string name="deleted_model">已删除 %1$s</string>
-    <string name="import_model_text">导入模型</string>
+    <string name="import_model_text">导入</string>
     <string name="show_save_dialog">保存对话框</string>
     <string name="swap_swipe_actions">调换轻扫操作</string>
     <string name="processing_threads_desc">并行分块</string>
@@ -262,7 +262,7 @@
     <string name="settings_title_models">模型</string>
     <string name="settings_item_title_options">选项</string>
     <string name="settings_item_subtitle_options">其他设置</string>
-    <string name="settings_item_title_processing">ONNX 处理</string>
+    <string name="settings_item_onnx_processing">ONNX 处理</string>
     <string name="settings_item_subtitle_help_faq">显示常见问题</string>
     <string name="settings_item_subtitle_sourcecode">源代码</string>
     <string name="settings_item_sourcecode_description">在浏览器中打开开源代码</string>

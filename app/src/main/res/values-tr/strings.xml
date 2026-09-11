@@ -73,7 +73,7 @@
     <string name="overlap_size_px">%1$d px</string>
     <string name="imported_model">%1$s içe aktarıldı</string>
     <string name="deleted_model">%1$s silindi</string>
-    <string name="import_model_text">Model içe aktar</string>
+    <string name="import_model_text">içe aktar</string>
     <string name="show_save_dialog">Kayıt onayı</string>
     <string name="swap_swipe_actions">Kaydırma eylemlerini değiştir</string>
     <string name="processing_threads_desc">Paralel yığınlar</string>
@@ -267,7 +267,7 @@
     <string name="settings_title_models">Modeller</string>
     <string name="settings_item_title_options">Seçenekler</string>
     <string name="settings_item_subtitle_options">Diğer ayarlar</string>
-    <string name="settings_item_title_processing">ONNX İşleme</string>
+    <string name="settings_item_onnx_processing">ONNX İşleme</string>
     <string name="settings_item_subtitle_help_faq">SSS\'yi göster</string>
     <string name="settings_item_subtitle_sourcecode">Kaynak kodu</string>
     <string name="settings_item_sourcecode_description">Kaynak kodunu tarayıcıda aç</string>
