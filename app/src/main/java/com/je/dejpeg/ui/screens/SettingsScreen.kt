@@ -20,7 +20,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,6 +27,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -38,29 +38,25 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Archive
-import androidx.compose.material.icons.filled.BlurOn
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Deblur
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.BlurOn
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Deblur
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -143,14 +139,14 @@ fun SettingsSheet(
     val modelInfoDialog = remember { mutableStateOf<Pair<String, String>?>(null) }
     val activeSelection by viewModel.activeSelection.collectAsState()
     val processingMode = activeSelection.type
-    val oidnHdr by viewModel.oidnHdr.collectAsState()
+    val oidnHDR by viewModel.oidnHdr.collectAsState()
     LaunchedEffect(processingMode) {
         if (expandedSection == SettingsSection.OnnxSettings || expandedSection == SettingsSection.OidnSettings) {
             expandedSection = null
         }
     }
 
-    val oidnSrgb by viewModel.oidnSrgb.collectAsState()
+    val oidnSRGB by viewModel.oidnSrgb.collectAsState()
     val oidnQuality by viewModel.oidnQuality.collectAsState()
     val oidnNumThreads by viewModel.oidnNumThreads.collectAsState()
     val uriHandler = LocalUriHandler.current
@@ -188,7 +184,9 @@ fun SettingsSheet(
         containerColor = MaterialTheme.colorScheme.background
     ) {
         Box(
-            Modifier.fillMaxWidth()
+            Modifier
+                .fillMaxWidth()
+                .fillMaxHeight()
         ) {
             Column(
                 modifier = Modifier
@@ -197,31 +195,98 @@ fun SettingsSheet(
                     .padding(top = 8.dp, bottom = 88.dp, start = 12.dp, end = 12.dp)
             ) {
                 PreferenceGroupHeading(stringResource(R.string.settings_title_models))
-                val resolvedThreads = ThreadUtils.resolveThreadCount(onnxDeviceThreads)
-                val threadValue = if (onnxDeviceThreads == 0) {
-                    stringResource(R.string.thread_value_auto, resolvedThreads)
-                } else {
-                    onnxDeviceThreads.toString()
-                }
-                val threadLabel =
-                    "${stringResource(R.string.processing_threads_desc)} • $threadValue"
-                val currentTheme = App.state.appTheme.value
-                var themeMenuExpanded by remember { mutableStateOf(false) }
-                val glassSlider by appPreferences.glassSlider.collectAsState(initial = true)
 
+                val hasModels = allModels.isNotEmpty()
+                val hasCard = processingMode == ModelType.OIDN || processingMode == ModelType.ONNX
                 val extractedMsg = stringResource(R.string.extracted_starter_models)
                 val failedMsg = stringResource(R.string.failed_to_extract_starter_models)
+
+                Spacer(modifier = Modifier.height(GroupedListSpacing))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(GroupedListSpacing),
+                ) {
+                    GroupedRow(
+                        modifier = Modifier.weight(1f),
+                        position = CardPosition.Solo,
+                        cornerRole = CornerRole(topStart = true, bottomStart = !hasModels),
+                        hideExtras = true,
+                        horizontalArrangement = Arrangement.Center,
+                        onClick = {
+                            modelPickerLauncher.launch("*/*")
+                        },
+                        onLongClick = {
+                            HapticFeedbacks.heavy()
+                            scope.launch {
+                                val extracted = withContext(Dispatchers.IO) {
+                                    modelManager.extractStarterModel(setAsActive = true)
+                                }
+                                if (extracted) {
+                                    viewModel.refreshInstalledModels(ModelType.ONNX)
+                                    SnackbarController.pushEvent(
+                                        SnackySnackbarEvents.MessageEvent(
+                                            message = extractedMsg,
+                                            duration = SnackbarDuration.Short
+                                        )
+                                    )
+                                } else {
+                                    SnackbarController.pushEvent(
+                                        SnackySnackbarEvents.MessageEvent(
+                                            message = failedMsg, duration = SnackbarDuration.Short
+                                        )
+                                    )
+                                }
+                            }
+                        },
+                        tooltip = stringResource(R.string.settings_tooltip_extract),
+                        verticalPadding = 12.dp,
+                    ) {
+                        Icon(Icons.Rounded.Add, null, modifier = Modifier.size(21.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            stringResource(R.string.import_model_text),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    GroupedRow(
+                        modifier = Modifier.weight(1f),
+                        position = CardPosition.Solo,
+                        cornerRole = CornerRole(topEnd = true, bottomEnd = !hasModels),
+                        hideExtras = true,
+                        horizontalArrangement = Arrangement.Center,
+                        onClick = {
+                            uriHandler.openUri("https://codeberg.org/dryerlint/dejpeg/src/branch/main/models")
+                        },
+                        tooltip = stringResource(R.string.settings_tooltip_download),
+                        verticalPadding = 12.dp,
+                    ) {
+                        Icon(Icons.Rounded.Download, null, modifier = Modifier.size(21.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            stringResource(R.string.download),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
                 allModels.forEachIndexed { index, (modelName, modelType) ->
                     val isActive =
                         modelName == activeSelection.modelName && processingMode == modelType
                     key(modelName, modelType) {
-                        if (index >= 1) {
-                            Spacer(modifier = Modifier.height(GroupedListSpacing))
-                        }
+                        val last = index == allModels.lastIndex && !hasCard
+                        Spacer(modifier = Modifier.height(GroupedListSpacing))
                         GroupedRow(
                             position = positionFor(
-                                index + 1, (allModels.size + 1)
+                                (index - 1), (allModels.size + 1)
                             ),
+                            cornerRole = CornerRole(bottomStart = last, bottomEnd = last),
                             onClick = {
                                 if (processingViewModel.isProcessingOrQueueActive()) {
                                     scope.launch {
@@ -255,10 +320,10 @@ fun SettingsSheet(
                                     modelInfoDialog.value = modelName to it
                                 }, modifier = Modifier.size(32.dp)) {
                                     Icon(
-                                        Icons.Filled.Info,
+                                        Icons.Rounded.Info,
                                         contentDescription = stringResource(R.string.info),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(18.dp)
+                                        modifier = Modifier.size(21.dp)
                                     )
                                 }
                             }
@@ -281,113 +346,25 @@ fun SettingsSheet(
                                 }, modifier = Modifier.size(32.dp)
                             ) {
                                 Icon(
-                                    Icons.Filled.Delete,
+                                    Icons.Rounded.Delete,
                                     contentDescription = stringResource(R.string.delete),
                                     tint = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.size(18.dp)
+                                    modifier = Modifier.size(21.dp)
                                 )
                             }
                         }
                     }
                 }
 
-                val hasModels = allModels.isNotEmpty()
-                val hasCard = processingMode == ModelType.OIDN || processingMode == ModelType.ONNX
-                if (hasModels) Spacer(modifier = Modifier.height(GroupedListSpacing))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(GroupedListSpacing),
-                ) {
-                    GroupedRow(
-                        modifier = Modifier.weight(1f),
-                        position = CardPosition.Leading,
-                        cornerRole = CornerRole(topStart = !hasModels, bottomStart = !hasCard),
-                        hideExtras = true,
-                        horizontalArrangement = Arrangement.Center,
-                        onClick = {
-                            HapticFeedbacks.light()
-                            modelPickerLauncher.launch("*/*")
-                        },
-                        verticalPadding = 12.dp,
-                    ) {
-                        Icon(Icons.Filled.Add, null, modifier = Modifier.size(21.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            stringResource(R.string.import_model_text),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-
-                    GroupedRow(
-                        modifier = Modifier.weight(1f),
-                        position = CardPosition.Center,
-                        cornerRole = CornerRole.None,
-                        hideExtras = true,
-                        horizontalArrangement = Arrangement.Center,
-                        onClick = {
-                            HapticFeedbacks.light()
-                            scope.launch {
-                                val extracted = withContext(Dispatchers.IO) {
-                                    modelManager.extractStarterModel(setAsActive = true)
-                                }
-                                if (extracted) {
-                                    viewModel.refreshInstalledModels(ModelType.ONNX)
-                                    SnackbarController.pushEvent(
-                                        SnackySnackbarEvents.MessageEvent(
-                                            message = extractedMsg,
-                                            duration = SnackbarDuration.Short
-                                        )
-                                    )
-                                } else {
-                                    SnackbarController.pushEvent(
-                                        SnackySnackbarEvents.MessageEvent(
-                                            message = failedMsg, duration = SnackbarDuration.Short
-                                        )
-                                    )
-                                }
-                            }
-                        },
-                        verticalPadding = 12.dp,
-                    ) {
-                        Icon(Icons.Filled.Archive, null, modifier = Modifier.size(21.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            stringResource(R.string.extract),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-
-                    GroupedRow(
-                        modifier = Modifier.weight(1f),
-                        position = CardPosition.Trailing,
-                        cornerRole = CornerRole(topEnd = !hasModels, bottomEnd = !hasCard),
-                        hideExtras = true,
-                        horizontalArrangement = Arrangement.Center,
-                        onClick = {
-                            HapticFeedbacks.light()
-                            uriHandler.openUri("https://codeberg.org/dryerlint/dejpeg/src/branch/main/models")
-                        },
-                        verticalPadding = 12.dp,
-                    ) {
-                        Icon(Icons.Filled.Download, null, modifier = Modifier.size(21.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            stringResource(R.string.download),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
+                val resolvedThreads = ThreadUtils.resolveThreadCount(onnxDeviceThreads)
+                val threadValue = if (onnxDeviceThreads == 0) {
+                    stringResource(R.string.thread_value_auto, resolvedThreads)
+                } else {
+                    onnxDeviceThreads.toString()
                 }
+                val threadLabel =
+                    "${stringResource(R.string.processing_threads_desc)} • $threadValue"
                 Spacer(modifier = Modifier.height(GroupedListSpacing))
-
                 AnimatedVisibility(
                     visible = hasModels,
                     enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
@@ -403,16 +380,15 @@ fun SettingsSheet(
                     ) {
                         PreferenceItem(
                             position = positionFor(2, count),
-                            icon = Icons.Filled.BlurOn,
+                            icon = Icons.Rounded.BlurOn,
                             iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
-                            iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
                             title = stringResource(R.string.settings_item_onnx_processing),
-                            subtitle = stringResource(
+                            subtitle = if (isExpanded) "" else stringResource(
                                 R.string.chunk_size_px, chunkSize
                             ) + " • " + stringResource(
                                 R.string.overlap_size_px, overlapSize
                             ) + " × $resolvedThreads",
-                            expanded = expandedSection == SettingsSection.OnnxSettings,
+                            expanded = isExpanded,
                             expandedContent = {
                                 val maxThreads = remember {
                                     Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
@@ -448,61 +424,87 @@ fun SettingsSheet(
                     ) {
                         PreferenceItem(
                             position = positionFor(2, count),
-                            icon = Icons.Filled.Deblur,
-                            iconBackgroundColor = MaterialTheme.colorScheme.secondaryContainer,
+                            icon = Icons.Rounded.Deblur,
                             iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
                             title = stringResource(R.string.oidn_settings),
-                            subtitle = stringResource(R.string.oidn_settings_desc),
-                            expanded = expandedSection == SettingsSection.OidnSettings,
+                            subtitle = if (isExpanded) "" else stringResource(R.string.oidn_settings_desc),
+                            expanded = isExpanded,
                             expandedContent = {
-                                val maxThreads = remember {
-                                    Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
+                                GroupedRow(
+                                    position = CardPosition.Leading,
+                                    onClick = { viewModel.setOidnHdrPref(!oidnHDR) },
+                                    elevation = 24.dp
+                                ) {
+                                    LabeledSwitch(
+                                        title = stringResource(R.string.oidn_hdr),
+                                        desc = stringResource(R.string.oidn_hdr_desc),
+                                        checked = oidnHDR,
+                                        onCheckedChange = { viewModel.setOidnHdrPref(it) })
                                 }
-                                LabeledSwitch(
-                                    title = stringResource(R.string.oidn_hdr),
-                                    desc = stringResource(R.string.oidn_hdr_desc),
-                                    checked = oidnHdr,
-                                    onCheckedChange = { viewModel.setOidnHdrPref(it) })
-                                Spacer(modifier = Modifier.height(16.dp))
-                                LabeledSwitch(
-                                    title = stringResource(R.string.oidn_srgb),
-                                    desc = stringResource(R.string.oidn_srgb_desc),
-                                    checked = oidnSrgb,
-                                    onCheckedChange = { viewModel.setOidnSrgbPref(it) })
-                                Spacer(modifier = Modifier.height(16.dp))
+                                GroupedRow(
+                                    position = CardPosition.Trailing,
+                                    onClick = { viewModel.setOidnSrgbPref(!oidnSRGB) },
+                                    elevation = 24.dp
+                                ) {
+                                    LabeledSwitch(
+                                        title = stringResource(R.string.oidn_srgb),
+                                        desc = stringResource(R.string.oidn_srgb_desc),
+                                        checked = oidnSRGB,
+                                        onCheckedChange = { viewModel.setOidnSrgbPref(it) })
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
                                 Text(
                                     stringResource(R.string.oidn_quality),
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
-
                                 val qualityOptions = listOf(
                                     0 to stringResource(R.string.oidn_quality_default),
                                     4 to stringResource(R.string.oidn_quality_fast),
                                     5 to stringResource(R.string.oidn_quality_balanced),
                                     6 to stringResource(R.string.oidn_quality_high)
                                 )
-                                qualityOptions.chunked(2).forEach { rowOptions ->
-                                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                                        rowOptions.forEachIndexed { index, (value, label) ->
-                                            SegmentedButton(
-                                                selected = oidnQuality == value, onClick = {
-                                                    HapticFeedbacks.light(); viewModel.setOidnQualityPref(
-                                                    value
-                                                )
-                                                }, shape = SegmentedButtonDefaults.itemShape(
-                                                    index = index, count = rowOptions.size
-                                                )
-                                            ) { Text(label) }
+                                val rows = qualityOptions.chunked(2)
+                                rows.forEachIndexed { rowIndex, rowOptions ->
+                                    val isTopRow = rowIndex == 0
+                                    val isBottomRow = rowIndex == rows.lastIndex
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(
+                                            GroupedListSpacing
+                                        )
+                                    ) {
+                                        rowOptions.forEachIndexed { colIndex, (value, label) ->
+                                            val isFirstCol = colIndex == 0
+                                            val isLastCol = colIndex == rowOptions.lastIndex
+                                            GroupedRow(
+                                                modifier = Modifier.weight(1f),
+                                                elevation = 24.dp,
+                                                hideExtras = true,
+                                                cornerRole = CornerRole(
+                                                    topStart = isTopRow && isFirstCol,
+                                                    topEnd = isTopRow && isLastCol,
+                                                    bottomStart = isBottomRow && isFirstCol,
+                                                    bottomEnd = isBottomRow && isLastCol
+                                                ),
+                                                selected = oidnQuality == value,
+                                                horizontalArrangement = Arrangement.Center,
+                                                onClick = {
+                                                    HapticFeedbacks.light()
+                                                    viewModel.setOidnQualityPref(value)
+                                                }) {
+                                                Text(label)
+                                            }
                                         }
                                     }
-                                    Spacer(modifier = Modifier.height(8.dp))
                                 }
+                                Spacer(modifier = Modifier.height(8.dp))
                                 val resolvedOidnThreads =
                                     ThreadUtils.resolveThreadCount(oidnNumThreads)
-
-                                Spacer(modifier = Modifier.height(8.dp))
+                                val maxThreads = remember {
+                                    Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
+                                }
                                 val threadValue = if (oidnNumThreads == 0) {
                                     stringResource(
                                         R.string.thread_value_auto, resolvedOidnThreads
@@ -525,17 +527,18 @@ fun SettingsSheet(
                             })
                     }
                 }
+                val currentTheme = App.state.appTheme.value
+                var themeMenuExpanded by remember { mutableStateOf(false) }
+                val glassSlider by appPreferences.glassSlider.collectAsState(initial = true)
                 val isExpanded = expandedSection == SettingsSection.MainSettings
                 val count = if (isExpanded) 2 else 1
                 Spacer(Modifier.height(6.dp))
                 PreferenceGroupHeading("Settings")
                 PreferenceItem(
                     position = positionFor(1, count),
-                    icon = Icons.Filled.Settings,
-                    iconBackgroundColor = MaterialTheme.colorScheme.surfaceVariant,
+                    icon = Icons.Rounded.Settings,
                     iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                     title = stringResource(R.string.settings_item_title_options),
-                    subtitle = stringResource(R.string.settings_item_subtitle_options),
                     expanded = isExpanded,
                     expandedContent = {
                         GroupedRow(
@@ -607,7 +610,8 @@ fun SettingsSheet(
                                         )
                                     )
                                 }
-                            }) {
+                            }, verticalPadding = 4.dp
+                        ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     stringResource(R.string.default_image_source),
@@ -637,7 +641,8 @@ fun SettingsSheet(
                         GroupedRow(
                             position = positionFor(6, 6), elevation = 24.dp, onClick = {
                                 themeMenuExpanded = true
-                            }) {
+                            }, verticalPadding = 4.dp
+                        ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = stringResource(R.string.theme),
@@ -681,21 +686,39 @@ fun SettingsSheet(
                     },
                 )
             }
-            ExtendedFloatingActionButton(
+
+            val interaction = remember { MutableInteractionSource() }
+            val press by rememberMaterialPressState(interaction)
+            FloatingActionButton(
                 onClick = {
-                HapticFeedbacks.light()
-                modelPickerLauncher.launch("*/*")
-            },
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = {
-                    Text(stringResource(R.string.import_model_text))
+                    HapticFeedbacks.light()
+                    modelPickerLauncher.launch("*/*")
                 },
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                shape = RoundedCornerShape(lerp(16f, 28f, press).dp),
+                interactionSource = interaction,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(16.dp)
-            )
+                    .padding(end = 12.dp, bottom = 16.dp)
+                    .height(56.dp)
+                    .width(110.dp)
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Rounded.Add,
+                        contentDescription = stringResource(R.string.import_model_text)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        stringResource(R.string.import_model_text),
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+            }
         }
     }
 
@@ -823,16 +846,12 @@ fun PowerSlider(
     Column {
         Row {
             Text(
-                label,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.primary
+                label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium
             )
             if (!hideValue) Text(
                 " • ${effectivePowers[index]}",
                 style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.primary
+                fontWeight = FontWeight.Medium
             )
         }
 
@@ -880,7 +899,7 @@ fun LabeledSwitch(
             checked = checked,
             thumbContent = {
                 Icon(
-                    imageVector = if (checked) Icons.Filled.Check else Icons.Filled.Close,
+                    imageVector = if (checked) Icons.Rounded.Check else Icons.Rounded.Close,
                     contentDescription = null,
                     modifier = Modifier.size(SwitchDefaults.IconSize),
                 )
@@ -901,43 +920,32 @@ fun LabeledSwitch(
 fun PreferenceItem(
     modifier: Modifier = Modifier,
     icon: Any,
-    iconBackgroundColor: Color,
     iconTint: Color? = null,
     title: String,
-    subtitle: String,
-    ellipsizeSubtitle: Boolean = false,
+    subtitle: String? = "",
     expanded: Boolean = false,
     trailing: (@Composable () -> Unit)? = null,
     expandedContent: (@Composable () -> Unit)? = null,
     onClick: () -> Unit,
     position: CardPosition,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val press by rememberMaterialPressState(interactionSource)
-    val animatedIconCorner = lerp(14f, 22f, press)
     Column(modifier = modifier.fillMaxWidth()) {
-        GroupedRow(position = position, onClick = { onClick() }) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(iconBackgroundColor, RoundedCornerShape(animatedIconCorner.dp))
-            ) {
-                when (icon) {
-                    is ImageVector -> Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = iconTint ?: Color.Unspecified,
-                        modifier = Modifier.size(24.dp)
-                    )
+        GroupedRow(position = position, onClick = { onClick() }, verticalPadding = 14.dp) {
+            Spacer(modifier = Modifier.width(8.dp))
+            when (icon) {
+                is ImageVector -> Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint ?: Color.Unspecified,
+                    modifier = Modifier.size(21.dp)
+                )
 
-                    is Painter -> Icon(
-                        painter = icon,
-                        contentDescription = null,
-                        tint = iconTint ?: Color.Unspecified,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
+                is Painter -> Icon(
+                    painter = icon,
+                    contentDescription = null,
+                    tint = iconTint ?: Color.Unspecified,
+                    modifier = Modifier.size(21.dp)
+                )
             }
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -947,14 +955,22 @@ fun PreferenceItem(
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(modifier = Modifier.height(3.dp))
-                Text(
-                    subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = if (ellipsizeSubtitle) 1 else Int.MAX_VALUE,
-                    overflow = if (ellipsizeSubtitle) TextOverflow.Ellipsis else TextOverflow.Clip
-                )
+                AnimatedVisibility(
+                    visible = !subtitle.isNullOrEmpty(),
+                    enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
+                    exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
+                ) {
+                    Spacer(modifier = Modifier.height(3.dp))
+                    if (subtitle != null) {
+                        Text(
+                            subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
             }
             if (trailing != null) {
                 trailing()
@@ -975,9 +991,9 @@ fun PreferenceItem(
                 )
             }
         }
+        Spacer(modifier = Modifier.height(GroupedListSpacing))
         AnimatedVisibility(visible = expanded) {
             Column(modifier = Modifier.fillMaxWidth()) {
-                Spacer(modifier = Modifier.height(GroupedListSpacing))
                 GroupedRow(
                     position = CardPosition.Trailing,
                     verticalPadding = 0.dp,
@@ -985,7 +1001,7 @@ fun PreferenceItem(
                 ) {
                     Column(
                         Modifier.padding(
-                            horizontal = 18.dp, vertical = 12.dp
+                            horizontal = 18.dp, vertical = 18.dp
                         ),
                         verticalArrangement = Arrangement.spacedBy(GroupedListSpacing),
                     ) {

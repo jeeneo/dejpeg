@@ -36,7 +36,6 @@
     <string name="gallery_picker_title">منتقي المعرض</string>
     <string name="gallery_picker_desc">يستخدم تطبيق المعرض الخاص بجهازك أو تطبيق جهة خارجية لاختيار الصور. هذه الطريقة موصى بها وتعمل على معظم الأجهزة وتدعم أسماء الملفات.</string>
     <string name="media_picker">منتقي الصور</string>
-    <string name="internal_picker_title">منتقي الصور الداخلي</string>
     <string name="internal_picker_desc">يستخدم منتقي الصور المدمج في أندرويد، أكثر وعيًا بالخصوصية ولكنه يقيد أسماء الملفات.</string>
     <string name="documents">المستندات</string>
     <string name="documents_picker_title">مزود المستندات</string>

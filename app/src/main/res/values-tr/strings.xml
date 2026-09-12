@@ -32,7 +32,6 @@
     <string name="gallery_picker_title">Galeri seçici</string>
     <string name="gallery_picker_desc">Görselleri seçmek için cihazınızın veya 3. taraf galeri uygulamasını kullanır. Bu yöntem önerilir, çoğu cihazda çalışır ve dosya adlarını destekler.</string>
     <string name="media_picker">Fotoğraf seçici</string>
-    <string name="internal_picker_title">Dahili fotoğraf seçici</string>
     <string name="internal_picker_desc">Android\'in yerleşik fotoğraf seçicisini kullanır, gizliliğe daha duyarlıdır ancak dosya adlarını kısıtlar.</string>
     <string name="documents">Belgeler</string>
     <string name="documents_picker_title">Belge sağlayıcı</string>

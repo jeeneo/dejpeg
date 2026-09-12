@@ -31,7 +31,6 @@
     <string name="gallery_picker_title">ギャラリーピッカー</string>
     <string name="gallery_picker_desc">デバイスまたはサードパーティのギャラリーアプリを使用して画像を選択します。この方法が推奨され、ほとんどのデバイスで動作し、ファイル名をサポートしています。</string>
     <string name="media_picker">写真ピッカー</string>
-    <string name="internal_picker_title">内部写真ピッカー</string>
     <string name="internal_picker_desc">Android内蔵の写真ピッカーを使用します。プライバシーに配慮していますが、ファイル名が制限されます。</string>
     <string name="documents">ドキュメント</string>
     <string name="documents_picker_title">ドキュメントプロバイダー</string>

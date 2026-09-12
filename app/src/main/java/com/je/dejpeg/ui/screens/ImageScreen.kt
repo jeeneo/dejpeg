@@ -13,24 +13,20 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Save
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -68,8 +64,9 @@ import com.je.dejpeg.HapticFeedbacks
 import com.je.dejpeg.ImageRepository
 import com.je.dejpeg.R
 import com.je.dejpeg.ui.components.BeforeAfterSlider
-import com.je.dejpeg.ui.components.PillInner
-import com.je.dejpeg.ui.components.PillOuter
+import com.je.dejpeg.ui.components.CornerRole
+import com.je.dejpeg.ui.components.GroupedListSpacing
+import com.je.dejpeg.ui.components.GroupedRow
 import com.je.dejpeg.ui.components.PreparingShareDialog
 import com.je.dejpeg.ui.components.SaveImageDialog
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
@@ -98,8 +95,12 @@ fun ImageScreen(
     val showSaveDialog by appPreferences.showSaveDialog.collectAsState(initial = true)
     val images by imageRepository.images.collectAsState()
     val image = images.firstOrNull { it.id == imageId }
-    val compareImage = compareImageId?.let { id -> images.firstOrNull { it.id == id } }
     val isCompareMode = compareImageId != null
+    val compareImage = compareImageId?.let { id -> images.firstOrNull { it.id == id } }
+    if (image == null || (isCompareMode && compareImage == null)) {
+        LaunchedEffect(Unit) { onBack() }
+        return
+    }
     var saveDialogState by remember { mutableStateOf<Pair<String, String>?>(null) }
     var overwriteDialogState by remember { mutableStateOf<Pair<String, String>?>(null) }
     var isPreparingShare by remember { mutableStateOf(false) }
@@ -108,26 +109,19 @@ fun ImageScreen(
         showSaveDialog = showSaveDialog,
         context = context,
         viewModel = viewModel,
-        performRemoval = { _ -> /* nom */ },
+        performRemoval = { },
         setSaveDialogState = { p -> saveDialogState = p },
         setOverwriteDialogState = { p -> overwriteDialogState = p })
-    val missingRequiredImage = if (isCompareMode) image == null || compareImage == null
-    else image == null
-    if (missingRequiredImage) {
-        LaunchedEffect(Unit) { onBack() }
-        return
+    val beforeBitmap =
+        if (isCompareMode) image.outputBitmap ?: image.inputBitmap else image.inputBitmap
+    val afterBitmap = when {
+        isCompareMode -> compareImage!!.inputBitmap
+        showAfter -> image.outputBitmap
+        else -> null
     }
-    val nonNullImage = image!!
-    val beforeBitmap = if (isCompareMode) nonNullImage.outputBitmap
-        ?: nonNullImage.inputBitmap else nonNullImage.inputBitmap
-    val afterBitmap = if (isCompareMode) compareImage!!.inputBitmap
-    else if (showAfter) nonNullImage.outputBitmap else null
-    val filename = if (isCompareMode) {
-        stringResource(R.string.compare_title)
-    } else nonNullImage.filename
+    val filename = if (isCompareMode) stringResource(R.string.compare_title) else image.filename
     val showSaveAllOption = images.any { it.outputBitmap != null }
     val glassSlider by appPreferences.glassSlider.collectAsState(initial = true)
-
     Column(
         Modifier
             .fillMaxSize()
@@ -137,107 +131,62 @@ fun ImageScreen(
             title = { Text(filename, style = MaterialTheme.typography.titleMedium) },
             navigationIcon = {
                 IconButton(onClick = { HapticFeedbacks.light(); onBack() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Back")
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
         )
-
-        Box(
-            Modifier
-                .weight(1f)
-                .fillMaxWidth()
-        ) {
-            Box(
-                Modifier.fillMaxSize()
-            ) {
-                val needsChecker = beforeBitmap.hasAlpha() || afterBitmap?.hasAlpha() == true
-                if (afterBitmap != null) {
-                    BeforeAfterSlider(
-                        beforeBitmap = beforeBitmap,
-                        afterBitmap = afterBitmap,
-                        glassSlider = glassSlider,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                    if (!isCompareMode) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(2.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .navigationBarsPadding()
-                                .padding(bottom = 28.dp)
-                                .zIndex(1f)
+        Box {
+            val needsChecker = beforeBitmap.hasAlpha() || afterBitmap?.hasAlpha() == true
+            if (afterBitmap != null) {
+                BeforeAfterSlider(
+                    beforeBitmap = beforeBitmap,
+                    afterBitmap = afterBitmap,
+                    glassSlider = glassSlider,
+                    modifier = Modifier.fillMaxSize()
+                )
+                if (!isCompareMode) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(GroupedListSpacing),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .navigationBarsPadding()
+                            .padding(bottom = 28.dp)
+                            .zIndex(1f)
+                            .width(IntrinsicSize.Min)
+                    ) {
+                        GroupedRow(
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                isPreparingShare = true
+                                ImageActions.shareImage(
+                                    context = context,
+                                    bitmap = afterBitmap,
+                                    onReady = { isPreparingShare = false },
+                                    onError = { isPreparingShare = false })
+                            },
+                            cornerRole = CornerRole(
+                                topStart = true, bottomStart = true
+                            ),
                         ) {
-                            Button(
-                                modifier = Modifier.height(56.dp),
-                                onClick = {
-                                    HapticFeedbacks.light()
-                                    isPreparingShare = true
-                                    ImageActions.shareImage(
-                                        context = context,
-                                        bitmap = afterBitmap,
-                                        onReady = { isPreparingShare = false },
-                                        onError = { isPreparingShare = false })
-                                },
-                                shapes = ButtonDefaults.shapes(
-                                    shape = RoundedCornerShape(
-                                        topStart = PillOuter,
-                                        bottomStart = PillOuter,
-                                        topEnd = PillInner,
-                                        bottomEnd = PillInner
-                                    ), pressedShape = RoundedCornerShape(50.dp)
-                                ),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.inverseOnSurface,
-                                    contentColor = MaterialTheme.colorScheme.onSurface
-                                ),
-                                contentPadding = PaddingValues(horizontal = 20.dp),
-                            ) {
-                                Icon(
-                                    Icons.Filled.Share,
-                                    contentDescription = stringResource(id = R.string.share_image),
-                                )
-                                Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                                Text(
-                                    text = stringResource(id = R.string.share_image),
-                                )
-                            }
-                            Button(
-                                modifier = Modifier.height(56.dp),
-                                onClick = {
-                                    HapticFeedbacks.medium(); saveOrPrompt(
-                                    imageId, filename
-                                )
-                                },
-                                shapes = ButtonDefaults.shapes(
-                                    shape = RoundedCornerShape(
-                                        topStart = PillInner,
-                                        bottomStart = PillInner,
-                                        topEnd = PillOuter,
-                                        bottomEnd = PillOuter
-                                    ), pressedShape = RoundedCornerShape(50.dp)
-                                ),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.inverseOnSurface,
-                                    contentColor = MaterialTheme.colorScheme.onSurface
-                                ),
-                                contentPadding = PaddingValues(horizontal = 20.dp),
-                            ) {
-                                Icon(
-                                    Icons.Filled.Save,
-                                    contentDescription = stringResource(id = R.string.save),
-                                )
-                                Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                                Text(
-                                    text = stringResource(id = R.string.save),
-                                )
-                            }
+                            Icon(Icons.Rounded.Share, contentDescription = "Share image")
+                            Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                            Text(text = stringResource(id = R.string.share_image))
+                        }
+                        GroupedRow(
+                            modifier = Modifier.weight(1f),
+                            onClick = { saveOrPrompt(imageId, filename) },
+                            cornerRole = CornerRole(topEnd = true, bottomEnd = true)
+                        ) {
+                            Icon(Icons.Rounded.Save, contentDescription = "Save image")
+                            Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                            Text(text = stringResource(id = R.string.save))
                         }
                     }
-                } else {
-                    SingleImageView(beforeBitmap, needsChecker)
                 }
+            } else {
+                SingleImageView(beforeBitmap, needsChecker)
             }
         }
 
@@ -256,14 +205,12 @@ fun ImageScreen(
                     if (all) {
                         val imageIds = images.filter { it.outputBitmap != null }.map { it.id }
                         if (imageIds.isNotEmpty()) viewModel.saveImage(context, imageIds)
+                    } else if (ImageActions.checkFileExists(context, name)) {
+                        overwriteDialogState = Pair(id, name)
                     } else {
-                        if (ImageActions.checkFileExists(context, name)) {
-                            overwriteDialogState = Pair(id, name)
-                        } else {
-                            viewModel.saveImage(
-                                context = context, imageIds = listOf(id), baseFilename = name
-                            )
-                        }
+                        viewModel.saveImage(
+                            context = context, imageIds = listOf(id), baseFilename = name
+                        )
                     }
                 }
             }
@@ -284,6 +231,7 @@ fun ImageScreen(
                     overwriteDialogState = null
                 }
             }
+
             (saveState as? SaveState.Error)?.let { err ->
                 AlertDialog(
                     onDismissRequest = { viewModel.dismissSaveError() },

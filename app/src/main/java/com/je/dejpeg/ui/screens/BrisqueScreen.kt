@@ -32,11 +32,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Save
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -140,22 +140,22 @@ fun BRISQUEScreen(
             },
             navigationIcon = {
                 IconButton(onClick = { HapticFeedbacks.light(); onBack() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back_desc))
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back_desc))
                 }
             },
             actions = {
                 IconButton(onClick = {
                     HapticFeedbacks.light(); showInfoDialog = true
-                }) { Icon(Icons.Filled.Info, stringResource(R.string.info_desc)) }
+                }) { Icon(Icons.Rounded.Info, stringResource(R.string.info_desc)) }
                 IconButton(onClick = {
                     HapticFeedbacks.light(); showBRISQUESettings = true
-                }) { Icon(Icons.Filled.Settings, stringResource(R.string.settings_desc)) }
+                }) { Icon(Icons.Rounded.Settings, stringResource(R.string.settings_desc)) }
                 IconButton(
                     onClick = {
                         HapticFeedbacks.medium(); brisqueViewModel.saveCurrentImage(context)
                     }, enabled = brisqueState != null
                 ) {
-                    Icon(Icons.Filled.Save, stringResource(R.string.brisque_save_image_desc))
+                    Icon(Icons.Rounded.Save, stringResource(R.string.brisque_save_image_desc))
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -657,7 +657,7 @@ private fun DescaleProgressDialog(
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
                 ) {
                     Icon(
-                        Icons.Filled.Close,
+                        Icons.Rounded.Close,
                         contentDescription = stringResource(R.string.cancel),
                         Modifier.size(18.dp)
                     )
@@ -730,7 +730,7 @@ private fun ImageViewerModal(
                     .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
             ) {
                 Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
+                    Icons.AutoMirrored.Rounded.ArrowBack,
                     stringResource(R.string.back_desc),
                     Modifier.size(28.dp)
                 )
@@ -787,7 +787,7 @@ private fun BRISQUESettings(
                     if (expandedInfo == label) null else label
                 }, Modifier.size(24.dp)) {
                     Icon(
-                        Icons.Filled.Info, stringResource(R.string.info_desc), Modifier.size(18.dp)
+                        Icons.Rounded.Info, stringResource(R.string.info_desc), Modifier.size(18.dp)
                     )
                 }
             }

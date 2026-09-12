@@ -302,11 +302,9 @@ class ImagePickerHelper(
     private val context: Context, private var launcher: ActivityResultLauncher<Intent>? = null
 ) {
     private var currentPhotoUri: Uri? = null
-
     fun setLauncher(launcher: ActivityResultLauncher<Intent>) {
         this.launcher = launcher
     }
-
     fun launchGalleryPicker() {
         launch(
             Intent(Intent.ACTION_PICK).apply {

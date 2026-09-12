@@ -34,7 +34,6 @@
     <string name="gallery_picker_title">Выбор из галереи</string>
     <string name="gallery_picker_desc">Использует галерею устройства или стороннее приложение для выбора изображений. Рекомендуемый метод, работает на большинстве устройств и поддерживает имена файлов.</string>
     <string name="media_picker">Выбор фото</string>
-    <string name="internal_picker_title">Внутренний выбор фото</string>
     <string name="internal_picker_desc">Использует встроенный выбор фото Android: более приватный, но с ограничениями на доступ к именам файлов.</string>
     <string name="documents">Документы</string>
     <string name="documents_picker_title">Провайдер документов</string>

@@ -69,16 +69,16 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material.icons.outlined.AddPhotoAlternate
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AddPhotoAlternate
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Save
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -326,12 +326,15 @@ fun ProcessingScreen(
                     uris.add(it)
                     viewModel.clearCameraPhotoUri()
                 }
-                imageRepository.addImagesFromUris(context, uris)
+                if (uris.isNotEmpty()) {
+                    imageRepository.addImagesFromUris(context, uris)
+                    viewModel.notifyImagePicked()
+                }
             }
         }
     LaunchedEffect(Unit) { viewModel.setImagePickerLauncher(imagePickerLauncher) }
 
-    fun importImage() {
+    fun launchImportIntent() {
         HapticFeedbacks.light()
         when (defaultImageSource) {
             "gallery" -> viewModel.launchGalleryPicker()
@@ -388,7 +391,7 @@ fun ProcessingScreen(
                 val fabCorner = lerp(if (allComplete) 16f else 18f, 28f, procPress)
 
                 val fabWidthDp by animateDpAsState(
-                    targetValue = if (allComplete) 160.dp else 56.dp, animationSpec = spring(
+                    targetValue = if (allComplete) 121.dp else 56.dp, animationSpec = spring(
                         dampingRatio = Spring.DampingRatioMediumBouncy,
                         stiffness = Spring.StiffnessMedium
                     ), label = "fab_width"
@@ -424,7 +427,7 @@ fun ProcessingScreen(
                     interactionSource = settingsInteraction,
                 ) {
                     Icon(
-                        Icons.Filled.Settings,
+                        Icons.Rounded.Settings,
                         contentDescription = stringResource(R.string.settings)
                     )
                 }
@@ -470,9 +473,9 @@ fun ProcessingScreen(
                             ) { state ->
                                 Icon(
                                     when (state) {
-                                        0 -> Icons.Filled.Close
-                                        1 -> Icons.Filled.Save
-                                        else -> Icons.Filled.PlayArrow
+                                        0 -> Icons.Rounded.Close
+                                        1 -> Icons.Rounded.Save
+                                        else -> Icons.Rounded.PlayArrow
                                     }, null
                                 )
                             }
@@ -502,13 +505,13 @@ fun ProcessingScreen(
                 val addPress by rememberMaterialPressState(addInteraction)
                 val addCorner = lerp(18f, 28f, addPress)
                 FloatingActionButton(
-                    onClick = { importImage() },
+                    onClick = { launchImportIntent() },
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     shape = RoundedCornerShape(addCorner.dp),
                     interactionSource = addInteraction
                 ) {
-                    Icon(Icons.Filled.Add, stringResource(R.string.add_images))
+                    Icon(Icons.Rounded.Add, stringResource(R.string.add_images))
                 }
             }
         }
@@ -601,7 +604,7 @@ fun ProcessingScreen(
                             .clip(RoundedCornerShape(28.dp))
                             .clickable(
                                 interactionSource = buttonInteractionSource, indication = null
-                            ) { importImage() }
+                            ) { launchImportIntent() }
                             .padding(20.dp), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
@@ -624,7 +627,7 @@ fun ProcessingScreen(
                             )
                             Spacer(Modifier.height(8.dp))
                             FilledTonalButton(
-                                onClick = { importImage() },
+                                onClick = { launchImportIntent() },
                                 shape = RoundedCornerShape(animatedCornerRadius.dp),
                                 interactionSource = buttonInteractionSource
                             ) {
@@ -752,7 +755,7 @@ fun ProcessingScreen(
 
     if (showImageSourceDialog) {
         ImageSourceDialog(
-            onDismiss = { showImageSourceDialog = false }, viewModel = viewModel
+            onDismiss = { showImageSourceDialog = false}, viewModel = viewModel
         )
     }
 
@@ -890,18 +893,18 @@ fun SwipeToDismissWrapper(
         else springStandard, label = "swipe"
     )
     val rightIcon = if (swapActions) {
-        if (hasOutput) Icons.Filled.Save else Icons.Filled.PlayArrow
+        if (hasOutput) Icons.Rounded.Save else Icons.Rounded.PlayArrow
     } else {
-        if (isProcessing) Icons.Filled.Close else Icons.Filled.Delete
+        if (isProcessing) Icons.Rounded.Close else Icons.Rounded.Delete
     }
     val rightContainerColor =
         if (swapActions) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.errorContainer
     val rightTint =
         if (swapActions) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onErrorContainer
     val leftIcon = if (swapActions) {
-        Icons.Filled.Delete
+        Icons.Rounded.Delete
     } else {
-        if (hasOutput) Icons.Filled.Save else Icons.Filled.PlayArrow
+        if (hasOutput) Icons.Rounded.Save else Icons.Rounded.PlayArrow
     }
     val leftContainerColor =
         if (swapActions) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer
@@ -1195,7 +1198,7 @@ fun ImageCard(
                 .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(GroupedListSpacing)
         ) {
-            val imageBitmap =
+            val imagePreview =
                 remember(image.thumbnailBitmap, image.outputBitmap, image.inputBitmap) {
                     (image.thumbnailBitmap ?: image.outputBitmap
                     ?: image.inputBitmap).asImageBitmap()
@@ -1208,13 +1211,14 @@ fun ImageCard(
                     color = MaterialTheme.colorScheme.surfaceVariant
                 ) {
                     Image(
-                        imageBitmap,
+                        imagePreview,
                         image.filename,
                         Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
                 }
             }
+            Spacer(modifier = Modifier.width(4.dp))
             Column(
                 Modifier
                     .weight(1f)
@@ -1351,9 +1355,9 @@ private fun ImageCardSplitButton(
         CardState.Idle -> stringResource(R.string.process)
     }
     val leadingIcon = when (cardState) {
-        CardState.Processing -> Icons.Filled.Close
-        CardState.Stale, CardState.Idle -> Icons.Filled.PlayArrow
-        CardState.Complete -> Icons.Filled.Save
+        CardState.Processing -> Icons.Rounded.Close
+        CardState.Stale, CardState.Idle -> Icons.Rounded.PlayArrow
+        CardState.Complete -> Icons.Rounded.Save
     }
     Row(
         modifier = modifier,
@@ -1404,19 +1408,18 @@ private fun ImageCardSplitButton(
                     label = "chevronRotation"
                 )
                 Icon(
-                    Icons.Default.KeyboardArrowDown,
+                    Icons.Rounded.KeyboardArrowDown,
                     contentDescription = null,
                     modifier = Modifier
                         .size(SplitButtonDefaults.TrailingIconSize)
                         .graphicsLayer { rotationZ = chevronRotation })
             }
-
             DropdownMenu(
                 expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                 if (isCompareReady) {
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.compare)) },
-                        leadingIcon = { Icon(Icons.Filled.SwapHoriz, null) },
+                        leadingIcon = { Icon(Icons.Rounded.SwapHoriz, null) },
                         onClick = {
                             HapticFeedbacks.medium()
                             menuExpanded = false
@@ -1427,7 +1430,7 @@ private fun ImageCardSplitButton(
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.reprocess)) },
                         leadingIcon = {
-                            Icon(Icons.Filled.PlayArrow, null)
+                            Icon(Icons.Rounded.Refresh, null, modifier = Modifier.size(26.dp))
                         },
                         onClick = {
                             HapticFeedbacks.medium()
@@ -1438,7 +1441,7 @@ private fun ImageCardSplitButton(
                 if (cardState == CardState.Complete) {
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.import_output)) },
-                        leadingIcon = { Icon(Icons.Outlined.AddPhotoAlternate, null) },
+                        leadingIcon = { Icon(Icons.Rounded.AddPhotoAlternate, null) },
                         onClick = {
                             HapticFeedbacks.light()
                             menuExpanded = false
@@ -1448,7 +1451,7 @@ private fun ImageCardSplitButton(
                 if (cardState == CardState.Stale) {
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.save)) },
-                        leadingIcon = { Icon(Icons.Filled.Save, null) },
+                        leadingIcon = { Icon(Icons.Rounded.Save, null) },
                         onClick = {
                             HapticFeedbacks.light()
                             menuExpanded = false
@@ -1466,7 +1469,7 @@ private fun ImageCardSplitButton(
                                 "B",
                                 fontStyle = FontStyle.Italic,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp,
+                                fontSize = 21.sp,
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -1481,7 +1484,7 @@ private fun ImageCardSplitButton(
                         text = { Text(stringResource(R.string.remove)) },
                         leadingIcon = {
                             Icon(
-                                Icons.Filled.Delete, null, tint = MaterialTheme.colorScheme.error
+                                Icons.Rounded.Delete, null, tint = MaterialTheme.colorScheme.error
                             )
                         },
                         onClick = {

@@ -33,7 +33,6 @@
     <string name="gallery_picker_title">Selettore galleria</string>
     <string name="gallery_picker_desc">Utilizza l\'app galleria del dispositivo o di terze parti per selezionare le immagini. Questo metodo è consigliato e funziona sulla maggior parte dei dispositivi supportando i nomi dei file.</string>
     <string name="media_picker">Selettore foto</string>
-    <string name="internal_picker_title">Selettore foto interno</string>
     <string name="internal_picker_desc">Utilizza il selettore foto integrato di Android, più attento alla privacy ma limita i nomi dei file.</string>
     <string name="documents">Documenti</string>
     <string name="documents_picker_title">Provider documenti</string>

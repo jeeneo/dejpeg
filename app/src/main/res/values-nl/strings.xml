@@ -32,7 +32,6 @@
     <string name="gallery_picker_title">Galerij-kiezer</string>
     <string name="gallery_picker_desc">Gebruikt de galerij-app van je apparaat of een derde partij om afbeeldingen te selecteren. Deze methode wordt aanbevolen, werkt op de meeste apparaten en ondersteunt bestandsnamen.</string>
     <string name="media_picker">Fotokiezer</string>
-    <string name="internal_picker_title">Interne fotokiezer</string>
     <string name="internal_picker_desc">Gebruikt de ingebouwde fotokiezer van Android, meer privacybewust maar beperkt bestandsnamen.</string>
     <string name="documents">Documenten</string>
     <string name="documents_picker_title">Documentprovider</string>

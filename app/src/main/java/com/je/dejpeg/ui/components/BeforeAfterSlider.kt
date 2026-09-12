@@ -24,7 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -285,7 +285,7 @@ fun BeforeAfterSlider(
                     ) {
                         if (!glassSlider) {
                             Icon(
-                                Icons.Filled.SwapHoriz,
+                                Icons.Rounded.SwapHoriz,
                                 contentDescription = stringResource(R.string.drag_to_compare),
                                 tint = iconColor,
                                 modifier = Modifier.size(sliderHandleSize * 0.5f)

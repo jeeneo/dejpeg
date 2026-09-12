@@ -31,6 +31,7 @@ import com.je.dejpeg.utils.ProcessingQueueManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -71,7 +72,7 @@ class ProcessingViewModel : ViewModel() {
     val processingErrorDialog = MutableStateFlow<String?>(null)
     val saveState = MutableStateFlow<SaveState>(SaveState.Idle)
     val gpuCacheCreatingDialog = MutableStateFlow(false)
-
+    val imagePickedEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     private var appContext: Context? = null
     private var serviceHelper: ServiceCommunicationHelper? = null
     private var imagePickerHelper: ImagePickerHelper? = null
@@ -236,6 +237,10 @@ class ProcessingViewModel : ViewModel() {
 
     fun getCameraPhotoUri(): Uri? = imagePickerHelper?.getCameraPhotoUri()
     fun clearCameraPhotoUri() = imagePickerHelper?.clearCameraPhotoUri()
+
+    fun notifyImagePicked() {
+        imagePickedEvent.tryEmit(Unit)
+    }
 
     fun removeImage(id: String, force: Boolean = false, cleanupCache: Boolean = false) {
         val target = imageRepository.getImageById(id) ?: run {
@@ -698,7 +703,6 @@ class ProcessingViewModel : ViewModel() {
         val image = imageRepository.getImageById(imageId) ?: return
         imageRepository.addImageFromOutputCache(appContext ?: return, imageId, image.filename)
     }
-
 
     private fun resolveFilename(original: String, base: String?, index: Int, total: Int): String {
         val chosenBase = base?.takeIf { it.isNotBlank() }

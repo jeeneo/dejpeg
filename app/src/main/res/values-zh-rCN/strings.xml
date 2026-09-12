@@ -31,7 +31,6 @@
     <string name="gallery_picker_title">从图库选择</string>
     <string name="gallery_picker_desc">使用设备自带或第三方图库应用来选择图片。推荐使用此方式，它兼容绝大多数设备，并支持保留原始文件名。</string>
     <string name="media_picker">照片选择器</string>
-    <string name="internal_picker_title">内置照片选择器</string>
     <string name="internal_picker_desc">使用 Android 系统照片选择器。隐私安全性更高，但不支持读取原始文件名。</string>
     <string name="documents">文件</string>
     <string name="documents_picker_title">文件提供程序</string>

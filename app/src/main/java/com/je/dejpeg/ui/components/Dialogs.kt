@@ -87,6 +87,7 @@ import com.je.dejpeg.utils.CacheManager
 import com.je.dejpeg.utils.ImageLoadingHelper
 import com.je.dejpeg.utils.ImageSource
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -424,10 +425,15 @@ fun ImageSourceDialog(
     var setAsDefault by remember { mutableStateOf(false) }
     val handleSelection: suspend (String, () -> Unit) -> Unit = { key, action ->
         if (setAsDefault) appPreferences.setDefaultImageSource(key)
-        onDismiss()
         action()
     }
     val sheetState = rememberModalBottomSheetState()
+    LaunchedEffect(sheetState) {
+        viewModel.imagePickedEvent.collect {
+            sheetState.hide()
+            onDismiss()
+        }
+    }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -450,7 +456,6 @@ fun ImageSourceDialog(
                 horizontalArrangement = Arrangement.Center,
                 position = CardPosition.Trailing,
                 onClick = {
-                    HapticFeedbacks.light()
                     setAsDefault = !setAsDefault
                 }) {
                 Checkbox(
@@ -479,7 +484,7 @@ private fun PickerContents(
     ) {
         GroupedSourceTile(
             modifier = Modifier.weight(1f),
-            corners = gridCornerRole(index = 1, count = 5, columns = 2),
+            corners = CornerRole(topStart = true),
             tooltip = stringResource(R.string.gallery_picker_desc),
             content = {
                 Icon(
@@ -499,7 +504,7 @@ private fun PickerContents(
 
         GroupedSourceTile(
             modifier = Modifier.weight(1f),
-            corners = gridCornerRole(index = 2, count = 5, columns = 2),
+            corners = CornerRole(topEnd = true),
             tooltip = stringResource(R.string.internal_picker_desc),
             content = {
                 Icon(
@@ -522,7 +527,7 @@ private fun PickerContents(
         horizontalArrangement = Arrangement.spacedBy(GroupedListSpacing)
     ) {
         GroupedSourceTile(
-            corners = gridCornerRole(index = 3, count = 5, columns = 2),
+            corners = CornerRole.None,
             tooltip = stringResource(R.string.documents_picker_desc),
             modifier = Modifier.weight(1f),
             content = {
@@ -542,7 +547,7 @@ private fun PickerContents(
             })
         GroupedSourceTile(
             modifier = Modifier.weight(1f),
-            corners = gridCornerRole(index = 4, count = 5, columns = 2),
+            corners = CornerRole.None,
             tooltip = stringResource(R.string.camera_desc),
             content = {
                 Icon(

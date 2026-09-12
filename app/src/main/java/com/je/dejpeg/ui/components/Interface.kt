@@ -29,7 +29,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
@@ -51,13 +51,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-
-val PillOuter = 50.dp
-val PillInner = 6.dp
+import com.je.dejpeg.HapticFeedbacks
 
 enum class CardPosition { Leading, Center, Trailing, Solo }
-enum class GroupOrientation { Vertical, Horizontal }
-
 val GroupedListSpacing: Dp = 2.dp
 val ScreenHorizontalPadding: Dp = 16.dp
 
@@ -81,36 +77,6 @@ fun CornerRole.toShape(outer: Dp = 16.dp, inner: Dp = 6.dp): RoundedCornerShape 
         bottomEnd = if (bottomEnd) outer else inner,
     )
 
-fun CardPosition.toCornerRole(orientation: GroupOrientation = GroupOrientation.Vertical): CornerRole =
-    when (orientation) {
-        GroupOrientation.Vertical -> when (this) {
-            CardPosition.Leading  -> CornerRole(topStart = true, topEnd = true)
-            CardPosition.Center   -> CornerRole.None
-            CardPosition.Trailing -> CornerRole(bottomStart = true, bottomEnd = true)
-            CardPosition.Solo     -> CornerRole.All
-        }
-        GroupOrientation.Horizontal -> when (this) {
-            CardPosition.Leading  -> CornerRole(topStart = true, bottomStart = true)
-            CardPosition.Center   -> CornerRole.None
-            CardPosition.Trailing -> CornerRole(topEnd = true, bottomEnd = true)
-            CardPosition.Solo     -> CornerRole.All
-        }
-    }
-
-fun gridCornerRole(index: Int, count: Int, columns: Int): CornerRole {
-    val i = index - 1
-    val row = i / columns
-    val col = i % columns
-    val lastRow = (count - 1) / columns
-    val isLastCol = col == columns - 1 || index == count
-    return CornerRole(
-        topStart = row == 0 && col == 0,
-        topEnd = row == 0 && isLastCol,
-        bottomStart = row == lastRow && col == 0,
-        bottomEnd = row == lastRow && isLastCol,
-    )
-}
-
 fun positionFor(index: Int, count: Int): CardPosition = when {
     count <= 1 -> CardPosition.Solo
     index == 1 -> CardPosition.Leading // start is 1 for simplicity
@@ -125,8 +91,7 @@ inline fun Modifier.thenIf(condition: Boolean, factory: Modifier.() -> Modifier)
 @Composable
 fun GroupedRow(
     modifier: Modifier = Modifier,
-    position: CardPosition,
-    orientation: GroupOrientation = GroupOrientation.Vertical,
+    position: CardPosition = CardPosition.Solo,
     cornerRole: CornerRole? = null,
     selected: Boolean = false,
     enabled: Boolean = true,
@@ -146,7 +111,13 @@ fun GroupedRow(
         targetValue = if (isPressed) 16.dp else 6.dp,
         label = "groupedRowOuterCorner",
     )
-    val shape = (cornerRole ?: position.toCornerRole(orientation)).toShape(inner = animatedOuter)
+    val shape = (cornerRole ?: when (position) {
+        CardPosition.Leading -> CornerRole(topStart = true, topEnd = true)
+        CardPosition.Center -> CornerRole.None
+        CardPosition.Trailing -> CornerRole(bottomStart = true, bottomEnd = true)
+        CardPosition.Solo -> CornerRole.All
+    }).toShape(inner = animatedOuter)
+
     val background = if (selected) {
         MaterialTheme.colorScheme.surfaceColorAtElevation(elevation * 4)
     } else {
@@ -158,7 +129,7 @@ fun GroupedRow(
         label = "selectionBorder"
     )
     val row = @Composable {
-        Box(modifier.fillMaxWidth()) {
+        Box(modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -170,7 +141,7 @@ fun GroupedRow(
                         combinedClickable(
                             interactionSource = interactionSource,
                             indication = LocalIndication.current,
-                            onClick = { onClick?.invoke() },
+                            onClick = { HapticFeedbacks.light(); onClick?.invoke() },
                             onLongClick = onLongClick,
                         )
                     }
@@ -197,7 +168,7 @@ fun GroupedRow(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            Icons.Filled.Check,
+                            Icons.Rounded.Check,
                             contentDescription = null,
                             modifier = Modifier.size(14.dp),
                             tint = MaterialTheme.colorScheme.onPrimary
@@ -207,21 +178,20 @@ fun GroupedRow(
             }
         }
     }
-    if (tooltip.isNotEmpty()) {
-        val tooltipState = rememberTooltipState()
-        TooltipBox(
-            positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-            tooltip = {
-                PlainTooltip {
-                    Text(tooltip)
-                }
-            },
-            state = tooltipState,
-        ) {
+    Box(modifier) {
+        if (tooltip.isNotEmpty()) {
+            val tooltipState = rememberTooltipState()
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                tooltip = { PlainTooltip { Text(tooltip) } },
+                state = tooltipState,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                row()
+            }
+        } else {
             row()
         }
-    } else {
-        row()
     }
 }
 
@@ -284,7 +254,7 @@ fun GroupedSourceTile(
                         .align(Alignment.Center)
                         .padding(contentPadding),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+//                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     CompositionLocalProvider(LocalContentColor provides contentColor) {
                         content()
@@ -306,7 +276,7 @@ fun GroupedSourceTile(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                Icons.Filled.Check,
+                                Icons.Rounded.Check,
                                 contentDescription = null,
                                 modifier = Modifier.size(14.dp),
                                 tint = MaterialTheme.colorScheme.onPrimary
