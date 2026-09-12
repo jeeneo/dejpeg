@@ -5,12 +5,15 @@
 
 package com.je.dejpeg.ui.theme
 
-import android.app.Activity
 import android.os.Build
+import androidx.activity.SystemBarStyle
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -18,6 +21,7 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
@@ -28,6 +32,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
+import com.je.dejpeg.App
+import androidx.activity.ComponentActivity
+import androidx.activity.enableEdgeToEdge
 
 enum class AppTheme { OLED, Dynamic, Light, Dark }
 
@@ -263,11 +270,11 @@ fun DeJPEGTheme(
         else -> DefaultLight
     }
     val view = LocalView.current
-    if (!view.isInEditMode) {
+    val activity = LocalActivity.current
+    if (!view.isInEditMode && activity != null) {
         SideEffect {
-            val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.surface.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            activity.window.statusBarColor = colorScheme.surface.toArgb()
+            WindowCompat.getInsetsController(activity.window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }
     MaterialTheme(
@@ -276,4 +283,44 @@ fun DeJPEGTheme(
         shapes = ExpressiveShapes,
         content = content,
     )
+}
+
+@Composable
+fun DeJPEGAppTheme(
+    content: @Composable () -> Unit
+) {
+    val theme = App.state.appTheme.value
+    val isDarkTheme = when (theme) {
+        AppTheme.Dynamic -> isSystemInDarkTheme()
+        AppTheme.OLED, AppTheme.Dark -> true
+        AppTheme.Light -> false
+    }
+    val activity = LocalActivity.current
+    SideEffect {
+        val style = if (isDarkTheme) {
+            SystemBarStyle.dark(
+                scrim = android.graphics.Color.TRANSPARENT
+            )
+        } else {
+            SystemBarStyle.light(
+                scrim = android.graphics.Color.TRANSPARENT,
+                darkScrim = android.graphics.Color.TRANSPARENT
+            )
+        }
+        (activity as? ComponentActivity)?.enableEdgeToEdge(
+            statusBarStyle = style,
+            navigationBarStyle = style
+        )
+    }
+    DeJPEGTheme(
+        darkTheme = isDarkTheme,
+        dynamicColor = theme == AppTheme.Dynamic,
+        oledTheme = theme == AppTheme.OLED,
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
+        ) {
+            content()
+        }
+    }
 }

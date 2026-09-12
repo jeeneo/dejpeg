@@ -52,11 +52,13 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Slider
+import androidx.compose.material3.rememberSliderState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberBottomSheetState
+import androidx.compose.material3.SheetValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -378,7 +380,10 @@ fun BRISQUEScreen(
         onDismiss = { showBRISQUESettings = false })
 
     if (showImageModal) {
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        val sheetState = rememberBottomSheetState(
+            initialValue = SheetValue.Hidden,
+            enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
+        )
         (brisqueState?.descaledBitmap ?: brisqueState?.originalBitmap)?.let { bitmap ->
             ImageViewerModal(
                 bitmap = bitmap,
@@ -791,8 +796,14 @@ private fun BRISQUESettings(
                     )
                 }
             }
-            Slider(
+            val sliderState = rememberSliderState(
                 value = index.toFloat(),
+                steps = maxOf(0, steps - 1),
+                trackRange = 0f..steps.toFloat(),
+            )
+            LaunchedEffect(index) { sliderState.value = index.toFloat() }
+            Slider(
+                state = sliderState,
                 onValueChange = { newIdx ->
                     val newIndex = newIdx.roundToInt().coerceIn(0, steps)
                     if (newIndex != index) {
@@ -801,8 +812,6 @@ private fun BRISQUESettings(
                         onValueChange(range.start + (newIndex * stepSize))
                     }
                 },
-                valueRange = 0f..steps.toFloat(),
-                steps = maxOf(0, steps - 1),
                 modifier = Modifier.fillMaxWidth()
             )
             if (expandedInfo == label && infoText.isNotEmpty()) Text(

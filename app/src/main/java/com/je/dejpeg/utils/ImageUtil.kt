@@ -16,7 +16,6 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
-import android.graphics.Matrix
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
@@ -27,7 +26,6 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.core.content.FileProvider
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
-import androidx.exifinterface.media.ExifInterface
 import com.je.dejpeg.R
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -57,9 +55,10 @@ object ImageLoadingHelper {
         context.contentResolver.openInputStream(uri)?.use { stream ->
             BitmapFactory.decodeStream(stream)
         }?.let { bitmap ->
-            context.contentResolver.openInputStream(uri)?.use { exifStream ->
-                applyExifOrientation(bitmap, ExifInterface(exifStream))
-            } ?: bitmap
+            val orientation = context.contentResolver.openInputStream(uri)?.use { stream ->
+                ExifOrientation.getOrientation(stream)
+            } ?: ExifOrientation.ORIENTATION_NORMAL
+            ExifOrientation.applyOrientation(bitmap, orientation)
         }
     } catch (_: Exception) {
         null
@@ -67,7 +66,7 @@ object ImageLoadingHelper {
 
     private fun loadFromFile(file: File): Bitmap? = try {
         BitmapFactory.decodeFile(file.absolutePath)?.let { bitmap ->
-            applyExifOrientation(bitmap, ExifInterface(file.absolutePath))
+            ExifOrientation.applyOrientation(bitmap, ExifOrientation.getOrientation(file))
         }
     } catch (_: Exception) {
         null
@@ -75,54 +74,6 @@ object ImageLoadingHelper {
 
     private const val THUMBNAIL_SIZE = 144
     private fun safabs(value: Int): Int = if (value < 0) -value else value
-
-    private fun applyExifOrientation(bitmap: Bitmap, exif: ExifInterface): Bitmap {
-        return when (exif.getAttributeInt(
-            ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL
-        )) {
-            ExifInterface.ORIENTATION_ROTATE_90 -> rotateBitmap(bitmap, 90f)
-            ExifInterface.ORIENTATION_ROTATE_180 -> rotateBitmap(bitmap, 180f)
-            ExifInterface.ORIENTATION_ROTATE_270 -> rotateBitmap(bitmap, 270f)
-            ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> flipBitmap(
-                bitmap, horizontal = true, vertical = false
-            )
-
-            ExifInterface.ORIENTATION_FLIP_VERTICAL -> flipBitmap(
-                bitmap, horizontal = false, vertical = true
-            )
-
-            ExifInterface.ORIENTATION_TRANSPOSE -> flipBitmap(
-                rotateBitmap(bitmap, 90f), horizontal = true, vertical = false
-            )
-
-            ExifInterface.ORIENTATION_TRANSVERSE -> flipBitmap(
-                rotateBitmap(bitmap, 270f), horizontal = true, vertical = false
-            )
-
-            else -> bitmap
-        }
-    }
-
-    private fun rotateBitmap(bitmap: Bitmap, degrees: Float): Bitmap {
-        val matrix = Matrix().apply { postRotate(degrees) }
-        val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, false)
-        if (rotated != bitmap) bitmap.recycle()
-        return rotated
-    }
-
-    private fun flipBitmap(bitmap: Bitmap, horizontal: Boolean, vertical: Boolean): Bitmap {
-        val matrix = Matrix().apply {
-            postScale(
-                if (horizontal) -1f else 1f,
-                if (vertical) -1f else 1f,
-                bitmap.width / 2f,
-                bitmap.height / 2f
-            )
-        }
-        val flipped = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, false)
-        if (flipped != bitmap) bitmap.recycle()
-        return flipped
-    }
 
     fun generateThumbnail(bitmap: Bitmap, size: Int = THUMBNAIL_SIZE, blurRadius: Int = 5): Bitmap {
         val cropSize = minOf(bitmap.width, bitmap.height)
@@ -305,6 +256,7 @@ class ImagePickerHelper(
     fun setLauncher(launcher: ActivityResultLauncher<Intent>) {
         this.launcher = launcher
     }
+
     fun launchGalleryPicker() {
         launch(
             Intent(Intent.ACTION_PICK).apply {

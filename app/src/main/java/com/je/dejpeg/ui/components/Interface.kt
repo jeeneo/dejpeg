@@ -36,6 +36,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
@@ -54,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import com.je.dejpeg.HapticFeedbacks
 
 enum class CardPosition { Leading, Center, Trailing, Solo }
+
 val GroupedListSpacing: Dp = 2.dp
 val ScreenHorizontalPadding: Dp = 16.dp
 
@@ -182,7 +184,9 @@ fun GroupedRow(
         if (tooltip.isNotEmpty()) {
             val tooltipState = rememberTooltipState()
             TooltipBox(
-                positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                    TooltipAnchorPosition.Above
+                ),
                 tooltip = { PlainTooltip { Text(tooltip) } },
                 state = tooltipState,
                 modifier = Modifier.fillMaxWidth(),
@@ -292,7 +296,9 @@ fun GroupedSourceTile(
         if (tooltip.isNotEmpty()) {
             val tooltipState = rememberTooltipState()
             TooltipBox(
-                positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                    TooltipAnchorPosition.Above
+                ),
                 tooltip = { PlainTooltip { Text(tooltip) } },
                 state = tooltipState,
                 modifier = Modifier.fillMaxWidth(),

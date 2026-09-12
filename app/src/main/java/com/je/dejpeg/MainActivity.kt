@@ -8,29 +8,19 @@ package com.je.dejpeg
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.je.dejpeg.ui.MainScreen
-import com.je.dejpeg.ui.theme.AppTheme
-import com.je.dejpeg.ui.theme.DeJPEGTheme
+import com.je.dejpeg.ui.theme.DeJPEGAppTheme
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
 import com.je.dejpeg.utils.ModelManager
 
@@ -66,45 +56,9 @@ class MainActivity : ComponentActivity() {
 
         // https://stackoverflow.com/a/79267436
         setContent {
-            val theme = App.state.appTheme.value
-            val systemDark = isSystemInDarkTheme()
-
-            val isDarkTheme = when (theme) {
-                AppTheme.Dynamic -> systemDark
-                AppTheme.OLED, AppTheme.Dark -> true
-                AppTheme.Light -> false
-            }
-
-            SideEffect {
-                if (isDarkTheme) {
-                    val darkTransparentStyle = SystemBarStyle.dark(
-                        scrim = Color.TRANSPARENT
-                    )
-                    enableEdgeToEdge(
-                        statusBarStyle = darkTransparentStyle,
-                        navigationBarStyle = darkTransparentStyle
-                    )
-                } else {
-                    val lightTransparentStyle = SystemBarStyle.light(
-                        scrim = Color.TRANSPARENT, darkScrim = Color.TRANSPARENT
-                    )
-                    enableEdgeToEdge(
-                        statusBarStyle = lightTransparentStyle,
-                        navigationBarStyle = lightTransparentStyle
-                    )
-                }
-            }
-            DeJPEGTheme(
-                darkTheme = isDarkTheme,
-                dynamicColor = theme == AppTheme.Dynamic,
-                oledTheme = theme == AppTheme.OLED,
-            ) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
-                ) {
-                    val sharedUris by imageRepository.sharedUris.collectAsState()
-                    MainScreen(sharedUris = sharedUris)
-                }
+            DeJPEGAppTheme {
+                val sharedUris by imageRepository.sharedUris.collectAsState()
+                MainScreen(sharedUris = sharedUris)
             }
         }
     }

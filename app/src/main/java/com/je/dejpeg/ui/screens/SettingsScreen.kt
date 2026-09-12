@@ -57,12 +57,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberBottomSheetState
+import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -177,7 +179,10 @@ fun SettingsSheet(
         }
     }
 
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = rememberBottomSheetState(
+        initialValue = SheetValue.Hidden,
+        enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
+    )
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -856,19 +861,21 @@ fun PowerSlider(
         }
 
     }
-    Slider(
+    val sliderState = rememberSliderState(
         value = index.toFloat(),
-        onValueChange = {
+        steps = (effectivePowers.size - 2).coerceAtLeast(0),
+        trackRange = 0f..(effectivePowers.lastIndex.toFloat().coerceAtLeast(0f)),
+    )
+    LaunchedEffect(index) { sliderState.value = index.toFloat() }
+    Slider(
+        state = sliderState, onValueChange = {
             val newIdx = it.roundToInt().coerceIn(effectivePowers.indices)
             if (newIdx != index) {
                 index = newIdx
                 hapticAction()
                 onChange(effectivePowers[newIdx])
             }
-        },
-        valueRange = 0f..(effectivePowers.lastIndex.toFloat().coerceAtLeast(0f)),
-        steps = (effectivePowers.size - 2).coerceAtLeast(0),
-        enabled = effectivePowers.size > 1
+        }, enabled = effectivePowers.size > 1
     )
 }
 

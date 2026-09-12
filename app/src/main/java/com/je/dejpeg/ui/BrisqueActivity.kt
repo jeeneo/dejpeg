@@ -7,25 +7,16 @@
 
 package com.je.dejpeg.ui
 
-import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
 import com.je.dejpeg.ImageRepository
 import com.je.dejpeg.ui.components.SnackySnackbarBox
 import com.je.dejpeg.ui.components.SnackySnackbarHostState
 import com.je.dejpeg.ui.screens.BRISQUEScreen
-import com.je.dejpeg.ui.theme.DeJPEGTheme
+import com.je.dejpeg.ui.theme.DeJPEGAppTheme
 
 class BrisqueActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,47 +24,26 @@ class BrisqueActivity : ComponentActivity() {
         val imageId = intent.getStringExtra("imageId") ?: return finish()
 
         setContent {
-            val isDarkTheme = isSystemInDarkTheme()
-            SideEffect {
-                if (!isDarkTheme) {
-                    val lightTransparentStyle = SystemBarStyle.light(
-                        scrim = Color.TRANSPARENT, darkScrim = Color.TRANSPARENT
-                    )
-                    enableEdgeToEdge(
-                        statusBarStyle = lightTransparentStyle,
-                        navigationBarStyle = lightTransparentStyle
-                    )
-                } else {
-                    enableEdgeToEdge(
-                        statusBarStyle = SystemBarStyle.dark(scrim = Color.TRANSPARENT),
-                        navigationBarStyle = SystemBarStyle.dark(scrim = Color.TRANSPARENT)
-                    )
+            DeJPEGAppTheme {
+                val imageRepository = remember { ImageRepository.getInstance() }
+                val snackbarHostState = remember { SnackySnackbarHostState() }
+                val snackbarController =
+                    remember { com.je.dejpeg.ui.components.ActivitySnackySnackbarController() }
+                DisposableEffect(snackbarController) {
+                    com.je.dejpeg.ui.components.SnackbarController.bind(snackbarController)
+                    onDispose {
+                        com.je.dejpeg.ui.components.SnackbarController.unbind(
+                            snackbarController
+                        )
+                    }
                 }
-            }
-            DeJPEGTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
+                SnackySnackbarBox(
+                    snackbarHostState = snackbarHostState, controller = snackbarController
                 ) {
-                    val imageRepository = remember { ImageRepository.getInstance() }
-                    val snackbarHostState = remember { SnackySnackbarHostState() }
-                    val snackbarController =
-                        remember { com.je.dejpeg.ui.components.ActivitySnackySnackbarController() }
-                    DisposableEffect(snackbarController) {
-                        com.je.dejpeg.ui.components.SnackbarController.bind(snackbarController)
-                        onDispose {
-                            com.je.dejpeg.ui.components.SnackbarController.unbind(
-                                snackbarController
-                            )
-                        }
-                    }
-                    SnackySnackbarBox(
-                        snackbarHostState = snackbarHostState, controller = snackbarController
-                    ) {
-                        BRISQUEScreen(
-                            imageRepository = imageRepository,
-                            imageId = imageId,
-                            onBack = { finish() })
-                    }
+                    BRISQUEScreen(
+                        imageRepository = imageRepository,
+                        imageId = imageId,
+                        onBack = { finish() })
                 }
             }
         }

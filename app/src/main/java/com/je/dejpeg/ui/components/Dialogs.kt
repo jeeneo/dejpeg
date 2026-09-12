@@ -51,7 +51,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberBottomSheetState
+import androidx.compose.material3.SheetValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -87,7 +88,6 @@ import com.je.dejpeg.utils.CacheManager
 import com.je.dejpeg.utils.ImageLoadingHelper
 import com.je.dejpeg.utils.ImageSource
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -427,7 +427,7 @@ fun ImageSourceDialog(
         if (setAsDefault) appPreferences.setDefaultImageSource(key)
         action()
     }
-    val sheetState = rememberModalBottomSheetState()
+    val sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden)
     LaunchedEffect(sheetState) {
         viewModel.imagePickedEvent.collect {
             sheetState.hide()

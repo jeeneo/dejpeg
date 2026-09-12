@@ -7,7 +7,7 @@
         <item name="postSplashScreenTheme">@style/Theme.DeJPEG</item>
     </style>
 
-    <style name="Theme.DeJPEG" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.DeJPEG" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:allowBackup">true</item>
     </style>
 </resources>
