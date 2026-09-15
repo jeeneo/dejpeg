@@ -55,8 +55,10 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
@@ -92,15 +94,14 @@ import com.je.dejpeg.AppPreferences
 import com.je.dejpeg.HapticFeedbacks
 import com.je.dejpeg.R
 import com.je.dejpeg.ThreadUtils
-import com.je.dejpeg.ui.components.CardPosition
 import com.je.dejpeg.ui.components.CornerRole
 import com.je.dejpeg.ui.components.GroupedListSpacing
-import com.je.dejpeg.ui.components.GroupedRow
 import com.je.dejpeg.ui.components.SnackbarController
 import com.je.dejpeg.ui.components.SnackbarDuration
 import com.je.dejpeg.ui.components.SnackySnackbarEvents
-import com.je.dejpeg.ui.components.positionFor
 import com.je.dejpeg.ui.components.rememberMaterialPressState
+import com.je.dejpeg.ui.components.segmentedShapes
+import com.je.dejpeg.ui.components.toListItemShapes
 import com.je.dejpeg.ui.theme.AppTheme
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
@@ -205,22 +206,15 @@ fun SettingsSheet(
                 val hasCard = processingMode == ModelType.OIDN || processingMode == ModelType.ONNX
                 val extractedMsg = stringResource(R.string.extracted_starter_models)
                 val failedMsg = stringResource(R.string.failed_to_extract_starter_models)
-
                 Spacer(modifier = Modifier.height(GroupedListSpacing))
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(GroupedListSpacing),
                 ) {
-                    GroupedRow(
+                    SegmentedListItem(
                         modifier = Modifier.weight(1f),
-                        position = CardPosition.Solo,
-                        cornerRole = CornerRole(topStart = true, bottomStart = !hasModels),
-                        hideExtras = true,
-                        horizontalArrangement = Arrangement.Center,
-                        onClick = {
-                            modelPickerLauncher.launch("*/*")
-                        },
+                        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                        onClick = { HapticFeedbacks.light(); modelPickerLauncher.launch("*/*") },
                         onLongClick = {
                             HapticFeedbacks.heavy()
                             scope.launch {
@@ -244,41 +238,47 @@ fun SettingsSheet(
                                 }
                             }
                         },
-                        tooltip = stringResource(R.string.settings_tooltip_extract),
-                        verticalPadding = 12.dp,
-                    ) {
-                        Icon(Icons.Rounded.Add, null, modifier = Modifier.size(21.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            stringResource(R.string.import_model_text),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    GroupedRow(
+                        shapes = CornerRole(
+                            topStart = true, bottomStart = !hasModels
+                        ).toListItemShapes(),
+                        leadingContent = {
+                            Icon(
+                                Icons.Rounded.Add, null, modifier = Modifier.size(24.dp)
+                            )
+                        },
+                        content = {
+                            Text(
+                                stringResource(R.string.import_model_text),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        })
+                    SegmentedListItem(
                         modifier = Modifier.weight(1f),
-                        position = CardPosition.Solo,
-                        cornerRole = CornerRole(topEnd = true, bottomEnd = !hasModels),
-                        hideExtras = true,
-                        horizontalArrangement = Arrangement.Center,
+                        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                         onClick = {
+                            HapticFeedbacks.light()
                             uriHandler.openUri("https://codeberg.org/dryerlint/dejpeg/src/branch/main/models")
                         },
-                        tooltip = stringResource(R.string.settings_tooltip_download),
-                        verticalPadding = 12.dp,
-                    ) {
-                        Icon(Icons.Rounded.Download, null, modifier = Modifier.size(21.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            stringResource(R.string.download),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
+                        shapes = CornerRole(
+                            topEnd = true, bottomEnd = !hasModels
+                        ).toListItemShapes(),
+                        leadingContent = {
+                            Icon(
+                                Icons.Rounded.Download, null, modifier = Modifier.size(24.dp)
+                            )
+                        },
+                        content = {
+                            Text(
+                                stringResource(R.string.download),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        })
                 }
 
                 allModels.forEachIndexed { index, (modelName, modelType) ->
@@ -287,12 +287,11 @@ fun SettingsSheet(
                     key(modelName, modelType) {
                         val last = index == allModels.lastIndex && !hasCard
                         Spacer(modifier = Modifier.height(GroupedListSpacing))
-                        GroupedRow(
-                            position = positionFor(
-                                (index - 1), (allModels.size + 1)
-                            ),
-                            cornerRole = CornerRole(bottomStart = last, bottomEnd = last),
+                        SegmentedListItem(
+                            colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                            selected = isActive,
                             onClick = {
+                                HapticFeedbacks.light()
                                 if (processingViewModel.isProcessingOrQueueActive()) {
                                     scope.launch {
                                         SnackbarController.pushEvent(
@@ -306,58 +305,61 @@ fun SettingsSheet(
                                     viewModel.setActiveModel(modelName)
                                 }
                             },
-                            selected = isActive,
-                            hideExtras = true,
-                            elevation = 24.dp,
-                            verticalPadding = 8.dp,
-                        ) {
-                            Text(
-                                modelName,
-                                modifier = Modifier.weight(1f),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            modelManager.getModelInfo(modelName)?.let {
-                                IconButton(onClick = {
-                                    HapticFeedbacks.light()
-                                    modelInfoDialog.value = modelName to it
-                                }, modifier = Modifier.size(32.dp)) {
-                                    Icon(
-                                        Icons.Rounded.Info,
-                                        contentDescription = stringResource(R.string.info),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(21.dp)
-                                    )
-                                }
-                            }
-                            IconButton(
-                                onClick = {
-                                    HapticFeedbacks.light()
-                                    viewModel.deleteModel(
-                                        modelName, modelType
-                                    ) {
-                                        scope.launch {
-                                            SnackbarController.pushEvent(
-                                                SnackySnackbarEvents.MessageEvent(
-                                                    message = deletedModelMessage.format(
-                                                        it
-                                                    ), duration = SnackbarDuration.Short
-                                                )
+                            shapes = CornerRole(
+                                bottomStart = last, bottomEnd = last
+                            ).toListItemShapes(),
+                            content = {
+                                Text(
+                                    modelName,
+                                    modifier = Modifier.weight(1f),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            },
+                            trailingContent = {
+                                Row {
+                                    modelManager.getModelInfo(modelName)?.let {
+                                        IconButton(onClick = {
+                                            HapticFeedbacks.light()
+                                            modelInfoDialog.value = modelName to it
+                                        }, modifier = Modifier.size(32.dp)) {
+                                            Icon(
+                                                Icons.Rounded.Info,
+                                                contentDescription = stringResource(R.string.info),
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(21.dp)
                                             )
                                         }
                                     }
-                                }, modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(
-                                    Icons.Rounded.Delete,
-                                    contentDescription = stringResource(R.string.delete),
-                                    tint = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.size(21.dp)
-                                )
-                            }
-                        }
+                                    IconButton(
+                                        onClick = {
+                                            HapticFeedbacks.light()
+                                            viewModel.deleteModel(
+                                                modelName, modelType
+                                            ) {
+                                                scope.launch {
+                                                    SnackbarController.pushEvent(
+                                                        SnackySnackbarEvents.MessageEvent(
+                                                            message = deletedModelMessage.format(
+                                                                it
+                                                            ), duration = SnackbarDuration.Short
+                                                        )
+                                                    )
+                                                }
+                                            }
+                                        }, modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Rounded.Delete,
+                                            contentDescription = stringResource(R.string.delete),
+                                            tint = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.size(21.dp)
+                                        )
+                                    }
+                                }
+                            })
                     }
                 }
 
@@ -369,6 +371,9 @@ fun SettingsSheet(
                 }
                 val threadLabel =
                     "${stringResource(R.string.processing_threads_desc)} • $threadValue"
+                val colors =
+                    ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+
                 Spacer(modifier = Modifier.height(GroupedListSpacing))
                 AnimatedVisibility(
                     visible = hasModels,
@@ -377,14 +382,14 @@ fun SettingsSheet(
                 ) {
                     val isExpanded =
                         expandedSection == SettingsSection.OidnSettings || expandedSection == SettingsSection.OnnxSettings
-                    val count = if (isExpanded) 3 else 2
                     AnimatedVisibility(
                         visible = processingMode == ModelType.ONNX,
                         enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
                         exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
                     ) {
                         PreferenceItem(
-                            position = positionFor(2, count),
+                            index = 1,
+                            count = 2,
                             icon = Icons.Rounded.BlurOn,
                             iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
                             title = stringResource(R.string.settings_item_onnx_processing),
@@ -398,27 +403,36 @@ fun SettingsSheet(
                                 val maxThreads = remember {
                                     Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
                                 }
-                                PowerSlider(
-                                    label = stringResource(R.string.chunk_size),
-                                    value = chunkSize,
-                                    powers = listOf(512, 1024, 2048),
-                                    onChange = { viewModel.setChunkSize(it) },
-                                    hapticAction = { HapticFeedbacks.light() })
-                                Spacer(modifier = Modifier.height(8.dp))
-                                PowerSlider(
-                                    label = stringResource(R.string.overlap_size),
-                                    value = overlapSize,
-                                    powers = listOf(16, 32, 64, 128),
-                                    onChange = { viewModel.setOverlapSize(it) },
-                                    hapticAction = { HapticFeedbacks.light() })
-                                Spacer(modifier = Modifier.height(8.dp))
-                                PowerSlider(
-                                    label = threadLabel,
-                                    value = onnxDeviceThreads,
-                                    hideValue = true,
-                                    powers = (0..maxThreads).toList(),
-                                    onChange = { viewModel.setOnnxDeviceThreads(it) },
-                                    hapticAction = { HapticFeedbacks.light() })
+                                SegmentedListItem(
+                                    colors = colors, shapes = segmentedShapes(1, 3), content = {
+                                        PowerSlider(
+                                            label = stringResource(R.string.chunk_size),
+                                            value = chunkSize,
+                                            powers = listOf(512, 1024, 2048),
+                                            onChange = { viewModel.setChunkSize(it) },
+                                            hapticAction = { HapticFeedbacks.light() })
+                                    })
+                                SegmentedListItem(
+                                    colors = colors, shapes = segmentedShapes(2, 3), content = {
+                                        PowerSlider(
+                                            label = stringResource(R.string.overlap_size),
+                                            value = overlapSize,
+                                            powers = listOf(16, 32, 64, 128),
+                                            onChange = { viewModel.setOverlapSize(it) },
+                                            hapticAction = { HapticFeedbacks.light() })
+
+                                    })
+                                SegmentedListItem(
+                                    colors = colors, shapes = segmentedShapes(3, 3), content = {
+                                        PowerSlider(
+                                            label = threadLabel,
+                                            value = onnxDeviceThreads,
+                                            hideValue = true,
+                                            powers = (0..maxThreads).toList(),
+                                            onChange = { viewModel.setOnnxDeviceThreads(it) },
+                                            hapticAction = { HapticFeedbacks.light() })
+                                    })
+
                             },
                             onClick = { toggle(SettingsSection.OnnxSettings) })
                     }
@@ -428,28 +442,28 @@ fun SettingsSheet(
                         exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
                     ) {
                         PreferenceItem(
-                            position = positionFor(2, count),
+                            index = 1,
+                            count = 2,
                             icon = Icons.Rounded.Deblur,
                             iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
                             title = stringResource(R.string.oidn_settings),
                             subtitle = if (isExpanded) "" else stringResource(R.string.oidn_settings_desc),
                             expanded = isExpanded,
                             expandedContent = {
-                                GroupedRow(
-                                    position = CardPosition.Leading,
-                                    onClick = { viewModel.setOidnHdrPref(!oidnHDR) },
-                                    elevation = 24.dp
-                                ) {
+                                SegmentedListItem(
+                                    colors = colors,
+                                    shapes = segmentedShapes(1, 2),
+                                    onClick = { HapticFeedbacks.light(); viewModel.setOidnHdrPref(!oidnHDR) }) {
                                     LabeledSwitch(
                                         title = stringResource(R.string.oidn_hdr),
                                         desc = stringResource(R.string.oidn_hdr_desc),
                                         checked = oidnHDR,
                                         onCheckedChange = { viewModel.setOidnHdrPref(it) })
                                 }
-                                GroupedRow(
-                                    position = CardPosition.Trailing,
-                                    onClick = { viewModel.setOidnSrgbPref(!oidnSRGB) },
-                                    elevation = 24.dp
+                                SegmentedListItem(
+                                    colors = colors,
+                                    shapes = segmentedShapes(2, 2),
+                                    onClick = { HapticFeedbacks.light(); viewModel.setOidnSrgbPref(!oidnSRGB) },
                                 ) {
                                     LabeledSwitch(
                                         title = stringResource(R.string.oidn_srgb),
@@ -483,18 +497,16 @@ fun SettingsSheet(
                                         rowOptions.forEachIndexed { colIndex, (value, label) ->
                                             val isFirstCol = colIndex == 0
                                             val isLastCol = colIndex == rowOptions.lastIndex
-                                            GroupedRow(
+                                            SegmentedListItem(
+                                                colors = colors,
                                                 modifier = Modifier.weight(1f),
-                                                elevation = 24.dp,
-                                                hideExtras = true,
-                                                cornerRole = CornerRole(
+                                                shapes = CornerRole(
                                                     topStart = isTopRow && isFirstCol,
                                                     topEnd = isTopRow && isLastCol,
                                                     bottomStart = isBottomRow && isFirstCol,
                                                     bottomEnd = isBottomRow && isLastCol
-                                                ),
+                                                ).toListItemShapes(),
                                                 selected = oidnQuality == value,
-                                                horizontalArrangement = Arrangement.Center,
                                                 onClick = {
                                                     HapticFeedbacks.light()
                                                     viewModel.setOidnQualityPref(value)
@@ -517,15 +529,23 @@ fun SettingsSheet(
                                 } else {
                                     oidnNumThreads.toString()
                                 }
-                                val threadLabel =
-                                    "${stringResource(R.string.oidn_num_threads)} • $threadValue"
-                                PowerSlider(
-                                    label = threadLabel,
-                                    hideValue = true,
-                                    value = oidnNumThreads,
-                                    powers = (0..maxThreads).toList(),
-                                    onChange = { viewModel.setOidnNumThreadsPref(it) },
-                                    hapticAction = { HapticFeedbacks.light() })
+                                Text(
+                                    text = "${stringResource(R.string.oidn_num_threads)} • $threadValue",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                SegmentedListItem(
+                                    colors = colors,
+                                    shapes = segmentedShapes(1, 1),
+                                ) {
+                                    PowerSlider(
+                                        hideValue = true,
+                                        value = oidnNumThreads,
+                                        powers = (0..maxThreads).toList(),
+                                        onChange = { viewModel.setOidnNumThreadsPref(it) },
+                                        hapticAction = { HapticFeedbacks.light() })
+                                }
                             },
                             onClick = {
                                 toggle(SettingsSection.OidnSettings)
@@ -536,18 +556,19 @@ fun SettingsSheet(
                 var themeMenuExpanded by remember { mutableStateOf(false) }
                 val glassSlider by appPreferences.glassSlider.collectAsState(initial = true)
                 val isExpanded = expandedSection == SettingsSection.MainSettings
-                val count = if (isExpanded) 2 else 1
                 Spacer(Modifier.height(6.dp))
                 PreferenceGroupHeading("Settings")
                 PreferenceItem(
-                    position = positionFor(1, count),
+                    index = 1,
+                    count = 1,
                     icon = Icons.Rounded.Settings,
                     iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                     title = stringResource(R.string.settings_item_title_options),
                     expanded = isExpanded,
                     expandedContent = {
-                        GroupedRow(
-                            position = positionFor(1, 6), elevation = 24.dp, onClick = {
+                        SegmentedListItem(
+                            colors = colors, shapes = segmentedShapes(1, 6), onClick = {
+                                HapticFeedbacks.light()
                                 scope.launch {
                                     appPreferences.setHapticFeedbackEnabled(!hapticFeedbackEnabled)
                                 }
@@ -561,8 +582,9 @@ fun SettingsSheet(
                                     }
                                 })
                         }
-                        GroupedRow(
-                            position = positionFor(2, 6), elevation = 24.dp, onClick = {
+                        SegmentedListItem(
+                            colors = colors, shapes = segmentedShapes(2, 6), onClick = {
+                                HapticFeedbacks.light()
                                 scope.launch {
                                     appPreferences.setShowSaveDialog(!showSaveDialog)
                                 }
@@ -576,8 +598,9 @@ fun SettingsSheet(
                                     }
                                 })
                         }
-                        GroupedRow(
-                            position = positionFor(3, 6), elevation = 24.dp, onClick = {
+                        SegmentedListItem(
+                            colors = colors, shapes = segmentedShapes(3, 6), onClick = {
+                                HapticFeedbacks.light()
                                 scope.launch {
                                     appPreferences.setSwapSwipeActions(!swapSwipeActions)
                                 }
@@ -591,10 +614,14 @@ fun SettingsSheet(
                                     }
                                 })
                         }
-                        GroupedRow(
-                            position = positionFor(4, 6),
-                            elevation = 24.dp,
-                            onClick = { scope.launch { appPreferences.setGlassSlider(!glassSlider) } }) {
+                        SegmentedListItem(
+                            colors = colors, shapes = segmentedShapes(4, 6), onClick = {
+                                HapticFeedbacks.light(); scope.launch {
+                                appPreferences.setGlassSlider(
+                                    !glassSlider
+                                )
+                            }
+                            }) {
                             LabeledSwitch(
                                 title = stringResource(R.string.glass_slider),
                                 checked = glassSlider,
@@ -604,8 +631,11 @@ fun SettingsSheet(
                         }
                         val clearedDefaultSourceMsg =
                             stringResource(R.string.cleared_default_source)
-                        GroupedRow(
-                            position = positionFor(5, 6), elevation = 24.dp, onClick = {
+                        SegmentedListItem(
+                            colors = colors,
+                            shapes = segmentedShapes(5, 6),
+                            onClick = {
+                                HapticFeedbacks.light()
                                 scope.launch {
                                     appPreferences.setDefaultImageSource(null)
                                     SnackbarController.pushEvent(
@@ -615,76 +645,81 @@ fun SettingsSheet(
                                         )
                                     )
                                 }
-                            }, verticalPadding = 4.dp
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
+                            },
+                            content = {
                                 Text(
                                     stringResource(R.string.default_image_source),
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = FontWeight.SemiBold
                                 )
+                            },
+                            supportingContent = {
                                 Text(
                                     defaultImageSource ?: stringResource(R.string.none),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                            }
-                            TextButton(
-                                onClick = {
-                                    HapticFeedbacks.light()
-                                    scope.launch {
-                                        appPreferences.setDefaultImageSource(null)
-                                        SnackbarController.pushEvent(
-                                            SnackySnackbarEvents.MessageEvent(
-                                                message = clearedDefaultSourceMsg,
-                                                duration = SnackbarDuration.Short
+                            },
+                            trailingContent = {
+                                TextButton(
+                                    onClick = {
+                                        HapticFeedbacks.light()
+                                        scope.launch {
+                                            appPreferences.setDefaultImageSource(null)
+                                            SnackbarController.pushEvent(
+                                                SnackySnackbarEvents.MessageEvent(
+                                                    message = clearedDefaultSourceMsg,
+                                                    duration = SnackbarDuration.Short
+                                                )
                                             )
-                                        )
-                                    }
-                                }) { Text(stringResource(R.string.clear_default_source)) }
-                        }
-                        GroupedRow(
-                            position = positionFor(6, 6), elevation = 24.dp, onClick = {
+                                        }
+                                    }) { Text(stringResource(R.string.clear_default_source)) }
+                            })
+                        SegmentedListItem(
+                            colors = colors,
+                            shapes = segmentedShapes(6, 6),
+                            onClick = {
+                                HapticFeedbacks.light()
                                 themeMenuExpanded = true
-                            }, verticalPadding = 4.dp
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
+                            },
+                            content = {
                                 Text(
                                     text = stringResource(R.string.theme),
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = FontWeight.SemiBold
                                 )
-                            }
-                            Box {
-                                TextButton(
-                                    onClick = {
-                                        HapticFeedbacks.light(); themeMenuExpanded = true
-                                    }) {
-                                    Text(currentTheme.name)
-                                }
-                                DropdownMenu(
-                                    expanded = themeMenuExpanded, onDismissRequest = {
-                                        HapticFeedbacks.light(); themeMenuExpanded = false
-                                    }) {
-                                    AppTheme.entries.forEach { theme ->
-                                        val label = when (theme) {
-                                            AppTheme.Dynamic -> stringResource(R.string.theme_dynamic)
-                                            AppTheme.Light -> stringResource(R.string.theme_light)
-                                            AppTheme.Dark -> stringResource(R.string.theme_dark)
-                                            AppTheme.OLED -> stringResource(R.string.theme_oled)
-                                        }
-                                        DropdownMenuItem(text = { Text(label) }, onClick = {
-                                            themeMenuExpanded = false
-                                            HapticFeedbacks.light()
-                                            scope.launch {
-                                                appPreferences.setAppTheme(theme)
+                            },
+                            trailingContent = {
+                                Box {
+                                    TextButton(
+                                        onClick = {
+                                            HapticFeedbacks.light(); themeMenuExpanded = true
+                                        }) {
+                                        Text(currentTheme.name)
+                                    }
+                                    DropdownMenu(
+                                        expanded = themeMenuExpanded, onDismissRequest = {
+                                            HapticFeedbacks.light(); themeMenuExpanded = false
+                                        }) {
+                                        AppTheme.entries.forEach { theme ->
+                                            val label = when (theme) {
+                                                AppTheme.Dynamic -> stringResource(R.string.theme_dynamic)
+                                                AppTheme.Light -> stringResource(R.string.theme_light)
+                                                AppTheme.Dark -> stringResource(R.string.theme_dark)
+                                                AppTheme.OLED -> stringResource(R.string.theme_oled)
                                             }
-                                            App.state.appTheme.value = theme
-                                        })
+                                            DropdownMenuItem(text = { Text(label) }, onClick = {
+                                                HapticFeedbacks.light()
+                                                themeMenuExpanded = false
+                                                scope.launch {
+                                                    appPreferences.setAppTheme(theme)
+                                                }
+                                                App.state.appTheme.value = theme
+                                            })
+                                        }
                                     }
                                 }
-                            }
-                        }
+                            })
                     },
                     onClick = {
                         toggle(SettingsSection.MainSettings)
@@ -828,7 +863,7 @@ fun PreferenceGroupHeading(title: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun PowerSlider(
-    label: String,
+    label: String? = null,
     value: Int? = null,
     powers: List<Int>,
     maxAllowed: Int = Int.MAX_VALUE,
@@ -843,6 +878,12 @@ fun PowerSlider(
     var index by remember(clampedValue, effectivePowers) {
         mutableIntStateOf(maxOf(effectivePowers.indexOf(clampedValue), 0))
     }
+    val sliderState = rememberSliderState(
+        value = index.toFloat(),
+        steps = (effectivePowers.size - 2).coerceAtLeast(0),
+        trackRange = 0f..(effectivePowers.lastIndex.toFloat().coerceAtLeast(0f)),
+    )
+    LaunchedEffect(index) { sliderState.value = index.toFloat() }
     LaunchedEffect(maxAllowed) {
         if (value != null && value >= maxAllowed && effectivePowers.isNotEmpty()) {
             onChange(effectivePowers.last())
@@ -850,33 +891,33 @@ fun PowerSlider(
     }
     Column {
         Row {
-            Text(
-                label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium
-            )
+            if (label != null) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium
+                )
+            }
             if (!hideValue) Text(
                 " • ${effectivePowers[index]}",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Medium
             )
         }
-
+        Spacer(modifier = Modifier.height(4.dp))
+        Row {
+            Slider(
+                state = sliderState, onValueChange = {
+                    val newIdx = it.roundToInt().coerceIn(effectivePowers.indices)
+                    if (newIdx != index) {
+                        index = newIdx
+                        hapticAction()
+                        onChange(effectivePowers[newIdx])
+                    }
+                }, enabled = effectivePowers.size > 1
+            )
+        }
     }
-    val sliderState = rememberSliderState(
-        value = index.toFloat(),
-        steps = (effectivePowers.size - 2).coerceAtLeast(0),
-        trackRange = 0f..(effectivePowers.lastIndex.toFloat().coerceAtLeast(0f)),
-    )
-    LaunchedEffect(index) { sliderState.value = index.toFloat() }
-    Slider(
-        state = sliderState, onValueChange = {
-            val newIdx = it.roundToInt().coerceIn(effectivePowers.indices)
-            if (newIdx != index) {
-                index = newIdx
-                hapticAction()
-                onChange(effectivePowers[newIdx])
-            }
-        }, enabled = effectivePowers.size > 1
-    )
 }
 
 
@@ -926,90 +967,94 @@ fun LabeledSwitch(
 @Composable
 fun PreferenceItem(
     modifier: Modifier = Modifier,
-    icon: Any,
-    iconTint: Color? = null,
+    onClick: () -> Unit,
     title: String,
     subtitle: String? = "",
+    icon: Any,
+    iconTint: Color? = null,
     expanded: Boolean = false,
-    trailing: (@Composable () -> Unit)? = null,
     expandedContent: (@Composable () -> Unit)? = null,
-    onClick: () -> Unit,
-    position: CardPosition,
+    trailing: (@Composable () -> Unit)? = null,
+    index: Int = 1,
+    count: Int = 1,
 ) {
+    val colors =
+        ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+    val pill = index == count
     Column(modifier = modifier.fillMaxWidth()) {
-        GroupedRow(position = position, onClick = { onClick() }, verticalPadding = 14.dp) {
-            Spacer(modifier = Modifier.width(8.dp))
-            when (icon) {
-                is ImageVector -> Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = iconTint ?: Color.Unspecified,
-                    modifier = Modifier.size(21.dp)
-                )
+        SegmentedListItem(
+            colors = colors,
+            shapes = CornerRole(
+                bottomStart = !expanded, bottomEnd = !expanded, topStart = pill, topEnd = pill
+            ).toListItemShapes(),
+            onClick = { HapticFeedbacks.light(); onClick() },
+            leadingContent = {
+                when (icon) {
+                    is ImageVector -> Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = iconTint ?: Color.Unspecified,
+                        modifier = Modifier.size(21.dp)
+                    )
 
-                is Painter -> Icon(
-                    painter = icon,
-                    contentDescription = null,
-                    tint = iconTint ?: Color.Unspecified,
-                    modifier = Modifier.size(21.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                AnimatedVisibility(
-                    visible = !subtitle.isNullOrEmpty(),
-                    enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
-                    exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
-                ) {
-                    Spacer(modifier = Modifier.height(3.dp))
-                    if (subtitle != null) {
-                        Text(
-                            subtitle,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                    is Painter -> Icon(
+                        painter = icon,
+                        contentDescription = null,
+                        tint = iconTint ?: Color.Unspecified,
+                        modifier = Modifier.size(21.dp)
+                    )
+                }
+            },
+            content = {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        title,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    AnimatedVisibility(
+                        visible = !subtitle.isNullOrEmpty(),
+                        enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
+                        exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
+                    ) {
+                        Spacer(modifier = Modifier.height(3.dp))
+                        if (subtitle != null) {
+                            Text(
+                                subtitle,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                 }
-            }
-            if (trailing != null) {
-                trailing()
-            } else {
-                val chevronRotation by animateFloatAsState(
-                    targetValue = if (expanded) 90f else 0f, animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    ), label = "chevron"
-                )
-                Icon(
-                    Icons.Rounded.ChevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    modifier = Modifier
-                        .size(32.dp)
-                        .rotate(chevronRotation)
-                )
-            }
-        }
+            },
+            trailingContent = {
+                if (trailing != null) {
+                    trailing()
+                } else {
+                    val chevronRotation by animateFloatAsState(
+                        targetValue = if (expanded) 90f else 0f, label = "chevron"
+                    )
+                    Icon(
+                        Icons.Rounded.ChevronRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier
+                            .size(34.dp)
+                            .rotate(chevronRotation)
+                    )
+                }
+            })
         Spacer(modifier = Modifier.height(GroupedListSpacing))
         AnimatedVisibility(visible = expanded) {
             Column(modifier = Modifier.fillMaxWidth()) {
-                GroupedRow(
-                    position = CardPosition.Trailing,
-                    verticalPadding = 0.dp,
-                    horizontalPadding = 0.dp
+                SegmentedListItem(
+                    shapes = segmentedShapes(2, 2), colors = colors
                 ) {
                     Column(
-                        Modifier.padding(
-                            horizontal = 18.dp, vertical = 18.dp
-                        ),
                         verticalArrangement = Arrangement.spacedBy(GroupedListSpacing),
                     ) {
                         expandedContent?.invoke()

@@ -6,14 +6,14 @@
 package com.je.dejpeg.ui.theme
 
 import android.os.Build
+import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.LocalActivity
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -21,20 +21,14 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.view.WindowCompat
 import com.je.dejpeg.App
-import androidx.activity.ComponentActivity
-import androidx.activity.enableEdgeToEdge
 
 enum class AppTheme { OLED, Dynamic, Light, Dark }
 
@@ -106,7 +100,7 @@ private val DefaultLight = lightColorScheme(
     inversePrimary = Color(0xFFFFB951),
 )
 
-private val OledBlack = darkColorScheme(
+private val OLEDBlack = darkColorScheme(
     primary = Color(0xFFFFFFFF),
     onPrimary = Color(0xFF000000),
     primaryContainer = Color(0xFF2A2A2A),
@@ -251,53 +245,19 @@ val ExpressiveTypography = Typography(
     ),
 )
 
-@Suppress("DEPRECATION")
 @Composable
-fun DeJPEGTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
-    oledTheme: Boolean = false,
-    content: @Composable () -> Unit
-) {
-    val colorScheme = when {
-        oledTheme -> OledBlack
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DefaultDark
-        else -> DefaultLight
-    }
-    val view = LocalView.current
-    val activity = LocalActivity.current
-    if (!view.isInEditMode && activity != null) {
-        SideEffect {
-            activity.window.statusBarColor = colorScheme.surface.toArgb()
-            WindowCompat.getInsetsController(activity.window, view).isAppearanceLightStatusBars = !darkTheme
-        }
-    }
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = ExpressiveTypography,
-        shapes = ExpressiveShapes,
-        content = content,
-    )
-}
-
-@Composable
-fun DeJPEGAppTheme(
+fun AppTheme(
     content: @Composable () -> Unit
 ) {
     val theme = App.state.appTheme.value
-    val isDarkTheme = when (theme) {
+    val darkTheme = when (theme) {
         AppTheme.Dynamic -> isSystemInDarkTheme()
         AppTheme.OLED, AppTheme.Dark -> true
         AppTheme.Light -> false
     }
     val activity = LocalActivity.current
     SideEffect {
-        val style = if (isDarkTheme) {
+        val style = if (darkTheme) {
             SystemBarStyle.dark(
                 scrim = android.graphics.Color.TRANSPARENT
             )
@@ -308,19 +268,24 @@ fun DeJPEGAppTheme(
             )
         }
         (activity as? ComponentActivity)?.enableEdgeToEdge(
-            statusBarStyle = style,
-            navigationBarStyle = style
+            statusBarStyle = style, navigationBarStyle = style
         )
     }
-    DeJPEGTheme(
-        darkTheme = isDarkTheme,
-        dynamicColor = theme == AppTheme.Dynamic,
-        oledTheme = theme == AppTheme.OLED,
-    ) {
-        Surface(
-            modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
-        ) {
-            content()
+    val dynamicColor = theme == AppTheme.Dynamic
+    val colorScheme = when {
+        theme == AppTheme.OLED -> OLEDBlack
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            val context = LocalContext.current
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
+
+        darkTheme -> DefaultDark
+        else -> DefaultLight
     }
+    MaterialTheme(
+        colorScheme = colorScheme,
+        typography = ExpressiveTypography,
+        shapes = ExpressiveShapes,
+        content = content,
+    )
 }

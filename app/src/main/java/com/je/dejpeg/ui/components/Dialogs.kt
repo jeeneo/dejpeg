@@ -18,6 +18,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalGridApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -28,6 +29,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CameraAlt
@@ -45,14 +48,16 @@ import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedListItem
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetState
-import androidx.compose.material3.SheetValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -74,6 +79,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.window.DialogProperties
@@ -415,7 +421,11 @@ fun CancelProcessingDialog(
         })
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(
+    ExperimentalMaterial3Api::class,
+    ExperimentalMaterial3ExpressiveApi::class,
+    ExperimentalGridApi::class
+)
 @Composable
 fun ImageSourceDialog(
     onDismiss: () -> Unit,
@@ -451,119 +461,100 @@ fun ImageSourceDialog(
                 modifier = Modifier.padding(bottom = 4.dp)
             )
             Spacer(modifier = Modifier.height(8.dp))
-            PickerContents(viewModel = viewModel, handleSelection = handleSelection)
-            GroupedRow(
-                horizontalArrangement = Arrangement.Center,
-                position = CardPosition.Trailing,
-                onClick = {
-                    setAsDefault = !setAsDefault
-                }) {
-                Checkbox(
-                    checked = setAsDefault,
-                    onCheckedChange = { HapticFeedbacks.light(); setAsDefault = it },
-                    modifier = Modifier.size(32.dp)
-                )
-                Text(
-                    stringResource(R.string.set_as_default),
-                    style = MaterialTheme.typography.bodyMedium
-                )
+            val scope = rememberCoroutineScope()
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(GroupedListSpacing),
+                verticalArrangement = Arrangement.spacedBy(GroupedListSpacing)
+            ) {
+                item {
+                    SegmentedListItem(
+                        shapes = CornerRole(topStart = true).toListItemShapes(),
+                        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                        leadingContent = {
+                            Icon(
+                                painterResource(R.drawable.ic_gallery),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        },
+                        content = { Text(stringResource(R.string.gallery)) },
+                        onClick = {
+                            HapticFeedbacks.medium()
+                            scope.launch { handleSelection("gallery") { viewModel.launchGalleryPicker() } }
+                        })
+                }
+                item {
+                    SegmentedListItem(
+                        shapes = CornerRole(topEnd = true).toListItemShapes(),
+                        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                        leadingContent = {
+                            Icon(
+                                Icons.Outlined.Photo,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        },
+                        content = { Text(stringResource(R.string.media_picker)) },
+                        onClick = {
+                            HapticFeedbacks.medium()
+                            scope.launch { handleSelection("internal") { viewModel.launchInternalPhotoPicker() } }
+                        })
+                }
+                item {
+                    SegmentedListItem(
+                        shapes = CornerRole().toListItemShapes(),
+                        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                        leadingContent = {
+                            Icon(
+                                Icons.Outlined.Folder,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        },
+                        content = { Text(stringResource(R.string.documents)) },
+                        onClick = {
+                            HapticFeedbacks.medium()
+                            scope.launch { handleSelection("documents") { viewModel.launchDocumentsPicker() } }
+                        })
+
+                }
+                item {
+                    SegmentedListItem(
+                        shapes = CornerRole().toListItemShapes(),
+                        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                        leadingContent = {
+                            Icon(
+                                Icons.Outlined.CameraAlt,
+                                contentDescription = null,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        },
+                        content = { Text(stringResource(R.string.camera)) },
+                        onClick = {
+                            HapticFeedbacks.medium()
+                            scope.launch { handleSelection("camera") { viewModel.launchCamera() } }
+                        })
+                }
             }
+            SegmentedListItem(
+                checked = setAsDefault, onCheckedChange = {
+                    HapticFeedbacks.light()
+                    setAsDefault = it
+                }, shapes = segmentedShapes(2, 2), colors = ListItemDefaults.segmentedColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                ), content = {
+                    Text(
+                        stringResource(R.string.set_as_default),
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
+                })
         }
-    }
-}
-
-@Composable
-private fun PickerContents(
-    viewModel: ProcessingViewModel,
-    handleSelection: suspend (String, () -> Unit) -> Unit,
-) {
-    val scope = rememberCoroutineScope()
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(GroupedListSpacing)
-    ) {
-        GroupedSourceTile(
-            modifier = Modifier.weight(1f),
-            corners = CornerRole(topStart = true),
-            tooltip = stringResource(R.string.gallery_picker_desc),
-            content = {
-                Icon(
-                    painterResource(R.drawable.ic_gallery),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier.size(32.dp)
-                )
-                Text(
-                    text = stringResource(R.string.gallery),
-                )
-            },
-            onClick = {
-                HapticFeedbacks.medium()
-                scope.launch { handleSelection("gallery") { viewModel.launchGalleryPicker() } }
-            })
-
-        GroupedSourceTile(
-            modifier = Modifier.weight(1f),
-            corners = CornerRole(topEnd = true),
-            tooltip = stringResource(R.string.internal_picker_desc),
-            content = {
-                Icon(
-                    Icons.Outlined.Photo,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier.size(32.dp)
-                )
-                Text(
-                    text = stringResource(R.string.media_picker),
-                )
-            },
-            onClick = {
-                HapticFeedbacks.medium()
-                scope.launch { handleSelection("internal") { viewModel.launchInternalPhotoPicker() } }
-            })
-    }
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(GroupedListSpacing)
-    ) {
-        GroupedSourceTile(
-            corners = CornerRole.None,
-            tooltip = stringResource(R.string.documents_picker_desc),
-            modifier = Modifier.weight(1f),
-            content = {
-                Icon(
-                    Icons.Outlined.Folder,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier.size(32.dp)
-                )
-                Text(
-                    text = stringResource(R.string.documents),
-                )
-            },
-            onClick = {
-                HapticFeedbacks.medium()
-                scope.launch { handleSelection("documents") { viewModel.launchDocumentsPicker() } }
-            })
-        GroupedSourceTile(
-            modifier = Modifier.weight(1f),
-            corners = CornerRole.None,
-            tooltip = stringResource(R.string.camera_desc),
-            content = {
-                Icon(
-                    Icons.Outlined.CameraAlt,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier.size(32.dp)
-                )
-                Text(
-                    text = stringResource(R.string.camera),
-                )
-            },
-            onClick = {
-                HapticFeedbacks.medium()
-                scope.launch { handleSelection("camera") { viewModel.launchCamera() } }
-            })
     }
 }
 

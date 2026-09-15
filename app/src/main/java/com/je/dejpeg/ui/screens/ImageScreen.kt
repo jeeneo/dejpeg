@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -27,12 +26,13 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -64,11 +64,10 @@ import com.je.dejpeg.HapticFeedbacks
 import com.je.dejpeg.ImageRepository
 import com.je.dejpeg.R
 import com.je.dejpeg.ui.components.BeforeAfterSlider
-import com.je.dejpeg.ui.components.CornerRole
 import com.je.dejpeg.ui.components.GroupedListSpacing
-import com.je.dejpeg.ui.components.GroupedRow
 import com.je.dejpeg.ui.components.PreparingShareDialog
 import com.je.dejpeg.ui.components.SaveImageDialog
+import com.je.dejpeg.ui.components.horizontalSegmentedShapes
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SaveState
 import com.je.dejpeg.utils.ImageActions
@@ -156,33 +155,46 @@ fun ImageScreen(
                             .zIndex(1f)
                             .width(IntrinsicSize.Min)
                     ) {
-                        GroupedRow(
+                        SegmentedListItem(
                             modifier = Modifier.weight(1f),
+                            shapes = horizontalSegmentedShapes(1, 2),
+                            colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                            leadingContent = {
+                                Icon(
+                                    Icons.Rounded.Share, contentDescription = "Share image"
+                                )
+                            },
+                            content = {
+                                Text(
+                                    stringResource(id = R.string.share_image),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            },
                             onClick = {
+                                HapticFeedbacks.light()
                                 isPreparingShare = true
                                 ImageActions.shareImage(
                                     context = context,
                                     bitmap = afterBitmap,
                                     onReady = { isPreparingShare = false },
                                     onError = { isPreparingShare = false })
-                            },
-                            cornerRole = CornerRole(
-                                topStart = true, bottomStart = true
-                            ),
-                        ) {
-                            Icon(Icons.Rounded.Share, contentDescription = "Share image")
-                            Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                            Text(text = stringResource(id = R.string.share_image))
-                        }
-                        GroupedRow(
+                            })
+                        SegmentedListItem(
                             modifier = Modifier.weight(1f),
-                            onClick = { saveOrPrompt(imageId, filename) },
-                            cornerRole = CornerRole(topEnd = true, bottomEnd = true)
-                        ) {
-                            Icon(Icons.Rounded.Save, contentDescription = "Save image")
-                            Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                            Text(text = stringResource(id = R.string.save))
-                        }
+                            shapes = horizontalSegmentedShapes(2, 2),
+                            colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                            leadingContent = {
+                                Icon(
+                                    Icons.Rounded.Save, contentDescription = "Save image"
+                                )
+                            },
+                            content = {
+                                Text(
+                                    stringResource(id = R.string.save),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            },
+                            onClick = { HapticFeedbacks.light(); saveOrPrompt(imageId, filename) })
                     }
                 }
             } else {

@@ -1,63 +1,20 @@
 package com.je.dejpeg.ui.components
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.LocalIndication
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PlainTooltip
-import androidx.compose.material3.Text
-import androidx.compose.material3.TooltipAnchorPosition
-import androidx.compose.material3.TooltipBox
-import androidx.compose.material3.TooltipDefaults
-import androidx.compose.material3.rememberTooltipState
-import androidx.compose.material3.surfaceColorAtElevation
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.ListItemShapes
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.je.dejpeg.HapticFeedbacks
-
-enum class CardPosition { Leading, Center, Trailing, Solo }
 
 val GroupedListSpacing: Dp = 2.dp
 val ScreenHorizontalPadding: Dp = 16.dp
+
+@Composable
+fun segmentedShapes(index: Int, count: Int) = ListItemDefaults.segmentedShapes(index - 1, count)
 
 data class CornerRole(
     val topStart: Boolean = false,
@@ -68,6 +25,12 @@ data class CornerRole(
     companion object {
         val None = CornerRole()
         val All = CornerRole(topStart = true, topEnd = true, bottomStart = true, bottomEnd = true)
+        fun forPosition(index: Int, count: Int): CornerRole = when {
+            count <= 1 -> All
+            index == 1 -> CornerRole(topStart = true, topEnd = true) // leading
+            index == count -> CornerRole(bottomStart = true, bottomEnd = true) // trailing
+            else -> None // center
+        }
     }
 }
 
@@ -79,257 +42,62 @@ fun CornerRole.toShape(outer: Dp = 16.dp, inner: Dp = 6.dp): RoundedCornerShape 
         bottomEnd = if (bottomEnd) outer else inner,
     )
 
-fun positionFor(index: Int, count: Int): CardPosition = when {
-    count <= 1 -> CardPosition.Solo
-    index == 1 -> CardPosition.Leading // start is 1 for simplicity
-    index == count -> CardPosition.Trailing // end so trail
-    else -> CardPosition.Center
-}
-
-inline fun Modifier.thenIf(condition: Boolean, factory: Modifier.() -> Modifier): Modifier =
-    if (condition) factory() else this
-
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun GroupedRow(
-    modifier: Modifier = Modifier,
-    position: CardPosition = CardPosition.Solo,
-    cornerRole: CornerRole? = null,
-    selected: Boolean = false,
-    enabled: Boolean = true,
-    onClick: (() -> Unit)? = null,
-    elevation: Dp = 10.dp,
-    hideExtras: Boolean = false,
-    onLongClick: (() -> Unit)? = null,
-    verticalPadding: Dp = 14.dp,
-    horizontalPadding: Dp = 14.dp,
-    horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
-    tooltip: String = "",
-    content: @Composable RowScope.() -> Unit,
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val animatedOuter by animateDpAsState(
-        targetValue = if (isPressed) 16.dp else 6.dp,
-        label = "groupedRowOuterCorner",
+fun CornerRole.toListItemShapes(
+    outer: Dp = 16.dp,
+    inner: Dp = 6.dp,
+): ListItemShapes = remember(this, outer, inner) {
+    val idle = toShape(outer, inner)
+    ListItemShapes(
+        shape = idle,
+        selectedShape = idle,
+        pressedShape = RoundedCornerShape(outer),
+        focusedShape = idle,
+        hoveredShape = idle,
+        draggedShape = idle,
     )
-    val shape = (cornerRole ?: when (position) {
-        CardPosition.Leading -> CornerRole(topStart = true, topEnd = true)
-        CardPosition.Center -> CornerRole.None
-        CardPosition.Trailing -> CornerRole(bottomStart = true, bottomEnd = true)
-        CardPosition.Solo -> CornerRole.All
-    }).toShape(inner = animatedOuter)
-
-    val background = if (selected) {
-        MaterialTheme.colorScheme.surfaceColorAtElevation(elevation * 4)
-    } else {
-        MaterialTheme.colorScheme.surfaceColorAtElevation(elevation)
-    }
-    val selectionBorderColor by animateColorAsState(
-        targetValue = if (selected && !hideExtras) MaterialTheme.colorScheme.primary else Color.Transparent,
-        animationSpec = spring(stiffness = Spring.StiffnessMedium),
-        label = "selectionBorder"
-    )
-    val row = @Composable {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(shape)
-                    .alpha(if (enabled) 1f else 0.6f)
-                    .background(background, shape)
-                    .border(2.dp, selectionBorderColor, shape)
-                    .thenIf(enabled && (onClick != null || onLongClick != null)) {
-                        combinedClickable(
-                            interactionSource = interactionSource,
-                            indication = LocalIndication.current,
-                            onClick = { HapticFeedbacks.light(); onClick?.invoke() },
-                            onLongClick = onLongClick,
-                        )
-                    }
-                    .padding(
-                        horizontal = horizontalPadding,
-                        vertical = verticalPadding,
-                    ),
-                horizontalArrangement = horizontalArrangement,
-                verticalAlignment = Alignment.CenterVertically,
-                content = content,
-            )
-            if (!hideExtras) {
-                AnimatedVisibility(
-                    visible = selected,
-                    modifier = Modifier.align(Alignment.TopEnd),
-                    enter = scaleIn(spring(dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn(),
-                    exit = scaleOut() + fadeOut(),
-                ) {
-                    Box(
-                        Modifier
-                            .padding(6.dp)
-                            .size(22.dp)
-                            .background(MaterialTheme.colorScheme.primary, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Rounded.Check,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
-                }
-            }
-        }
-    }
-    Box(modifier) {
-        if (tooltip.isNotEmpty()) {
-            val tooltipState = rememberTooltipState()
-            TooltipBox(
-                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
-                    TooltipAnchorPosition.Above
-                ),
-                tooltip = { PlainTooltip { Text(tooltip) } },
-                state = tooltipState,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                row()
-            }
-        } else {
-            row()
-        }
-    }
 }
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun GroupedSourceTile(
-    modifier: Modifier = Modifier,
-    corners: CornerRole,
-    selected: Boolean = false,
-    enabled: Boolean = true,
-    onClick: (() -> Unit)? = null,
-    onLongClick: (() -> Unit)? = null,
-    elevation: Dp = 10.dp,
-    hideExtras: Boolean = false,
-    height: Dp = 110.dp,
-    contentPadding: Dp = 12.dp,
-    tooltip: String = "",
-    containerColor: Color? = null,
-    contentColor: Color = MaterialTheme.colorScheme.onSurface,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val animatedOuter by animateDpAsState(
-        targetValue = if (isPressed) 16.dp else 6.dp,
-        label = "groupedSourceTileOuterCorner",
-    )
-    val shape = corners.toShape(inner = animatedOuter)
-    val background = containerColor ?: if (selected) {
-        MaterialTheme.colorScheme.surfaceColorAtElevation(elevation * 4)
-    } else {
-        MaterialTheme.colorScheme.surfaceColorAtElevation(elevation)
-    }
-    val selectionBorderColor by animateColorAsState(
-        targetValue = if (selected && !hideExtras) MaterialTheme.colorScheme.primary else Color.Transparent,
-        animationSpec = spring(stiffness = Spring.StiffnessMedium),
-        label = "selectionBorder"
-    )
+fun horizontalSegmentedShapes(
+    index: Int,
+    count: Int,
+    defaultShapes: ListItemShapes = ListItemDefaults.shapes(),
+    roundedShape: CornerBasedShape = RoundedCornerShape(percent = 50),
+): ListItemShapes {
+    val normalizedIndex = index - 1
+    return remember(normalizedIndex, count, defaultShapes, roundedShape) {
+        fun Shape.correctedOrSelf(): Shape {
+            if (this !is CornerBasedShape) return this
+            return when {
+                count == 1 -> copy(
+                    topStart = roundedShape.topStart,
+                    topEnd = roundedShape.topEnd,
+                    bottomStart = roundedShape.bottomStart,
+                    bottomEnd = roundedShape.bottomEnd,
+                )
 
-    val tile = @Composable {
-        Box(modifier) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(height)
-                    .clip(shape)
-                    .alpha(if (enabled) 1f else 0.6f)
-                    .background(background, shape)
-                    .border(2.dp, selectionBorderColor, shape)
-                    .thenIf(enabled && (onClick != null || onLongClick != null)) {
-                        combinedClickable(
-                            interactionSource = interactionSource,
-                            indication = LocalIndication.current,
-                            onClick = { onClick?.invoke() },
-                            onLongClick = onLongClick,
-                        )
-                    }) {
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(contentPadding),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-//                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    CompositionLocalProvider(LocalContentColor provides contentColor) {
-                        content()
-                    }
-                }
+                normalizedIndex == 0 -> copy(
+                    topStart = roundedShape.topStart,
+                    bottomStart = roundedShape.bottomStart,
+                )
 
-                if (!hideExtras) {
-                    AnimatedVisibility(
-                        visible = selected,
-                        modifier = Modifier.align(Alignment.TopEnd),
-                        enter = scaleIn(spring(dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn(),
-                        exit = scaleOut() + fadeOut(),
-                    ) {
-                        Box(
-                            Modifier
-                                .padding(6.dp)
-                                .size(22.dp)
-                                .background(MaterialTheme.colorScheme.primary, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Rounded.Check,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.onPrimary
-                            )
-                        }
-                    }
-                }
+                normalizedIndex == count - 1 -> copy(
+                    topEnd = roundedShape.topEnd,
+                    bottomEnd = roundedShape.bottomEnd,
+                )
+
+                else -> this
             }
         }
-    }
 
-    Box(modifier) {
-        if (tooltip.isNotEmpty()) {
-            val tooltipState = rememberTooltipState()
-            TooltipBox(
-                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
-                    TooltipAnchorPosition.Above
-                ),
-                tooltip = { PlainTooltip { Text(tooltip) } },
-                state = tooltipState,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                tile()
-            }
-        } else {
-            tile()
-        }
+        defaultShapes.copy(
+            shape = defaultShapes.shape.correctedOrSelf(),
+            selectedShape = defaultShapes.selectedShape.correctedOrSelf(),
+            pressedShape = defaultShapes.pressedShape.correctedOrSelf(),
+            focusedShape = defaultShapes.focusedShape.correctedOrSelf(),
+            hoveredShape = defaultShapes.hoveredShape.correctedOrSelf(),
+            draggedShape = defaultShapes.draggedShape.correctedOrSelf(),
+        )
     }
 }
-
-//@Composable
-//fun ScreenScaffold(
-//    modifier: Modifier = Modifier,
-//    topBar: @Composable () -> Unit = {},
-//    bottomBar: @Composable () -> Unit = {},
-//    snackbarHost: @Composable () -> Unit = {},
-//    content: @Composable (PaddingValues) -> Unit,
-//) {
-//    Scaffold(
-//        modifier = modifier,
-//        topBar = topBar,
-//        bottomBar = bottomBar,
-//        snackbarHost = snackbarHost,
-//        content = content,
-//    )
-//}
-//
-//fun Modifier.screenContentPadding(innerPadding: PaddingValues): Modifier =
-//    this
-//        .padding(innerPadding)
-//        .consumeWindowInsets(innerPadding)
-//        .padding(horizontal = ScreenHorizontalPadding)

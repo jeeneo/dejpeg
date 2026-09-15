@@ -42,7 +42,6 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -92,14 +91,15 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Slider
-import androidx.compose.material3.rememberSliderState
 import androidx.compose.material3.SplitButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
@@ -143,9 +143,9 @@ import com.je.dejpeg.HapticFeedbacks
 import com.je.dejpeg.ImageRepository
 import com.je.dejpeg.R
 import com.je.dejpeg.ui.components.CancelProcessingDialog
+import com.je.dejpeg.ui.components.CornerRole
 import com.je.dejpeg.ui.components.ErrorAlertDialog
 import com.je.dejpeg.ui.components.GroupedListSpacing
-import com.je.dejpeg.ui.components.GroupedRow
 import com.je.dejpeg.ui.components.ImageSourceDialog
 import com.je.dejpeg.ui.components.PreparingShareDialog
 import com.je.dejpeg.ui.components.RemoveImageDialog
@@ -154,8 +154,8 @@ import com.je.dejpeg.ui.components.SimpleAlertDialog
 import com.je.dejpeg.ui.components.SnackbarController
 import com.je.dejpeg.ui.components.SnackbarDuration
 import com.je.dejpeg.ui.components.SnackySnackbarEvents
-import com.je.dejpeg.ui.components.positionFor
 import com.je.dejpeg.ui.components.rememberMaterialPressState
+import com.je.dejpeg.ui.components.toListItemShapes
 import com.je.dejpeg.ui.viewmodel.ImageItem
 import com.je.dejpeg.ui.viewmodel.ProcessingUiState
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
@@ -225,7 +225,6 @@ fun ProcessingScreen(
 
     var selectedImageIds by remember { mutableStateOf<List<String>>(emptyList()) }
     val isSelectionMode = selectedImageIds.isNotEmpty()
-    val isCompareReady = selectedImageIds.size == 2
 
 
     val toggleSelection: (String) -> Unit = { id ->
@@ -350,12 +349,12 @@ fun ProcessingScreen(
     Column(
         Modifier
             .fillMaxSize()
-            .padding(start = 16.dp, end = 16.dp, top = 16.dp)
+            .padding(start = 16.dp, end = 16.dp)
     ) {
         Row(
             Modifier
                 .fillMaxWidth()
-                .padding(bottom = 16.dp),
+                .padding(bottom = 8.dp),
             Arrangement.SpaceBetween,
             Alignment.CenterVertically
         ) {
@@ -388,9 +387,7 @@ fun ProcessingScreen(
                     images.isNotEmpty() && images.all { it.outputBitmap != null && !it.isOutputStale && !it.isProcessing }
                 val procInteraction = remember { MutableInteractionSource() }
                 val procPress by rememberMaterialPressState(procInteraction)
-
                 val fabCorner = lerp(if (allComplete) 16f else 18f, 28f, procPress)
-
                 val fabWidthDp by animateDpAsState(
                     targetValue = if (allComplete) 121.dp else 56.dp, animationSpec = spring(
                         dampingRatio = Spring.DampingRatioMediumBouncy,
@@ -549,13 +546,11 @@ fun ProcessingScreen(
                         )
                         LaunchedEffect(oidnInputScale) { oidnSliderState.value = oidnInputScale }
                         Slider(
-                            state = oidnSliderState,
-                            onValueChange = {
+                            state = oidnSliderState, onValueChange = {
                                 val v = (it * 2).roundToInt() / 2f; if (v != prevScale) {
                                 HapticFeedbacks.light(); prevScale = v
                             }; settingsViewModel.setOidnInputScale(v)
-                            },
-                            modifier = Modifier
+                            }, modifier = Modifier
                                 .fillMaxWidth()
                                 .height(24.dp)
                         )
@@ -572,15 +567,15 @@ fun ProcessingScreen(
                             steps = 19,
                             trackRange = 0f..100f,
                         )
-                        LaunchedEffect(globalStrength) { strengthSliderState.value = globalStrength }
+                        LaunchedEffect(globalStrength) {
+                            strengthSliderState.value = globalStrength
+                        }
                         Slider(
-                            state = strengthSliderState,
-                            onValueChange = {
+                            state = strengthSliderState, onValueChange = {
                                 val v = (it / 5).roundToInt() * 5f; if (v != prevStrength) {
                                 HapticFeedbacks.light(); prevStrength = v
                             }; settingsViewModel.setGlobalStrength(v)
-                            },
-                            modifier = Modifier
+                            }, modifier = Modifier
                                 .fillMaxWidth()
                                 .height(24.dp)
                         )
@@ -588,7 +583,6 @@ fun ProcessingScreen(
                 }
             }
         }
-
         if (images.isEmpty()) {
             Box(
                 Modifier
@@ -614,7 +608,8 @@ fun ProcessingScreen(
                             .clickable(
                                 interactionSource = buttonInteractionSource, indication = null
                             ) { launchImportIntent() }
-                            .padding(20.dp), contentAlignment = Alignment.Center) {
+                            .padding(20.dp),
+                        contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
                                 Icons.Rounded.AddPhotoAlternate,
@@ -650,85 +645,46 @@ fun ProcessingScreen(
                 }
             }
         } else {
-            CompositionLocalProvider(LocalOverscrollFactory provides null) {
-                LazyColumn(
-                    state = lazyListState,
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(4.dp), // main spacing
-                    contentPadding = PaddingValues(
-                        bottom = WindowInsets.navigationBars.asPaddingValues()
-                            .calculateBottomPadding() + 8.dp
+            LazyColumn(
+                state = lazyListState,
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(GroupedListSpacing),
+                contentPadding = PaddingValues(
+                    bottom = WindowInsets.navigationBars.asPaddingValues()
+                        .calculateBottomPadding() + 8.dp
+                )
+            ) {
+                itemsIndexed(
+                    items = images, key = { _, image -> image.id }) { index, image ->
+                    ImageCard(
+                        index = index,
+                        image = image,
+                        images = images,
+                        isSelectionMode = isSelectionMode,
+                        selectedImageIds = selectedImageIds,
+                        swapSwipeActions = swapSwipeActions,
+                        viewModel = viewModel,
+                        onToggleSelection = toggleSelection,
+                        onRemoveImage = handleImageRemoval,
+                        saveOrPrompt = saveOrPrompt,
+                        tryProcess = { block -> tryProcess(block) },
+                        onNavigateToBeforeAfter = onNavigateToBeforeAfter,
+                        onNavigateToBrisque = onNavigateToBrisque,
+                        onNavigateToCompare = onNavigateToCompare,
+                        onClearSelection = clearSelection,
+                        modifier = Modifier.animateItem(
+                            fadeInSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessMedium
+                            ), fadeOutSpec = spring(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = Spring.StiffnessMedium
+                            ), placementSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessMedium
+                            )
+                        ),
                     )
-                ) {
-                    itemsIndexed(
-                        items = images, key = { _, image -> image.id }) { index, image ->
-                        val swipeState = remember { mutableFloatStateOf(0f) }
-                        val hasOutput = image.outputBitmap != null
-                        val isSelected = selectedImageIds.contains(image.id)
-                        SwipeToDismissWrapper(
-                            swipeState,
-                            image.isProcessing,
-                            hasOutput,
-                            onRightSwipe = { handleImageRemoval(image.id) },
-                            onLeftSwipe = {
-                                if (image.outputBitmap != null) saveOrPrompt(
-                                    image.id, image.filename
-                                )
-                                else tryProcess { viewModel.processImage(image.id) }
-                            },
-                            swapActions = swapSwipeActions,
-                            enabled = !isSelectionMode,
-                            modifier = Modifier.animateItem(
-                                fadeInSpec = spring(
-                                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                                    stiffness = Spring.StiffnessMedium
-                                ), fadeOutSpec = spring(
-                                    dampingRatio = Spring.DampingRatioNoBouncy,
-                                    stiffness = Spring.StiffnessMedium
-                                ), placementSpec = spring(
-                                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                                    stiffness = Spring.StiffnessMedium
-                                )
-                            ),
-                            rightSwipeImmediate = !image.isProcessing && !(image.outputBitmap != null && !image.hasBeenSaved),
-                        ) {
-                            GroupedRow(
-                                position = positionFor(index + 1, images.size),
-                                onClick = {
-                                    if (image.outputBitmap != null) if (isSelectionMode) toggleSelection(
-                                        image.id
-                                    )
-                                    else onNavigateToBeforeAfter(image.id) else if (isSelectionMode) toggleSelection(
-                                        image.id
-                                    )
-                                    else onNavigateToBeforeAfter(image.id)
-                                },
-                                onLongClick = { toggleSelection(image.id) },
-                                selected = isSelected,
-                                verticalPadding = 0.dp,
-                                horizontalPadding = 0.dp
-                            ) {
-                                ImageCard(
-                                    image = image,
-                                    isCompareReady = isCompareReady,
-                                    onRemove = { handleImageRemoval(image.id) },
-                                    onProcess = { tryProcess { viewModel.processImage(image.id) } },
-                                    onBrisque = { HapticFeedbacks.light(); onNavigateToBrisque(image.id) },
-                                    onSave = { saveOrPrompt(image.id, image.filename) },
-                                    onCompare = {
-                                        val (idA, idB) = selectedImageIds
-                                        onNavigateToCompare(idA, idB)
-                                        clearSelection()
-                                    },
-                                    isProcessing = image.isProcessing,
-                                    onImportOutput = {
-                                        HapticFeedbacks.light()
-                                        viewModel.importOutputAsNewImage(image.id)
-                                    },
-                                )
-                            }
-                        }
-                    }
                 }
             }
         }
@@ -873,6 +829,233 @@ fun ProcessingScreen(
     }
 }
 
+@Composable
+fun ImageCard(
+    index: Int,
+    image: ImageItem,
+    images: List<ImageItem>,
+    isSelectionMode: Boolean,
+    selectedImageIds: List<String>,
+    swapSwipeActions: Boolean,
+    viewModel: ProcessingViewModel,
+    onToggleSelection: (String) -> Unit,
+    onRemoveImage: (String) -> Unit,
+    saveOrPrompt: (String, String) -> Unit,
+    tryProcess: (() -> Unit) -> Unit,
+    onNavigateToBeforeAfter: (String) -> Unit,
+    onNavigateToBrisque: (String) -> Unit,
+    onNavigateToCompare: (String, String) -> Unit,
+    onClearSelection: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val swipeState = remember { mutableFloatStateOf(0f) }
+    val hasOutput = image.outputBitmap != null
+    val isSelected = selectedImageIds.contains(image.id)
+    val isProcessing = image.isProcessing
+    SwipeToDismissWrapper(
+        swipeState,
+        isProcessing,
+        hasOutput,
+        onRightSwipe = { onRemoveImage(image.id) },
+        onLeftSwipe = {
+            if (image.outputBitmap != null) saveOrPrompt(
+                image.id, image.filename
+            )
+            else tryProcess { viewModel.processImage(image.id) }
+        },
+        swapActions = swapSwipeActions,
+        enabled = !isSelectionMode,
+        modifier = modifier,
+        rightSwipeImmediate = !isProcessing && !(image.outputBitmap != null && !image.hasBeenSaved),
+    ) {
+        val cardShapes = CornerRole.forPosition(index + 1, images.count()).toListItemShapes()
+        val progressTint = MaterialTheme.colorScheme.primary
+        val baseColor by animateColorAsState(
+            targetValue = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+            label = "item_base_color"
+        )
+        val chunkFraction = if (image.totalChunks > 1) {
+            image.completedChunks.toFloat() / image.totalChunks.coerceAtLeast(1)
+        } else -1f
+        val pulseAlpha by rememberInfiniteTransition(label = "pulse").animateFloat(
+            initialValue = 0.04f, targetValue = 0.11f, animationSpec = infiniteRepeatable(
+                animation = tween(1200, easing = EaseInOutSine), repeatMode = RepeatMode.Reverse
+            ), label = "pulse_alpha"
+        )
+        SegmentedListItem(
+            selected = isSelected,
+            colors = ListItemDefaults.segmentedColors(containerColor = Color.Transparent),
+            shapes = cardShapes,
+            contentPadding = PaddingValues(0.dp),
+            modifier = Modifier
+                .clip(cardShapes.shape)
+                .drawBehind {
+                    drawRect(baseColor)
+                    if (!isProcessing) return@drawBehind
+                    if (chunkFraction >= 0f) {
+                        if (chunkFraction >= 1f) {
+                            drawRect(progressTint.copy(alpha = 0.12f))
+                        } else {
+                            val fillEnd = size.width * chunkFraction
+                            val gradientEnd = (fillEnd + 12.dp.toPx()).coerceAtMost(size.width)
+                            if (gradientEnd > 0f) {
+                                val solidStop = (fillEnd / gradientEnd).coerceIn(0f, 1f)
+                                drawRect(
+                                    brush = Brush.horizontalGradient(
+                                        colorStops = arrayOf(
+                                            0f to progressTint.copy(alpha = 0.16f),
+                                            solidStop to progressTint.copy(alpha = 0.10f),
+                                            1f to Color.Transparent
+                                        ), startX = 0f, endX = gradientEnd
+                                    )
+                                )
+                            }
+                        }
+                    } else {
+                        drawRect(progressTint.copy(alpha = pulseAlpha))
+                    }
+                },
+            onClick = {
+                if (image.outputBitmap != null) if (isSelectionMode) onToggleSelection(
+                    image.id
+                )
+                else onNavigateToBeforeAfter(image.id) else if (isSelectionMode) onToggleSelection(
+                    image.id
+                )
+                else onNavigateToBeforeAfter(image.id)
+            },
+            onLongClick = { onToggleSelection(image.id) },
+            content = {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(end = 8.dp, top = 8.dp, bottom = 8.dp)
+                ) {
+                    val imagePreview = remember(
+                        image.thumbnailBitmap, image.outputBitmap, image.inputBitmap
+                    ) {
+                        (image.thumbnailBitmap ?: image.outputBitmap
+                        ?: image.inputBitmap).asImageBitmap()
+                    }
+                    Box(
+                        Modifier.padding(start = 8.dp, end = 8.dp),
+                    ) {
+                        Surface(
+                            Modifier
+                                .size(84.dp)
+                                .clip(RoundedCornerShape(12.dp)),
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Image(
+                                imagePreview,
+                                image.filename,
+                                Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
+                    Column(
+                        Modifier
+                            .weight(1f)
+                            .height(84.dp)
+                    ) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                image.filename,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier
+                                    .weight(1f, fill = false)
+                                    .alignByBaseline()
+                            )
+                            Text(
+                                image.size,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.alignByBaseline()
+                            )
+                        }
+                        Spacer(Modifier.weight(1f))
+                        if (image.outputBitmap != null && !isProcessing) {
+                            Surface(
+                                shape = RoundedCornerShape(32.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer
+                            ) {
+                                Text(
+                                    stringResource(R.string.status_complete_ui),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier.padding(
+                                        horizontal = 8.dp, vertical = 2.dp
+                                    )
+                                )
+                            }
+                        } else if (!isProcessing) {
+                            Surface(
+                                shape = RoundedCornerShape(32.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer
+                            ) {
+                                Text(
+                                    stringResource(R.string.status_ready),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier.padding(
+                                        horizontal = 8.dp, vertical = 2.dp
+                                    )
+                                )
+                            }
+                        }
+                        if (isProcessing && image.progress.isNotEmpty()) {
+                            Surface(
+                                shape = RoundedCornerShape(32.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer
+                            ) {
+                                Text(
+                                    image.progress,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier.padding(
+                                        horizontal = 8.dp, vertical = 2.dp
+                                    )
+                                )
+                            }
+                        }
+                        Spacer(Modifier.weight(1f))
+                        ImageCardSplitButton(
+                            image = image,
+                            isProcessing = isProcessing,
+                            onProcess = { tryProcess { viewModel.processImage(image.id) } },
+                            onRemove = { onRemoveImage(image.id) },
+                            onBrisque = {
+                                HapticFeedbacks.light(); onNavigateToBrisque(
+                                image.id
+                            )
+                            },
+                            onSave = { saveOrPrompt(image.id, image.filename) },
+                            onImportOutput = {
+                                HapticFeedbacks.light()
+                                viewModel.importOutputAsNewImage(image.id)
+                            },
+                            isCompareReady = selectedImageIds.size == 2,
+                            onCompare = {
+                                val (idA, idB) = selectedImageIds
+                                onNavigateToCompare(idA, idB)
+                                onClearSelection()
+                            },
+                        )
+                    }
+                }
+            })
+    }
+}
 
 @Composable
 fun SwipeToDismissWrapper(
@@ -938,60 +1121,58 @@ fun SwipeToDismissWrapper(
             alignment = Alignment.CenterEnd,
             modifier = Modifier.matchParentSize()
         )
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .offset { IntOffset(animatedOffset.roundToInt(), 0) }
-                .pointerInput(widthPx, enabled) {
-                    if (!enabled) return@pointerInput
-                    detectHorizontalDragGestures(onHorizontalDrag = { _, dragAmount ->
-                        val newValue = swipeState.value + dragAmount
-                        swipeState.value =
-                            if (currentAllowLeftSwipe) newValue else maxOf(0f, newValue)
-                        val absOffset = kotlin.math.abs(swipeState.value)
-                        val threshold = widthPx * swipeThreshold
-                        when {
-                            widthPx > 0 && absOffset > threshold && !hasReachedThreshold -> {
-                                HapticFeedbacks.medium(); hasReachedThreshold = true
-                            }
+        Box(Modifier
+            .fillMaxWidth()
+            .offset { IntOffset(animatedOffset.roundToInt(), 0) }
+            .pointerInput(widthPx, enabled) {
+                if (!enabled) return@pointerInput
+                detectHorizontalDragGestures(onHorizontalDrag = { _, dragAmount ->
+                    val newValue = swipeState.value + dragAmount
+                    swipeState.value = if (currentAllowLeftSwipe) newValue else maxOf(0f, newValue)
+                    val absOffset = kotlin.math.abs(swipeState.value)
+                    val threshold = widthPx * swipeThreshold
+                    when {
+                        widthPx > 0 && absOffset > threshold && !hasReachedThreshold -> {
+                            HapticFeedbacks.medium(); hasReachedThreshold = true
+                        }
 
-                            absOffset <= threshold -> hasReachedThreshold = false
-                        }
-                    }, onDragEnd = {
-                        val absOffset = kotlin.math.abs(swipeState.value)
-                        val threshold = widthPx * swipeThreshold
-                        if (widthPx > 0 && absOffset > threshold) {
-                            HapticFeedbacks.heavy()
-                            val isRight = swipeState.value > 0
-                            val willSlideOff =
-                                if (isRight) rightSwipeImmediate else (currentAllowLeftSwipe && leftSwipeImmediate)
-                            scope.launch {
-                                if (willSlideOff) {
-                                    animate(
-                                        initialValue = swipeState.value,
-                                        targetValue = if (isRight) widthPx * 2f else -widthPx * 2f,
-                                        animationSpec = spring(
-                                            dampingRatio = Spring.DampingRatioNoBouncy,
-                                            stiffness = Spring.StiffnessHigh
-                                        )
-                                    ) { value, _ -> swipeState.value = value }
-                                    if (isRight) currentOnRightSwipe() else currentOnLeftSwipe()
-                                    swipeState.value = 0f
-                                } else {
-                                    if (isRight) currentOnRightSwipe()
-                                    else if (currentAllowLeftSwipe) currentOnLeftSwipe()
-                                    swipeState.value = 0f
-                                }
-                                hasReachedThreshold = false
-                            }
-                        } else {
-                            scope.launch {
+                        absOffset <= threshold -> hasReachedThreshold = false
+                    }
+                }, onDragEnd = {
+                    val absOffset = kotlin.math.abs(swipeState.value)
+                    val threshold = widthPx * swipeThreshold
+                    if (widthPx > 0 && absOffset > threshold) {
+                        HapticFeedbacks.heavy()
+                        val isRight = swipeState.value > 0
+                        val willSlideOff =
+                            if (isRight) rightSwipeImmediate else (currentAllowLeftSwipe && leftSwipeImmediate)
+                        scope.launch {
+                            if (willSlideOff) {
+                                animate(
+                                    initialValue = swipeState.value,
+                                    targetValue = if (isRight) widthPx * 2f else -widthPx * 2f,
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioNoBouncy,
+                                        stiffness = Spring.StiffnessHigh
+                                    )
+                                ) { value, _ -> swipeState.value = value }
+                                if (isRight) currentOnRightSwipe() else currentOnLeftSwipe()
                                 swipeState.value = 0f
-                                hasReachedThreshold = false
+                            } else {
+                                if (isRight) currentOnRightSwipe()
+                                else if (currentAllowLeftSwipe) currentOnLeftSwipe()
+                                swipeState.value = 0f
                             }
+                            hasReachedThreshold = false
                         }
-                    })
-                }) { content() }
+                    } else {
+                        scope.launch {
+                            swipeState.value = 0f
+                            hasReachedThreshold = false
+                        }
+                    }
+                })
+            }) { content() }
     }
 }
 
@@ -1151,168 +1332,20 @@ fun SaveProgressDialog(saveState: SaveState.Saving) {
         })
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-fun ImageCard(
-    image: ImageItem,
-    onRemove: () -> Unit,
-    onProcess: () -> Unit,
-    onBrisque: () -> Unit,
-    onSave: () -> Unit,
-    onImportOutput: () -> Unit,
-    isProcessing: Boolean = false,
-    isCompareReady: Boolean = false,
-    onCompare: () -> Unit = {}
-) {
-    val progressTint = MaterialTheme.colorScheme.primary
-    val chunkFraction = if (image.totalChunks > 1) {
-        image.completedChunks.toFloat() / image.totalChunks.coerceAtLeast(1)
-    } else -1f
-    val pulseAlpha = rememberInfiniteTransition().animateFloat(
-        initialValue = 0.04f, targetValue = 0.11f, animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = EaseInOutSine), repeatMode = RepeatMode.Reverse
-        )
-    )
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .drawBehind {
-                if (!isProcessing) return@drawBehind
-                if (chunkFraction >= 0f) {
-                    if (chunkFraction >= 1f) {
-                        drawRect(progressTint.copy(alpha = 0.12f))
-                    } else {
-                        val fillEnd = size.width * chunkFraction
-                        val softEdge = 12.dp.toPx()
-                        val gradientEnd = (fillEnd + softEdge).coerceAtMost(size.width)
-                        if (gradientEnd > 0f) {
-                            val solidStop = (fillEnd / gradientEnd).coerceIn(0f, 1f)
-                            drawRect(
-                                brush = Brush.horizontalGradient(
-                                    colorStops = arrayOf(
-                                        0f to progressTint.copy(alpha = 0.16f),
-                                        solidStop to progressTint.copy(alpha = 0.10f),
-                                        1f to Color.Transparent
-                                    ), startX = 0f, endX = gradientEnd
-                                )
-                            )
-                        }
-                    }
-                } else {
-                    drawRect(progressTint.copy(alpha = pulseAlpha.value))
-                }
-            }) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                // then add here so the progress animation looks better
-                .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(GroupedListSpacing)
-        ) {
-            val imagePreview =
-                remember(image.thumbnailBitmap, image.outputBitmap, image.inputBitmap) {
-                    (image.thumbnailBitmap ?: image.outputBitmap
-                    ?: image.inputBitmap).asImageBitmap()
-                }
-            Box {
-                Surface(
-                    Modifier
-                        .size(84.dp)
-                        .clip(RoundedCornerShape(12.dp)),
-                    color = MaterialTheme.colorScheme.surfaceVariant
-                ) {
-                    Image(
-                        imagePreview,
-                        image.filename,
-                        Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.width(4.dp))
-            Column(
-                Modifier
-                    .weight(1f)
-                    .height(84.dp), verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Row(
-                    Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        image.filename,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier
-                            .weight(1f, fill = false)
-                            .alignByBaseline()
-                    )
-                    Text(
-                        image.size,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.alignByBaseline()
-                    )
-                }
-                Spacer(Modifier.weight(1f))
-                if (image.outputBitmap != null && !isProcessing) {
-                    Surface(
-                        shape = RoundedCornerShape(32.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer
-                    ) {
-                        Text(
-                            stringResource(R.string.status_complete_ui),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                        )
-                    }
-                } else if (!isProcessing) {
-                    Surface(
-                        shape = RoundedCornerShape(32.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer
-                    ) {
-                        Text(
-                            stringResource(R.string.status_ready),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                        )
-                    }
-                }
-                if (isProcessing && image.progress.isNotEmpty()) {
-                    Surface(
-                        shape = RoundedCornerShape(32.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer
-                    ) {
-                        Text(
-                            image.progress,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                        )
-                    }
-                }
-                Spacer(Modifier.weight(1f))
-                ImageCardSplitButton(
-                    image = image,
-                    isProcessing = isProcessing,
-                    onProcess = onProcess,
-                    onRemove = onRemove,
-                    onBrisque = onBrisque,
-                    onSave = onSave,
-                    onImportOutput = onImportOutput,
-                    isCompareReady = isCompareReady,
-                    onCompare = onCompare
-                )
-            }
-        }
-    }
-}
+//@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+//@Composable
+//fun ImageCard(
+//    image: ImageItem,
+//    onRemove: () -> Unit,
+//    onProcess: () -> Unit,
+//    onBrisque: () -> Unit,
+//    onSave: () -> Unit,
+//    onImportOutput: () -> Unit,
+//    isProcessing: Boolean = false,
+//    isCompareReady: Boolean = false,
+//    onCompare: () -> Unit = {}
+//) {
+//}
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable

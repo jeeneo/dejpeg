@@ -20,7 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.je.dejpeg.ui.MainScreen
-import com.je.dejpeg.ui.theme.DeJPEGAppTheme
+import com.je.dejpeg.ui.theme.AppTheme
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
 import com.je.dejpeg.utils.ModelManager
 
@@ -56,7 +56,7 @@ class MainActivity : ComponentActivity() {
 
         // https://stackoverflow.com/a/79267436
         setContent {
-            DeJPEGAppTheme {
+            AppTheme {
                 val sharedUris by imageRepository.sharedUris.collectAsState()
                 MainScreen(sharedUris = sharedUris)
             }

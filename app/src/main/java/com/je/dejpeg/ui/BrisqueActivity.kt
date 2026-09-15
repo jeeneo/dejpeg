@@ -13,10 +13,10 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import com.je.dejpeg.ImageRepository
-import com.je.dejpeg.ui.components.SnackySnackbarBox
+import com.je.dejpeg.ui.components.SnackBarBox
 import com.je.dejpeg.ui.components.SnackySnackbarHostState
 import com.je.dejpeg.ui.screens.BRISQUEScreen
-import com.je.dejpeg.ui.theme.DeJPEGAppTheme
+import com.je.dejpeg.ui.theme.AppTheme
 
 class BrisqueActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -24,7 +24,7 @@ class BrisqueActivity : ComponentActivity() {
         val imageId = intent.getStringExtra("imageId") ?: return finish()
 
         setContent {
-            DeJPEGAppTheme {
+            AppTheme {
                 val imageRepository = remember { ImageRepository.getInstance() }
                 val snackbarHostState = remember { SnackySnackbarHostState() }
                 val snackbarController =
@@ -37,7 +37,7 @@ class BrisqueActivity : ComponentActivity() {
                         )
                     }
                 }
-                SnackySnackbarBox(
+                SnackBarBox(
                     snackbarHostState = snackbarHostState, controller = snackbarController
                 ) {
                     BRISQUEScreen(

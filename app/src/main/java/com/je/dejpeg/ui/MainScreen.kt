@@ -11,28 +11,32 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.je.dejpeg.App
 import com.je.dejpeg.ImageRepository
 import com.je.dejpeg.ui.components.ActivitySnackySnackbarController
 import com.je.dejpeg.ui.components.RecoveryDialog
+import com.je.dejpeg.ui.components.SnackBarBox
 import com.je.dejpeg.ui.components.SnackbarController
-import com.je.dejpeg.ui.components.SnackySnackbarBox
 import com.je.dejpeg.ui.components.SnackySnackbarHostState
 import com.je.dejpeg.ui.screens.ImageScreen
 import com.je.dejpeg.ui.screens.ProcessingScreen
-import com.je.dejpeg.ui.theme.DeJPEGAppTheme
+import com.je.dejpeg.ui.theme.AppTheme
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
 
@@ -64,59 +68,46 @@ fun MainScreen(
         viewModel.settingsViewModel = settingsViewModel
         settingsViewModel.initialize()
     }
+    val context = App.ctx
     RecoveryDialog(imageRepository = imageRepository)
-    SnackySnackbarBox(snackbarHostState = snackbarHostState, controller = snackbarController) {
-        HomeWrapperScreen(
-            viewModel = viewModel,
-            settingsViewModel = settingsViewModel,
-            imageRepository = imageRepository,
-            sharedUris = sharedUris
-        )
-    }
-}
-
-@Composable
-fun HomeWrapperScreen(
-    viewModel: ProcessingViewModel,
-    settingsViewModel: SettingsViewModel,
-    imageRepository: ImageRepository,
-    sharedUris: List<Uri>
-) {
-    val context = LocalContext.current
-
-    Scaffold { paddingValues ->
-        Box(
-            Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            ProcessingScreen(
-                viewModel = viewModel,
-                settingsViewModel = settingsViewModel,
-                imageRepository = imageRepository,
-                onNavigateToBeforeAfter = { id ->
-                    context.startActivity(
-                        Intent(context, BeforeAfterActivity::class.java).putExtra(
-                            "imageId", id
+    SnackBarBox(snackbarHostState = snackbarHostState, controller = snackbarController) {
+        Scaffold(
+            contentWindowInsets = WindowInsets.systemBars.only(WindowInsetsSides.Top)
+        ) { paddingValues ->
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
+                ProcessingScreen(
+                    viewModel = viewModel,
+                    settingsViewModel = settingsViewModel,
+                    imageRepository = imageRepository,
+                    onNavigateToBeforeAfter = { id ->
+                        context.startActivity(
+                            Intent(context, BeforeAfterActivity::class.java).putExtra(
+                                "imageId", id
+                            ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         )
-                    )
-                },
-                onNavigateToBrisque = { id ->
-                    context.startActivity(
-                        Intent(context, BrisqueActivity::class.java).putExtra("imageId", id)
-                    )
-                },
-                onNavigateToCompare = { idA, idB ->
-                    context.startActivity(
-                        Intent(context, CompareActivity::class.java).putExtra(
-                            "imageIdA", idA
-                        ).putExtra("imageIdB", idB)
-                    )
-                },
-                isActive = true,
-                initialSharedUris = sharedUris,
-                onRemoveSharedUri = { }
-            )
+                    },
+                    onNavigateToBrisque = { id ->
+                        context.startActivity(
+                            Intent(context, BrisqueActivity::class.java).putExtra("imageId", id)
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                    },
+                    onNavigateToCompare = { idA, idB ->
+                        context.startActivity(
+                            Intent(context, CompareActivity::class.java).putExtra(
+                                "imageIdA", idA
+                            ).putExtra("imageIdB", idB)
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                    },
+                    isActive = true,
+                    initialSharedUris = sharedUris,
+                    onRemoveSharedUri = { })
+            }
         }
     }
 }
@@ -126,7 +117,7 @@ class BeforeAfterActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val imageId = intent.getStringExtra("imageId") ?: return finish()
         setContent {
-            DeJPEGAppTheme {
+            AppTheme {
                 val viewModel: ProcessingViewModel = viewModel()
                 val imageRepository = remember { ImageRepository.getInstance() }
                 val snackbarHostState = remember { SnackySnackbarHostState() }
@@ -143,7 +134,7 @@ class BeforeAfterActivity : ComponentActivity() {
                     viewModel.imageRepository = imageRepository
                     viewModel.initialize(this@BeforeAfterActivity)
                 }
-                SnackySnackbarBox(
+                SnackBarBox(
                     snackbarHostState = snackbarHostState, controller = snackbarController
                 ) {
                     ImageScreen(
@@ -163,7 +154,7 @@ class CompareActivity : ComponentActivity() {
         val imageIdA = intent.getStringExtra("imageIdA") ?: return finish()
         val imageIdB = intent.getStringExtra("imageIdB") ?: return finish()
         setContent {
-            DeJPEGAppTheme {
+            AppTheme {
                 val viewModel: ProcessingViewModel = viewModel()
                 val imageRepository = remember { ImageRepository.getInstance() }
                 val snackbarHostState = remember { SnackySnackbarHostState() }
@@ -180,7 +171,7 @@ class CompareActivity : ComponentActivity() {
                     viewModel.imageRepository = imageRepository
                     viewModel.initialize(this@CompareActivity)
                 }
-                SnackySnackbarBox(
+                SnackBarBox(
                     snackbarHostState = snackbarHostState, controller = snackbarController
                 ) {
                     ImageScreen(

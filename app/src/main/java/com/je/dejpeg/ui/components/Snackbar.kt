@@ -69,7 +69,7 @@ private val snapbackSpec = spring<Float>(
 private const val DISMISS_VELOCITY_THRESHOLD = 600f
 
 @Composable
-fun SnackySnackbarBox(
+fun SnackBarBox(
     snackbarHostState: SnackySnackbarHostState,
     controller: ActivitySnackySnackbarController,
     content: @Composable () -> Unit
