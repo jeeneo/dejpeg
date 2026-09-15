@@ -10,6 +10,7 @@ GRADLE="app/build.gradle.kts"
 VERSION=$(grep -oP 'versionName\s*=\s*"\K[^"]+' "$GRADLE")
 VERSIONCODE=$(grep -oP 'versionCode\s*=\s*\K\d+' "$GRADLE")
 FASTLANE_FILE="fastlane/metadata/android/en-US/changelogs/$VERSIONCODE.txt"
+CHARSIZE=$(wc -m < "$FASTLANE_FILE")
 TAG="prerelease-$VERSION"
 
 argparse() {
@@ -31,10 +32,19 @@ argparse "$@"
 
 if [[ -f "$FASTLANE_FILE" ]]; then
   FASTLANE=$(<"$FASTLANE_FILE")
+  echo "fastlane changelog found"
+  if [[ "$CHARSIZE" -gt 495 ]]; then
+      echo "...but it's too large, shrink it"
+      if [[ "$TAG" == prerelease* ]]; then
+        echo "since it's a prerelease you survive for now, sending anyway"
+      else
+        echo "aborting release"
+      fi
+  fi
 else
   if [[ "$TAG" == prerelease* ]]; then
     echo "psst, hey, fastlane not found for $VERSIONCODE, make one dummy"
-    echo "since it's a prerelease you survive for now"
+    echo "since it's a prerelease you survive for now, sending anyway"
   else
     echo "psst, hey, fastlane not found for $VERSIONCODE, make one dummy"
     touch "$FASTLANE_FILE"
