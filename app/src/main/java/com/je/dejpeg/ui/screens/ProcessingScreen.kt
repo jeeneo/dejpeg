@@ -84,7 +84,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
@@ -133,10 +132,12 @@ import com.je.dejpeg.HapticFeedbacks
 import com.je.dejpeg.ImageRepository
 import com.je.dejpeg.R
 import com.je.dejpeg.ui.components.CancelProcessingDialog
+import com.je.dejpeg.ui.components.CardWrapper
 import com.je.dejpeg.ui.components.CornerRole
 import com.je.dejpeg.ui.components.ErrorAlertDialog
 import com.je.dejpeg.ui.components.GroupedListSpacing
 import com.je.dejpeg.ui.components.ImageSourceDialog
+import com.je.dejpeg.ui.components.MorphButton
 import com.je.dejpeg.ui.components.PreparingShareDialog
 import com.je.dejpeg.ui.components.RemoveImageDialog
 import com.je.dejpeg.ui.components.SaveImageDialog
@@ -144,7 +145,6 @@ import com.je.dejpeg.ui.components.SimpleAlertDialog
 import com.je.dejpeg.ui.components.SnackbarController
 import com.je.dejpeg.ui.components.SnackbarDuration
 import com.je.dejpeg.ui.components.SnackySnackbarEvents
-import com.je.dejpeg.ui.components.CardWrapper
 import com.je.dejpeg.ui.components.rememberMaterialPressState
 import com.je.dejpeg.ui.components.toListItemShapes
 import com.je.dejpeg.ui.viewmodel.ImageItem
@@ -553,8 +553,6 @@ fun ProcessingScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     val buttonInteractionSource = remember { MutableInteractionSource() }
-                    val buttonAreaPress by rememberMaterialPressState(buttonInteractionSource)
-                    val animatedCornerRadius = lerp(12f, 24f, buttonAreaPress)
                     Box(
                         Modifier
                             .width(280.dp)
@@ -585,16 +583,11 @@ fun ProcessingScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(Modifier.height(8.dp))
-                            FilledTonalButton(
+                            MorphButton(
+                                interactionSource = buttonInteractionSource,
                                 onClick = { launchImportIntent() },
-                                shape = RoundedCornerShape(animatedCornerRadius.dp),
-                                interactionSource = buttonInteractionSource
-                            ) {
-                                Text(
-                                    stringResource(R.string.add_images),
-                                    style = MaterialTheme.typography.labelLarge
-                                )
-                            }
+                                label = stringResource(R.string.add_images),
+                            )
                         }
                     }
                 }

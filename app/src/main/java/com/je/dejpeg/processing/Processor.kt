@@ -29,7 +29,7 @@ interface Processor {
 }
 
 sealed class ProcessingParams {
-    data class Onnx(
+    data class ONNX(
         val modelName: String? = null,
         val strength: Float = 50f,
         val chunkSize: Int = AppPreferences.DEFAULT_CHUNK_SIZE,
@@ -37,7 +37,7 @@ sealed class ProcessingParams {
         val onnxDeviceThreads: Int = AppPreferences.DEFAULT_ONNX_DEVICE_THREADS,
     ) : ProcessingParams()
 
-    data class Oidn(
+    data class OIDN(
         val weightsPath: String? = null,
         val hdr: Boolean = false,
         val srgb: Boolean = false,
@@ -47,7 +47,7 @@ sealed class ProcessingParams {
         val inputScale: Float = 0f,
     ) : ProcessingParams()
 
-    data class LiteRt(
+    data class LiteRT(
         val modelName: String? = null,
         val strength: Float = 50f,
         val overlapSize: Int = AppPreferences.DEFAULT_OVERLAP_SIZE,

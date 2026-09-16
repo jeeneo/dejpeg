@@ -14,7 +14,6 @@ import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,8 +38,6 @@ import androidx.compose.material.icons.outlined.Photo
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.BottomSheetDefaults
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularWavyProgressIndicator
@@ -81,7 +78,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.util.lerp
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.FileProvider
 import com.je.dejpeg.AppPreferences
@@ -190,7 +186,10 @@ fun SimpleAlertDialog(
             }
         },
         confirmButton = {
-            DialogPrimaryButton(resolvedText, { onConfirm() }, { HapticFeedbacks.light() })
+            MorphButton(
+                label = resolvedText, onClick = {
+                    HapticFeedbacks.light(); onConfirm()
+                })
         })
 }
 
@@ -269,10 +268,11 @@ fun SaveImageDialog(
             Text(stringResource(R.string.nope))
         }
     }, confirmButton = {
-        DialogPrimaryButton(stringResource(R.string.save), {
-            onSave(sanitizeFilename(textState), saveAll, skipNext)
-            onDismissRequest()
-        }, { HapticFeedbacks.light() })
+        MorphButton(
+            label = stringResource(R.string.save), onClick = {
+                HapticFeedbacks.light()
+                onSave(sanitizeFilename(textState), saveAll, skipNext)
+            })
     })
 }
 
@@ -584,40 +584,6 @@ fun ImageSourceDialog(
                 })
         }
     }
-}
-
-@Composable
-private fun DialogPrimaryButton(
-    label: String, onClick: () -> Unit, hapticAction: () -> Unit, enabled: Boolean = true
-) {
-    MorphButton(
-        label = label, onClick = {
-            hapticAction()
-            onClick()
-        }, enabled = enabled
-    )
-}
-
-@Composable
-fun MorphButton(
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    colors: ButtonColors = ButtonDefaults.buttonColors()
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressProgress by rememberMaterialPressState(interactionSource)
-    val cornerRadius = lerp(50f, 6f, pressProgress)
-
-    Button(
-        onClick = onClick,
-        modifier = modifier,
-        enabled = enabled,
-        shape = RoundedCornerShape(cornerRadius.dp),
-        colors = colors,
-        interactionSource = interactionSource
-    ) { Text(label) }
 }
 
 private fun sanitizeFilename(input: String, fallback: String = "image"): String {

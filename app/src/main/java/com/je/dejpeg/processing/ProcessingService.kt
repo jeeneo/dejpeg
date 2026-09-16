@@ -198,7 +198,7 @@ class ProcessingService : Service() {
                 }
 
                 val params = when (processingMode) {
-                    ModelType.ONNX -> ProcessingParams.Onnx(
+                    ModelType.ONNX -> ProcessingParams.ONNX(
                         modelName = modelName,
                         strength = intent.getFloatExtra(EXTRA_STRENGTH, 50f),
                         chunkSize = intent.getIntExtra(
@@ -212,7 +212,7 @@ class ProcessingService : Service() {
                         ),
                     )
 
-                    ModelType.LITERT -> ProcessingParams.LiteRt(
+                    ModelType.LITERT -> ProcessingParams.LiteRT(
                         modelName = modelName,
                         strength = intent.getFloatExtra(EXTRA_STRENGTH, 50f),
                         overlapSize = intent.getIntExtra(
@@ -221,7 +221,7 @@ class ProcessingService : Service() {
                         useGpu = intent.getBooleanExtra(EXTRA_USE_GPU, true),
                     )
 
-                    ModelType.OIDN -> ProcessingParams.Oidn(
+                    ModelType.OIDN -> ProcessingParams.OIDN(
                         weightsPath = intent.getStringExtra(EXTRA_OIDN_WEIGHTS_PATH),
                         hdr = intent.getBooleanExtra(EXTRA_OIDN_HDR, false),
                         srgb = intent.getBooleanExtra(EXTRA_OIDN_SRGB, false),

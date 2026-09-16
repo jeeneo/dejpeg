@@ -43,7 +43,7 @@ class OIDNProcessor(private val context: Context) : Processor {
         params: ProcessingParams,
         callback: Processor.ProcessCallback
     ) = withContext(Dispatchers.Default) {
-        if (params !is ProcessingParams.Oidn) {
+        if (params !is ProcessingParams.OIDN) {
             throw IllegalArgumentException("OIDNProcessor requires ProcessingParams.Oidn")
         }
         isCancelled = false

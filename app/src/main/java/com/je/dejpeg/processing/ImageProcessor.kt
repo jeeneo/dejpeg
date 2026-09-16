@@ -59,7 +59,7 @@ class ImageProcessor(
     override suspend fun processImage(
         inputBitmap: Bitmap, params: ProcessingParams, callback: Processor.ProcessCallback
     ) = withContext(Dispatchers.Default) {
-        if (params !is ProcessingParams.Onnx) {
+        if (params !is ProcessingParams.ONNX) {
             throw IllegalArgumentException("ImageProcessor requires ProcessingParams.Onnx")
         }
         isCancelled = false

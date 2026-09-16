@@ -38,7 +38,7 @@ class ImageProcessor(
     override suspend fun processImage(
         inputBitmap: Bitmap, params: ProcessingParams, callback: Processor.ProcessCallback
     ) = withContext(Dispatchers.Default) {
-        if (params !is ProcessingParams.LiteRt) {
+        if (params !is ProcessingParams.LiteRT) {
             throw IllegalArgumentException("LiteRtImageProcessor requires ProcessingParams.LiteRt")
         }
         isCancelled = false

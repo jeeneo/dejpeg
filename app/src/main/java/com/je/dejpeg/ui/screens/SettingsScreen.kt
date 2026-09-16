@@ -213,7 +213,7 @@ fun SettingsSheet(
                 ) {
                     SegmentedListItem(
                         modifier = Modifier.weight(1f),
-                        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
                         onClick = { HapticFeedbacks.light(); modelPickerLauncher.launch("*/*") },
                         onLongClick = {
                             HapticFeedbacks.heavy()
@@ -257,7 +257,7 @@ fun SettingsSheet(
                         })
                     SegmentedListItem(
                         modifier = Modifier.weight(1f),
-                        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
                         onClick = {
                             HapticFeedbacks.light()
                             uriHandler.openUri("https://codeberg.org/dryerlint/dejpeg/src/branch/main/models")
@@ -288,7 +288,7 @@ fun SettingsSheet(
                         val last = index == allModels.lastIndex && !hasCard
                         Spacer(modifier = Modifier.height(GroupedListSpacing))
                         SegmentedListItem(
-                            colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                            colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
                             selected = isActive,
                             onClick = {
                                 HapticFeedbacks.light()
@@ -372,7 +372,7 @@ fun SettingsSheet(
                 val threadLabel =
                     "${stringResource(R.string.processing_threads_desc)} • $threadValue"
                 val colors =
-                    ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                    ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest)
 
                 Spacer(modifier = Modifier.height(GroupedListSpacing))
                 AnimatedVisibility(
@@ -979,7 +979,7 @@ fun PreferenceItem(
     count: Int = 1,
 ) {
     val colors =
-        ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+        ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
     val pill = index == count
     Column(modifier = modifier.fillMaxWidth()) {
         SegmentedListItem(
