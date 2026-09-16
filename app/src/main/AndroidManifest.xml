@@ -48,7 +48,7 @@
             android:exported="false"
             android:theme="@style/Theme.DeJPEG" />
         <activity
-            android:name=".ui.BrisqueActivity"
+            android:name=".ui.screens.BrisqueActivity"
             android:exported="false"
             android:theme="@style/Theme.DeJPEG" />
         <activity

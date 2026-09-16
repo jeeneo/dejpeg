@@ -1,5 +1,10 @@
 package com.je.dejpeg.ui.screens
 
+/*
+ * SPDX-FileCopyrightText: 2026 dryerlint <https://codeberg.org/dryerlint>
+ * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
+ */
+ 
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -24,7 +29,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.je.dejpeg.App
 import com.je.dejpeg.ImageRepository
-import com.je.dejpeg.ui.BrisqueActivity
 import com.je.dejpeg.ui.components.ActivitySnackySnackbarController
 import com.je.dejpeg.ui.components.RecoveryDialog
 import com.je.dejpeg.ui.components.SnackBarBox
@@ -106,37 +110,63 @@ fun MainScreen(
     }
 }
 
+private const val IMAGE_ID = "imageId"
+
+@Composable
+private fun ActivityContent(
+    screen: @Composable (imageRepository: ImageRepository) -> Unit
+) {
+    AppTheme {
+        val imageRepository = remember { ImageRepository.getInstance() }
+        val snackbarHostState = remember { SnackySnackbarHostState() }
+        val snackbarController = remember { ActivitySnackySnackbarController() }
+        DisposableEffect(snackbarController) {
+            SnackbarController.bind(snackbarController)
+            onDispose {
+                SnackbarController.unbind(
+                    snackbarController
+                )
+            }
+        }
+        SnackBarBox(
+            snackbarHostState = snackbarHostState, controller = snackbarController
+        ) {
+            screen(imageRepository)
+        }
+    }
+}
+
+class BrisqueActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val imageId = intent.getStringExtra(IMAGE_ID) ?: return finish()
+        setContent {
+            ActivityContent { imageRepository ->
+                BRISQUEScreen(
+                    imageRepository = imageRepository,
+                    imageId = imageId,
+                    onBack = { finish() })
+            }
+        }
+    }
+}
+
 class BeforeAfterActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val imageId = intent.getStringExtra("imageId") ?: return finish()
+        val imageId = intent.getStringExtra(IMAGE_ID) ?: return finish()
         setContent {
-            AppTheme {
+            ActivityContent { imageRepository ->
                 val viewModel: ProcessingViewModel = viewModel()
-                val imageRepository = remember { ImageRepository.getInstance() }
-                val snackbarHostState = remember { SnackySnackbarHostState() }
-                val snackbarController = remember { ActivitySnackySnackbarController() }
-                DisposableEffect(snackbarController) {
-                    SnackbarController.bind(snackbarController)
-                    onDispose {
-                        SnackbarController.unbind(
-                            snackbarController
-                        )
-                    }
-                }
                 LaunchedEffect(Unit) {
                     viewModel.imageRepository = imageRepository
                     viewModel.initialize(this@BeforeAfterActivity)
                 }
-                SnackBarBox(
-                    snackbarHostState = snackbarHostState, controller = snackbarController
-                ) {
-                    ImageScreen(
-                        viewModel = viewModel,
-                        imageRepository = imageRepository,
-                        imageId = imageId,
-                        onBack = { finish() })
-                }
+                ImageScreen(
+                    viewModel = viewModel,
+                    imageRepository = imageRepository,
+                    imageId = imageId,
+                    onBack = { finish() })
             }
         }
     }
@@ -148,33 +178,18 @@ class CompareActivity : ComponentActivity() {
         val imageIdA = intent.getStringExtra("imageIdA") ?: return finish()
         val imageIdB = intent.getStringExtra("imageIdB") ?: return finish()
         setContent {
-            AppTheme {
+            ActivityContent { imageRepository ->
                 val viewModel: ProcessingViewModel = viewModel()
-                val imageRepository = remember { ImageRepository.getInstance() }
-                val snackbarHostState = remember { SnackySnackbarHostState() }
-                val snackbarController = remember { ActivitySnackySnackbarController() }
-                DisposableEffect(snackbarController) {
-                    SnackbarController.bind(snackbarController)
-                    onDispose {
-                        SnackbarController.unbind(
-                            snackbarController
-                        )
-                    }
-                }
                 LaunchedEffect(Unit) {
                     viewModel.imageRepository = imageRepository
                     viewModel.initialize(this@CompareActivity)
                 }
-                SnackBarBox(
-                    snackbarHostState = snackbarHostState, controller = snackbarController
-                ) {
-                    ImageScreen(
-                        viewModel = viewModel,
-                        imageRepository = imageRepository,
-                        imageId = imageIdA,
-                        compareImageId = imageIdB,
-                        onBack = { finish() })
-                }
+                ImageScreen(
+                    viewModel = viewModel,
+                    imageRepository = imageRepository,
+                    imageId = imageIdA,
+                    compareImageId = imageIdB,
+                    onBack = { finish() })
             }
         }
     }
