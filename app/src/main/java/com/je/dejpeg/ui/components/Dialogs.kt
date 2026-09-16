@@ -470,17 +470,24 @@ fun ImageSourceDialog(
             ) {
                 item {
                     SegmentedListItem(
+                        modifier = Modifier.height(100.dp),
                         shapes = CornerRole(topStart = true).toListItemShapes(),
                         colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-                        leadingContent = {
-                            Icon(
-                                painterResource(R.drawable.ic_gallery),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                modifier = Modifier.size(32.dp)
-                            )
+                        content = {
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    painterResource(R.drawable.ic_gallery),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                                Text(stringResource(R.string.gallery))
+                            }
                         },
-                        content = { Text(stringResource(R.string.gallery)) },
                         onClick = {
                             HapticFeedbacks.medium()
                             scope.launch { handleSelection("gallery") { viewModel.launchGalleryPicker() } }
@@ -488,17 +495,24 @@ fun ImageSourceDialog(
                 }
                 item {
                     SegmentedListItem(
+                        modifier = Modifier.height(100.dp),
                         shapes = CornerRole(topEnd = true).toListItemShapes(),
                         colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-                        leadingContent = {
-                            Icon(
-                                Icons.Outlined.Photo,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                modifier = Modifier.size(32.dp)
-                            )
+                        content = {
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    Icons.Outlined.Photo,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                                Text(stringResource(R.string.media_picker))
+                            }
                         },
-                        content = { Text(stringResource(R.string.media_picker)) },
                         onClick = {
                             HapticFeedbacks.medium()
                             scope.launch { handleSelection("internal") { viewModel.launchInternalPhotoPicker() } }
@@ -506,17 +520,24 @@ fun ImageSourceDialog(
                 }
                 item {
                     SegmentedListItem(
+                        modifier = Modifier.height(100.dp),
                         shapes = CornerRole().toListItemShapes(),
                         colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-                        leadingContent = {
-                            Icon(
-                                Icons.Outlined.Folder,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                modifier = Modifier.size(32.dp)
-                            )
+                        content = {
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    Icons.Outlined.Folder,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                                Text(stringResource(R.string.documents))
+                            }
                         },
-                        content = { Text(stringResource(R.string.documents)) },
                         onClick = {
                             HapticFeedbacks.medium()
                             scope.launch { handleSelection("documents") { viewModel.launchDocumentsPicker() } }
@@ -525,16 +546,23 @@ fun ImageSourceDialog(
                 }
                 item {
                     SegmentedListItem(
+                        modifier = Modifier.height(100.dp),
                         shapes = CornerRole().toListItemShapes(),
                         colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-                        leadingContent = {
-                            Icon(
-                                Icons.Outlined.CameraAlt,
-                                contentDescription = null,
-                                modifier = Modifier.size(32.dp)
-                            )
+                        content = {
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    Icons.Outlined.CameraAlt,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                                Text(stringResource(R.string.camera))
+                            }
                         },
-                        content = { Text(stringResource(R.string.camera)) },
                         onClick = {
                             HapticFeedbacks.medium()
                             scope.launch { handleSelection("camera") { viewModel.launchCamera() } }

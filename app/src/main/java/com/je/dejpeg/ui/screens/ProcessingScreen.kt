@@ -22,7 +22,6 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.EaseInOutSine
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
@@ -44,7 +43,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -54,18 +52,20 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
@@ -101,11 +101,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -121,10 +119,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -132,7 +127,6 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
@@ -154,6 +148,7 @@ import com.je.dejpeg.ui.components.SimpleAlertDialog
 import com.je.dejpeg.ui.components.SnackbarController
 import com.je.dejpeg.ui.components.SnackbarDuration
 import com.je.dejpeg.ui.components.SnackySnackbarEvents
+import com.je.dejpeg.ui.components.SwipeToDismissBox
 import com.je.dejpeg.ui.components.rememberMaterialPressState
 import com.je.dejpeg.ui.components.toListItemShapes
 import com.je.dejpeg.ui.viewmodel.ImageItem
@@ -165,6 +160,7 @@ import com.je.dejpeg.utils.ImageActions
 import com.je.dejpeg.utils.ModelType
 import kotlinx.coroutines.launch
 import java.util.Locale
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 private enum class CardState { Idle, Processing, Complete, Stale }
@@ -174,11 +170,6 @@ private enum class CardState { Idle, Processing, Complete, Stale }
     ExperimentalFoundationApi::class,
     ExperimentalAnimationApi::class
 )
-
-private val springStandard = spring<Float>(
-    dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium
-)
-
 @Composable
 fun ProcessingScreen(
     viewModel: ProcessingViewModel,
@@ -190,24 +181,19 @@ fun ProcessingScreen(
     isActive: Boolean = true,
     initialSharedUris: List<Uri> = emptyList(),
     onRemoveSharedUri: (Uri) -> Unit = {},
-    lazyListState: androidx.compose.foundation.lazy.LazyListState = androidx.compose.foundation.lazy.rememberLazyListState(),
 ) {
     val context = App.ctx
     val appPreferences = remember { AppPreferences() }
     val defaultImageSource by appPreferences.defaultImageSource.collectAsState(initial = null)
     val swapSwipeActions by appPreferences.swapSwipeActions.collectAsState(initial = false)
-
     val images by imageRepository.images.collectAsState()
     val globalStrength by settingsViewModel.globalStrength.collectAsState()
     val activeSelection by settingsViewModel.activeSelection.collectAsState()
     val processingMode = activeSelection.type
     val oidnInputScale by settingsViewModel.oidnInputScale.collectAsState()
-
     val isOidnMode = processingMode == ModelType.OIDN
     val activeModelName = activeSelection.modelName
-
     val supportsStrength = activeModelName?.contains("fbcnn", ignoreCase = true) == true
-
     val noModelMessage = stringResource(R.string.no_model_installed_title)
     val scope = rememberCoroutineScope()
     val isLoadingImages by imageRepository.isLoadingImages.collectAsState()
@@ -222,10 +208,8 @@ fun ProcessingScreen(
     var saveDialogState by remember { mutableStateOf<Pair<String, String>?>(null) }
     var overwriteDialogState by remember { mutableStateOf<Pair<String, String>?>(null) }
     val showSaveDialog by appPreferences.showSaveDialog.collectAsState(initial = true)
-
     var selectedImageIds by remember { mutableStateOf<List<String>>(emptyList()) }
     val isSelectionMode = selectedImageIds.isNotEmpty()
-
 
     val toggleSelection: (String) -> Unit = { id ->
         HapticFeedbacks.light()
@@ -251,22 +235,6 @@ fun ProcessingScreen(
         clearSelection()
     }
 
-    val handleImageRemoval: (String) -> Unit = { imageId ->
-        images.firstOrNull { it.id == imageId }?.let { image ->
-            when {
-                image.isProcessing && viewModel.isCurrentlyProcessing(imageId) -> imageIdToCancel =
-                    imageId
-
-                image.isProcessing && !viewModel.isCurrentlyProcessing(imageId) -> viewModel.cancelProcessingForImage(
-                    imageId
-                )
-
-                image.outputBitmap != null && !image.hasBeenSaved -> imageIdToRemove = imageId
-                else -> performRemoval(imageId)
-            }
-        }
-    }
-
     fun tryProcess(block: () -> Unit) {
         if (!settingsViewModel.hasActiveModel(processingMode)) scope.launch {
             SnackbarController.pushEvent(
@@ -279,14 +247,6 @@ fun ProcessingScreen(
 
     fun <T> Pair<String, T>?.prune(images: List<ImageItem>): Pair<String, T>? =
         this?.takeIf { (id, _) -> images.any { it.id == id } }
-
-    val saveOrPrompt = rememberSaveOrPrompt(
-        showSaveDialog = showSaveDialog,
-        context = context,
-        viewModel = viewModel,
-        performRemoval = performRemoval,
-        setSaveDialogState = { p -> saveDialogState = p },
-        setOverwriteDialogState = { p -> overwriteDialogState = p })
 
     LaunchedEffect(images) {
         imageIdToRemove = imageIdToRemove?.takeIf { id -> images.any { it.id == id } }
@@ -646,7 +606,6 @@ fun ProcessingScreen(
             }
         } else {
             LazyColumn(
-                state = lazyListState,
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(GroupedListSpacing),
                 contentPadding = PaddingValues(
@@ -662,28 +621,30 @@ fun ProcessingScreen(
                         images = images,
                         isSelectionMode = isSelectionMode,
                         selectedImageIds = selectedImageIds,
-                        swapSwipeActions = swapSwipeActions,
                         viewModel = viewModel,
                         onToggleSelection = toggleSelection,
-                        onRemoveImage = handleImageRemoval,
-                        saveOrPrompt = saveOrPrompt,
+                        swapSwipeActions = swapSwipeActions,
+                        showSaveDialog = showSaveDialog,
+                        onShowSaveDialog = { id, filename -> saveDialogState = Pair(id, filename) },
+                        onSaveImage = { id, filename ->
+                            if (ImageActions.checkFileExists(context, filename)) {
+                                overwriteDialogState = Pair(id, filename)
+                            } else {
+                                viewModel.saveImage(
+                                    context = context,
+                                    imageIds = listOf(id),
+                                    baseFilename = filename,
+                                    onComplete = { performRemoval(id) })
+                            }
+                        },
                         tryProcess = { block -> tryProcess(block) },
+                        onCancelProcessing = { imageIdToCancel = it },
+                        onShowRemoveDialog = { imageIdToRemove = it },
+                        performRemoval = performRemoval,
                         onNavigateToBeforeAfter = onNavigateToBeforeAfter,
                         onNavigateToBrisque = onNavigateToBrisque,
                         onNavigateToCompare = onNavigateToCompare,
-                        onClearSelection = clearSelection,
-                        modifier = Modifier.animateItem(
-                            fadeInSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessMedium
-                            ), fadeOutSpec = spring(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = Spring.StiffnessMedium
-                            ), placementSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessMedium
-                            )
-                        ),
+                        onClearSelection = clearSelection
                     )
                 }
             }
@@ -701,7 +662,18 @@ fun ProcessingScreen(
                 onRemove = { performRemoval(targetId) },
                 onSaveAndRemove = {
                     imageIdToRemove = null
-                    saveOrPrompt(targetId, image.filename)
+                    if (showSaveDialog) saveDialogState = Pair(targetId, image.filename)
+                    else if (ImageActions.checkFileExists(
+                            context, image.filename
+                        )
+                    ) overwriteDialogState = Pair(
+                        targetId, image.filename
+                    )
+                    else viewModel.saveImage(
+                        context = context,
+                        imageIds = listOf(targetId),
+                        baseFilename = image.filename,
+                        onComplete = { performRemoval(targetId) })
                 })
         } ?: run { imageIdToRemove = null }
     }
@@ -712,7 +684,7 @@ fun ProcessingScreen(
                 imageFilename = image.filename,
                 onDismissRequest = { imageIdToCancel = null },
                 onConfirm = {
-                    viewModel.cancelProcessingForImage(targetId)
+                    viewModel.cancelQueuedImage(targetId)
                     imageIdToCancel = null
                 })
         } ?: run { imageIdToCancel = null }
@@ -830,43 +802,87 @@ fun ProcessingScreen(
 }
 
 @Composable
-fun ImageCard(
+fun LazyItemScope.ImageCard(
+    modifier: Modifier = Modifier,
     index: Int,
     image: ImageItem,
     images: List<ImageItem>,
     isSelectionMode: Boolean,
     selectedImageIds: List<String>,
-    swapSwipeActions: Boolean,
     viewModel: ProcessingViewModel,
     onToggleSelection: (String) -> Unit,
-    onRemoveImage: (String) -> Unit,
-    saveOrPrompt: (String, String) -> Unit,
+    swapSwipeActions: Boolean,
+    showSaveDialog: Boolean,
+    onShowSaveDialog: (String, String) -> Unit,
+    onSaveImage: (String, String) -> Unit,
     tryProcess: (() -> Unit) -> Unit,
+    onCancelProcessing: (String) -> Unit,
+    onShowRemoveDialog: (String) -> Unit,
+    performRemoval: (String) -> Unit,
     onNavigateToBeforeAfter: (String) -> Unit,
     onNavigateToBrisque: (String) -> Unit,
     onNavigateToCompare: (String, String) -> Unit,
     onClearSelection: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
-    val swipeState = remember { mutableFloatStateOf(0f) }
-    val hasOutput = image.outputBitmap != null
     val isSelected = selectedImageIds.contains(image.id)
     val isProcessing = image.isProcessing
+    val positiveAction: () -> (() -> Unit)? = {
+        if (image.outputBitmap != null) {
+            if (showSaveDialog) {
+                onShowSaveDialog(image.id, image.filename)
+                null
+            } else {
+                { onSaveImage(image.id, image.filename) }
+            }
+        } else {
+            tryProcess { viewModel.processImage(image.id) }
+            null
+        }
+    }
+
+    val negativeAction: () -> (() -> Unit)? = {
+        when {
+            isProcessing && viewModel.isCurrent(image.id) -> {
+                onCancelProcessing(image.id)
+                null
+            }
+
+            isProcessing -> {
+                // cancel queue
+                run { viewModel.cancelQueuedImage(image.id) }
+                null
+            }
+
+            image.outputBitmap != null -> {
+                onShowRemoveDialog(image.id)
+                null
+            }
+
+            else -> {
+                { performRemoval(image.id) }
+            }
+        }
+    }
+
+    val onSwipeLeft: () -> (() -> Unit)? = if (swapSwipeActions) negativeAction else positiveAction
+    val onSwipeRight: () -> (() -> Unit)? = if (swapSwipeActions) positiveAction else negativeAction
+
     SwipeToDismissWrapper(
-        swipeState,
-        isProcessing,
-        hasOutput,
-        onRightSwipe = { onRemoveImage(image.id) },
-        onLeftSwipe = {
-            if (image.outputBitmap != null) saveOrPrompt(
-                image.id, image.filename
+        modifier = modifier.animateItem(
+            fadeInSpec = spring(
+                dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium
+            ), fadeOutSpec = spring(
+                dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium
+            ), placementSpec = spring(
+                dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium
             )
-            else tryProcess { viewModel.processImage(image.id) }
-        },
-        swapActions = swapSwipeActions,
-        enabled = !isSelectionMode,
-        modifier = modifier,
-        rightSwipeImmediate = !isProcessing && !(image.outputBitmap != null && !image.hasBeenSaved),
+        ),
+        onSwipeLeft = onSwipeLeft,
+        onSwipeRight = onSwipeRight,
+        rightSwipeEnabled = !isSelectionMode && !isProcessing,
+        hasOutputBitmap = image.outputBitmap != null,
+        swapSwipeActions = swapSwipeActions,
+        isProcessing = isProcessing,
     ) {
         val cardShapes = CornerRole.forPosition(index + 1, images.count()).toListItemShapes()
         val progressTint = MaterialTheme.colorScheme.primary
@@ -877,7 +893,7 @@ fun ImageCard(
         val chunkFraction = if (image.totalChunks > 1) {
             image.completedChunks.toFloat() / image.totalChunks.coerceAtLeast(1)
         } else -1f
-        val pulseAlpha by rememberInfiniteTransition(label = "pulse").animateFloat(
+        val pulseAlpha by rememberInfiniteTransition().animateFloat(
             initialValue = 0.04f, targetValue = 0.11f, animationSpec = infiniteRepeatable(
                 animation = tween(1200, easing = EaseInOutSine), repeatMode = RepeatMode.Reverse
             ), label = "pulse_alpha"
@@ -1033,13 +1049,16 @@ fun ImageCard(
                             image = image,
                             isProcessing = isProcessing,
                             onProcess = { tryProcess { viewModel.processImage(image.id) } },
-                            onRemove = { onRemoveImage(image.id) },
+                            onRemove = { onSwipeRight() },
                             onBrisque = {
                                 HapticFeedbacks.light(); onNavigateToBrisque(
                                 image.id
                             )
                             },
-                            onSave = { saveOrPrompt(image.id, image.filename) },
+                            onSave = {
+                                if (showSaveDialog) onShowSaveDialog(image.id, image.filename)
+                                else onSaveImage(image.id, image.filename)
+                            },
                             onImportOutput = {
                                 HapticFeedbacks.light()
                                 viewModel.importOutputAsNewImage(image.id)
@@ -1059,145 +1078,90 @@ fun ImageCard(
 
 @Composable
 fun SwipeToDismissWrapper(
-    swipeState: MutableState<Float>,
-    isProcessing: Boolean,
-    hasOutput: Boolean,
-    onRightSwipe: () -> Unit,
-    onLeftSwipe: () -> Unit,
     modifier: Modifier = Modifier,
-    swapActions: Boolean = false,
-    rightSwipeImmediate: Boolean = !isProcessing,
-    leftSwipeImmediate: Boolean = false,
-    enabled: Boolean = true,
+    onSwipeLeft: () -> (() -> Unit)?,
+    onSwipeRight: () -> (() -> Unit)?,
+    swapSwipeActions: Boolean,
+    rightSwipeEnabled: Boolean = true,
+    isProcessing: Boolean = false,
+    hasOutputBitmap: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val scope = rememberCoroutineScope()
-    var widthPx by remember { mutableIntStateOf(0) }
-    var hasReachedThreshold by remember { mutableStateOf(false) }
-    val swipeThreshold = 0.35f
-    val currentAllowLeftSwipe by rememberUpdatedState(!isProcessing)
-    val currentOnRightSwipe by rememberUpdatedState(if (swapActions) onLeftSwipe else onRightSwipe)
-    val currentOnLeftSwipe by rememberUpdatedState(if (swapActions) onRightSwipe else onLeftSwipe)
-    val animatedOffset by animateFloatAsState(
-        targetValue = swipeState.value, animationSpec = if (swipeState.value == 0f) spring(
-            dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium
-        )
-        else springStandard, label = "swipe"
-    )
-    val rightIcon = if (swapActions) {
-        if (hasOutput) Icons.Rounded.Save else Icons.Rounded.PlayArrow
+    val currentOnSwipeLeft by rememberUpdatedState(onSwipeLeft)
+    val currentOnSwipeRight by rememberUpdatedState(onSwipeRight)
+
+    val leftSwipeIcon = if (swapSwipeActions) {
+        if (isProcessing) Icons.Rounded.Close else Icons.Rounded.Delete
+    } else {
+        if (hasOutputBitmap) Icons.Rounded.Save else Icons.Rounded.PlayArrow
+    }
+    val leftSwipeIconTint =
+        if (swapSwipeActions) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary
+    val leftSwipeBgColor =
+        if (swapSwipeActions) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.tertiaryContainer
+    val rightSwipeIcon = if (swapSwipeActions) {
+        if (hasOutputBitmap) Icons.Rounded.Save else Icons.Rounded.PlayArrow
     } else {
         if (isProcessing) Icons.Rounded.Close else Icons.Rounded.Delete
     }
-    val rightContainerColor =
-        if (swapActions) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.errorContainer
-    val rightTint =
-        if (swapActions) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onErrorContainer
-    val leftIcon = if (swapActions) {
-        Icons.Rounded.Delete
-    } else {
-        if (hasOutput) Icons.Rounded.Save else Icons.Rounded.PlayArrow
-    }
-    val leftContainerColor =
-        if (swapActions) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer
-    val leftTint =
-        if (swapActions) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer
+    val rightSwipeIconTint =
+        if (swapSwipeActions) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
+    val rightSwipeBgColor =
+        if (swapSwipeActions) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.onError
 
-    Box(
-        modifier
-            .fillMaxWidth()
-            .onSizeChanged { widthPx = it.width }) {
-        ActionPill(
-            icon = rightIcon,
-            tint = rightTint,
-            containerColor = rightContainerColor,
-            alignment = Alignment.CenterStart,
-            modifier = Modifier.matchParentSize()
-        )
-        ActionPill(
-            icon = leftIcon,
-            tint = leftTint,
-            containerColor = leftContainerColor,
-            alignment = Alignment.CenterEnd,
-            modifier = Modifier.matchParentSize()
-        )
-        Box(Modifier
-            .fillMaxWidth()
-            .offset { IntOffset(animatedOffset.roundToInt(), 0) }
-            .pointerInput(widthPx, enabled) {
-                if (!enabled) return@pointerInput
-                detectHorizontalDragGestures(onHorizontalDrag = { _, dragAmount ->
-                    val newValue = swipeState.value + dragAmount
-                    swipeState.value = if (currentAllowLeftSwipe) newValue else maxOf(0f, newValue)
-                    val absOffset = kotlin.math.abs(swipeState.value)
-                    val threshold = widthPx * swipeThreshold
-                    when {
-                        widthPx > 0 && absOffset > threshold && !hasReachedThreshold -> {
-                            HapticFeedbacks.medium(); hasReachedThreshold = true
-                        }
+    SwipeToDismissBox(
+        onQualifiedStartToEnd = { HapticFeedbacks.light(); currentOnSwipeRight() },
+        onQualifiedEndToStart = { HapticFeedbacks.light(); currentOnSwipeLeft() },
+        modifier = modifier,
+        enableDismissFromStartToEnd = true,
+        enableDismissFromEndToStart = rightSwipeEnabled,
+        positionalThreshold = { totalWidth -> totalWidth * 0.6f },
+        backgroundContent = { offsetPx, maxWidthPx ->
+            Box(Modifier.fillMaxSize()) {
+                val density = LocalDensity.current
+                val isRight = offsetPx > 0f
+                val revealedPx = abs(offsetPx).coerceIn(0f, maxWidthPx)
+                val icon = if (isRight) rightSwipeIcon else leftSwipeIcon
+                val contColor = if (isRight) rightSwipeBgColor else leftSwipeBgColor
+                val iconTint = if (isRight) rightSwipeIconTint else leftSwipeIconTint
 
-                        absOffset <= threshold -> hasReachedThreshold = false
-                    }
-                }, onDragEnd = {
-                    val absOffset = kotlin.math.abs(swipeState.value)
-                    val threshold = widthPx * swipeThreshold
-                    if (widthPx > 0 && absOffset > threshold) {
-                        HapticFeedbacks.heavy()
-                        val isRight = swipeState.value > 0
-                        val willSlideOff =
-                            if (isRight) rightSwipeImmediate else (currentAllowLeftSwipe && leftSwipeImmediate)
-                        scope.launch {
-                            if (willSlideOff) {
-                                animate(
-                                    initialValue = swipeState.value,
-                                    targetValue = if (isRight) widthPx * 2f else -widthPx * 2f,
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioNoBouncy,
-                                        stiffness = Spring.StiffnessHigh
-                                    )
-                                ) { value, _ -> swipeState.value = value }
-                                if (isRight) currentOnRightSwipe() else currentOnLeftSwipe()
-                                swipeState.value = 0f
-                            } else {
-                                if (isRight) currentOnRightSwipe()
-                                else if (currentAllowLeftSwipe) currentOnLeftSwipe()
-                                swipeState.value = 0f
-                            }
-                            hasReachedThreshold = false
-                        }
-                    } else {
-                        scope.launch {
-                            swipeState.value = 0f
-                            hasReachedThreshold = false
-                        }
-                    }
-                })
-            }) { content() }
-    }
-}
+                val revealedDp = with(density) { revealedPx.toDp() }
+                val edgeAlignment = if (isRight) Alignment.CenterStart else Alignment.CenterEnd
+                val visible = revealedPx > 1f
+                val alpha by animateFloatAsState(
+                    targetValue = if (visible) 1f else 0f,
+                    animationSpec = tween(durationMillis = 60),
+                    label = "swipeBgAlpha"
+                )
 
-@Composable
-fun ActionPill(
-    icon: ImageVector,
-    tint: Color,
-    containerColor: Color,
-    alignment: Alignment,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier.padding(
-            start = if (alignment == Alignment.CenterStart) 20.dp else 0.dp,
-            end = if (alignment == Alignment.CenterEnd) 20.dp else 0.dp
-        ), contentAlignment = alignment
-    ) {
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .background(containerColor, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(icon, contentDescription = null, modifier = Modifier.size(24.dp), tint = tint)
-        }
+                // visually inspired from Gmail
+                val iconSize = 24.dp
+                val halfIconSize = iconSize / 2
+                val fixedInset = 34.dp - 2.dp
+                val iconCenterFromEdge = maxOf(fixedInset, revealedDp / 2)
+                val iconOffset = iconCenterFromEdge - halfIconSize
+                Box(
+                    modifier = Modifier
+                        .align(edgeAlignment)
+                        .width(revealedDp)
+                        .fillMaxHeight()
+                        .padding(start = 2.dp, end = 2.dp)
+                        .graphicsLayer { this.alpha = alpha }
+                        .clip(RoundedCornerShape(revealedDp))
+                        .background(contColor)) {
+                    Icon(
+                        icon,
+                        contentDescription = null,
+                        tint = iconTint,
+                        modifier = Modifier
+                            .align(edgeAlignment)
+                            .offset(x = if (isRight) iconOffset else -iconOffset)
+                            .graphicsLayer { this.alpha = alpha }
+                            .requiredSize(24.dp))
+                }
+            }
+        }) {
+        content()
     }
 }
 
@@ -1371,7 +1335,6 @@ private fun ImageCardSplitButton(
     }
     val transition = updateTransition(targetState = cardState, label = "card_morph")
     val containerColor by transition.animateColor(
-        transitionSpec = { spring(dampingRatio = Spring.DampingRatioMediumBouncy) },
         label = "container_color"
     ) { state ->
         when (state) {
@@ -1382,7 +1345,6 @@ private fun ImageCardSplitButton(
         }
     }
     val contentColor by transition.animateColor(
-        transitionSpec = { spring(dampingRatio = Spring.DampingRatioMediumBouncy) },
         label = "content_color"
     ) { state ->
         when (state) {

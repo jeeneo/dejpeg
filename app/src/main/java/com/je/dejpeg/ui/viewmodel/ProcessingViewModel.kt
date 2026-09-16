@@ -613,13 +613,13 @@ class ProcessingViewModel : ViewModel() {
         }
     }
 
-    fun isCurrentlyProcessing(imageId: String) = queue.isActive(imageId)
+    fun isCurrent(imageId: String) = queue.isActive(imageId)
 
     fun isProcessingOrQueueActive(): Boolean {
         return queue.cancelInProgress || queue.currentProcessingId != null || !queue.isEmpty
     }
 
-    fun cancelProcessingForImage(imageId: String) {
+    fun cancelQueuedImage(imageId: String) {
         if (queue.isActive(imageId)) {
             queue.cancelInProgress = true
             queue.singleImageCancelId = imageId

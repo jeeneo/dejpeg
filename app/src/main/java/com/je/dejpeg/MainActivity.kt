@@ -102,7 +102,7 @@ class MainActivity : ComponentActivity() {
             contentResolver.takePersistableUriPermission(
                 uri, Intent.FLAG_GRANT_READ_URI_PERMISSION and Intent.FLAG_GRANT_READ_URI_PERMISSION
             )
-        } catch (_: Exception) { /* o */
+        } catch (_: Exception) {
         }
         imageRepository.addSharedUri(uri)
     }
