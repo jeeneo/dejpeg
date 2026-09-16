@@ -11,9 +11,9 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.je.dejpeg.App
-import com.je.dejpeg.AppPreferences
-import com.je.dejpeg.BrisqueSettings
 import com.je.dejpeg.R
+import com.je.dejpeg.data.AppPreferences
+import com.je.dejpeg.data.BrisqueSettings
 import com.je.dejpeg.processing.BRISQUEAssessor
 import com.je.dejpeg.processing.BRISQUEDescaler
 import com.je.dejpeg.ui.components.SnackbarController

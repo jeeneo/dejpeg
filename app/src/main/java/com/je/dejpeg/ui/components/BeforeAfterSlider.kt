@@ -61,7 +61,6 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.get
-import com.je.dejpeg.HapticFeedbacks
 import com.je.dejpeg.R
 import com.je.dejpeg.ui.screens.rememberCheckerShader
 import com.kyant.backdrop.backdrops.layerBackdrop
@@ -250,7 +249,7 @@ fun BeforeAfterSlider(
                         .offset(x = with(density) { sliderX.toDp() - 32.dp })
                         .pointerInput(Unit) {
                             detectDragGestures(
-                                onDragStart = { HapticFeedbacks.gestureStart() },
+                                onDragStart = { },
                                 onDrag = { change, dragAmount ->
                                     change.consume()
                                     sliderPosition =

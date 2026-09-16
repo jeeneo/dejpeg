@@ -58,10 +58,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.core.graphics.createBitmap
-import com.je.dejpeg.AppPreferences
-import com.je.dejpeg.HapticFeedbacks
-import com.je.dejpeg.ImageRepository
 import com.je.dejpeg.R
+import com.je.dejpeg.data.AppPreferences
+import com.je.dejpeg.data.ImageFlowDialogs
+import com.je.dejpeg.data.ImageRepository
+import com.je.dejpeg.data.rememberImageFlows
 import com.je.dejpeg.ui.components.BeforeAfterSlider
 import com.je.dejpeg.ui.components.GroupedListSpacing
 import com.je.dejpeg.ui.components.PreparingShareDialog
@@ -69,8 +70,6 @@ import com.je.dejpeg.ui.components.horizontalSegmentedShapes
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SaveState
 import com.je.dejpeg.utils.ImageActions
-import com.je.dejpeg.utils.ImageFlowDialogs
-import com.je.dejpeg.utils.rememberImageFlows
 import me.saket.telephoto.zoomable.OverzoomEffect
 import me.saket.telephoto.zoomable.ZoomLimit
 import me.saket.telephoto.zoomable.ZoomSpec
@@ -124,7 +123,7 @@ fun ImageScreen(
         TopAppBar(
             title = { Text(filename, style = MaterialTheme.typography.titleMedium) },
             navigationIcon = {
-                IconButton(onClick = { HapticFeedbacks.light(); onBack() }) {
+                IconButton(onClick = { onBack() }) {
                     Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Back")
                 }
             },
@@ -166,7 +165,6 @@ fun ImageScreen(
                                 )
                             },
                             onClick = {
-                                HapticFeedbacks.light()
                                 isPreparingShare = true
                                 ImageActions.shareImage(
                                     context = context,
@@ -190,7 +188,6 @@ fun ImageScreen(
                                 )
                             },
                             onClick = {
-                                HapticFeedbacks.light()
                                 flows.requestSave(listOf(imageId), false)
                             })
                     }

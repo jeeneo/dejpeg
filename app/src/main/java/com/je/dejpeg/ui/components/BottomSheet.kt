@@ -35,7 +35,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.je.dejpeg.HapticFeedbacks
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -96,7 +95,6 @@ fun BottomSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable(enabled = expanded && progress == 0f) {
-                            HapticFeedbacks.light()
                             onExpandedChange(false)
                         }
                         .pointerInput(expanded, animating, progress) {

@@ -20,9 +20,9 @@ import android.os.Process
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
-import com.je.dejpeg.AppPreferences
 import com.je.dejpeg.BuildConfig
 import com.je.dejpeg.R
+import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.utils.CacheManager
 import com.je.dejpeg.utils.ImageLoadingHelper
 import com.je.dejpeg.utils.ImageSource

@@ -15,8 +15,8 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.je.dejpeg.ImageRepository
 import com.je.dejpeg.R
+import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.processing.ProcessingService
 import com.je.dejpeg.processing.ServiceCommunicationHelper
 import com.je.dejpeg.ui.components.SnackbarController

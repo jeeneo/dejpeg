@@ -53,7 +53,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
-import com.je.dejpeg.HapticFeedbacks
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -211,8 +210,8 @@ fun CardWrapper(
 
     val thresholdFrac = 0.4f
     SwipeBox(
-        onQualifiedStartToEnd = { HapticFeedbacks.light(); currentOnSwipeRight() },
-        onQualifiedEndToStart = { HapticFeedbacks.light(); currentOnSwipeLeft() },
+        onQualifiedStartToEnd = { currentOnSwipeRight() },
+        onQualifiedEndToStart = { currentOnSwipeLeft() },
         modifier = modifier,
         enableDismissFromStartToEnd = true,
         enableDismissFromEndToStart = rightSwipeEnabled,
@@ -228,7 +227,7 @@ fun CardWrapper(
                 val progress = FastOutSlowInEasing.transform(rawProgress)
                 val armed = rawProgress >= 1f
                 LaunchedEffect(isRight, armed) {
-                    if (armed) HapticFeedbacks.heavy()
+
                 }
                 val idleColor = MaterialTheme.colorScheme.surfaceVariant
                 val activeColor = if (isRight) rightSwipeBgColor else leftSwipeBgColor

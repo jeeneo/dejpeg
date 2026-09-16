@@ -129,7 +129,6 @@ object ExifOrientation {
         while (remaining > 0) {
             val skipped = stream.skip(remaining)
             if (skipped <= 0) {
-                // Some streams don't support skip reliably; fall back to reading.
                 if (stream.read() == -1) return
                 remaining -= 1
             } else {

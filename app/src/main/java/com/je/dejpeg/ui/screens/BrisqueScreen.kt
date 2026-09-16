@@ -85,10 +85,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.je.dejpeg.BrisqueSettings
-import com.je.dejpeg.HapticFeedbacks
-import com.je.dejpeg.ImageRepository
 import com.je.dejpeg.R
+import com.je.dejpeg.data.BrisqueSettings
+import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.processing.BRISQUEDescaler
 import com.je.dejpeg.ui.components.ErrorAlertDialog
 import com.je.dejpeg.ui.components.SimpleAlertDialog
@@ -141,20 +140,20 @@ fun BRISQUEScreen(
                 )
             },
             navigationIcon = {
-                IconButton(onClick = { HapticFeedbacks.light(); onBack() }) {
+                IconButton(onClick = { onBack() }) {
                     Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back_desc))
                 }
             },
             actions = {
                 IconButton(onClick = {
-                    HapticFeedbacks.light(); showInfoDialog = true
+                    showInfoDialog = true
                 }) { Icon(Icons.Rounded.Info, stringResource(R.string.info_desc)) }
                 IconButton(onClick = {
-                    HapticFeedbacks.light(); showBRISQUESettings = true
+                    showBRISQUESettings = true
                 }) { Icon(Icons.Rounded.Settings, stringResource(R.string.settings_desc)) }
                 IconButton(
                     onClick = {
-                        HapticFeedbacks.medium(); brisqueViewModel.saveCurrentImage(context)
+                        brisqueViewModel.saveCurrentImage(context)
                     }, enabled = brisqueState != null
                 ) {
                     Icon(Icons.Rounded.Save, stringResource(R.string.brisque_save_image_desc))
@@ -169,7 +168,6 @@ fun BRISQUEScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
                     .clickable {
-                        HapticFeedbacks.medium()
                         showImageModal = true
                     }, Alignment.Center
             ) {
@@ -297,7 +295,7 @@ fun BRISQUEScreen(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
-                        onClick = { HapticFeedbacks.medium(); brisqueViewModel.assessQuality(context) },
+                        onClick = { brisqueViewModel.assessQuality(context) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(40.dp),
@@ -325,8 +323,8 @@ fun BRISQUEScreen(
                     }
                     Button(
                         onClick = {
-                            HapticFeedbacks.medium(); if (brisqueState?.descaledBitmap != null) showConfirm =
-                            true else brisqueViewModel.descaleImage(context)
+                            if (brisqueState?.descaledBitmap != null) showConfirm =
+                                true else brisqueViewModel.descaleImage(context)
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -367,9 +365,9 @@ fun BRISQUEScreen(
         }
     }
     if (showConfirm) ConfirmDialog(onConfirm = {
-        HapticFeedbacks.medium(); brisqueViewModel.descaleImage(
-        context
-    ); showConfirm = false
+        brisqueViewModel.descaleImage(
+            context
+        ); showConfirm = false
     }, onDismiss = { showConfirm = false })
     if (showInfoDialog) InfoDialog(onDismiss = { showInfoDialog = false })
     if (showBRISQUESettings) BRISQUESettings(
@@ -396,7 +394,7 @@ fun BRISQUEScreen(
         DescaleProgressDialog(
             progress = it,
             logMessages = brisqueState?.descaleLog!!,
-            onCancel = { HapticFeedbacks.medium(); brisqueViewModel.cancelDescaling(context) })
+            onCancel = { brisqueViewModel.cancelDescaling(context) })
     }
 
     (saveState as? SaveState.Saving)?.let { state ->
@@ -656,7 +654,7 @@ private fun DescaleProgressDialog(
                 }
 
                 OutlinedButton(
-                    onClick = { HapticFeedbacks.heavy(); onCancel() },
+                    onClick = { onCancel() },
                     Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
@@ -722,7 +720,6 @@ private fun ImageViewerModal(
             }
             IconButton(
                 onClick = {
-                    HapticFeedbacks.light()
                     scope.launch { sheetState.hide() }.invokeOnCompletion {
                         if (!sheetState.isVisible) onDismiss()
                     }
@@ -788,8 +785,8 @@ private fun BRISQUESettings(
                     style = MaterialTheme.typography.labelMedium
                 )
                 if (infoText.isNotEmpty()) IconButton(onClick = {
-                    HapticFeedbacks.light(); expandedInfo =
-                    if (expandedInfo == label) null else label
+                    expandedInfo =
+                        if (expandedInfo == label) null else label
                 }, Modifier.size(24.dp)) {
                     Icon(
                         Icons.Rounded.Info, stringResource(R.string.info_desc), Modifier.size(18.dp)
@@ -808,7 +805,6 @@ private fun BRISQUESettings(
                     val newIndex = newIdx.roundToInt().coerceIn(0, steps)
                     if (newIndex != index) {
                         index = newIndex
-                        HapticFeedbacks.light()
                         onValueChange(range.start + (newIndex * stepSize))
                     }
                 },
@@ -904,7 +900,7 @@ private fun BRISQUESettings(
         },
         confirmButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = { HapticFeedbacks.light(); onDismiss() }) {
+                TextButton(onClick = { onDismiss() }) {
                     Text(
                         stringResource(
                             R.string.cancel
@@ -912,7 +908,6 @@ private fun BRISQUESettings(
                     )
                 }
                 TextButton(onClick = {
-                    HapticFeedbacks.light()
                     coarseStep = 20f
                     fineStep = 5f
                     fineRange = 30f
@@ -921,7 +916,6 @@ private fun BRISQUESettings(
                     sharpnessWeight = 0.3f
                 }) { Text(stringResource(R.string.reset)) }
                 Button(onClick = {
-                    HapticFeedbacks.medium()
                     brisqueViewModel.updateSettings(
                         BrisqueSettings(
                             coarseStep.toInt(),

@@ -1,4 +1,4 @@
-package com.je.dejpeg.utils
+package com.je.dejpeg.data
 
 import android.content.Context
 import android.net.Uri
@@ -12,11 +12,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
-import com.je.dejpeg.AppPreferences
 import com.je.dejpeg.ui.components.RemoveImageDialog
 import com.je.dejpeg.ui.components.SaveImageDialog
 import com.je.dejpeg.ui.viewmodel.ImageItem
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
+import com.je.dejpeg.utils.ImageActions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 

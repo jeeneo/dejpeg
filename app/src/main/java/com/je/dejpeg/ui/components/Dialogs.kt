@@ -98,10 +98,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.FileProvider
-import com.je.dejpeg.AppPreferences
-import com.je.dejpeg.HapticFeedbacks
-import com.je.dejpeg.ImageRepository
 import com.je.dejpeg.R
+import com.je.dejpeg.data.AppPreferences
+import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.ui.viewmodel.ImageItem
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.utils.CacheManager
@@ -159,7 +158,6 @@ fun ErrorAlertDialog(
         dismissButton = {
             val scope = rememberCoroutineScope()
             TextButton(onClick = {
-                HapticFeedbacks.light()
                 clipboardManager?.setPrimaryClip(
                     ClipData.newPlainText(context.getString(R.string.error), errorMessage)
                 )
@@ -176,7 +174,7 @@ fun ErrorAlertDialog(
         confirmButton = {
             MorphButton(
                 label = confirmButtonText ?: stringResource(R.string.ok),
-                onClick = { HapticFeedbacks.light(); onDismiss() })
+                onClick = { onDismiss() })
         })
 }
 
@@ -193,13 +191,13 @@ fun SimpleAlertDialog(
 ) {
     val resolvedText = confirmButtonText ?: stringResource(R.string.ok)
     StyledAlertDialog(
-        onDismissRequest = { HapticFeedbacks.light(); onDismiss() },
+        onDismissRequest = { onDismiss() },
         icon = icon,
         title = { Text(title) },
         text = content ?: message?.let { { Text(it) } },
         dismissButton = {
             TextButton(
-                onClick = { onDismiss(); HapticFeedbacks.light() },
+                onClick = { onDismiss() },
             ) {
                 Text(dismissButtonText)
             }
@@ -207,7 +205,7 @@ fun SimpleAlertDialog(
         confirmButton = {
             MorphButton(
                 label = resolvedText, onClick = {
-                    HapticFeedbacks.light(); onConfirm()
+                    onConfirm()
                 })
         })
 }
@@ -245,12 +243,12 @@ fun SaveImageDialog(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { HapticFeedbacks.light(); saveAll = !saveAll }
+                                .clickable { saveAll = !saveAll }
                                 .padding(vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(
                                 checked = saveAll,
-                                onCheckedChange = { HapticFeedbacks.light(); saveAll = it },
+                                onCheckedChange = { saveAll = it },
                                 modifier = Modifier.size(32.dp)
                             )
                             Spacer(Modifier.width(8.dp))
@@ -263,12 +261,12 @@ fun SaveImageDialog(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { HapticFeedbacks.light(); skipNext = !skipNext }
+                            .clickable { skipNext = !skipNext }
                             .padding(vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(
                             checked = skipNext,
-                            onCheckedChange = { HapticFeedbacks.light(); skipNext = it },
+                            onCheckedChange = { skipNext = it },
                             modifier = Modifier.size(32.dp)
                         )
                         Spacer(Modifier.width(8.dp))
@@ -282,14 +280,13 @@ fun SaveImageDialog(
         }
     }, dismissButton = {
         TextButton(
-            onClick = { onDismissRequest(); HapticFeedbacks.light() },
+            onClick = { onDismissRequest() },
         ) {
             Text(stringResource(R.string.nope))
         }
     }, confirmButton = {
         MorphButton(
             label = stringResource(R.string.save), onClick = {
-                HapticFeedbacks.light()
                 onSave(sanitizeFilename(textState), saveAll, skipNext)
             })
     })
@@ -383,7 +380,7 @@ fun RemoveImageDialog(
         },
         dismissButton = {
             TextButton(
-                onClick = { onDismissRequest(); HapticFeedbacks.light() },
+                onClick = { onDismissRequest() },
             ) {
                 Text(stringResource(R.string.nope))
             }
@@ -397,14 +394,13 @@ fun RemoveImageDialog(
                     onClick = {
                         onRemove()
                         onDismissRequest()
-                        HapticFeedbacks.light()
                     },
                 ) {
                     Text(stringResource(R.string.remove))
                 }
                 MorphButton(
                     label = stringResource(R.string.save),
-                    onClick = { HapticFeedbacks.medium(); onSaveAndRemove() })
+                    onClick = { onSaveAndRemove() })
             }
         })
 }
@@ -428,7 +424,7 @@ fun CancelProcessingDialog(
         },
         dismissButton = {
             TextButton(
-                onClick = { onDismissRequest(); HapticFeedbacks.light() },
+                onClick = { onDismissRequest() },
             ) {
                 Text(stringResource(R.string.nope))
             }
@@ -436,7 +432,7 @@ fun CancelProcessingDialog(
         confirmButton = {
             MorphButton(
                 label = stringResource(R.string.yes_stop),
-                onClick = { HapticFeedbacks.heavy(); onConfirm(); onDismissRequest() },
+                onClick = { onConfirm(); onDismissRequest() },
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
             )
         })
@@ -510,7 +506,6 @@ fun ImageSourceDialog(
                             }
                         },
                         onClick = {
-                            HapticFeedbacks.medium()
                             scope.launch { handleSelection("gallery") { viewModel.launchGalleryPicker() } }
                         })
                 }
@@ -535,7 +530,6 @@ fun ImageSourceDialog(
                             }
                         },
                         onClick = {
-                            HapticFeedbacks.medium()
                             scope.launch { handleSelection("internal") { viewModel.launchInternalPhotoPicker() } }
                         })
                 }
@@ -560,7 +554,6 @@ fun ImageSourceDialog(
                             }
                         },
                         onClick = {
-                            HapticFeedbacks.medium()
                             scope.launch { handleSelection("documents") { viewModel.launchDocumentsPicker() } }
                         })
 
@@ -585,14 +578,12 @@ fun ImageSourceDialog(
                             }
                         },
                         onClick = {
-                            HapticFeedbacks.medium()
                             scope.launch { handleSelection("camera") { viewModel.launchCamera() } }
                         })
                 }
             }
             SegmentedListItem(
                 checked = setAsDefault, onCheckedChange = {
-                    HapticFeedbacks.light()
                     setAsDefault = it
                 }, shapes = segmentedShapes(2, 2), colors = ListItemDefaults.segmentedColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
@@ -760,14 +751,12 @@ fun RecoveryDialog(
             }
         }, dismissButton = {
             TextButton(onClick = {
-                HapticFeedbacks.light()
                 clearCache()
             }) { Text(discardButtonText) }
         }, confirmButton = {
             MorphButton(
                 label = recoverButtonText, onClick = {
                     Log.d("RecoveryDialog", "User chose to keep recovered images")
-                    HapticFeedbacks.medium()
                     recoveryImages.value.forEach { img ->
                         val processed = img.processedBitmap
                         val unprocessedFile = CacheManager.getUnprocessedImage(context, img.imageId)
@@ -911,7 +900,7 @@ fun LabeledSwitch(
                 )
             },
             onCheckedChange = {
-                HapticFeedbacks.light(); onCheckedChange(!checked)
+                onCheckedChange(!checked)
             },
             modifier = Modifier
                 .padding(end = 2.dp)
@@ -945,7 +934,7 @@ fun PreferenceItem(
             shapes = CornerRole(
                 bottomStart = !expanded, bottomEnd = !expanded, topStart = pill, topEnd = pill
             ).toListItemShapes(),
-            onClick = { HapticFeedbacks.light(); onClick() },
+            onClick = { onClick() },
             leadingContent = {
                 when (icon) {
                     is ImageVector -> Icon(

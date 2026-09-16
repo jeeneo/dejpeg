@@ -6,7 +6,7 @@
 package com.je.dejpeg.processing
 
 import android.graphics.Bitmap
-import com.je.dejpeg.AppPreferences
+import com.je.dejpeg.data.AppPreferences
 
 interface Processor {
     interface ProcessCallback {

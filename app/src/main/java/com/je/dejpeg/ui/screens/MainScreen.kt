@@ -6,7 +6,6 @@ package com.je.dejpeg.ui.screens
  */
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -21,6 +20,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
@@ -28,7 +29,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.je.dejpeg.App
-import com.je.dejpeg.ImageRepository
+import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.ui.components.ActivitySnackySnackbarController
 import com.je.dejpeg.ui.components.RecoveryDialog
 import com.je.dejpeg.ui.components.SnackBarBox
@@ -39,12 +40,11 @@ import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
 
 @Composable
-fun MainScreen(
-    sharedUris: List<Uri> = emptyList()
-) {
+fun MainScreen() {
     val viewModel: ProcessingViewModel = viewModel()
     val settingsViewModel: SettingsViewModel = viewModel()
     val imageRepository = remember { ImageRepository.getInstance() }
+    val sharedUris by imageRepository.sharedUris.collectAsState()
     val snackbarHostState = remember { SnackySnackbarHostState() }
     val snackbarController = remember { ActivitySnackySnackbarController() }
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -98,8 +98,7 @@ fun MainScreen(
                         context.startActivity(
                             Intent(context, CompareActivity::class.java).putExtra(
                                 "imageIdA", idA
-                            ).putExtra("imageIdB", idB)
-                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            ).putExtra("imageIdB", idB).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         )
                     },
                     isActive = true,
@@ -143,9 +142,7 @@ class BrisqueActivity : ComponentActivity() {
         setContent {
             ActivityContent { imageRepository ->
                 BRISQUEScreen(
-                    imageRepository = imageRepository,
-                    imageId = imageId,
-                    onBack = { finish() })
+                    imageRepository = imageRepository, imageId = imageId, onBack = { finish() })
             }
         }
     }

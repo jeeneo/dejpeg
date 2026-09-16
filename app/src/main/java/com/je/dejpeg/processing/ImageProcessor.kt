@@ -22,9 +22,9 @@ import android.graphics.Paint
 import android.util.Log
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
-import com.je.dejpeg.AppPreferences
 import com.je.dejpeg.R
-import com.je.dejpeg.ThreadUtils
+import com.je.dejpeg.data.AppPreferences
+import com.je.dejpeg.data.ThreadUtils
 import com.je.dejpeg.utils.CacheManager
 import com.je.dejpeg.utils.ModelManager
 import kotlinx.coroutines.Dispatchers

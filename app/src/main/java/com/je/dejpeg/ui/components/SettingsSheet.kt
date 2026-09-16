@@ -7,7 +7,7 @@
     "KotlinConstantConditions", "SimplifyBooleanWithConstants", "SpellCheckingInspection"
 )
 
-package com.je.dejpeg.ui.screens
+package com.je.dejpeg.ui.components
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -77,23 +77,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import com.je.dejpeg.App
-import com.je.dejpeg.AppPreferences
-import com.je.dejpeg.HapticFeedbacks
 import com.je.dejpeg.R
-import com.je.dejpeg.ThreadUtils
-import com.je.dejpeg.ui.components.CornerRole
-import com.je.dejpeg.ui.components.GroupedListSpacing
-import com.je.dejpeg.ui.components.LabeledSwitch
-import com.je.dejpeg.ui.components.PowerSlider
-import com.je.dejpeg.ui.components.PreferenceGroupHeading
-import com.je.dejpeg.ui.components.PreferenceItem
-import com.je.dejpeg.ui.components.SettingsSection
-import com.je.dejpeg.ui.components.SnackbarController
-import com.je.dejpeg.ui.components.SnackbarDuration
-import com.je.dejpeg.ui.components.SnackySnackbarEvents
-import com.je.dejpeg.ui.components.rememberMaterialPressState
-import com.je.dejpeg.ui.components.segmentedShapes
-import com.je.dejpeg.ui.components.toListItemShapes
+import com.je.dejpeg.data.AppPreferences
+import com.je.dejpeg.data.ThreadUtils
 import com.je.dejpeg.ui.theme.AppTheme
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
@@ -206,9 +192,8 @@ fun SettingsSheetContent(
                 SegmentedListItem(
                     modifier = Modifier.weight(1f),
                     colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-                    onClick = { HapticFeedbacks.light(); modelPickerLauncher.launch("*/*") },
+                    onClick = { modelPickerLauncher.launch("*/*") },
                     onLongClick = {
-                        HapticFeedbacks.heavy()
                         scope.launch {
                             val extracted = withContext(Dispatchers.IO) {
                                 modelManager.extractStarterModel(setAsActive = true)
@@ -250,7 +235,6 @@ fun SettingsSheetContent(
                     modifier = Modifier.weight(1f),
                     colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
                     onClick = {
-                        HapticFeedbacks.light()
                         uriHandler.openUri("https://codeberg.org/dryerlint/dejpeg/src/branch/main/models")
                     },
                     shapes = CornerRole(
@@ -281,7 +265,6 @@ fun SettingsSheetContent(
                         colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
                         selected = isActive,
                         onClick = {
-                            HapticFeedbacks.light()
                             if (processingViewModel.isProcessingOrQueueActive()) {
                                 scope.launch {
                                     SnackbarController.pushEvent(
@@ -312,7 +295,6 @@ fun SettingsSheetContent(
                             Row {
                                 modelManager.getModelInfo(modelName)?.let {
                                     IconButton(onClick = {
-                                        HapticFeedbacks.light()
                                         modelInfoDialog.value = modelName to it
                                     }, modifier = Modifier.size(32.dp)) {
                                         Icon(
@@ -325,7 +307,6 @@ fun SettingsSheetContent(
                                 }
                                 IconButton(
                                     onClick = {
-                                        HapticFeedbacks.light()
                                         settingsViewModel.deleteModel(
                                             modelName, modelType
                                         ) {
@@ -399,7 +380,7 @@ fun SettingsSheetContent(
                                         value = chunkSize,
                                         powers = listOf(512, 1024, 2048),
                                         onChange = { settingsViewModel.setChunkSize(it) },
-                                        hapticAction = { HapticFeedbacks.light() })
+                                        hapticAction = { })
                                 })
                             SegmentedListItem(
                                 colors = colors, shapes = segmentedShapes(2, 3), content = {
@@ -408,7 +389,7 @@ fun SettingsSheetContent(
                                         value = overlapSize,
                                         powers = listOf(16, 32, 64, 128),
                                         onChange = { settingsViewModel.setOverlapSize(it) },
-                                        hapticAction = { HapticFeedbacks.light() })
+                                        hapticAction = { })
 
                                 })
                             SegmentedListItem(
@@ -419,7 +400,7 @@ fun SettingsSheetContent(
                                         hideValue = true,
                                         powers = (0..maxThreads).toList(),
                                         onChange = { settingsViewModel.setOnnxDeviceThreads(it) },
-                                        hapticAction = { HapticFeedbacks.light() })
+                                        hapticAction = { })
                                 })
 
                         },
@@ -441,9 +422,9 @@ fun SettingsSheetContent(
                         expandedContent = {
                             SegmentedListItem(
                                 colors = colors, shapes = segmentedShapes(1, 2), onClick = {
-                                    HapticFeedbacks.light(); settingsViewModel.setOidnHdrPref(
-                                    !oidnHDR
-                                )
+                                    settingsViewModel.setOidnHdrPref(
+                                        !oidnHDR
+                                    )
                                 }) {
                                 LabeledSwitch(
                                     title = stringResource(R.string.oidn_hdr),
@@ -455,9 +436,9 @@ fun SettingsSheetContent(
                                 colors = colors,
                                 shapes = segmentedShapes(2, 2),
                                 onClick = {
-                                    HapticFeedbacks.light(); settingsViewModel.setOidnSrgbPref(
-                                    !oidnSRGB
-                                )
+                                    settingsViewModel.setOidnSrgbPref(
+                                        !oidnSRGB
+                                    )
                                 },
                             ) {
                                 LabeledSwitch(
@@ -503,7 +484,6 @@ fun SettingsSheetContent(
                                             ).toListItemShapes(),
                                             selected = oidnQuality == value,
                                             onClick = {
-                                                HapticFeedbacks.light()
                                                 settingsViewModel.setOidnQualityPref(value)
                                             }) {
                                             Text(label)
@@ -538,7 +518,7 @@ fun SettingsSheetContent(
                                     value = oidnNumThreads,
                                     powers = (0..maxThreads).toList(),
                                     onChange = { settingsViewModel.setOidnNumThreadsPref(it) },
-                                    hapticAction = { HapticFeedbacks.light() })
+                                    hapticAction = { })
                             }
                         },
                         onClick = {
@@ -562,7 +542,6 @@ fun SettingsSheetContent(
                 expandedContent = {
                     SegmentedListItem(
                         colors = colors, shapes = segmentedShapes(1, 6), onClick = {
-                            HapticFeedbacks.light()
                             scope.launch {
                                 appPreferences.setHapticFeedbackEnabled(!hapticFeedbackEnabled)
                             }
@@ -578,7 +557,6 @@ fun SettingsSheetContent(
                     }
                     SegmentedListItem(
                         colors = colors, shapes = segmentedShapes(2, 6), onClick = {
-                            HapticFeedbacks.light()
                             scope.launch {
                                 appPreferences.setShowSaveDialog(!showSaveDialog)
                             }
@@ -594,7 +572,6 @@ fun SettingsSheetContent(
                     }
                     SegmentedListItem(
                         colors = colors, shapes = segmentedShapes(3, 6), onClick = {
-                            HapticFeedbacks.light()
                             scope.launch {
                                 appPreferences.setSwapSwipeActions(!swapSwipeActions)
                             }
@@ -610,11 +587,11 @@ fun SettingsSheetContent(
                     }
                     SegmentedListItem(
                         colors = colors, shapes = segmentedShapes(4, 6), onClick = {
-                            HapticFeedbacks.light(); scope.launch {
-                            appPreferences.setGlassSlider(
-                                !glassSlider
-                            )
-                        }
+                            scope.launch {
+                                appPreferences.setGlassSlider(
+                                    !glassSlider
+                                )
+                            }
                         }) {
                         LabeledSwitch(
                             title = stringResource(R.string.glass_slider),
@@ -625,7 +602,6 @@ fun SettingsSheetContent(
                     }
                     val clearedDefaultSourceMsg = stringResource(R.string.cleared_default_source)
                     SegmentedListItem(colors = colors, shapes = segmentedShapes(5, 6), onClick = {
-                        HapticFeedbacks.light()
                         scope.launch {
                             appPreferences.setDefaultImageSource(null)
                             SnackbarController.pushEvent(
@@ -650,7 +626,6 @@ fun SettingsSheetContent(
                     }, trailingContent = {
                         TextButton(
                             onClick = {
-                                HapticFeedbacks.light()
                                 scope.launch {
                                     appPreferences.setDefaultImageSource(null)
                                     SnackbarController.pushEvent(
@@ -663,7 +638,6 @@ fun SettingsSheetContent(
                             }) { Text(stringResource(R.string.clear_default_source)) }
                     })
                     SegmentedListItem(colors = colors, shapes = segmentedShapes(6, 6), onClick = {
-                        HapticFeedbacks.light()
                         themeMenuExpanded = true
                     }, content = {
                         Text(
@@ -675,13 +649,13 @@ fun SettingsSheetContent(
                         Box {
                             TextButton(
                                 onClick = {
-                                    HapticFeedbacks.light(); themeMenuExpanded = true
+                                    themeMenuExpanded = true
                                 }) {
                                 Text(currentTheme.name)
                             }
                             DropdownMenu(
                                 expanded = themeMenuExpanded, onDismissRequest = {
-                                    HapticFeedbacks.light(); themeMenuExpanded = false
+                                    themeMenuExpanded = false
                                 }) {
                                 AppTheme.entries.forEach { theme ->
                                     val label = when (theme) {
@@ -691,7 +665,6 @@ fun SettingsSheetContent(
                                         AppTheme.OLED -> stringResource(R.string.theme_oled)
                                     }
                                     DropdownMenuItem(text = { Text(label) }, onClick = {
-                                        HapticFeedbacks.light()
                                         themeMenuExpanded = false
                                         scope.launch {
                                             appPreferences.setAppTheme(theme)
@@ -713,7 +686,6 @@ fun SettingsSheetContent(
         val press by rememberMaterialPressState(interaction)
         FloatingActionButton(
             onClick = {
-                HapticFeedbacks.light()
                 modelPickerLauncher.launch("*/*")
             },
             containerColor = MaterialTheme.colorScheme.primaryContainer,

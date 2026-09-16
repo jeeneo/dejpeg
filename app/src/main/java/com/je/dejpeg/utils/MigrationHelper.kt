@@ -12,9 +12,9 @@ import android.util.Log
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import com.je.dejpeg.App
-import com.je.dejpeg.AppPreferences
-import com.je.dejpeg.PreferenceKeys
-import com.je.dejpeg.dataStore
+import com.je.dejpeg.data.AppPreferences
+import com.je.dejpeg.data.PreferenceKeys
+import com.je.dejpeg.data.dataStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File

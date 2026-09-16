@@ -13,7 +13,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.je.dejpeg.App
-import com.je.dejpeg.AppPreferences
+import com.je.dejpeg.data.AppPreferences
 
 import com.je.dejpeg.utils.ModelManager
 import com.je.dejpeg.utils.ModelMigrationHelper

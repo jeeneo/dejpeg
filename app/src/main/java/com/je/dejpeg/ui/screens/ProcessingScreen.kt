@@ -134,10 +134,11 @@ import androidx.compose.ui.util.lerp
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.je.dejpeg.App
-import com.je.dejpeg.AppPreferences
-import com.je.dejpeg.HapticFeedbacks
-import com.je.dejpeg.ImageRepository
 import com.je.dejpeg.R
+import com.je.dejpeg.data.AppPreferences
+import com.je.dejpeg.data.ImageFlowDialogs
+import com.je.dejpeg.data.ImageRepository
+import com.je.dejpeg.data.rememberImageFlows
 import com.je.dejpeg.ui.components.BottomSheet
 import com.je.dejpeg.ui.components.CancelProcessingDialog
 import com.je.dejpeg.ui.components.CardWrapper
@@ -147,6 +148,7 @@ import com.je.dejpeg.ui.components.GroupedListSpacing
 import com.je.dejpeg.ui.components.ImageSourceDialog
 import com.je.dejpeg.ui.components.MorphButton
 import com.je.dejpeg.ui.components.PreparingShareDialog
+import com.je.dejpeg.ui.components.SettingsSheetContent
 import com.je.dejpeg.ui.components.SimpleAlertDialog
 import com.je.dejpeg.ui.components.SnackbarController
 import com.je.dejpeg.ui.components.SnackbarDuration
@@ -158,9 +160,7 @@ import com.je.dejpeg.ui.viewmodel.ProcessingUiState
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SaveState
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
-import com.je.dejpeg.utils.ImageFlowDialogs
 import com.je.dejpeg.utils.ModelType
-import com.je.dejpeg.utils.rememberImageFlows
 import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -222,7 +222,6 @@ fun ProcessingScreen(
     )
 
     val toggleSelection: (String) -> Unit = { id ->
-        HapticFeedbacks.light()
         selectedImageIds = if (selectedImageIds.contains(id)) {
             selectedImageIds - id
         } else {
@@ -251,7 +250,6 @@ fun ProcessingScreen(
             }
 
             override fun handleOnBackPressed() {
-                HapticFeedbacks.light()
                 if (currentSettingsExpanded) {
                     settingsExpanded = false
                 } else if (currentIsSelectionMode) {
@@ -332,7 +330,6 @@ fun ProcessingScreen(
     LaunchedEffect(Unit) { processingViewModel.setImagePickerLauncher(imagePickerLauncher) }
 
     fun launchImportIntent() {
-        HapticFeedbacks.light()
         when (defaultImageSource) {
             "gallery" -> processingViewModel.launchGalleryPicker()
             "internal" -> processingViewModel.launchInternalPhotoPicker()
@@ -411,7 +408,6 @@ fun ProcessingScreen(
                 val settingsPress by rememberMaterialPressState(settingsInteraction)
                 FloatingActionButton(
                     onClick = {
-                        HapticFeedbacks.medium()
                         if (!settingsExpanded) clearSelection()
                         settingsExpanded = !settingsExpanded
                     },
@@ -436,13 +432,12 @@ fun ProcessingScreen(
                 if (images.isNotEmpty()) {
                     FloatingActionButton(
                         onClick = {
-                            HapticFeedbacks.medium()
                             if (isProcessing) {
                                 showCancelAllDialog = true
                             } else if (allComplete) {
                                 flows.saveAllNow()
                             } else {
-                                tryProcess { HapticFeedbacks.medium(); processingViewModel.processImages() }
+                                tryProcess { processingViewModel.processImages() }
                             }
                         },
                         containerColor = fabContainerColor,
@@ -547,7 +542,7 @@ fun ProcessingScreen(
                         Slider(
                             state = oidnSliderState, onValueChange = {
                                 val v = (it * 2).roundToInt() / 2f; if (v != prevScale) {
-                                HapticFeedbacks.light(); prevScale = v
+                                prevScale = v
                             }; settingsViewModel.setOidnInputScale(v)
                             }, modifier = Modifier
                                 .fillMaxWidth()
@@ -572,7 +567,7 @@ fun ProcessingScreen(
                         Slider(
                             state = strengthSliderState, onValueChange = {
                                 val v = (it / 5).roundToInt() * 5f; if (v != prevStrength) {
-                                HapticFeedbacks.light(); prevStrength = v
+                                prevStrength = v
                             }; settingsViewModel.setGlobalStrength(v)
                             }, modifier = Modifier
                                 .fillMaxWidth()
@@ -1012,9 +1007,9 @@ fun LazyItemScope.ImageCard(
                                 }
                             },
                             onBrisque = {
-                                HapticFeedbacks.light(); onNavigateToBrisque(
-                                image.id
-                            )
+                                onNavigateToBrisque(
+                                    image.id
+                                )
                             },
                             onSave = {
                                 onRequestSave(
@@ -1023,7 +1018,6 @@ fun LazyItemScope.ImageCard(
                                 )
                             },
                             onImportOutput = {
-                                HapticFeedbacks.light()
                                 viewModel.importOutputAsNewImage(image.id)
                             },
                             isCompareReady = selectedImageIds.size == 2,
@@ -1211,15 +1205,15 @@ private fun ImageCardSplitButton(
             onClick = {
                 when (cardState) {
                     CardState.Processing -> {
-                        HapticFeedbacks.light(); onRemove()
+                        onRemove()
                     }
 
                     CardState.Complete -> {
-                        HapticFeedbacks.light(); onSave()
+                        onSave()
                     }
 
                     CardState.Idle, CardState.Stale -> {
-                        HapticFeedbacks.light(); onProcess()
+                        onProcess()
                     }
                 }
             },
@@ -1238,7 +1232,7 @@ private fun ImageCardSplitButton(
         Box {
             SplitButtonDefaults.TrailingButton(
                 checked = menuExpanded,
-                onCheckedChange = { HapticFeedbacks.light(); menuExpanded = it },
+                onCheckedChange = { menuExpanded = it },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = containerColor,
                     contentColor = contentColor,
@@ -1264,7 +1258,6 @@ private fun ImageCardSplitButton(
                         text = { Text(saveLabel) },
                         leadingIcon = { Icon(Icons.Rounded.Save, null) },
                         onClick = {
-                            HapticFeedbacks.light()
                             menuExpanded = false
                             onSave()
                         })
@@ -1274,7 +1267,6 @@ private fun ImageCardSplitButton(
                         text = { Text(stringResource(R.string.compare)) },
                         leadingIcon = { Icon(Icons.Rounded.SwapHoriz, null) },
                         onClick = {
-                            HapticFeedbacks.medium()
                             menuExpanded = false
                             onCompare()
                         })
@@ -1286,7 +1278,6 @@ private fun ImageCardSplitButton(
                             Icon(Icons.Rounded.Refresh, null, modifier = Modifier.size(26.dp))
                         },
                         onClick = {
-                            HapticFeedbacks.medium()
                             menuExpanded = false
                             onProcess()
                         })
@@ -1296,7 +1287,6 @@ private fun ImageCardSplitButton(
                         text = { Text(stringResource(R.string.import_output)) },
                         leadingIcon = { Icon(Icons.Rounded.AddPhotoAlternate, null) },
                         onClick = {
-                            HapticFeedbacks.light()
                             menuExpanded = false
                             onImportOutput()
                         })
@@ -1306,7 +1296,6 @@ private fun ImageCardSplitButton(
                         text = { Text(stringResource(R.string.save)) },
                         leadingIcon = { Icon(Icons.Rounded.Save, null) },
                         onClick = {
-                            HapticFeedbacks.light()
                             menuExpanded = false
                             onSave()
                         })
@@ -1328,7 +1317,6 @@ private fun ImageCardSplitButton(
                         }
                     },
                     onClick = {
-                        HapticFeedbacks.light()
                         menuExpanded = false
                         onBrisque()
                     })
@@ -1338,7 +1326,6 @@ private fun ImageCardSplitButton(
                             Icons.Rounded.Delete, null, tint = MaterialTheme.colorScheme.error
                         )
                     }, onClick = {
-                        HapticFeedbacks.light()
                         menuExpanded = false
                         onRemove()
                     })

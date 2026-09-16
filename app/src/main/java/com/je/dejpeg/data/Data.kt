@@ -5,7 +5,7 @@
 
 @file:Suppress("SpellCheckingInspection")
 
-package com.je.dejpeg
+package com.je.dejpeg.data
 
 import android.content.Context
 import android.graphics.BitmapFactory
@@ -26,7 +26,8 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.je.dejpeg.HapticFeedbacks.appHapticsEnabled
+import com.je.dejpeg.App
+import com.je.dejpeg.data.HapticFeedbacks.appHapticsEnabled
 import com.je.dejpeg.ui.theme.AppTheme
 import com.je.dejpeg.ui.viewmodel.ImageItem
 import com.je.dejpeg.utils.ImageLoadingHelper
@@ -40,6 +41,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
@@ -388,7 +390,7 @@ class AppPreferences {
 
     fun loadAppTheme(): AppTheme {
         return runCatching {
-            val prefs = kotlinx.coroutines.runBlocking {
+            val prefs = runBlocking {
                 App.ctx.dataStore.data.first()
             }
 

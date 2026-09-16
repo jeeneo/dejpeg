@@ -15,9 +15,9 @@ import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Log
-import com.je.dejpeg.AppPreferences
 import com.je.dejpeg.BuildConfig
 import com.je.dejpeg.R
+import com.je.dejpeg.data.AppPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

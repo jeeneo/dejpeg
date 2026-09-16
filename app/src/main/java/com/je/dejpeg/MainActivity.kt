@@ -6,6 +6,9 @@
 package com.je.dejpeg
 
 import android.Manifest
+import android.annotation.SuppressLint
+import android.app.Application
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -14,19 +17,38 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.viewModels
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.je.dejpeg.data.AppPreferences
+import com.je.dejpeg.data.AppState
+import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.ui.screens.MainScreen
 import com.je.dejpeg.ui.theme.AppTheme
-import com.je.dejpeg.ui.viewmodel.SettingsViewModel
 import com.je.dejpeg.utils.ModelManager
+
+class App : Application() {
+    companion object {
+        @SuppressLint("StaticFieldLeak")
+        lateinit var ctx: Context
+            private set
+
+        val prefs: AppPreferences by lazy {
+            AppPreferences()
+        }
+
+        val state: AppState by lazy {
+            AppState(prefs)
+        }
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        ctx = applicationContext
+    }
+}
 
 class MainActivity : ComponentActivity() {
     private var handledIntentHash: Int? = null
-    private val settingsViewModel: SettingsViewModel by viewModels()
     private val imageRepository by lazy { ImageRepository.getInstance() }
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -57,8 +79,7 @@ class MainActivity : ComponentActivity() {
         // https://stackoverflow.com/a/79267436
         setContent {
             AppTheme {
-                val sharedUris by imageRepository.sharedUris.collectAsState()
-                MainScreen(sharedUris = sharedUris)
+                MainScreen()
             }
         }
     }
