@@ -120,9 +120,9 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -328,7 +328,8 @@ fun ProcessingScreen(
                             it
                         )
                     }
-                } ?: result.data?.data?.let { uris.add(it) } ?: processingViewModel.getCameraPhotoUri()?.let {
+                } ?: result.data?.data?.let { uris.add(it) }
+                ?: processingViewModel.getCameraPhotoUri()?.let {
                     uris.add(it)
                     processingViewModel.clearCameraPhotoUri()
                 }
@@ -353,14 +354,12 @@ fun ProcessingScreen(
 
     val displayCount = if (isSelectionMode) selectedImageIds.size else images.size
     Column(
-        Modifier
-            .fillMaxSize()
-            .padding(start = 16.dp, end = 16.dp)
+        Modifier.fillMaxSize()
     ) {
         Row(
             Modifier
                 .fillMaxWidth()
-                .padding(bottom = 8.dp),
+                .padding(bottom = 8.dp, start = 16.dp, end = 16.dp),
             Arrangement.SpaceBetween,
             Alignment.CenterVertically
         ) {
@@ -528,9 +527,8 @@ fun ProcessingScreen(
                 }
             }
         }
-        val showCard = images.isNotEmpty() && supportsStrength
         AnimatedVisibility(
-            visible = showCard,
+            visible = images.isNotEmpty() && supportsStrength,
             enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
             exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
         ) {
@@ -598,7 +596,11 @@ fun ProcessingScreen(
                 }
             }
         }
-        val sheetHeight = LocalConfiguration.current.screenHeightDp.dp * 0.5f
+        val density = LocalDensity.current
+        val containerHeightDp = with(density) {
+            LocalWindowInfo.current.containerSize.height.toDp()
+        }
+        val sheetHeight = containerHeightDp * 0.5f
         Column(Modifier.fillMaxSize()) {
             if (images.isEmpty()) {
                 Box(
@@ -651,51 +653,57 @@ fun ProcessingScreen(
                     }
                 }
             } else {
-                LazyColumn(
-                    modifier = Modifier
+                Row(
+                    Modifier
+                        .fillMaxWidth()
                         .weight(1f)
-                        .fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(GroupedListSpacing),
-                    contentPadding = PaddingValues(
-                        bottom = WindowInsets.navigationBars.asPaddingValues()
-                            .calculateBottomPadding() + 8.dp
-                    )
+                        .padding(start = 16.dp, end = 16.dp),
+                    Arrangement.SpaceBetween
                 ) {
-                    itemsIndexed(
-                        items = images, key = { _, image -> image.id }) { index, image ->
-                        ImageCard(
-                            index = index,
-                            image = image,
-                            images = images,
-                            isSelectionMode = isSelectionMode,
-                            selectedImageIds = selectedImageIds,
-                            viewModel = processingViewModel,
-                            onToggleSelection = toggleSelection,
-                            swapSwipeActions = swapSwipeActions,
-                            showSaveDialog = showSaveDialog,
-                            onShowSaveDialog = { id, filename ->
-                                saveDialogState = Pair(id, filename)
-                            },
-                            onSaveImage = { id, filename ->
-                                if (ImageActions.checkFileExists(context, filename)) {
-                                    overwriteDialogState = Pair(id, filename)
-                                } else {
-                                    processingViewModel.saveImage(
-                                        context = context,
-                                        imageIds = listOf(id),
-                                        baseFilename = filename,
-                                        onComplete = { performRemoval(id) })
-                                }
-                            },
-                            tryProcess = { block -> tryProcess(block) },
-                            onCancelProcessing = { imageIdToCancel = it },
-                            onShowRemoveDialog = { imageIdToRemove = it },
-                            performRemoval = performRemoval,
-                            onNavigateToBeforeAfter = onNavigateToBeforeAfter,
-                            onNavigateToBrisque = onNavigateToBrisque,
-                            onNavigateToCompare = onNavigateToCompare,
-                            onClearSelection = clearSelection
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(GroupedListSpacing),
+                        contentPadding = PaddingValues(
+                            bottom = WindowInsets.navigationBars.asPaddingValues()
+                                .calculateBottomPadding() + 8.dp
                         )
+                    ) {
+                        itemsIndexed(
+                            items = images, key = { _, image -> image.id }) { index, image ->
+                            ImageCard(
+                                index = index,
+                                image = image,
+                                images = images,
+                                isSelectionMode = isSelectionMode,
+                                selectedImageIds = selectedImageIds,
+                                viewModel = processingViewModel,
+                                onToggleSelection = toggleSelection,
+                                swapSwipeActions = swapSwipeActions,
+                                showSaveDialog = showSaveDialog,
+                                onShowSaveDialog = { id, filename ->
+                                    saveDialogState = Pair(id, filename)
+                                },
+                                onSaveImage = { id, filename ->
+                                    if (ImageActions.checkFileExists(context, filename)) {
+                                        overwriteDialogState = Pair(id, filename)
+                                    } else {
+                                        processingViewModel.saveImage(
+                                            context = context,
+                                            imageIds = listOf(id),
+                                            baseFilename = filename,
+                                            onComplete = { performRemoval(id) })
+                                    }
+                                },
+                                tryProcess = { block -> tryProcess(block) },
+                                onCancelProcessing = { imageIdToCancel = it },
+                                onShowRemoveDialog = { imageIdToRemove = it },
+                                performRemoval = performRemoval,
+                                onNavigateToBeforeAfter = onNavigateToBeforeAfter,
+                                onNavigateToBrisque = onNavigateToBrisque,
+                                onNavigateToCompare = onNavigateToCompare,
+                                onClearSelection = clearSelection
+                            )
+                        }
                     }
                 }
             }
@@ -703,12 +711,11 @@ fun ProcessingScreen(
                 expanded = settingsExpanded,
                 onExpandedChange = { settingsExpanded = it },
                 expandedHeight = sheetHeight,
-                modifier =  Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 backProgress = settingsBackProgress,
             ) {
                 SettingsSheetContent(
-                    settingsViewModel = settingsViewModel,
-                    processingViewModel = processingViewModel
+                    settingsViewModel = settingsViewModel, processingViewModel = processingViewModel
                 )
             }
         }

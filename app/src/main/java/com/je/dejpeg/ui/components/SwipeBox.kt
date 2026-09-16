@@ -10,7 +10,6 @@ import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animate
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -53,6 +52,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
 import com.je.dejpeg.HapticFeedbacks
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -95,12 +95,10 @@ fun SwipeBox(
             }
             .then(
                 if (collapseFraction.value < 1f) {
-                    Modifier
-                        .height(with(density) {
+                    Modifier.height(with(density) {
                             (measuredHeightPx * collapseFraction.value).toInt().coerceAtLeast(0)
                                 .toDp()
-                        })
-                        .clipToBounds()
+                        }).clipToBounds()
                 } else Modifier
             )
             .pointerInput(canInteract) {
@@ -177,7 +175,6 @@ fun SwipeBox(
     }
 }
 
-
 @Composable
 fun CardWrapper(
     modifier: Modifier = Modifier,
@@ -248,16 +245,24 @@ fun CardWrapper(
                     animationSpec = tween(durationMillis = 60),
                     label = "swipeAlpha"
                 )
-                val iconSize by animateDpAsState(
-                    targetValue = if (armed) 32.dp else 24.dp,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioHighBouncy,
-                        stiffness = Spring.StiffnessMediumLow
-                    ),
-                    label = "iconSizeBounce"
-                )
-
+                val armedAnim = remember { Animatable(0f) }
+                LaunchedEffect(armed) {
+                    armedAnim.animateTo(
+                        targetValue = if (armed) 1f else 0f, animationSpec = if (armed) {
+                            spring(
+                                dampingRatio = Spring.DampingRatioHighBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            )
+                        } else {
+                            tween(durationMillis = 180, easing = FastOutSlowInEasing)
+                        }
+                    )
+                }
+                val armedFactor = armedAnim.value.coerceIn(0f, 1f)
+                val iconSize = lerp(24.dp, 32.dp, armedFactor)
+                val cornerRadius = lerp(revealedDp, 14.dp, armedFactor)
                 val halfIconSize = iconSize / 2
+
                 // extent the inset just far enough so that the user doesn't see it move minus the spacing
                 val fixedInset = 34.dp - 2.dp
 
@@ -273,7 +278,7 @@ fun CardWrapper(
                         .fillMaxHeight()
                         .padding(start = 2.dp, end = 2.dp)
                         .graphicsLayer { this.alpha = alpha }
-                        .clip(RoundedCornerShape(revealedDp))
+                        .clip(RoundedCornerShape(cornerRadius))
                         .background(contColor)) {
                     Icon(
                         icon,
