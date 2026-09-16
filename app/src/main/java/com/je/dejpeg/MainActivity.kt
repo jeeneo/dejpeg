@@ -19,7 +19,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import com.je.dejpeg.ui.MainScreen
+import com.je.dejpeg.ui.screens.MainScreen
 import com.je.dejpeg.ui.theme.AppTheme
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
 import com.je.dejpeg.utils.ModelManager

@@ -41,7 +41,6 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -52,14 +51,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -148,7 +144,7 @@ import com.je.dejpeg.ui.components.SimpleAlertDialog
 import com.je.dejpeg.ui.components.SnackbarController
 import com.je.dejpeg.ui.components.SnackbarDuration
 import com.je.dejpeg.ui.components.SnackySnackbarEvents
-import com.je.dejpeg.ui.components.SwipeToDismissBox
+import com.je.dejpeg.ui.components.CardWrapper
 import com.je.dejpeg.ui.components.rememberMaterialPressState
 import com.je.dejpeg.ui.components.toListItemShapes
 import com.je.dejpeg.ui.viewmodel.ImageItem
@@ -160,7 +156,6 @@ import com.je.dejpeg.utils.ImageActions
 import com.je.dejpeg.utils.ModelType
 import kotlinx.coroutines.launch
 import java.util.Locale
-import kotlin.math.abs
 import kotlin.math.roundToInt
 
 private enum class CardState { Idle, Processing, Complete, Stale }
@@ -848,7 +843,6 @@ fun LazyItemScope.ImageCard(
             }
 
             isProcessing -> {
-                // cancel queue
                 run { viewModel.cancelQueuedImage(image.id) }
                 null
             }
@@ -863,11 +857,10 @@ fun LazyItemScope.ImageCard(
             }
         }
     }
-
     val onSwipeLeft: () -> (() -> Unit)? = if (swapSwipeActions) negativeAction else positiveAction
     val onSwipeRight: () -> (() -> Unit)? = if (swapSwipeActions) positiveAction else negativeAction
 
-    SwipeToDismissWrapper(
+    CardWrapper(
         modifier = modifier.animateItem(
             fadeInSpec = spring(
                 dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium
@@ -1073,95 +1066,6 @@ fun LazyItemScope.ImageCard(
                     }
                 }
             })
-    }
-}
-
-@Composable
-fun SwipeToDismissWrapper(
-    modifier: Modifier = Modifier,
-    onSwipeLeft: () -> (() -> Unit)?,
-    onSwipeRight: () -> (() -> Unit)?,
-    swapSwipeActions: Boolean,
-    rightSwipeEnabled: Boolean = true,
-    isProcessing: Boolean = false,
-    hasOutputBitmap: Boolean = false,
-    content: @Composable () -> Unit
-) {
-    val currentOnSwipeLeft by rememberUpdatedState(onSwipeLeft)
-    val currentOnSwipeRight by rememberUpdatedState(onSwipeRight)
-
-    val leftSwipeIcon = if (swapSwipeActions) {
-        if (isProcessing) Icons.Rounded.Close else Icons.Rounded.Delete
-    } else {
-        if (hasOutputBitmap) Icons.Rounded.Save else Icons.Rounded.PlayArrow
-    }
-    val leftSwipeIconTint =
-        if (swapSwipeActions) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary
-    val leftSwipeBgColor =
-        if (swapSwipeActions) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.tertiaryContainer
-    val rightSwipeIcon = if (swapSwipeActions) {
-        if (hasOutputBitmap) Icons.Rounded.Save else Icons.Rounded.PlayArrow
-    } else {
-        if (isProcessing) Icons.Rounded.Close else Icons.Rounded.Delete
-    }
-    val rightSwipeIconTint =
-        if (swapSwipeActions) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
-    val rightSwipeBgColor =
-        if (swapSwipeActions) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.onError
-
-    SwipeToDismissBox(
-        onQualifiedStartToEnd = { HapticFeedbacks.light(); currentOnSwipeRight() },
-        onQualifiedEndToStart = { HapticFeedbacks.light(); currentOnSwipeLeft() },
-        modifier = modifier,
-        enableDismissFromStartToEnd = true,
-        enableDismissFromEndToStart = rightSwipeEnabled,
-        positionalThreshold = { totalWidth -> totalWidth * 0.6f },
-        backgroundContent = { offsetPx, maxWidthPx ->
-            Box(Modifier.fillMaxSize()) {
-                val density = LocalDensity.current
-                val isRight = offsetPx > 0f
-                val revealedPx = abs(offsetPx).coerceIn(0f, maxWidthPx)
-                val icon = if (isRight) rightSwipeIcon else leftSwipeIcon
-                val contColor = if (isRight) rightSwipeBgColor else leftSwipeBgColor
-                val iconTint = if (isRight) rightSwipeIconTint else leftSwipeIconTint
-
-                val revealedDp = with(density) { revealedPx.toDp() }
-                val edgeAlignment = if (isRight) Alignment.CenterStart else Alignment.CenterEnd
-                val visible = revealedPx > 1f
-                val alpha by animateFloatAsState(
-                    targetValue = if (visible) 1f else 0f,
-                    animationSpec = tween(durationMillis = 60),
-                    label = "swipeBgAlpha"
-                )
-
-                // visually inspired from Gmail
-                val iconSize = 24.dp
-                val halfIconSize = iconSize / 2
-                val fixedInset = 34.dp - 2.dp
-                val iconCenterFromEdge = maxOf(fixedInset, revealedDp / 2)
-                val iconOffset = iconCenterFromEdge - halfIconSize
-                Box(
-                    modifier = Modifier
-                        .align(edgeAlignment)
-                        .width(revealedDp)
-                        .fillMaxHeight()
-                        .padding(start = 2.dp, end = 2.dp)
-                        .graphicsLayer { this.alpha = alpha }
-                        .clip(RoundedCornerShape(revealedDp))
-                        .background(contColor)) {
-                    Icon(
-                        icon,
-                        contentDescription = null,
-                        tint = iconTint,
-                        modifier = Modifier
-                            .align(edgeAlignment)
-                            .offset(x = if (isRight) iconOffset else -iconOffset)
-                            .graphicsLayer { this.alpha = alpha }
-                            .requiredSize(24.dp))
-                }
-            }
-        }) {
-        content()
     }
 }
 

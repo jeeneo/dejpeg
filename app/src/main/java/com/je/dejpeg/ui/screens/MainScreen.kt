@@ -1,9 +1,4 @@
-/*
- * SPDX-FileCopyrightText: 2025 - 2026 dryerlint <https://codeberg.org/dryerlint>
- * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
- */
-
-package com.je.dejpeg.ui
+package com.je.dejpeg.ui.screens
 
 import android.content.Intent
 import android.net.Uri
@@ -29,13 +24,12 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.je.dejpeg.App
 import com.je.dejpeg.ImageRepository
+import com.je.dejpeg.ui.BrisqueActivity
 import com.je.dejpeg.ui.components.ActivitySnackySnackbarController
 import com.je.dejpeg.ui.components.RecoveryDialog
 import com.je.dejpeg.ui.components.SnackBarBox
 import com.je.dejpeg.ui.components.SnackbarController
 import com.je.dejpeg.ui.components.SnackySnackbarHostState
-import com.je.dejpeg.ui.screens.ImageScreen
-import com.je.dejpeg.ui.screens.ProcessingScreen
 import com.je.dejpeg.ui.theme.AppTheme
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel

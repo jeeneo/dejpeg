@@ -44,7 +44,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".ui.BeforeAfterActivity"
+            android:name=".ui.screens.BeforeAfterActivity"
             android:exported="false"
             android:theme="@style/Theme.DeJPEG" />
         <activity
@@ -52,7 +52,7 @@
             android:exported="false"
             android:theme="@style/Theme.DeJPEG" />
         <activity
-            android:name=".ui.CompareActivity"
+            android:name=".ui.screens.CompareActivity"
             android:exported="false"
             android:theme="@style/Theme.DeJPEG" />
 
