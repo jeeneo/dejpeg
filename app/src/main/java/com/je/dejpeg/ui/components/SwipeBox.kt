@@ -188,7 +188,6 @@ fun CardWrapper(
 ) {
     val currentOnSwipeLeft by rememberUpdatedState(onSwipeLeft)
     val currentOnSwipeRight by rememberUpdatedState(onSwipeRight)
-    val thresholdFrac = 0.4f
     val leftSwipeIcon = if (swapSwipeActions) {
         if (isProcessing) Icons.Rounded.Close else Icons.Rounded.Delete
     } else {
@@ -207,7 +206,8 @@ fun CardWrapper(
         if (swapSwipeActions) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
     val rightSwipeBgColor =
         if (swapSwipeActions) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.onError
-
+    
+    val thresholdFrac = 0.4f
     SwipeBox(
         onQualifiedStartToEnd = { HapticFeedbacks.light(); currentOnSwipeRight() },
         onQualifiedEndToStart = { HapticFeedbacks.light(); currentOnSwipeLeft() },

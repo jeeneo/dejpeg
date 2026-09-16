@@ -38,7 +38,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.je.dejpeg.HapticFeedbacks
 import kotlinx.coroutines.launch
-import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,8 +56,6 @@ fun BottomSheet(
     val progress = backProgress.coerceIn(0f, 1f)
     var heightPx by remember { mutableFloatStateOf(0f) }
     var animating by remember { mutableStateOf(false) }
-    val velocityTracker = remember { VelocityTracker() }
-
     LaunchedEffect(expanded, expandedHeightPx, progress) {
         val target = if (expanded) {
             val lowerBy = expandedHeightPx * progress * 0.2f
@@ -108,23 +105,13 @@ fun BottomSheet(
                                 return@pointerInput
                             }
                             detectVerticalDragGestures(
-                                onDragStart = { velocityTracker.resetTracking() },
                                 onVerticalDrag = { change, dragAmount ->
                                     change.consume()
-                                    velocityTracker.addPosition(
-                                        change.uptimeMillis, change.position
-                                    )
                                     heightPx =
                                         (heightPx - dragAmount).coerceIn(0f, expandedHeightPx)
                                 },
                                 onDragEnd = {
-                                    val endVelocity = velocityTracker.calculateVelocity().y
-                                    val velocityThreshold = abs(125.dp.toPx())
-                                    val settled = when {
-                                        endVelocity < -velocityThreshold -> true
-                                        endVelocity > velocityThreshold -> false
-                                        else -> heightPx >= expandedHeightPx * 0.5f
-                                    }
+                                    val settled = heightPx >= expandedHeightPx * 0.9f
                                     scope.launch {
                                         animate(
                                             initialValue = heightPx,
