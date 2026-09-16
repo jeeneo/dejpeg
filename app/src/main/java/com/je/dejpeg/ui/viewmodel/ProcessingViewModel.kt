@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import java.util.Locale
 import kotlin.coroutines.resume
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -659,10 +660,18 @@ class ProcessingViewModel : ViewModel() {
         viewModelScope.launch {
             saveState.value = SaveState.Saving(0, imageIds.size)
             var savedCount = 0
+            val usedBatchNames = mutableSetOf<String>()
             try {
                 imageIds.forEachIndexed { index, id ->
                     val image = imageRepository.getImageById(id) ?: return@forEachIndexed
-                    val name = resolveFilename(image.filename, baseFilename, index, imageIds.size)
+                    val resolvedName = resolveFilename(
+                        image.filename, baseFilename, index, imageIds.size
+                    )
+                    val name = if (imageIds.size > 1) {
+                        uniqueBatchFilename(resolvedName, usedBatchNames)
+                    } else {
+                        resolvedName
+                    }
                     saveState.value = SaveState.Saving(index + 1, imageIds.size)
                     suspendCancellableCoroutine { cont ->
                         ImageActions.saveImage(
@@ -712,5 +721,21 @@ class ProcessingViewModel : ViewModel() {
             else -> original.ifBlank { chosenBase ?: "DeJPEG" }
         }
         return raw.substringBeforeLast('.', raw)
+    }
+
+    private fun uniqueBatchFilename(
+        filename: String,
+        usedNames: MutableSet<String>,
+    ): String {
+        val key = filename.lowercase(Locale.ROOT)
+        if (usedNames.add(key)) return filename
+
+        var suffix = 2
+        var candidate = "${filename}_$suffix"
+        while (!usedNames.add(candidate.lowercase(Locale.ROOT))) {
+            suffix++
+            candidate = "${filename}_$suffix"
+        }
+        return candidate
     }
 }

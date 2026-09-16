@@ -147,8 +147,6 @@ import com.je.dejpeg.ui.components.GroupedListSpacing
 import com.je.dejpeg.ui.components.ImageSourceDialog
 import com.je.dejpeg.ui.components.MorphButton
 import com.je.dejpeg.ui.components.PreparingShareDialog
-import com.je.dejpeg.ui.components.RemoveImageDialog
-import com.je.dejpeg.ui.components.SaveImageDialog
 import com.je.dejpeg.ui.components.SimpleAlertDialog
 import com.je.dejpeg.ui.components.SnackbarController
 import com.je.dejpeg.ui.components.SnackbarDuration
@@ -160,8 +158,9 @@ import com.je.dejpeg.ui.viewmodel.ProcessingUiState
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SaveState
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
-import com.je.dejpeg.utils.ImageActions
+import com.je.dejpeg.utils.ImageFlowDialogs
 import com.je.dejpeg.utils.ModelType
+import com.je.dejpeg.utils.rememberImageFlows
 import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -205,17 +204,22 @@ fun ProcessingScreen(
     val loadingImagesProgress by imageRepository.loadingImagesProgress.collectAsState()
     val processingErrorDialog by processingViewModel.processingErrorDialog.collectAsState()
     val gpuCacheCreatingDialog by processingViewModel.gpuCacheCreatingDialog.collectAsState()
-    var imageIdToRemove by remember { mutableStateOf<String?>(null) }
     var imageIdToCancel by remember { mutableStateOf<String?>(null) }
     var showImageSourceDialog by remember { mutableStateOf(false) }
     var settingsExpanded by remember { mutableStateOf(false) }
     var settingsBackProgress by remember { mutableFloatStateOf(0f) }
     var showCancelAllDialog by remember { mutableStateOf(false) }
-    var saveDialogState by remember { mutableStateOf<Pair<String, String>?>(null) }
-    var overwriteDialogState by remember { mutableStateOf<Pair<String, String>?>(null) }
     val showSaveDialog by appPreferences.showSaveDialog.collectAsState(initial = true)
     var selectedImageIds by remember { mutableStateOf<List<String>>(emptyList()) }
     val isSelectionMode = selectedImageIds.isNotEmpty()
+
+    val flows = rememberImageFlows(
+        images = images,
+        showSaveDialog = showSaveDialog,
+        processingViewModel = processingViewModel,
+        appPreferences = appPreferences,
+        onRemoveSharedUri = { uri -> releaseUri(uri, context, onRemoveSharedUri) },
+    )
 
     val toggleSelection: (String) -> Unit = { id ->
         HapticFeedbacks.light()
@@ -226,15 +230,6 @@ fun ProcessingScreen(
         }
     }
     val clearSelection: () -> Unit = { selectedImageIds = emptyList() }
-
-    val performRemoval: (String) -> Unit = { imageId ->
-        val targetUri = images.firstOrNull { it.id == imageId }?.uri
-        targetUri?.let { uri -> releaseUri(uri, context, onRemoveSharedUri) }
-        processingViewModel.removeImage(imageId, force = true, cleanupCache = true)
-        imageIdToRemove = null
-        imageIdToCancel = null
-        selectedImageIds = selectedImageIds - imageId
-    }
 
     val dispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -291,14 +286,9 @@ fun ProcessingScreen(
         } else block()
     }
 
-    fun <T> Pair<String, T>?.prune(images: List<ImageItem>): Pair<String, T>? =
-        this?.takeIf { (id, _) -> images.any { it.id == id } }
-
     LaunchedEffect(images) {
-        imageIdToRemove = imageIdToRemove?.takeIf { id -> images.any { it.id == id } }
+        flows.prune()
         imageIdToCancel = imageIdToCancel?.takeIf { id -> images.any { it.id == id } }
-        overwriteDialogState = overwriteDialogState.prune(images)
-        saveDialogState = saveDialogState.prune(images)
         selectedImageIds = selectedImageIds.filter { id -> images.any { it.id == id } }
     }
 
@@ -450,11 +440,7 @@ fun ProcessingScreen(
                             if (isProcessing) {
                                 showCancelAllDialog = true
                             } else if (allComplete) {
-                                val imageIds =
-                                    images.filter { it.outputBitmap != null }.map { it.id }
-                                if (imageIds.isNotEmpty()) {
-                                    processingViewModel.saveImage(context, imageIds)
-                                }
+                                flows.saveAllNow()
                             } else {
                                 tryProcess { HapticFeedbacks.medium(); processingViewModel.processImages() }
                             }
@@ -679,25 +665,10 @@ fun ProcessingScreen(
                                 viewModel = processingViewModel,
                                 onToggleSelection = toggleSelection,
                                 swapSwipeActions = swapSwipeActions,
-                                showSaveDialog = showSaveDialog,
-                                onShowSaveDialog = { id, filename ->
-                                    saveDialogState = Pair(id, filename)
-                                },
-                                onSaveImage = { id, filename ->
-                                    if (ImageActions.checkFileExists(context, filename)) {
-                                        overwriteDialogState = Pair(id, filename)
-                                    } else {
-                                        processingViewModel.saveImage(
-                                            context = context,
-                                            imageIds = listOf(id),
-                                            baseFilename = filename,
-                                            onComplete = { performRemoval(id) })
-                                    }
-                                },
+                                onRequestSave = flows::requestSave,
                                 tryProcess = { block -> tryProcess(block) },
                                 onCancelProcessing = { imageIdToCancel = it },
-                                onShowRemoveDialog = { imageIdToRemove = it },
-                                performRemoval = performRemoval,
+                                onRequestRemoval = flows::requestRemoval,
                                 onNavigateToBeforeAfter = onNavigateToBeforeAfter,
                                 onNavigateToBrisque = onNavigateToBrisque,
                                 onNavigateToCompare = onNavigateToCompare,
@@ -719,33 +690,6 @@ fun ProcessingScreen(
                 )
             }
         }
-    }
-
-    imageIdToRemove?.let { targetId ->
-        images.firstOrNull { it.id == targetId }?.let { image ->
-            RemoveImageDialog(
-                imageFilename = image.filename,
-                hasOutput = image.outputBitmap != null,
-                imageId = targetId,
-                context = context,
-                onDismissRequest = { imageIdToRemove = null },
-                onRemove = { performRemoval(targetId) },
-                onSaveAndRemove = {
-                    imageIdToRemove = null
-                    if (showSaveDialog) saveDialogState = Pair(targetId, image.filename)
-                    else if (ImageActions.checkFileExists(
-                            context, image.filename
-                        )
-                    ) overwriteDialogState = Pair(
-                        targetId, image.filename
-                    )
-                    else processingViewModel.saveImage(
-                        context = context,
-                        imageIds = listOf(targetId),
-                        baseFilename = image.filename,
-                        onComplete = { performRemoval(targetId) })
-                })
-        } ?: run { imageIdToRemove = null }
     }
 
     imageIdToCancel?.let { targetId ->
@@ -790,50 +734,7 @@ fun ProcessingScreen(
         SaveProgressDialog(state)
     }
 
-    overwriteDialogState?.let { (id, fn) ->
-        SaveImageDialog(
-            defaultFilename = fn,
-            showSaveAllOption = false,
-            initialSaveAll = false,
-            hideOptions = true,
-            onDismissRequest = { overwriteDialogState = null },
-            onSave = { name, _, _ ->
-                processingViewModel.saveImage(
-                    context = context,
-                    imageIds = listOf(id),
-                    baseFilename = name,
-                    overwrite = true,
-                    onComplete = { performRemoval(id); overwriteDialogState = null })
-            })
-    }
-
-    saveDialogState?.let { (id, fn) ->
-        val showSaveAllOption = images.any { it.outputBitmap != null }
-        SaveImageDialog(
-            defaultFilename = fn,
-            showSaveAllOption = showSaveAllOption,
-            initialSaveAll = false,
-            hideOptions = false,
-            onDismissRequest = { saveDialogState = null },
-            onSave = { name, all, skip ->
-                saveDialogState = null
-                if (skip) scope.launch { appPreferences.setShowSaveDialog(false) }
-                if (all) {
-                    val imageIds = images.filter { it.outputBitmap != null }.map { it.id }
-                    if (imageIds.isNotEmpty()) processingViewModel.saveImage(context, imageIds)
-                } else {
-                    if (ImageActions.checkFileExists(context, name)) {
-                        overwriteDialogState = Pair(id, name)
-                    } else {
-                        processingViewModel.saveImage(
-                            context = context,
-                            imageIds = listOf(id),
-                            baseFilename = name,
-                            onComplete = { performRemoval(id) })
-                    }
-                }
-            })
-    }
+    ImageFlowDialogs(flows)
     processingErrorDialog?.let { errorMsg ->
         val context = LocalContext.current
         ErrorAlertDialog(
@@ -875,13 +776,10 @@ fun LazyItemScope.ImageCard(
     viewModel: ProcessingViewModel,
     onToggleSelection: (String) -> Unit,
     swapSwipeActions: Boolean,
-    showSaveDialog: Boolean,
-    onShowSaveDialog: (String, String) -> Unit,
-    onSaveImage: (String, String) -> Unit,
+    onRequestSave: (List<String>, Boolean) -> Unit,
     tryProcess: (() -> Unit) -> Unit,
     onCancelProcessing: (String) -> Unit,
-    onShowRemoveDialog: (String) -> Unit,
-    performRemoval: (String) -> Unit,
+    onRequestRemoval: (List<String>) -> Unit,
     onNavigateToBeforeAfter: (String) -> Unit,
     onNavigateToBrisque: (String) -> Unit,
     onNavigateToCompare: (String, String) -> Unit,
@@ -891,12 +789,7 @@ fun LazyItemScope.ImageCard(
     val isProcessing = image.isProcessing
     val positiveAction: () -> (() -> Unit)? = {
         if (image.outputBitmap != null) {
-            if (showSaveDialog) {
-                onShowSaveDialog(image.id, image.filename)
-                null
-            } else {
-                { onSaveImage(image.id, image.filename) }
-            }
+            { onRequestSave(listOf(image.id), false) }
         } else {
             tryProcess { viewModel.processImage(image.id) }
             null
@@ -916,12 +809,12 @@ fun LazyItemScope.ImageCard(
             }
 
             image.outputBitmap != null -> {
-                onShowRemoveDialog(image.id)
+                onRequestRemoval(listOf(image.id))
                 null
             }
 
             else -> {
-                { performRemoval(image.id) }
+                { onRequestRemoval(listOf(image.id)) }
             }
         }
     }
@@ -1110,21 +1003,31 @@ fun LazyItemScope.ImageCard(
                             image = image,
                             isProcessing = isProcessing,
                             onProcess = { tryProcess { viewModel.processImage(image.id) } },
-                            onRemove = { onSwipeRight() },
+                            onRemove = {
+                                if (isSelectionMode) {
+                                    onRequestRemoval(selectedImageIds.toList())
+                                    onClearSelection()
+                                } else {
+                                    negativeAction()?.invoke()
+                                }
+                            },
                             onBrisque = {
                                 HapticFeedbacks.light(); onNavigateToBrisque(
                                 image.id
                             )
                             },
                             onSave = {
-                                if (showSaveDialog) onShowSaveDialog(image.id, image.filename)
-                                else onSaveImage(image.id, image.filename)
+                                onRequestSave(
+                                    if (isSelectionMode) selectedImageIds else listOf(image.id),
+                                    false
+                                )
                             },
                             onImportOutput = {
                                 HapticFeedbacks.light()
                                 viewModel.importOutputAsNewImage(image.id)
                             },
                             isCompareReady = selectedImageIds.size == 2,
+                            selectedCount = if (isSelected) selectedImageIds.size else 0,
                             onCompare = {
                                 val (idA, idB) = selectedImageIds
                                 onNavigateToCompare(idA, idB)
@@ -1144,38 +1047,6 @@ private fun releaseUri(uri: Uri, context: Context, onRemoveSharedUri: (Uri) -> U
         )
     }
     runCatching { onRemoveSharedUri(uri) }
-}
-
-@Composable
-fun rememberSaveOrPrompt(
-    showSaveDialog: Boolean,
-    context: Context,
-    viewModel: ProcessingViewModel,
-    performRemoval: (String) -> Unit,
-    setSaveDialogState: (Pair<String, String>?) -> Unit,
-    setOverwriteDialogState: (Pair<String, String>?) -> Unit
-): (String, String) -> Unit {
-    val currentShowSaveDialog by rememberUpdatedState(showSaveDialog)
-    val currentViewModel by rememberUpdatedState(viewModel)
-    val currentContext by rememberUpdatedState(context)
-    val currentPerformRemoval by rememberUpdatedState(performRemoval)
-    val currentSetSaveDialog by rememberUpdatedState(setSaveDialogState)
-    val currentSetOverwriteDialog by rememberUpdatedState(setOverwriteDialogState)
-    return { imageId, filename ->
-        if (currentShowSaveDialog) {
-            currentSetSaveDialog.invoke(Pair(imageId, filename))
-        } else {
-            if (ImageActions.checkFileExists(currentContext, filename)) {
-                currentSetOverwriteDialog.invoke(Pair(imageId, filename))
-            } else {
-                currentViewModel.saveImage(
-                    context = currentContext,
-                    imageIds = listOf(imageId),
-                    baseFilename = filename,
-                    onComplete = { currentPerformRemoval.invoke(imageId) })
-            }
-        }
-    }
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
@@ -1281,6 +1152,7 @@ private fun ImageCardSplitButton(
     onImportOutput: () -> Unit,
     isCompareReady: Boolean = false,
     onCompare: () -> Unit = {},
+    selectedCount: Int,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     val fastSpatialSpec = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
@@ -1322,6 +1194,14 @@ private fun ImageCardSplitButton(
         CardState.Stale, CardState.Idle -> Icons.Rounded.PlayArrow
         CardState.Complete -> Icons.Rounded.Save
     }
+
+    val saveLabel = stringResource(R.string.save).let { label ->
+        if (selectedCount > 0) "$label ($selectedCount)" else label
+    }
+    val removeLabel = stringResource(R.string.remove).let { label ->
+        if (selectedCount > 0) "$label ($selectedCount)" else label
+    }
+
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
@@ -1379,6 +1259,16 @@ private fun ImageCardSplitButton(
             }
             DropdownMenu(
                 expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                if (selectedCount > 1 && cardState != CardState.Processing) {
+                    DropdownMenuItem(
+                        text = { Text(saveLabel) },
+                        leadingIcon = { Icon(Icons.Rounded.Save, null) },
+                        onClick = {
+                            HapticFeedbacks.light()
+                            menuExpanded = false
+                            onSave()
+                        })
+                }
                 if (isCompareReady) {
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.compare)) },
@@ -1443,18 +1333,15 @@ private fun ImageCardSplitButton(
                         onBrisque()
                     })
                 if (cardState != CardState.Processing) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.remove)) },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Rounded.Delete, null, tint = MaterialTheme.colorScheme.error
-                            )
-                        },
-                        onClick = {
-                            HapticFeedbacks.heavy()
-                            menuExpanded = false
-                            onRemove()
-                        })
+                    DropdownMenuItem(text = { Text(removeLabel) }, leadingIcon = {
+                        Icon(
+                            Icons.Rounded.Delete, null, tint = MaterialTheme.colorScheme.error
+                        )
+                    }, onClick = {
+                        HapticFeedbacks.light()
+                        menuExpanded = false
+                        onRemove()
+                    })
                 }
             }
         }

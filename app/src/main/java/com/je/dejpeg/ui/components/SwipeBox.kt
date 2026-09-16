@@ -95,10 +95,12 @@ fun SwipeBox(
             }
             .then(
                 if (collapseFraction.value < 1f) {
-                    Modifier.height(with(density) {
+                    Modifier
+                        .height(with(density) {
                             (measuredHeightPx * collapseFraction.value).toInt().coerceAtLeast(0)
                                 .toDp()
-                        }).clipToBounds()
+                        })
+                        .clipToBounds()
                 } else Modifier
             )
             .pointerInput(canInteract) {
@@ -206,7 +208,7 @@ fun CardWrapper(
         if (swapSwipeActions) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
     val rightSwipeBgColor =
         if (swapSwipeActions) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.onError
-    
+
     val thresholdFrac = 0.4f
     SwipeBox(
         onQualifiedStartToEnd = { HapticFeedbacks.light(); currentOnSwipeRight() },

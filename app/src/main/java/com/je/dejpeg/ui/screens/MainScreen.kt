@@ -4,7 +4,7 @@ package com.je.dejpeg.ui.screens
  * SPDX-FileCopyrightText: 2026 dryerlint <https://codeberg.org/dryerlint>
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
- 
+
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle

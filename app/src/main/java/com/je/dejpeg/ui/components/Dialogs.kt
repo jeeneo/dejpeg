@@ -95,7 +95,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.FileProvider
@@ -103,10 +102,8 @@ import com.je.dejpeg.AppPreferences
 import com.je.dejpeg.HapticFeedbacks
 import com.je.dejpeg.ImageRepository
 import com.je.dejpeg.R
-import com.je.dejpeg.ui.screens.SettingsSheetContent
 import com.je.dejpeg.ui.viewmodel.ImageItem
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
-import com.je.dejpeg.ui.viewmodel.SettingsViewModel
 import com.je.dejpeg.utils.CacheManager
 import com.je.dejpeg.utils.ImageLoadingHelper
 import com.je.dejpeg.utils.ImageSource
@@ -220,7 +217,7 @@ fun SaveImageDialog(
     defaultFilename: String,
     showSaveAllOption: Boolean = false,
     initialSaveAll: Boolean = false,
-    hideOptions: Boolean = false,
+    overwriteMode: Boolean = false,
     onDismissRequest: () -> Unit,
     onSave: (String, Boolean, Boolean) -> Unit
 ) {
@@ -229,7 +226,7 @@ fun SaveImageDialog(
     var saveAll by remember(initialSaveAll) { mutableStateOf(initialSaveAll) }
     var skipNext by remember { mutableStateOf(false) }
     StyledAlertDialog(onDismissRequest = onDismissRequest, title = {
-        Text(stringResource(if (hideOptions) R.string.overwrite_image else R.string.save_image))
+        Text(stringResource(if (overwriteMode) R.string.overwrite_image else R.string.save_image))
     }, text = {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(
@@ -238,11 +235,11 @@ fun SaveImageDialog(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 label = { Text(stringResource(R.string.filename)) },
-                isError = hideOptions,
-                supportingText = if (hideOptions) {
+                isError = overwriteMode,
+                supportingText = if (overwriteMode) {
                     { Text(stringResource(R.string.already_exists)) }
                 } else null)
-            if (!hideOptions) {
+            if (!overwriteMode) {
                 Column(Modifier.padding(top = 4.dp)) {
                     if (showSaveAllOption) {
                         Row(
@@ -364,18 +361,26 @@ fun PreparingShareDialog(
 
 @Composable
 fun RemoveImageDialog(
-    imageFilename: String,
-    hasOutput: Boolean,
-    imageId: String,
-    context: Context,
+    imageFilename: String?,
+    count: Int = 1,
     onDismissRequest: () -> Unit,
     onRemove: () -> Unit,
     onSaveAndRemove: () -> Unit
 ) {
     StyledAlertDialog(
         onDismissRequest = onDismissRequest,
-        title = { Text(stringResource(R.string.remove_image_title)) },
-        text = { Text(stringResource(R.string.remove_image_question, imageFilename)) },
+        title = {
+            Text(
+                if (count > 1) stringResource(R.string.remove_images_title)
+                else stringResource(R.string.remove_image_title)
+            )
+        },
+        text = {
+            Text(
+                if (count > 1) pluralStringResource(R.plurals.remove_images_question, count, count)
+                else stringResource(R.string.remove_image_question, imageFilename.orEmpty())
+            )
+        },
         dismissButton = {
             TextButton(
                 onClick = { onDismissRequest(); HapticFeedbacks.light() },
@@ -390,22 +395,16 @@ fun RemoveImageDialog(
             ) {
                 TextButton(
                     onClick = {
-                        onDismissRequest()
-                        CacheManager.deleteRecoveryPair(
-                            context, imageId, deleteProcessed = true, deleteUnprocessed = true
-                        )
                         onRemove()
+                        onDismissRequest()
                         HapticFeedbacks.light()
                     },
                 ) {
                     Text(stringResource(R.string.remove))
                 }
-                if (hasOutput) {
-                    MorphButton(
-                        label = stringResource(R.string.save),
-                        onClick = { HapticFeedbacks.medium(); onSaveAndRemove(); onDismissRequest() })
-
-                }
+                MorphButton(
+                    label = stringResource(R.string.save),
+                    onClick = { HapticFeedbacks.medium(); onSaveAndRemove() })
             }
         })
 }

@@ -43,7 +43,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,12 +65,12 @@ import com.je.dejpeg.R
 import com.je.dejpeg.ui.components.BeforeAfterSlider
 import com.je.dejpeg.ui.components.GroupedListSpacing
 import com.je.dejpeg.ui.components.PreparingShareDialog
-import com.je.dejpeg.ui.components.SaveImageDialog
 import com.je.dejpeg.ui.components.horizontalSegmentedShapes
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SaveState
 import com.je.dejpeg.utils.ImageActions
-import kotlinx.coroutines.launch
+import com.je.dejpeg.utils.ImageFlowDialogs
+import com.je.dejpeg.utils.rememberImageFlows
 import me.saket.telephoto.zoomable.OverzoomEffect
 import me.saket.telephoto.zoomable.ZoomLimit
 import me.saket.telephoto.zoomable.ZoomSpec
@@ -89,7 +88,6 @@ fun ImageScreen(
     compareImageId: String? = null
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     val appPreferences = remember { AppPreferences() }
     val showSaveDialog by appPreferences.showSaveDialog.collectAsState(initial = true)
     val images by imageRepository.images.collectAsState()
@@ -100,17 +98,15 @@ fun ImageScreen(
         LaunchedEffect(Unit) { onBack() }
         return
     }
-    var saveDialogState by remember { mutableStateOf<Pair<String, String>?>(null) }
-    var overwriteDialogState by remember { mutableStateOf<Pair<String, String>?>(null) }
     var isPreparingShare by remember { mutableStateOf(false) }
     val saveState by viewModel.saveState.collectAsState()
-    val saveOrPrompt = rememberSaveOrPrompt(
+    val flows = rememberImageFlows(
+        images = images,
         showSaveDialog = showSaveDialog,
-        context = context,
-        viewModel = viewModel,
-        performRemoval = { },
-        setSaveDialogState = { p -> saveDialogState = p },
-        setOverwriteDialogState = { p -> overwriteDialogState = p })
+        processingViewModel = viewModel,
+        appPreferences = appPreferences,
+        onRemoveSharedUri = {},
+    )
     val beforeBitmap =
         if (isCompareMode) image.outputBitmap ?: image.inputBitmap else image.inputBitmap
     val afterBitmap = when {
@@ -119,7 +115,6 @@ fun ImageScreen(
         else -> null
     }
     val filename = if (isCompareMode) stringResource(R.string.compare_title) else image.filename
-    val showSaveAllOption = images.any { it.outputBitmap != null }
     val glassSlider by appPreferences.glassSlider.collectAsState(initial = true)
     Column(
         Modifier
@@ -194,7 +189,10 @@ fun ImageScreen(
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                             },
-                            onClick = { HapticFeedbacks.light(); saveOrPrompt(imageId, filename) })
+                            onClick = {
+                                HapticFeedbacks.light()
+                                flows.requestSave(listOf(imageId), false)
+                            })
                     }
                 }
             } else {
@@ -205,44 +203,7 @@ fun ImageScreen(
         if (isPreparingShare) PreparingShareDialog()
 
         if (!isCompareMode) {
-            saveDialogState?.let { (id, fn) ->
-                SaveImageDialog(
-                    defaultFilename = fn,
-                    showSaveAllOption = showSaveAllOption,
-                    initialSaveAll = false,
-                    hideOptions = false,
-                    onDismissRequest = { saveDialogState = null }) { name, all, skip ->
-                    saveDialogState = null
-                    if (skip) scope.launch { appPreferences.setShowSaveDialog(false) }
-                    if (all) {
-                        val imageIds = images.filter { it.outputBitmap != null }.map { it.id }
-                        if (imageIds.isNotEmpty()) viewModel.saveImage(context, imageIds)
-                    } else if (ImageActions.checkFileExists(context, name)) {
-                        overwriteDialogState = Pair(id, name)
-                    } else {
-                        viewModel.saveImage(
-                            context = context, imageIds = listOf(id), baseFilename = name
-                        )
-                    }
-                }
-            }
-
-            overwriteDialogState?.let { (id, fname) ->
-                SaveImageDialog(
-                    defaultFilename = fname,
-                    showSaveAllOption = false,
-                    initialSaveAll = false,
-                    hideOptions = true,
-                    onDismissRequest = { overwriteDialogState = null }) { name, _, _ ->
-                    viewModel.saveImage(
-                        context = context,
-                        imageIds = listOf(id),
-                        baseFilename = name,
-                        overwrite = true
-                    )
-                    overwriteDialogState = null
-                }
-            }
+            ImageFlowDialogs(flows)
 
             (saveState as? SaveState.Error)?.let { err ->
                 AlertDialog(

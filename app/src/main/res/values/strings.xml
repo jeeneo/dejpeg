@@ -14,6 +14,11 @@
     <string name="cancel">Cancel</string>
     <string name="remove_image_title">Remove image?</string>
     <string name="remove_image_question">You haven\'t saved %1$s yet, do you want to remove it?</string>
+    <string name="remove_images_title">Remove images?</string>
+    <plurals name="remove_images_question">
+        <item quantity="one">You haven\'t saved this image yet, do you want to remove it?</item>
+        <item quantity="other">You haven\'t saved these %1$d images yet, do you want to remove them?</item>
+    </plurals>
     <string name="remove">Remove</string>
     <string name="stop_processing_title">Stop processing?</string>
     <string name="stop_processing_question">Are you sure you want to stop processing %1$s?</string>
