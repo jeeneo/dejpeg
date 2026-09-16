@@ -11,6 +11,12 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -35,6 +41,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Photo
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.BottomSheetDefaults
@@ -51,13 +60,18 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.SheetValue
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetState
+import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -65,9 +79,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -77,6 +94,8 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.FileProvider
@@ -84,14 +103,17 @@ import com.je.dejpeg.AppPreferences
 import com.je.dejpeg.HapticFeedbacks
 import com.je.dejpeg.ImageRepository
 import com.je.dejpeg.R
+import com.je.dejpeg.ui.screens.SettingsSheetContent
 import com.je.dejpeg.ui.viewmodel.ImageItem
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
+import com.je.dejpeg.ui.viewmodel.SettingsViewModel
 import com.je.dejpeg.utils.CacheManager
 import com.je.dejpeg.utils.ImageLoadingHelper
 import com.je.dejpeg.utils.ImageSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
 
 @Composable
 fun StyledAlertDialog(
@@ -773,5 +795,231 @@ fun RecoveryDialog(
                     showDialog.value = false
                 })
         })
+    }
+}
+
+enum class SettingsSection {
+    OnnxSettings, OidnSettings, MainSettings
+}
+
+@Composable
+fun PreferenceGroupHeading(title: String, modifier: Modifier = Modifier) {
+    Column(
+        verticalArrangement = Arrangement.Center,
+        modifier = modifier
+            .padding(horizontal = 12.dp)
+            .fillMaxWidth()
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+    }
+}
+
+@Composable
+fun PowerSlider(
+    label: String? = null,
+    value: Int? = null,
+    powers: List<Int>,
+    maxAllowed: Int = Int.MAX_VALUE,
+    onChange: (Int) -> Unit,
+    hapticAction: () -> Unit,
+    hideValue: Boolean = false,
+) {
+    val effectivePowers = remember(powers, maxAllowed) {
+        powers.filter { it <= maxAllowed }.ifEmpty { listOf(powers.first()) }
+    }
+    val clampedValue = value?.coerceAtMost(effectivePowers.last())
+    var index by remember(clampedValue, effectivePowers) {
+        mutableIntStateOf(maxOf(effectivePowers.indexOf(clampedValue), 0))
+    }
+    val sliderState = rememberSliderState(
+        value = index.toFloat(),
+        steps = (effectivePowers.size - 2).coerceAtLeast(0),
+        trackRange = 0f..(effectivePowers.lastIndex.toFloat().coerceAtLeast(0f)),
+    )
+    LaunchedEffect(index) { sliderState.value = index.toFloat() }
+    LaunchedEffect(maxAllowed) {
+        if (value != null && value >= maxAllowed && effectivePowers.isNotEmpty()) {
+            onChange(effectivePowers.last())
+        }
+    }
+    Column {
+        Row {
+            if (label != null) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+            if (!hideValue) Text(
+                " • ${effectivePowers[index]}",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Medium
+            )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Row {
+            Slider(
+                state = sliderState, onValueChange = {
+                    val newIdx = it.roundToInt().coerceIn(effectivePowers.indices)
+                    if (newIdx != index) {
+                        index = newIdx
+                        hapticAction()
+                        onChange(effectivePowers[newIdx])
+                    }
+                }, enabled = effectivePowers.size > 1
+            )
+        }
+    }
+}
+
+
+@Composable
+fun LabeledSwitch(
+    title: String,
+    desc: String = "",
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+            if (desc.isNotEmpty()) {
+                Text(
+                    text = desc,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        Switch(
+            checked = checked,
+            thumbContent = {
+                Icon(
+                    imageVector = if (checked) Icons.Rounded.Check else Icons.Rounded.Close,
+                    contentDescription = null,
+                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                )
+            },
+            onCheckedChange = {
+                HapticFeedbacks.light(); onCheckedChange(!checked)
+            },
+            modifier = Modifier
+                .padding(end = 2.dp)
+                .height(24.dp)
+                .aspectRatio(2f)
+                .wrapContentSize(Alignment.Center),
+        )
+    }
+}
+
+@Composable
+fun PreferenceItem(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+    title: String,
+    subtitle: String? = "",
+    icon: Any,
+    iconTint: Color? = null,
+    expanded: Boolean = false,
+    expandedContent: (@Composable () -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
+    index: Int = 1,
+    count: Int = 1,
+) {
+    val colors =
+        ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+    val pill = index == count
+    Column(modifier = modifier.fillMaxWidth()) {
+        SegmentedListItem(
+            colors = colors,
+            shapes = CornerRole(
+                bottomStart = !expanded, bottomEnd = !expanded, topStart = pill, topEnd = pill
+            ).toListItemShapes(),
+            onClick = { HapticFeedbacks.light(); onClick() },
+            leadingContent = {
+                when (icon) {
+                    is ImageVector -> Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = iconTint ?: Color.Unspecified,
+                        modifier = Modifier.size(21.dp)
+                    )
+
+                    is Painter -> Icon(
+                        painter = icon,
+                        contentDescription = null,
+                        tint = iconTint ?: Color.Unspecified,
+                        modifier = Modifier.size(21.dp)
+                    )
+                }
+            },
+            content = {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        title,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    AnimatedVisibility(
+                        visible = !subtitle.isNullOrEmpty(),
+                        enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
+                        exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
+                    ) {
+                        Spacer(modifier = Modifier.height(3.dp))
+                        if (subtitle != null) {
+                            Text(
+                                subtitle,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+            },
+            trailingContent = {
+                if (trailing != null) {
+                    trailing()
+                } else {
+                    val chevronRotation by animateFloatAsState(
+                        targetValue = if (expanded) 90f else 0f, label = "chevron"
+                    )
+                    Icon(
+                        Icons.Rounded.ChevronRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier
+                            .size(34.dp)
+                            .rotate(chevronRotation)
+                    )
+                }
+            })
+        Spacer(modifier = Modifier.height(GroupedListSpacing))
+        AnimatedVisibility(visible = expanded) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                SegmentedListItem(
+                    shapes = segmentedShapes(2, 2), colors = colors
+                ) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(GroupedListSpacing),
+                    ) {
+                        expandedContent?.invoke()
+                    }
+                }
+            }
+        }
     }
 }

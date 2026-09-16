@@ -78,7 +78,7 @@ fun MainScreen(
                     .padding(paddingValues)
             ) {
                 ProcessingScreen(
-                    viewModel = viewModel,
+                    processingViewModel = viewModel,
                     settingsViewModel = settingsViewModel,
                     imageRepository = imageRepository,
                     onNavigateToBeforeAfter = { id ->
