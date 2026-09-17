@@ -780,7 +780,7 @@ fun <T> SegmentedOptionGrid(
                     ).toListItemShapes(),
                     selected = selected == value,
                     onClick = { onSelect(value) }) {
-                    Text(label)
+                    Text(label, fontWeight = FontWeight.SemiBold)
                 }
             }
         }

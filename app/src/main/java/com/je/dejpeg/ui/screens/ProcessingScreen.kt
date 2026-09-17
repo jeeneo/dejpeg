@@ -283,6 +283,15 @@ fun ProcessingScreen(
         } else block()
     }
 
+    fun takeProcess(id: String? = null) {
+        val ids = when {
+            id != null -> listOf(id)
+            isSelectionMode -> selectedImageIds
+            else -> images.map { it.id }
+        }
+        ids.forEach(processingViewModel::processImage)
+    }
+
     LaunchedEffect(images) {
         flows.prune()
         imageIdToCancel = imageIdToCancel?.takeIf { id -> images.any { it.id == id } }
@@ -436,7 +445,7 @@ fun ProcessingScreen(
                             } else if (allComplete) {
                                 flows.saveAllNow()
                             } else {
-                                tryProcess { processingViewModel.processImages() }
+                                tryProcess { takeProcess() }
                             }
                         },
                         containerColor = fabContainerColor,
@@ -661,6 +670,7 @@ fun ProcessingScreen(
                                 swapSwipeActions = swapSwipeActions,
                                 onRequestSave = flows::requestSave,
                                 tryProcess = { block -> tryProcess(block) },
+                                takeProcess = { id -> takeProcess(id) },
                                 onCancelProcessing = { imageIdToCancel = it },
                                 onRequestRemoval = flows::requestRemoval,
                                 onNavigateToBeforeAfter = onNavigateToBeforeAfter,
@@ -772,6 +782,7 @@ fun LazyItemScope.ImageCard(
     swapSwipeActions: Boolean,
     onRequestSave: (List<String>, Boolean) -> Unit,
     tryProcess: (() -> Unit) -> Unit,
+    takeProcess: (String?) -> Unit,
     onCancelProcessing: (String) -> Unit,
     onRequestRemoval: (List<String>) -> Unit,
     onNavigateToBeforeAfter: (String) -> Unit,
@@ -781,10 +792,7 @@ fun LazyItemScope.ImageCard(
 ) {
     val isSelected = selectedImageIds.contains(image.id)
     val isProcessing = image.isProcessing
-    val processSelectedImages: () -> Unit = {
-        val ids = if (isSelectionMode) selectedImageIds else listOf(image.id)
-        ids.forEach(viewModel::processImage)
-    }
+
     val positiveAction: () -> (() -> Unit)? = {
         if (image.outputBitmap != null) {
             { onRequestSave(listOf(image.id), false) }
@@ -836,12 +844,15 @@ fun LazyItemScope.ImageCard(
         swapSwipeActions = swapSwipeActions,
         isProcessing = isProcessing,
     ) {
-        val cardShapes = CornerRole.forPosition(index + 1, images.count()).toListItemShapes()
+        val cardShapes =
+            CornerRole.forPosition(index + 1, images.count()).toListItemShapes().let { base ->
+                if (isProcessing) {
+                    base.copy(pressedShape = base.shape)
+                } else {
+                    base
+                }
+            }
         val progressTint = MaterialTheme.colorScheme.primary
-        val baseColor by animateColorAsState(
-            targetValue = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-            label = "item_base_color"
-        )
         val chunkFraction = if (image.totalChunks > 1) {
             image.completedChunks.toFloat() / image.totalChunks.coerceAtLeast(1)
         } else -1f
@@ -850,9 +861,17 @@ fun LazyItemScope.ImageCard(
                 animation = tween(1200, easing = EaseInOutSine), repeatMode = RepeatMode.Reverse
             ), label = "pulse_alpha"
         )
+        val baseColor by animateColorAsState(
+            targetValue = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+            label = "item_base_color"
+        )
+
         SegmentedListItem(
             selected = isSelected,
-            colors = ListItemDefaults.segmentedColors(containerColor = Color.Transparent),
+            colors = ListItemDefaults.segmentedColors(
+                containerColor = Color.Transparent,
+                selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer
+            ),
             shapes = cardShapes,
             contentPadding = PaddingValues(0.dp),
             modifier = Modifier
@@ -862,7 +881,7 @@ fun LazyItemScope.ImageCard(
                     if (!isProcessing) return@drawBehind
                     if (chunkFraction >= 0f) {
                         if (chunkFraction >= 1f) {
-                            drawRect(progressTint.copy(alpha = 0.12f))
+                            drawRect(progressTint.copy(alpha = 0.16f))
                         } else {
                             val fillEnd = size.width * chunkFraction
                             val gradientEnd = (fillEnd + 12.dp.toPx()).coerceAtMost(size.width)
@@ -872,7 +891,7 @@ fun LazyItemScope.ImageCard(
                                     brush = Brush.horizontalGradient(
                                         colorStops = arrayOf(
                                             0f to progressTint.copy(alpha = 0.16f),
-                                            solidStop to progressTint.copy(alpha = 0.10f),
+                                            solidStop to progressTint.copy(alpha = 0.16f),
                                             1f to Color.Transparent
                                         ), startX = 0f, endX = gradientEnd
                                     )
@@ -884,15 +903,11 @@ fun LazyItemScope.ImageCard(
                     }
                 },
             onClick = {
-                if (image.outputBitmap != null) if (isSelectionMode) onToggleSelection(
-                    image.id
-                )
-                else onNavigateToBeforeAfter(image.id) else if (isSelectionMode) onToggleSelection(
-                    image.id
-                )
+                if (isProcessing) return@SegmentedListItem
+                if (isSelectionMode) onToggleSelection(image.id)
                 else onNavigateToBeforeAfter(image.id)
             },
-            onLongClick = { onToggleSelection(image.id) },
+            onLongClick = if (isProcessing) null else { -> run { onToggleSelection(image.id) } },
             content = {
                 Row(
                     Modifier
@@ -1000,8 +1015,10 @@ fun LazyItemScope.ImageCard(
                         ImageCardSplitButton(
                             image = image,
                             isProcessing = isProcessing,
-                            onProcess = {
-                                tryProcess { processSelectedImages() }
+                            onProcess = { id ->
+                                tryProcess {
+                                    takeProcess(id)
+                                }
                             },
                             onRemove = {
                                 if (isSelectionMode) {
@@ -1143,7 +1160,7 @@ private fun ImageCardSplitButton(
     modifier: Modifier = Modifier,
     image: ImageItem,
     isProcessing: Boolean,
-    onProcess: () -> Unit,
+    onProcess: (String?) -> Unit,
     onRemove: () -> Unit,
     onBrisque: () -> Unit,
     onSave: () -> Unit,
@@ -1218,7 +1235,8 @@ private fun ImageCardSplitButton(
                     }
 
                     CardState.Idle, CardState.Stale -> {
-                        onProcess()
+                        if (selectedCount > 1) onProcess(null)
+                        else onProcess(image.id)
                     }
                 }
             },
@@ -1258,19 +1276,9 @@ private fun ImageCardSplitButton(
             }
             DropdownMenu(
                 expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                if (selectedCount > 1 && cardState != CardState.Processing) {
+                if ((selectedCount > 1 && cardState != CardState.Processing) || cardState == CardState.Stale) {
                     DropdownMenuItem(
                         text = { Text(saveLabel) },
-                        leadingIcon = { Icon(Icons.Rounded.Save, null) },
-                        onClick = {
-                            menuExpanded = false
-                            onSave()
-                            clearSelection()
-                        })
-                }
-                if (cardState == CardState.Stale) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.save)) },
                         leadingIcon = { Icon(Icons.Rounded.Save, null) },
                         onClick = {
                             menuExpanded = false
@@ -1307,7 +1315,8 @@ private fun ImageCardSplitButton(
                         },
                         onClick = {
                             menuExpanded = false
-                            onProcess()
+                            if (selectedCount > 1) onProcess(null)
+                            else onProcess(image.id)
                             clearSelection()
                         })
                 }

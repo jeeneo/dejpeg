@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -26,6 +27,8 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -76,6 +79,8 @@ import me.saket.telephoto.zoomable.ZoomSpec
 import me.saket.telephoto.zoomable.rememberZoomableState
 import me.saket.telephoto.zoomable.zoomable
 
+private enum class BitmapSource { Input, Output }
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ImageScreen(
@@ -97,6 +102,15 @@ fun ImageScreen(
         LaunchedEffect(Unit) { onBack() }
         return
     }
+    var leftSource by remember {
+        mutableStateOf(
+            if (isCompareMode && image.outputBitmap != null) BitmapSource.Output else BitmapSource.Input
+        )
+    }
+    var rightSource by remember {
+        mutableStateOf(BitmapSource.Input)
+    }
+
     var isPreparingShare by remember { mutableStateOf(false) }
     val saveState by viewModel.saveState.collectAsState()
     val flows = rememberImageFlows(
@@ -106,14 +120,30 @@ fun ImageScreen(
         appPreferences = appPreferences,
         onRemoveSharedUri = {},
     )
-    val beforeBitmap =
-        if (isCompareMode) image.outputBitmap ?: image.inputBitmap else image.inputBitmap
+    val beforeBitmap = if (isCompareMode) {
+        when (leftSource) {
+            BitmapSource.Input -> image.inputBitmap
+            BitmapSource.Output -> image.outputBitmap ?: image.inputBitmap
+        }
+    } else image.inputBitmap
     val afterBitmap = when {
-        isCompareMode -> compareImage!!.inputBitmap
+        isCompareMode -> when (rightSource) {
+            BitmapSource.Input -> compareImage!!.inputBitmap
+            BitmapSource.Output -> compareImage!!.outputBitmap
+        }
+
         showAfter -> image.outputBitmap
         else -> null
     }
-    val filename = if (isCompareMode) stringResource(R.string.compare_title) else image.filename
+    val filename = if (isCompareMode) {
+        val leftName =
+            if (leftSource == BitmapSource.Output) image.filename + " (output)" else image.filename
+        val ci = compareImage!!
+        val rightName =
+            if (rightSource == BitmapSource.Output) ci.filename + " (output)" else ci.filename
+        "$leftName - $rightName"
+    } else image.filename
+
     val glassSlider by appPreferences.glassSlider.collectAsState(initial = true)
     Column(
         Modifier
@@ -121,7 +151,65 @@ fun ImageScreen(
             .background(MaterialTheme.colorScheme.background)
     ) {
         TopAppBar(
-            title = { Text(filename, style = MaterialTheme.typography.titleMedium) },
+            title = {
+                if (isCompareMode) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        var leftMenuExpanded by remember { mutableStateOf(false) }
+                        Box {
+                            TextButton(onClick = { leftMenuExpanded = true }) {
+                                Text(
+                                    if (leftSource == BitmapSource.Output) image.filename + " (output)" else image.filename,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = leftMenuExpanded,
+                                onDismissRequest = { leftMenuExpanded = false }) {
+                                DropdownMenuItem(text = { Text("Input") }, onClick = {
+                                    leftSource = BitmapSource.Input
+                                    leftMenuExpanded = false
+                                })
+                                if (image.outputBitmap != null) {
+                                    DropdownMenuItem(text = { Text("Output") }, onClick = {
+                                        leftSource = BitmapSource.Output
+                                        leftMenuExpanded = false
+                                    })
+                                }
+                            }
+                        }
+                        var rightMenuExpanded by remember { mutableStateOf(false) }
+                        Box {
+                            val ci = compareImage!!
+                            TextButton(onClick = { rightMenuExpanded = true }) {
+                                Text(
+                                    if (rightSource == BitmapSource.Output) ci.filename + " (output)" else ci.filename,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = rightMenuExpanded,
+                                onDismissRequest = { rightMenuExpanded = false }) {
+                                DropdownMenuItem(text = { Text("Input") }, onClick = {
+                                    rightSource = BitmapSource.Input
+                                    rightMenuExpanded = false
+                                })
+                                if (ci.outputBitmap != null) {
+                                    DropdownMenuItem(text = { Text("Output") }, onClick = {
+                                        rightSource = BitmapSource.Output
+                                        rightMenuExpanded = false
+                                    })
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    Text(filename, style = MaterialTheme.typography.titleMedium)
+                }
+            },
             navigationIcon = {
                 IconButton(onClick = { onBack() }) {
                     Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Back")
