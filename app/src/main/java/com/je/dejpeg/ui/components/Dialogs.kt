@@ -54,6 +54,7 @@ import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItemColors
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -173,8 +174,7 @@ fun ErrorAlertDialog(
         },
         confirmButton = {
             MorphButton(
-                label = confirmButtonText ?: stringResource(R.string.ok),
-                onClick = { onDismiss() })
+                label = confirmButtonText ?: stringResource(R.string.ok), onClick = { onDismiss() })
         })
 }
 
@@ -364,45 +364,39 @@ fun RemoveImageDialog(
     onRemove: () -> Unit,
     onSaveAndRemove: () -> Unit
 ) {
-    StyledAlertDialog(
-        onDismissRequest = onDismissRequest,
-        title = {
-            Text(
-                if (count > 1) stringResource(R.string.remove_images_title)
-                else stringResource(R.string.remove_image_title)
-            )
-        },
-        text = {
-            Text(
-                if (count > 1) pluralStringResource(R.plurals.remove_images_question, count, count)
-                else stringResource(R.string.remove_image_question, imageFilename.orEmpty())
-            )
-        },
-        dismissButton = {
+    StyledAlertDialog(onDismissRequest = onDismissRequest, title = {
+        Text(
+            if (count > 1) stringResource(R.string.remove_images_title)
+            else stringResource(R.string.remove_image_title)
+        )
+    }, text = {
+        Text(
+            if (count > 1) pluralStringResource(R.plurals.remove_images_question, count, count)
+            else stringResource(R.string.remove_image_question, imageFilename.orEmpty())
+        )
+    }, dismissButton = {
+        TextButton(
+            onClick = { onDismissRequest() },
+        ) {
+            Text(stringResource(R.string.nope))
+        }
+    }, confirmButton = {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             TextButton(
-                onClick = { onDismissRequest() },
+                onClick = {
+                    onRemove()
+                    onDismissRequest()
+                },
             ) {
-                Text(stringResource(R.string.nope))
+                Text(stringResource(R.string.remove))
             }
-        },
-        confirmButton = {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                TextButton(
-                    onClick = {
-                        onRemove()
-                        onDismissRequest()
-                    },
-                ) {
-                    Text(stringResource(R.string.remove))
-                }
-                MorphButton(
-                    label = stringResource(R.string.save),
-                    onClick = { onSaveAndRemove() })
-            }
-        })
+            MorphButton(
+                label = stringResource(R.string.save), onClick = { onSaveAndRemove() })
+        }
+    })
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -919,18 +913,14 @@ fun PreferenceItem(
     trailing: (@Composable () -> Unit)? = null,
     index: Int = 1,
     count: Int = 1,
+    colors: ListItemColors,
 ) {
-    val colors =
-        ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
     val pill = index == count
     Column(modifier = modifier.fillMaxWidth()) {
         SegmentedListItem(
-            colors = colors,
-            shapes = CornerRole(
+            colors = colors, shapes = CornerRole(
                 bottomStart = !expanded, bottomEnd = !expanded, topStart = pill, topEnd = pill
-            ).toListItemShapes(),
-            onClick = { onClick() },
-            leadingContent = {
+            ).toListItemShapes(), onClick = { onClick() }, leadingContent = {
                 when (icon) {
                     is ImageVector -> Icon(
                         imageVector = icon,
@@ -946,8 +936,7 @@ fun PreferenceItem(
                         modifier = Modifier.size(21.dp)
                     )
                 }
-            },
-            content = {
+            }, content = {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         title,
@@ -972,8 +961,7 @@ fun PreferenceItem(
                         }
                     }
                 }
-            },
-            trailingContent = {
+            }, trailingContent = {
                 if (trailing != null) {
                     trailing()
                 } else {

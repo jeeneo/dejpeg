@@ -174,19 +174,23 @@ fun SettingsSheetContent(
                 .padding(
                     top = 8.dp,
                     bottom = WindowInsets.navigationBars.asPaddingValues()
-                        .calculateBottomPadding() + 88.dp,
+                        .calculateBottomPadding() + 90.dp,
                     start = 12.dp,
                     end = 12.dp
                 )
         ) {
             Heading(stringResource(R.string.settings_title_models))
-
             val hasModels = allModels.isNotEmpty()
             val hasCard = processingMode == ModelType.OIDN || processingMode == ModelType.ONNX
             val extractedMsg = stringResource(R.string.extracted_starter_models)
             val failedMsg = stringResource(R.string.failed_to_extract_starter_models)
-            val colors =
-                ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest)
+            val colors = ListItemDefaults.segmentedColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                selectedContainerColor = MaterialTheme.colorScheme.outlineVariant
+            )
+            val cardColors =
+                ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+
             val currentTheme = App.state.appTheme.value
             var glassSlider by remember { mutableStateOf(appPreferences.loadGlassSlider()) }
 
@@ -196,12 +200,9 @@ fun SettingsSheetContent(
                 horizontalArrangement = Arrangement.spacedBy(GroupedListSpacing),
             ) {
                 SegmentedListItem(
-                    modifier = Modifier.weight(1f),
-                    colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-                    onClick = {
+                    modifier = Modifier.weight(1f), colors = colors, onClick = {
                         modelPickerLauncher.launch(arrayOf("*/*"))
-                    },
-                    onLongClick = {
+                    }, onLongClick = {
                         scope.launch {
                             if (processingViewModel.isProcessingOrQueueActive()) {
                                 return@launch
@@ -225,16 +226,13 @@ fun SettingsSheetContent(
                                 )
                             }
                         }
-                    },
-                    shapes = CornerRole(
+                    }, shapes = CornerRole(
                         topStart = true, bottomStart = !hasModels
-                    ).toListItemShapes(),
-                    leadingContent = {
+                    ).toListItemShapes(), leadingContent = {
                         Icon(
                             Icons.Rounded.Add, null, modifier = Modifier.size(24.dp)
                         )
-                    },
-                    content = {
+                    }, content = {
                         Text(
                             stringResource(R.string.import_model_text),
                             style = MaterialTheme.typography.bodyMedium,
@@ -244,20 +242,15 @@ fun SettingsSheetContent(
                         )
                     })
                 SegmentedListItem(
-                    modifier = Modifier.weight(1f),
-                    colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-                    onClick = {
+                    modifier = Modifier.weight(1f), colors = colors, onClick = {
                         uriHandler.openUri("https://codeberg.org/dryerlint/dejpeg/src/branch/main/models")
-                    },
-                    shapes = CornerRole(
+                    }, shapes = CornerRole(
                         topEnd = true, bottomEnd = !hasModels
-                    ).toListItemShapes(),
-                    leadingContent = {
+                    ).toListItemShapes(), leadingContent = {
                         Icon(
                             Icons.Rounded.Download, null, modifier = Modifier.size(24.dp)
                         )
-                    },
-                    content = {
+                    }, content = {
                         Text(
                             stringResource(R.string.download),
                             style = MaterialTheme.typography.bodyMedium,
@@ -275,9 +268,7 @@ fun SettingsSheetContent(
                     val last = index == allModels.lastIndex && !hasCard
                     Spacer(modifier = Modifier.height(GroupedListSpacing))
                     SegmentedListItem(
-                        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-                        selected = isActive,
-                        onClick = {
+                        colors = colors, selected = isActive, onClick = {
                             if (processingViewModel.isProcessingOrQueueActive()) {
                                 scope.launch {
                                     SnackbarController.pushEvent(
@@ -290,11 +281,9 @@ fun SettingsSheetContent(
                             } else {
                                 settingsViewModel.setActiveModel(modelName)
                             }
-                        },
-                        shapes = CornerRole(
+                        }, shapes = CornerRole(
                             bottomStart = last, bottomEnd = last
-                        ).toListItemShapes(),
-                        content = {
+                        ).toListItemShapes(), content = {
                             Text(
                                 modelName,
                                 modifier = Modifier.weight(1f),
@@ -303,8 +292,7 @@ fun SettingsSheetContent(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
-                        },
-                        trailingContent = {
+                        }, trailingContent = {
                             Row {
                                 modelManager.getModelInfo(modelName)?.let {
                                     IconButton(onClick = {
@@ -368,6 +356,7 @@ fun SettingsSheetContent(
                     exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
                 ) {
                     PreferenceItem(
+                        colors = colors,
                         index = 1,
                         count = 2,
                         icon = Icons.Rounded.BlurOn,
@@ -384,7 +373,7 @@ fun SettingsSheetContent(
                                 Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
                             }
                             SegmentedListItem(
-                                colors = colors, shapes = segmentedShapes(1, 3), content = {
+                                colors = cardColors, shapes = segmentedShapes(1, 3), content = {
                                     PowerSlider(
                                         label = stringResource(R.string.chunk_size),
                                         value = chunkSize,
@@ -392,7 +381,7 @@ fun SettingsSheetContent(
                                         onChange = { settingsViewModel.setChunkSize(it) })
                                 })
                             SegmentedListItem(
-                                colors = colors, shapes = segmentedShapes(2, 3), content = {
+                                colors = cardColors, shapes = segmentedShapes(2, 3), content = {
                                     PowerSlider(
                                         label = stringResource(R.string.overlap_size),
                                         value = overlapSize,
@@ -401,7 +390,7 @@ fun SettingsSheetContent(
 
                                 })
                             SegmentedListItem(
-                                colors = colors, shapes = segmentedShapes(3, 3), content = {
+                                colors = cardColors, shapes = segmentedShapes(3, 3), content = {
                                     PowerSlider(
                                         label = threadLabel,
                                         value = onnxDeviceThreads,
@@ -419,6 +408,7 @@ fun SettingsSheetContent(
                     exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
                 ) {
                     PreferenceItem(
+                        colors = colors,
                         index = 1,
                         count = 2,
                         icon = Icons.Rounded.Deblur,
@@ -428,7 +418,7 @@ fun SettingsSheetContent(
                         expanded = isExpanded,
                         expandedContent = {
                             SegmentedListItem(
-                                colors = colors, shapes = segmentedShapes(1, 2), onClick = {
+                                colors = cardColors, shapes = segmentedShapes(1, 2), onClick = {
                                     settingsViewModel.setOidnHdrPref(
                                         !oidnHDR
                                     )
@@ -440,7 +430,7 @@ fun SettingsSheetContent(
                                     onCheckedChange = { settingsViewModel.setOidnHdrPref(it) })
                             }
                             SegmentedListItem(
-                                colors = colors,
+                                colors = cardColors,
                                 shapes = segmentedShapes(2, 2),
                                 onClick = {
                                     settingsViewModel.setOidnSrgbPref(
@@ -470,7 +460,7 @@ fun SettingsSheetContent(
                             SegmentedOptionGrid(
                                 options = qualityOptions,
                                 selected = oidnQuality,
-                                colors = colors,
+                                colors = cardColors,
                                 onSelect = { value -> settingsViewModel.setOidnQualityPref(value) })
                             Spacer(modifier = Modifier.height(8.dp))
                             val resolvedOidnThreads = ThreadUtils.resolveThreadCount(oidnNumThreads)
@@ -491,7 +481,7 @@ fun SettingsSheetContent(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             SegmentedListItem(
-                                colors = colors,
+                                colors = cardColors,
                                 shapes = segmentedShapes(1, 1),
                             ) {
                                 PowerSlider(
@@ -509,6 +499,7 @@ fun SettingsSheetContent(
             Spacer(Modifier.height(6.dp))
             Heading("Settings")
             PreferenceItem(
+                colors = colors,
                 index = 1,
                 count = 1,
                 icon = Icons.Rounded.Settings,
@@ -517,7 +508,7 @@ fun SettingsSheetContent(
                 expanded = expandedSection == SettingsSection.MainSettings,
                 expandedContent = {
                     SegmentedListItem(
-                        colors = colors, shapes = segmentedShapes(1, 6), onClick = {
+                        colors = cardColors, shapes = segmentedShapes(1, 6), onClick = {
                             scope.launch {
                                 hapticsEnabled = !hapticsEnabled
                                 if (hapticsEnabled) {
@@ -542,7 +533,7 @@ fun SettingsSheetContent(
                             })
                     }
                     SegmentedListItem(
-                        colors = colors, shapes = segmentedShapes(2, 6), onClick = {
+                        colors = cardColors, shapes = segmentedShapes(2, 6), onClick = {
                             scope.launch {
                                 showSaveDialog = !showSaveDialog
                                 appPreferences.saveShowSaveDialog(showSaveDialog)
@@ -559,7 +550,7 @@ fun SettingsSheetContent(
                             })
                     }
                     SegmentedListItem(
-                        colors = colors, shapes = segmentedShapes(3, 6), onClick = {
+                        colors = cardColors, shapes = segmentedShapes(3, 6), onClick = {
                             scope.launch {
                                 swapSwipeActions = !swapSwipeActions
                                 appPreferences.saveSwapSwipeActions(swapSwipeActions)
@@ -576,7 +567,7 @@ fun SettingsSheetContent(
                             })
                     }
                     SegmentedListItem(
-                        colors = colors, shapes = segmentedShapes(4, 6), onClick = {
+                        colors = cardColors, shapes = segmentedShapes(4, 6), onClick = {
                             scope.launch {
                                 glassSlider = !glassSlider
                                 appPreferences.saveGlassSlider(glassSlider)
@@ -591,44 +582,50 @@ fun SettingsSheetContent(
                             })
                     }
                     val clearedDefaultSourceMsg = stringResource(R.string.cleared_default_source)
-                    SegmentedListItem(colors = colors, shapes = segmentedShapes(5, 6), onClick = {
-                        scope.launch {
-                            defaultImageSource = null
-                            appPreferences.saveDefaultImageSource(null)
-                            SnackbarController.pushEvent(
-                                SnackySnackbarEvents.MessageEvent(
-                                    message = clearedDefaultSourceMsg,
-                                    duration = SnackbarDuration.Short
-                                )
-                            )
-                        }
-                    }, content = {
-                        Text(
-                            stringResource(R.string.default_image_source),
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }, supportingContent = {
-                        Text(
-                            defaultImageSource ?: stringResource(R.string.none),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }, trailingContent = {
-                        TextButton(
-                            onClick = {
-                                scope.launch {
-                                    defaultImageSource = null
-                                    appPreferences.saveDefaultImageSource(null)
-                                    SnackbarController.pushEvent(
-                                        SnackySnackbarEvents.MessageEvent(
-                                            message = clearedDefaultSourceMsg,
-                                            duration = SnackbarDuration.Short
-                                        )
+                    SegmentedListItem(
+                        colors = cardColors,
+                        shapes = segmentedShapes(5, 6),
+                        onClick = {
+                            scope.launch {
+                                defaultImageSource = null
+                                appPreferences.saveDefaultImageSource(null)
+                                SnackbarController.pushEvent(
+                                    SnackySnackbarEvents.MessageEvent(
+                                        message = clearedDefaultSourceMsg,
+                                        duration = SnackbarDuration.Short
                                     )
-                                }
-                            }) { Text(stringResource(R.string.clear_default_source)) }
-                    })
+                                )
+                            }
+                        },
+                        content = {
+                            Text(
+                                stringResource(R.string.default_image_source),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        },
+                        supportingContent = {
+                            Text(
+                                defaultImageSource ?: stringResource(R.string.none),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        trailingContent = {
+                            TextButton(
+                                onClick = {
+                                    scope.launch {
+                                        defaultImageSource = null
+                                        appPreferences.saveDefaultImageSource(null)
+                                        SnackbarController.pushEvent(
+                                            SnackySnackbarEvents.MessageEvent(
+                                                message = clearedDefaultSourceMsg,
+                                                duration = SnackbarDuration.Short
+                                            )
+                                        )
+                                    }
+                                }) { Text(stringResource(R.string.clear_default_source)) }
+                        })
                     val themeOptions = AppTheme.entries.map { theme ->
                         theme to when (theme) {
                             AppTheme.Dynamic -> stringResource(R.string.theme_dynamic)
@@ -640,7 +637,7 @@ fun SettingsSheetContent(
                     SegmentedOptionGrid(
                         options = themeOptions,
                         selected = currentTheme,
-                        colors = colors,
+                        colors = cardColors,
                         dontRound = true,
                         onSelect = { theme ->
                             appPreferences.saveAppTheme(theme)
