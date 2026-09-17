@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
@@ -40,10 +41,11 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BottomSheet(
+    modifier: Modifier = Modifier,
+    background: Color,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
     expandedHeight: Dp,
-    modifier: Modifier = Modifier,
     dragHandle: @Composable () -> Unit = { BottomSheetDefaults.DragHandle() },
     backProgress: Float = 0f,
     content: @Composable ColumnScope.() -> Unit,
@@ -84,7 +86,7 @@ fun BottomSheet(
             .clipToBounds()
     ) {
         Surface(
-            color = MaterialTheme.colorScheme.surfaceContainer,
+            color = background,
             shape = RoundedCornerShape(topStart = ScreenHorizontalPadding, topEnd = ScreenHorizontalPadding),
             shadowElevation = 2.dp,
             modifier = Modifier.fillMaxWidth()

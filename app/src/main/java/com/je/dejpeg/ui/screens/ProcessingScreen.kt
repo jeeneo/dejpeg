@@ -351,11 +351,14 @@ fun ProcessingScreen(
 
     val displayCount = if (isSelectionMode) selectedImageIds.size else images.size
     Column(
-        Modifier.fillMaxSize()
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
         Row(
             Modifier
                 .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.background)
                 .padding(
                     bottom = 8.dp, start = ScreenHorizontalPadding, end = ScreenHorizontalPadding
                 ), Arrangement.SpaceBetween, Alignment.CenterVertically
@@ -599,12 +602,21 @@ fun ProcessingScreen(
         }
         val sheetHeight = containerHeightDp * 0.5f
         val sheetBackground = MaterialTheme.colorScheme.surface
+
         Column(Modifier.fillMaxSize()) {
             if (images.isEmpty()) {
                 Box(
                     Modifier
                         .weight(1f)
-                        .fillMaxWidth(), contentAlignment = Alignment.Center
+                        .clip(
+                            RoundedCornerShape(
+                                bottomStart = 16.dp,
+                                bottomEnd = 16.dp,
+                            )
+                        )
+                        .background(MaterialTheme.colorScheme.background)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -655,6 +667,12 @@ fun ProcessingScreen(
                     Modifier
                         .fillMaxWidth()
                         .weight(1f)
+                        .clip(
+                            RoundedCornerShape(
+                                bottomStart = 16.dp, bottomEnd = 16.dp
+                            )
+                        )
+                        .background(MaterialTheme.colorScheme.background)
                         .padding(start = ScreenHorizontalPadding, end = ScreenHorizontalPadding),
                     Arrangement.SpaceBetween
                 ) {
@@ -691,12 +709,16 @@ fun ProcessingScreen(
                     }
                 }
             }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
             BottomSheet(
                 expanded = settingsExpanded,
                 onExpandedChange = { settingsExpanded = it },
                 expandedHeight = sheetHeight,
                 modifier = Modifier.fillMaxWidth(),
                 backProgress = settingsBackProgress,
+                background = sheetBackground
             ) {
                 SettingsSheetContent(
                     settingsViewModel = settingsViewModel, processingViewModel = processingViewModel
