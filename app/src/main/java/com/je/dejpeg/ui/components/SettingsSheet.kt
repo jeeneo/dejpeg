@@ -78,6 +78,8 @@ import androidx.compose.ui.util.lerp
 import com.je.dejpeg.App
 import com.je.dejpeg.R
 import com.je.dejpeg.data.AppPreferences
+import com.je.dejpeg.data.HapticPatterns
+import com.je.dejpeg.data.SettingsSection
 import com.je.dejpeg.data.ThreadUtils
 import com.je.dejpeg.ui.theme.AppTheme
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
@@ -111,10 +113,10 @@ fun SettingsSheetContent(
     val chunkSize by settingsViewModel.chunkSize.collectAsState()
     val overlapSize by settingsViewModel.overlapSize.collectAsState()
     val onnxDeviceThreads by settingsViewModel.onnxDeviceThreads.collectAsState()
-    val showSaveDialog by appPreferences.showSaveDialog.collectAsState(initial = true)
-    val defaultImageSource by appPreferences.defaultImageSource.collectAsState(initial = null)
-    val hapticFeedbackEnabled by appPreferences.hapticFeedbackEnabled.collectAsState(initial = true)
-    val swapSwipeActions by appPreferences.swapSwipeActions.collectAsState(initial = false)
+    var showSaveDialog by remember { mutableStateOf(appPreferences.loadShowSaveDialog()) }
+    var defaultImageSource by remember { mutableStateOf(appPreferences.loadDefaultImageSource()) }
+    var hapticsEnabled by remember { mutableStateOf(appPreferences.loadHapticFeedbackEnabled()) }
+    var swapSwipeActions by remember { mutableStateOf(appPreferences.loadSwapSwipeActions()) }
     val modelInfoDialog = remember { mutableStateOf<Pair<String, String>?>(null) }
     val activeSelection by settingsViewModel.activeSelection.collectAsState()
     val processingMode = activeSelection.type
@@ -186,7 +188,7 @@ fun SettingsSheetContent(
             val colors =
                 ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest)
             val currentTheme = App.state.appTheme.value
-            val glassSlider by appPreferences.glassSlider.collectAsState(initial = true)
+            var glassSlider by remember { mutableStateOf(appPreferences.loadGlassSlider()) }
 
             Spacer(modifier = Modifier.height(GroupedListSpacing))
             Row(
@@ -383,8 +385,7 @@ fun SettingsSheetContent(
                                         label = stringResource(R.string.chunk_size),
                                         value = chunkSize,
                                         powers = listOf(512, 1024, 2048),
-                                        onChange = { settingsViewModel.setChunkSize(it) },
-                                        hapticAction = { })
+                                        onChange = { settingsViewModel.setChunkSize(it) })
                                 })
                             SegmentedListItem(
                                 colors = colors, shapes = segmentedShapes(2, 3), content = {
@@ -392,8 +393,7 @@ fun SettingsSheetContent(
                                         label = stringResource(R.string.overlap_size),
                                         value = overlapSize,
                                         powers = listOf(16, 32, 64, 128),
-                                        onChange = { settingsViewModel.setOverlapSize(it) },
-                                        hapticAction = { })
+                                        onChange = { settingsViewModel.setOverlapSize(it) })
 
                                 })
                             SegmentedListItem(
@@ -403,8 +403,7 @@ fun SettingsSheetContent(
                                         value = onnxDeviceThreads,
                                         hideValue = true,
                                         powers = (0..maxThreads).toList(),
-                                        onChange = { settingsViewModel.setOnnxDeviceThreads(it) },
-                                        hapticAction = { })
+                                        onChange = { settingsViewModel.setOnnxDeviceThreads(it) })
                                 })
 
                         },
@@ -495,8 +494,7 @@ fun SettingsSheetContent(
                                     hideValue = true,
                                     value = oidnNumThreads,
                                     powers = (0..maxThreads).toList(),
-                                    onChange = { settingsViewModel.setOidnNumThreadsPref(it) },
-                                    hapticAction = { })
+                                    onChange = { settingsViewModel.setOidnNumThreadsPref(it) })
                             }
                         },
                         onClick = {
@@ -517,22 +515,33 @@ fun SettingsSheetContent(
                     SegmentedListItem(
                         colors = colors, shapes = segmentedShapes(1, 6), onClick = {
                             scope.launch {
-                                appPreferences.setHapticFeedbackEnabled(!hapticFeedbackEnabled)
+                                hapticsEnabled = !hapticsEnabled
+                                if (hapticsEnabled) {
+                                    HapticPatterns.tap(force = true)
+                                }
+                                appPreferences.saveHapticToggle(hapticsEnabled)
+                                HapticPatterns.appHapticsEnabled = hapticsEnabled
                             }
                         }) {
                         LabeledSwitch(
                             title = stringResource(R.string.vibration_on_touch),
-                            checked = hapticFeedbackEnabled,
+                            checked = hapticsEnabled,
                             onCheckedChange = { new ->
                                 scope.launch {
-                                    appPreferences.setHapticFeedbackEnabled(new)
+                                    hapticsEnabled = new
+                                    if (hapticsEnabled) {
+                                        HapticPatterns.tap(force = true)
+                                    }
+                                    appPreferences.saveHapticToggle(new)
+                                    HapticPatterns.appHapticsEnabled = new
                                 }
                             })
                     }
                     SegmentedListItem(
                         colors = colors, shapes = segmentedShapes(2, 6), onClick = {
                             scope.launch {
-                                appPreferences.setShowSaveDialog(!showSaveDialog)
+                                showSaveDialog = !showSaveDialog
+                                appPreferences.saveShowSaveDialog(showSaveDialog)
                             }
                         }) {
                         LabeledSwitch(
@@ -540,14 +549,16 @@ fun SettingsSheetContent(
                             checked = showSaveDialog,
                             onCheckedChange = { new ->
                                 scope.launch {
-                                    appPreferences.setShowSaveDialog(new)
+                                    showSaveDialog = new
+                                    appPreferences.saveShowSaveDialog(new)
                                 }
                             })
                     }
                     SegmentedListItem(
                         colors = colors, shapes = segmentedShapes(3, 6), onClick = {
                             scope.launch {
-                                appPreferences.setSwapSwipeActions(!swapSwipeActions)
+                                swapSwipeActions = !swapSwipeActions
+                                appPreferences.saveSwapSwipeActions(swapSwipeActions)
                             }
                         }) {
                         LabeledSwitch(
@@ -555,29 +566,31 @@ fun SettingsSheetContent(
                             checked = swapSwipeActions,
                             onCheckedChange = { new ->
                                 scope.launch {
-                                    appPreferences.setSwapSwipeActions(new)
+                                    swapSwipeActions = new
+                                    appPreferences.saveSwapSwipeActions(new)
                                 }
                             })
                     }
                     SegmentedListItem(
                         colors = colors, shapes = segmentedShapes(4, 6), onClick = {
                             scope.launch {
-                                appPreferences.setGlassSlider(
-                                    !glassSlider
-                                )
+                                glassSlider = !glassSlider
+                                appPreferences.saveGlassSlider(glassSlider)
                             }
                         }) {
                         LabeledSwitch(
                             title = stringResource(R.string.glass_slider),
                             checked = glassSlider,
                             onCheckedChange = { new ->
-                                scope.launch { appPreferences.setGlassSlider(new) }
+                                glassSlider = new
+                                appPreferences.saveGlassSlider(new)
                             })
                     }
                     val clearedDefaultSourceMsg = stringResource(R.string.cleared_default_source)
                     SegmentedListItem(colors = colors, shapes = segmentedShapes(5, 6), onClick = {
                         scope.launch {
-                            appPreferences.setDefaultImageSource(null)
+                            defaultImageSource = null
+                            appPreferences.saveDefaultImageSource(null)
                             SnackbarController.pushEvent(
                                 SnackySnackbarEvents.MessageEvent(
                                     message = clearedDefaultSourceMsg,
@@ -601,7 +614,8 @@ fun SettingsSheetContent(
                         TextButton(
                             onClick = {
                                 scope.launch {
-                                    appPreferences.setDefaultImageSource(null)
+                                    defaultImageSource = null
+                                    appPreferences.saveDefaultImageSource(null)
                                     SnackbarController.pushEvent(
                                         SnackySnackbarEvents.MessageEvent(
                                             message = clearedDefaultSourceMsg,
@@ -625,7 +639,7 @@ fun SettingsSheetContent(
                         colors = colors,
                         dontRound = true,
                         onSelect = { theme ->
-                            scope.launch { appPreferences.setAppTheme(theme) }
+                            appPreferences.saveAppTheme(theme)
                             App.state.appTheme.value = theme
                         })
                 },

@@ -20,8 +20,6 @@ import com.je.dejpeg.R
 import com.je.dejpeg.data.AppPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
@@ -29,8 +27,7 @@ import java.io.OutputStream
 
 enum class ModelType(val extensions: List<String>, val enabled: Boolean = true) {
     ONNX(listOf(".onnx", ".ort"), true), OIDN(listOf(".tza"), BuildConfig.OIDN_ENABLED), LITERT(
-        listOf(".tflite"),
-        BuildConfig.LITERT_ENABLED
+        listOf(".tflite"), BuildConfig.LITERT_ENABLED
     );
 
     fun matches(filename: String): Boolean {
@@ -218,12 +215,10 @@ open class ModelManager(
 
     fun getActiveModelName(type: ModelType = ModelType.ONNX): String? {
         cachedActiveModels[type]?.let { return it }
-        return runBlocking {
-            val name = appPreferences.getActiveModel()
-            name?.also {
-                val detectedType = ModelType.fromFilename(name) ?: type
-                cachedActiveModels[detectedType] = name
-            }
+        val name = appPreferences.loadActiveModel()
+        return name?.also {
+            val detectedType = ModelType.fromFilename(name) ?: type
+            cachedActiveModels[detectedType] = name
         }
     }
 
@@ -247,19 +242,17 @@ open class ModelManager(
             ModelType.LITERT -> unloadLiteRtModel()
             ModelType.OIDN -> {}
         }
-        coroutineScope.launch {
-            appPreferences.setActiveModel(modelName)
-            Log.d("ModelManager", "Active $modelType model saved to DataStore: $modelName")
-        }
+        appPreferences.saveActiveModel(modelName)
+        Log.d("ModelManager", "Active $modelType model saved to SharedPreferences: $modelName")
     }
 
     private fun clearActiveModel() {
         cachedActiveModels.clear()
-        runBlocking { appPreferences.clearActiveModel() }
+        appPreferences.clearActiveModel()
     }
 
     protected fun setCurrentProcessingModel(modelName: String) {
-        coroutineScope.launch { appPreferences.setCurrentProcessingModel(modelName) }
+        appPreferences.saveCurrentProcessingModel(modelName)
     }
 
     fun getInstalledModels(type: ModelType = ModelType.ONNX): List<String> {
@@ -485,13 +478,10 @@ open class ModelManager(
         for (uri in modelUris) {
             index++
             importModel(
-                modelUri = uri,
-                onProgress = { p ->
+                modelUri = uri, onProgress = { p ->
                     val adjusted = ((index - 1) * 100 + p) / total
                     onProgress(adjusted)
-                },
-                onSuccess = { name, type -> onSuccess(name, type) },
-                onError = onError
+                }, onSuccess = { name, type -> onSuccess(name, type) }, onError = onError
             )
         }
     }
@@ -551,8 +541,7 @@ open class ModelManager(
 
     fun initializeStarterModel(): Boolean {
         return try {
-            val alreadyExtracted =
-                runBlocking { appPreferences.getStarterModelExtractedImmediate() }
+            val alreadyExtracted = appPreferences.loadStarterModelExtracted()
             if (alreadyExtracted) {
                 Log.d("ModelManager", "Starter model already extracted, skipping")
                 return false
@@ -574,7 +563,7 @@ open class ModelManager(
     }
 
     private fun markStarterModelExtracted() {
-        coroutineScope.launch { appPreferences.setStarterModelExtracted(true) }
+        appPreferences.saveStarterModelExtracted(true)
     }
 
     fun extractStarterModel(

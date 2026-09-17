@@ -93,7 +93,7 @@ fun ImageScreen(
 ) {
     val context = LocalContext.current
     val appPreferences = remember { AppPreferences() }
-    val showSaveDialog by appPreferences.showSaveDialog.collectAsState(initial = true)
+    val showSaveDialog = remember { appPreferences.loadShowSaveDialog() }
     val images by imageRepository.images.collectAsState()
     val image = images.firstOrNull { it.id == imageId }
     val isCompareMode = compareImageId != null
@@ -144,7 +144,7 @@ fun ImageScreen(
         "$leftName - $rightName"
     } else image.filename
 
-    val glassSlider by appPreferences.glassSlider.collectAsState(initial = true)
+    val glassSlider = remember { appPreferences.loadGlassSlider() }
     Column(
         Modifier
             .fillMaxSize()
@@ -312,7 +312,7 @@ fun ImageScreen(
 @Composable
 private fun SingleImageView(bitmap: Bitmap, needsChecker: Boolean) {
     val appPreferences = remember { AppPreferences() }
-    val isHapticEnabled by appPreferences.hapticFeedbackEnabled.collectAsState(initial = true)
+    val isHapticEnabled = remember { appPreferences.loadHapticFeedbackEnabled() }
     val checkerShader = if (needsChecker) rememberCheckerShader() else null
     val zoomableState = rememberZoomableState(
         ZoomSpec(

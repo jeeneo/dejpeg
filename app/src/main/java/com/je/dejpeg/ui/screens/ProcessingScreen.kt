@@ -7,6 +7,7 @@
 
 package com.je.dejpeg.ui.screens
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -136,6 +137,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.je.dejpeg.App
 import com.je.dejpeg.R
 import com.je.dejpeg.data.AppPreferences
+import com.je.dejpeg.data.HapticPatterns
 import com.je.dejpeg.data.ImageFlowDialogs
 import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.data.rememberImageFlows
@@ -167,8 +169,6 @@ import kotlin.math.roundToInt
 
 private enum class CardState { Idle, Processing, Complete, Stale }
 
-private val PredictiveBackDecelerate = PathInterpolator(0f, 0f, 0f, 1f)
-
 @OptIn(
     ExperimentalMaterial3Api::class,
     ExperimentalFoundationApi::class,
@@ -188,8 +188,8 @@ fun ProcessingScreen(
 ) {
     val context = App.ctx
     val appPreferences = remember { AppPreferences() }
-    val defaultImageSource by appPreferences.defaultImageSource.collectAsState(initial = null)
-    val swapSwipeActions by appPreferences.swapSwipeActions.collectAsState(initial = false)
+    val defaultImageSource = remember { appPreferences.loadDefaultImageSource() }
+    val swapSwipeActions = remember { appPreferences.loadSwapSwipeActions() }
     val images by imageRepository.images.collectAsState()
     val globalStrength by settingsViewModel.globalStrength.collectAsState()
     val activeSelection by settingsViewModel.activeSelection.collectAsState()
@@ -209,7 +209,7 @@ fun ProcessingScreen(
     var settingsExpanded by remember { mutableStateOf(false) }
     var settingsBackProgress by remember { mutableFloatStateOf(0f) }
     var showCancelAllDialog by remember { mutableStateOf(false) }
-    val showSaveDialog by appPreferences.showSaveDialog.collectAsState(initial = true)
+    val showSaveDialog = remember { appPreferences.loadShowSaveDialog() }
     var selectedImageIds by remember { mutableStateOf<List<String>>(emptyList()) }
     val isSelectionMode = selectedImageIds.isNotEmpty()
 
@@ -238,7 +238,7 @@ fun ProcessingScreen(
     val predictiveBackCallback = remember {
         object : OnBackPressedCallback(false) {
             override fun handleOnBackProgressed(backEvent: BackEventCompat) {
-                val interpolatedProgress = PredictiveBackDecelerate.getInterpolation(
+                val interpolatedProgress = PathInterpolator(0f, 0f, 0f, 1f).getInterpolation(
                     backEvent.progress.coerceIn(0f, 1f)
                 )
                 settingsBackProgress = if (currentSettingsExpanded) {
@@ -416,6 +416,7 @@ fun ProcessingScreen(
                 val settingsPress by rememberMaterialPressState(settingsInteraction)
                 FloatingActionButton(
                     onClick = {
+                        HapticPatterns.tap()
                         if (!settingsExpanded) clearSelection()
                         settingsExpanded = !settingsExpanded
                     },
@@ -440,6 +441,7 @@ fun ProcessingScreen(
                 if (images.isNotEmpty()) {
                     FloatingActionButton(
                         onClick = {
+                            HapticPatterns.tap()
                             if (isProcessing) {
                                 showCancelAllDialog = true
                             } else if (allComplete) {
@@ -506,7 +508,7 @@ fun ProcessingScreen(
                 val addPress by rememberMaterialPressState(addInteraction)
                 val addCorner = lerp(18f, 28f, addPress)
                 FloatingActionButton(
-                    onClick = { launchImportIntent() },
+                    onClick = { HapticPatterns.tap(); launchImportIntent() },
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     shape = RoundedCornerShape(addCorner.dp),
@@ -609,7 +611,7 @@ fun ProcessingScreen(
                                 .clip(RoundedCornerShape(28.dp))
                                 .clickable(
                                     interactionSource = buttonInteractionSource, indication = null
-                                ) { launchImportIntent() }
+                                ) { HapticPatterns.tap(); launchImportIntent() }
                                 .padding(20.dp),
                             contentAlignment = Alignment.Center) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -634,7 +636,7 @@ fun ProcessingScreen(
                                 Spacer(Modifier.height(8.dp))
                                 MorphButton(
                                     interactionSource = buttonInteractionSource,
-                                    onClick = { launchImportIntent() },
+                                    onClick = { HapticPatterns.tap(); launchImportIntent() },
                                     label = stringResource(R.string.add_images),
                                 )
                             }
@@ -1087,10 +1089,7 @@ fun SaveProgressDialog(saveState: SaveState.Saving) {
         properties = DialogProperties(),
         content = {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable(enabled = false) {},
-                contentAlignment = Alignment.Center
+                modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
             ) {
                 Surface(
                     shape = RoundedCornerShape(28.dp),
@@ -1155,6 +1154,7 @@ fun SaveProgressDialog(saveState: SaveState.Saving) {
         })
 }
 
+@SuppressLint("MissingHapticFeedback")
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ImageCardSplitButton(
@@ -1226,6 +1226,7 @@ private fun ImageCardSplitButton(
     ) {
         SplitButtonDefaults.LeadingButton(
             onClick = {
+                HapticPatterns.tap()
                 when (cardState) {
                     CardState.Processing -> {
                         onRemove()
@@ -1256,7 +1257,7 @@ private fun ImageCardSplitButton(
         Box {
             SplitButtonDefaults.TrailingButton(
                 checked = menuExpanded,
-                onCheckedChange = { menuExpanded = it },
+                onCheckedChange = { HapticPatterns.tap(); menuExpanded = it },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = containerColor,
                     contentColor = contentColor,
@@ -1276,12 +1277,14 @@ private fun ImageCardSplitButton(
                         .graphicsLayer { rotationZ = chevronRotation })
             }
             DropdownMenu(
-                expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                expanded = menuExpanded,
+                onDismissRequest = { HapticPatterns.tap(); menuExpanded = false }) {
                 if ((selectedCount > 1 && cardState != CardState.Processing) || cardState == CardState.Stale) {
                     DropdownMenuItem(
                         text = { Text(saveLabel) },
                         leadingIcon = { Icon(Icons.Rounded.Save, null) },
                         onClick = {
+                            HapticPatterns.tap()
                             menuExpanded = false
                             onSave()
                             clearSelection()
@@ -1293,6 +1296,7 @@ private fun ImageCardSplitButton(
                             Icons.Rounded.Delete, null, tint = MaterialTheme.colorScheme.error
                         )
                     }, onClick = {
+                        HapticPatterns.tap()
                         menuExpanded = false
                         onRemove()
                         clearSelection()
@@ -1303,6 +1307,7 @@ private fun ImageCardSplitButton(
                         text = { Text(stringResource(R.string.compare)) },
                         leadingIcon = { Icon(Icons.Rounded.SwapHoriz, null) },
                         onClick = {
+                            HapticPatterns.tap()
                             menuExpanded = false
                             onCompare()
                             clearSelection()
@@ -1315,6 +1320,7 @@ private fun ImageCardSplitButton(
                             Icon(Icons.Rounded.Refresh, null, modifier = Modifier.size(26.dp))
                         },
                         onClick = {
+                            HapticPatterns.tap()
                             menuExpanded = false
                             if (selectedCount > 1) onProcess(null)
                             else onProcess(image.id)
@@ -1326,6 +1332,7 @@ private fun ImageCardSplitButton(
                         text = { Text(stringResource(R.string.import_output)) },
                         leadingIcon = { Icon(Icons.Rounded.AddPhotoAlternate, null) },
                         onClick = {
+                            HapticPatterns.tap()
                             menuExpanded = false
                             onImportOutput()
                             clearSelection()
@@ -1347,6 +1354,7 @@ private fun ImageCardSplitButton(
                         }
                     },
                     onClick = {
+                        HapticPatterns.tap()
                         menuExpanded = false
                         onBrisque()
                         clearSelection()

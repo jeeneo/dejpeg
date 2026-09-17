@@ -21,6 +21,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.data.AppState
+import com.je.dejpeg.data.HapticPatterns
 import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.ui.screens.MainScreen
 import com.je.dejpeg.ui.theme.AppTheme
@@ -33,7 +34,9 @@ class App : Application() {
             private set
 
         val prefs: AppPreferences by lazy {
-            AppPreferences()
+            val p = AppPreferences()
+            HapticPatterns.appHapticsEnabled = p.loadHapticFeedbackEnabled()
+            p
         }
 
         val state: AppState by lazy {

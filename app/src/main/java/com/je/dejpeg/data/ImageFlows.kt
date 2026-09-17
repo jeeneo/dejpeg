@@ -18,7 +18,6 @@ import com.je.dejpeg.ui.viewmodel.ImageItem
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.utils.ImageActions
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 
 data class SaveRequest(
     val imageIds: List<String>,
@@ -81,7 +80,7 @@ class ImageFlows internal constructor(
     fun confirmSave(name: String?, saveAll: Boolean, disablePrompt: Boolean) {
         val action = pending as? PendingAction.Save ?: return
         pending = null
-        if (disablePrompt) scope.launch { appPreferences.setShowSaveDialog(false) }
+        if (disablePrompt) appPreferences.saveShowSaveDialog(false)
         if (saveAll) {
             val ids = images.filter { it.outputBitmap != null }.map { it.id }
             if (ids.isNotEmpty()) performSave(SaveRequest(ids), null, false)

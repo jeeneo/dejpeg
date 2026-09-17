@@ -113,9 +113,9 @@ import kotlin.math.roundToInt
 
 @Composable
 fun StyledAlertDialog(
+    modifier: Modifier = Modifier,
     onDismissRequest: () -> Unit,
     title: @Composable () -> Unit,
-    modifier: Modifier = Modifier,
     text: @Composable (() -> Unit)? = null,
     confirmButton: @Composable () -> Unit,
     dismissButton: @Composable (() -> Unit)? = null,
@@ -451,7 +451,7 @@ fun ImageSourceDialog(
     val appPreferences = remember { AppPreferences() }
     var setAsDefault by remember { mutableStateOf(false) }
     val handleSelection: suspend (String, () -> Unit) -> Unit = { key, action ->
-        if (setAsDefault) appPreferences.setDefaultImageSource(key)
+        if (setAsDefault) appPreferences.saveDefaultImageSource(key)
         action()
     }
     val sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden)
@@ -786,10 +786,6 @@ fun RecoveryDialog(
     }
 }
 
-enum class SettingsSection {
-    OnnxSettings, OidnSettings, MainSettings
-}
-
 @Composable
 fun Heading(title: String, modifier: Modifier = Modifier) {
     Column(
@@ -815,7 +811,6 @@ fun PowerSlider(
     powers: List<Int>,
     maxAllowed: Int = Int.MAX_VALUE,
     onChange: (Int) -> Unit,
-    hapticAction: () -> Unit,
     hideValue: Boolean = false,
 ) {
     val effectivePowers = remember(powers, maxAllowed) {
@@ -858,7 +853,7 @@ fun PowerSlider(
                     val newIdx = it.roundToInt().coerceIn(effectivePowers.indices)
                     if (newIdx != index) {
                         index = newIdx
-                        hapticAction()
+                        // ha
                         onChange(effectivePowers[newIdx])
                     }
                 }, enabled = effectivePowers.size > 1

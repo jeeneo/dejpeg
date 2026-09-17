@@ -19,9 +19,7 @@ import com.je.dejpeg.utils.ModelManager
 import com.je.dejpeg.utils.ModelMigrationHelper
 import com.je.dejpeg.utils.ModelType
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -51,18 +49,14 @@ class SettingsViewModel : ViewModel() {
         private set
     private var isInitialized = false
 
-    private fun <T> syncPref(flow: MutableStateFlow<T>, prefFlow: Flow<T>) {
-        viewModelScope.launch { prefFlow.collect { flow.value = it } }
-    }
-
-    private fun <T> persistPref(flow: MutableStateFlow<T>, value: T, save: suspend (T) -> Unit) {
+    private fun <T> persistPref(flow: MutableStateFlow<T>, value: T, save: (T) -> Unit) {
         flow.value = value
-        viewModelScope.launch { save(value) }
+        save(value)
     }
 
     private fun updateSelection(selection: ActiveSelection) {
         activeSelection.value = selection
-        viewModelScope.launch { appPreferences?.setProcessingMode(selection.type) }
+        appPreferences?.saveProcessingMode(selection.type)
     }
 
     fun setActiveModel(name: String) {
@@ -79,16 +73,15 @@ class SettingsViewModel : ViewModel() {
         modelManager = ModelManager.create(context)
 
         val prefs = appPreferences!!
-        syncPref(chunkSize, prefs.chunkSize)
-        syncPref(overlapSize, prefs.overlapSize)
-        syncPref(onnxDeviceThreads, prefs.onnxDeviceThreads)
-        syncPref(globalStrength, prefs.globalStrength)
-        syncPref(oidnHdr, prefs.oidnHdr)
-        syncPref(oidnSrgb, prefs.oidnSrgb)
-        syncPref(oidnQuality, prefs.oidnQuality)
-        syncPref(oidnMaxMemoryMB, prefs.oidnMaxMemoryMB)
-        syncPref(oidnNumThreads, prefs.oidnNumThreads)
-        syncPref(oidnInputScale, prefs.oidnInputScale)
+        chunkSize.value = prefs.loadChunkSize()
+        overlapSize.value = prefs.loadOverlapSize()
+        onnxDeviceThreads.value = prefs.loadOnnxDeviceThreads()
+        globalStrength.value = prefs.loadGlobalStrength()
+        oidnHdr.value = prefs.loadOidnHdr()
+        oidnSrgb.value = prefs.loadOidnSrgb()
+        oidnQuality.value = prefs.loadOidnQuality()
+        oidnNumThreads.value = prefs.loadOidnNumThreads()
+        oidnInputScale.value = prefs.loadOidnInputScale()
 
         viewModelScope.launch {
             ModelMigrationHelper.migrateModelsIfNeeded()
@@ -103,13 +96,13 @@ class SettingsViewModel : ViewModel() {
 
             importedModels.value = newInstalled
 
-            val savedType = prefs.processingMode.first()?.takeIf { it.enabled }
+            val savedType = prefs.loadProcessingMode()?.takeIf { it.enabled }
             val savedName = savedType?.let { type ->
                 withContext(Dispatchers.IO) { modelManager?.getActiveModelName(type) }?.takeIf { name ->
-                        newInstalled[type]?.contains(
-                            name
-                        ) == true
-                    }
+                    newInstalled[type]?.contains(
+                        name
+                    ) == true
+                }
             }
             activeSelection.value = ActiveSelection(savedType, savedName)
             hasCheckedModels.value = true
@@ -194,32 +187,30 @@ class SettingsViewModel : ViewModel() {
     fun hasActiveModel(type: ModelType? = ModelType.ONNX) =
         type?.let { modelManager?.hasActiveModel(it) } ?: false
 
-    fun setChunkSize(size: Int) =
-        persistPref(chunkSize, size) { appPreferences?.setChunkSize(it) ?: Unit }
+    fun setChunkSize(size: Int) = persistPref(chunkSize, size) { appPreferences?.saveChunkSize(it) }
 
     fun setOverlapSize(size: Int) =
-        persistPref(overlapSize, size) { appPreferences?.setOverlapSize(it) ?: Unit }
+        persistPref(overlapSize, size) { appPreferences?.saveOverlapSize(it) }
 
     fun setOnnxDeviceThreads(numThreads: Int) = persistPref(onnxDeviceThreads, numThreads) {
-        appPreferences?.setOnnxDeviceThreads(it) ?: Unit
+        appPreferences?.saveOnnxDeviceThreads(it)
     }
 
     fun setGlobalStrength(strength: Float) {
-        persistPref(globalStrength, strength) { appPreferences?.setGlobalStrength(it) ?: Unit }
+        persistPref(globalStrength, strength) { appPreferences?.saveGlobalStrength(it) }
     }
 
     fun setOidnInputScale(scale: Float) =
-        persistPref(oidnInputScale, scale) { appPreferences?.setOidnInputScale(it) ?: Unit }
+        persistPref(oidnInputScale, scale) { appPreferences?.saveOidnInputScale(it) }
 
-    fun setOidnHdrPref(hdr: Boolean) =
-        persistPref(oidnHdr, hdr) { appPreferences?.setOidnHdr(it) ?: Unit }
+    fun setOidnHdrPref(hdr: Boolean) = persistPref(oidnHdr, hdr) { appPreferences?.saveOidnHdr(it) }
 
     fun setOidnSrgbPref(srgb: Boolean) =
-        persistPref(oidnSrgb, srgb) { appPreferences?.setOidnSrgb(it) ?: Unit }
+        persistPref(oidnSrgb, srgb) { appPreferences?.saveOidnSrgb(it) }
 
     fun setOidnQualityPref(quality: Int) =
-        persistPref(oidnQuality, quality) { appPreferences?.setOidnQuality(it) ?: Unit }
+        persistPref(oidnQuality, quality) { appPreferences?.saveOidnQuality(it) }
 
     fun setOidnNumThreadsPref(numThreads: Int) =
-        persistPref(oidnNumThreads, numThreads) { appPreferences?.setOidnNumThreads(it) ?: Unit }
+        persistPref(oidnNumThreads, numThreads) { appPreferences?.saveOidnNumThreads(it) }
 }

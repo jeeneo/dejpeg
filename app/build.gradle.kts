@@ -131,6 +131,7 @@ androidComponents {
 }
 
 dependencies {
+    lintChecks(project(":build-tools:lint-rules"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)

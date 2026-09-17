@@ -73,9 +73,7 @@ class BrisqueViewModel : ViewModel() {
 
     fun updateSettings(newSettings: BrisqueSettings) {
         settings.value = newSettings
-        viewModelScope.launch {
-            appPreferences?.setBrisqueSettings(newSettings)
-        }
+        appPreferences?.saveBrisqueSettings(newSettings)
     }
 
     fun initialize(context: Context, bitmap: Bitmap, filename: String) {
@@ -83,11 +81,7 @@ class BrisqueViewModel : ViewModel() {
         appPreferences = AppPreferences()
 
         BRISQUEAssessor.initialize(context.applicationContext)
-        viewModelScope.launch {
-            appPreferences?.brisqueSettings?.collect { loadedSettings ->
-                settings.value = loadedSettings
-            }
-        }
+        settings.value = appPreferences?.loadBrisqueSettings() ?: BrisqueSettings()
 
         imageState.value = BrisqueImageState(
             originalBitmap = bitmap, filename = filename

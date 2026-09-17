@@ -13,7 +13,6 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import com.je.dejpeg.App
 import com.je.dejpeg.data.AppPreferences
-import com.je.dejpeg.data.PreferenceKeys
 import com.je.dejpeg.data.dataStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -33,8 +32,7 @@ object ModelMigrationHelper {
         context.dataStore.edit { store ->
             val oldKey = booleanPreferencesKey("skipSaveDialog")
             if (store[oldKey] != null) {
-                store[PreferenceKeys.SHOW_SAVE_DIALOG] =
-                    !(store[oldKey]!!) // convert to bool, invert, and delete old key
+                prefs.saveShowSaveDialog(!(store[oldKey]!!))
                 store.remove(oldKey)
                 Log.d(TAG, "Migrated 'skipSaveDialog' to 'showSaveDialog'")
             }
@@ -44,8 +42,8 @@ object ModelMigrationHelper {
             context.filesDir,
             getOnnxModelsDir(context),
             { it.isFile && it.name.lowercase().endsWith(".onnx") },
-            { prefs.getCompatModelCleanupImmediate() },
-            { prefs.setCompatModelCleanup(true) })
+            { prefs.loadCompatModelCleanup() },
+            { prefs.saveCompatModelCleanup(true) })
         val brisque = deleteDeprecated(
             listOf(File(context.filesDir, "models"), getBrisqueModelsDir(context)),
             listOf("brisque_model_live.yml", "brisque_range_live.yml")

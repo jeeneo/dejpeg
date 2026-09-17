@@ -15,19 +15,15 @@ import android.os.VibrationAttributes
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
+import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.floatPreferencesKey
-import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.je.dejpeg.App
-import com.je.dejpeg.data.HapticFeedbacks.appHapticsEnabled
 import com.je.dejpeg.ui.theme.AppTheme
 import com.je.dejpeg.ui.viewmodel.ImageItem
 import com.je.dejpeg.utils.ImageLoadingHelper
@@ -36,15 +32,15 @@ import com.je.dejpeg.utils.ModelType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
+
+enum class SettingsSection {
+    OnnxSettings, OidnSettings, MainSettings
+}
 
 class AppState(prefs: AppPreferences) {
     val appTheme: MutableState<AppTheme> = mutableStateOf(prefs.loadAppTheme())
@@ -66,15 +62,17 @@ object ThreadUtils {
     }
 }
 
-object HapticFeedbacks {
-    private val vibrator by lazy {
-        App.ctx.getSystemService(Vibrator::class.java)
-    }
-
+object HapticPatterns {
     var appHapticsEnabled = true
+    private val vibrator: Vibrator?
+        get() = App.ctx.getSystemService(Vibrator::class.java)
+    private val useHaptics get() = appHapticsEnabled
+    private const val TAP_DURATION_MS = 20L
 
-    private fun vibrate(effect: VibrationEffect, force: Boolean = false) {
-        if (!force && !appHapticsEnabled) return
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private fun vibratePredefined(effectId: Int) {
+        val vibrator = vibrator ?: return
+        val effect = VibrationEffect.createPredefined(effectId)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             vibrator.vibrate(
                 effect,
@@ -85,344 +83,212 @@ object HapticFeedbacks {
         }
     }
 
-    fun light(force: Boolean = false) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) vibrate(
-            VibrationEffect.createPredefined(
-                VibrationEffect.EFFECT_TICK
-            ), force
-        )
-        else vibrate(VibrationEffect.createOneShot(10, 80), force)
+    private fun vibrateOldSdk() {
+        if (!useHaptics) return
+        val vibrator = vibrator ?: return
+        @Suppress("DEPRECATION") vibrator.vibrate(TAP_DURATION_MS)
     }
 
-    fun medium(force: Boolean = false) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) vibrate(
-            VibrationEffect.createPredefined(
-                VibrationEffect.EFFECT_CLICK
-            ), force
-        )
-        else vibrate(VibrationEffect.createOneShot(20, 120), force)
+    fun tap(force: Boolean = false) {
+        if (!useHaptics && !force) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            vibratePredefined(VibrationEffect.EFFECT_TICK)
+        } else {
+            vibrateOldSdk()
+        }
     }
 
-    fun heavy(force: Boolean = false) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) vibrate(
-            VibrationEffect.createPredefined(
-                VibrationEffect.EFFECT_HEAVY_CLICK
-            ), force
-        )
-        else vibrate(VibrationEffect.createOneShot(40, 200), force)
+    fun longPress(force: Boolean = false) {
+        if (!useHaptics && !force) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            vibratePredefined(VibrationEffect.EFFECT_HEAVY_CLICK)
+        } else {
+            vibrateOldSdk()
+        }
     }
-
-    fun gestureStart(force: Boolean = false) = light(force)
 }
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "app_prefs")
 
-object PreferenceKeys {
-    val SHOW_SAVE_DIALOG = booleanPreferencesKey("showSaveDialog")
-    val DEFAULT_IMAGE_SOURCE = stringPreferencesKey("defaultImageSource")
-    val HAPTIC_FEEDBACK_ENABLED = booleanPreferencesKey("hapticFeedbackEnabled")
-    val SWAP_SWIPE_ACTIONS = booleanPreferencesKey("swapSwipeActions")
-    val COMPAT_MODEL_CLEANUP = booleanPreferencesKey("compatModelCleanup")
-    val STARTER_MODEL_EXTRACTED = booleanPreferencesKey("starterModelExtracted")
-    val ACTIVE_MODEL = stringPreferencesKey("activeModel")
-    val CURRENT_PROCESSING_MODEL = stringPreferencesKey("current_processing_model")
-    val CHUNK_SIZE = intPreferencesKey("chunk_size")
-    val OVERLAP_SIZE = intPreferencesKey("overlap_size")
-    val ONNX_DEVICE_THREADS = intPreferencesKey("onnx_device_threads")
-    val GLOBAL_STRENGTH = floatPreferencesKey("global_strength")
-    val BRISQUE_COARSE_STEP = intPreferencesKey("brisque_coarse_step")
-    val BRISQUE_FINE_STEP = intPreferencesKey("brisque_fine_step")
-    val BRISQUE_FINE_RANGE = intPreferencesKey("brisque_fine_range")
-    val BRISQUE_MIN_WIDTH_RATIO = floatPreferencesKey("brisque_min_width_ratio")
-    val BRISQUE_WEIGHT = floatPreferencesKey("brisque_weight")
-    val BRISQUE_SHARPNESS_WEIGHT = floatPreferencesKey("brisque_sharpness_weight")
-    val PROCESSING_MODE = stringPreferencesKey("processing_mode")
-    val OIDN_HDR = booleanPreferencesKey("oidn_hdr")
-    val OIDN_SRGB = booleanPreferencesKey("oidn_srgb")
-    val OIDN_QUALITY = intPreferencesKey("oidn_quality")
-    val OIDN_MAX_MEMORY_MB = intPreferencesKey("oidn_max_memory_mb")
-    val OIDN_NUM_THREADS = intPreferencesKey("oidn_num_threads")
-    val OIDN_INPUT_SCALE = floatPreferencesKey("oidn_input_scale")
-    val APP_THEME = stringPreferencesKey("app_theme")
-    val GLASS_SLIDER = booleanPreferencesKey("before_after_screen_glasseffect")
-}
-
 data class BrisqueSettings(
-    val coarseStep: Int = DEFAULT_BRISQUE_COARSE_STEP,
-    val fineStep: Int = DEFAULT_BRISQUE_FINE_STEP,
-    val fineRange: Int = DEFAULT_BRISQUE_FINE_RANGE,
-    val minWidthRatio: Float = DEFAULT_BRISQUE_MIN_WIDTH_RATIO,
-    val brisqueWeight: Float = DEFAULT_BRISQUE_WEIGHT,
-    val sharpnessWeight: Float = DEFAULT_BRISQUE_SHARPNESS_WEIGHT
+    val coarseStep: Int = AppPreferences.DEFAULT_BRISQUE_COARSE_STEP,
+    val fineStep: Int = AppPreferences.DEFAULT_BRISQUE_FINE_STEP,
+    val fineRange: Int = AppPreferences.DEFAULT_BRISQUE_FINE_RANGE,
+    val minWidthRatio: Float = AppPreferences.DEFAULT_BRISQUE_MIN_WIDTH_RATIO,
+    val brisqueWeight: Float = AppPreferences.DEFAULT_BRISQUE_WEIGHT,
+    val sharpnessWeight: Float = AppPreferences.DEFAULT_BRISQUE_SHARPNESS_WEIGHT
 )
 
-private const val DEFAULT_BRISQUE_COARSE_STEP = 20
-private const val DEFAULT_BRISQUE_FINE_STEP = 5
-private const val DEFAULT_BRISQUE_FINE_RANGE = 30
-private const val DEFAULT_BRISQUE_MIN_WIDTH_RATIO = 0.5f
-private const val DEFAULT_BRISQUE_WEIGHT = 0.7f
-private const val DEFAULT_BRISQUE_SHARPNESS_WEIGHT = 0.3f
-
 class AppPreferences {
-
     companion object {
+        const val PREFS_NAME = "app_prefs"
+        const val KEY_SHOW_SAVE_DIALOG = "showSaveDialog"
+        const val KEY_DEFAULT_IMAGE_SOURCE = "defaultImageSource"
+        const val KEY_HAPTIC_FEEDBACK_ENABLED = "hapticFeedbackEnabled"
+        const val KEY_SWAP_SWIPE_ACTIONS = "swapSwipeActions"
+        const val KEY_COMPAT_MODEL_CLEANUP = "compatModelCleanup"
+        const val KEY_CHUNK_SIZE = "chunk_size"
+        const val KEY_OVERLAP_SIZE = "overlap_size"
+        const val KEY_ONNX_DEVICE_THREADS = "onnx_device_threads"
+        const val KEY_GLOBAL_STRENGTH = "global_strength"
+        const val KEY_ACTIVE_MODEL = "activeModel"
+        const val KEY_STARTER_MODEL_EXTRACTED = "starterModelExtracted"
+        const val KEY_BRISQUE_COARSE_STEP = "brisque_coarse_step"
+        const val KEY_BRISQUE_FINE_STEP = "brisque_fine_step"
+        const val KEY_BRISQUE_FINE_RANGE = "brisque_fine_range"
+        const val KEY_BRISQUE_MIN_WIDTH_RATIO = "brisque_min_width_ratio"
+        const val KEY_BRISQUE_WEIGHT = "brisque_weight"
+        const val KEY_BRISQUE_SHARPNESS_WEIGHT = "brisque_sharpness_weight"
+        const val KEY_PROCESSING_MODE = "processing_mode"
+        const val KEY_CURRENT_PROCESSING_MODEL = "current_processing_model"
+        const val KEY_OIDN_HDR = "oidn_hdr"
+        const val KEY_OIDN_SRGB = "oidn_srgb"
+        const val KEY_OIDN_QUALITY = "oidn_quality"
+        const val KEY_OIDN_NUM_THREADS = "oidn_num_threads"
+        const val KEY_OIDN_INPUT_SCALE = "oidn_input_scale"
+        const val KEY_APP_THEME = "app_theme"
+        const val KEY_GLASS_SLIDER = "before_after_screen_glasseffect"
         const val DEFAULT_CHUNK_SIZE = 512
         const val DEFAULT_OVERLAP_SIZE = 16
         const val DEFAULT_ONNX_DEVICE_THREADS = 0
         const val DEFAULT_GLOBAL_STRENGTH = 50f
+
         const val DEFAULT_OIDN_QUALITY = 0
         const val DEFAULT_OIDN_MAX_MEMORY_MB = 0
         const val DEFAULT_OIDN_NUM_THREADS = 0
         const val DEFAULT_OIDN_INPUT_SCALE = 0f
+
+        const val DEFAULT_BRISQUE_COARSE_STEP = 20
+        const val DEFAULT_BRISQUE_FINE_STEP = 5
+        const val DEFAULT_BRISQUE_FINE_RANGE = 30
+        const val DEFAULT_BRISQUE_MIN_WIDTH_RATIO = 0.5f
+        const val DEFAULT_BRISQUE_WEIGHT = 0.7f
+        const val DEFAULT_BRISQUE_SHARPNESS_WEIGHT = 0.3f
     }
 
-    val showSaveDialog: Flow<Boolean> = App.ctx.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.SHOW_SAVE_DIALOG] ?: true
-    }
+    private fun prefs() = App.ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    val defaultImageSource: Flow<String?> = App.ctx.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.DEFAULT_IMAGE_SOURCE]
-    }
+    fun loadShowSaveDialog(): Boolean = prefs().getBoolean(KEY_SHOW_SAVE_DIALOG, true)
+    fun saveShowSaveDialog(show: Boolean) = prefs().edit { putBoolean(KEY_SHOW_SAVE_DIALOG, show) }
 
-    val hapticFeedbackEnabled: Flow<Boolean> = App.ctx.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.HAPTIC_FEEDBACK_ENABLED] ?: true
-    }
-
-    val swapSwipeActions: Flow<Boolean> = App.ctx.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.SWAP_SWIPE_ACTIONS] ?: false
-    }
-
-    val compatModelCleanup: Flow<Boolean> = App.ctx.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.COMPAT_MODEL_CLEANUP] ?: false
-    }
-
-    val chunkSize: Flow<Int> = App.ctx.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.CHUNK_SIZE] ?: DEFAULT_CHUNK_SIZE
-    }
-
-    val overlapSize: Flow<Int> = App.ctx.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.OVERLAP_SIZE] ?: DEFAULT_OVERLAP_SIZE
-    }
-
-    val onnxDeviceThreads: Flow<Int> = App.ctx.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.ONNX_DEVICE_THREADS] ?: DEFAULT_ONNX_DEVICE_THREADS
-    }
-
-    val globalStrength: Flow<Float> = App.ctx.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.GLOBAL_STRENGTH] ?: DEFAULT_GLOBAL_STRENGTH
-    }
-
-    val activeModel: Flow<String?> = App.ctx.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.ACTIVE_MODEL]
-    }
-
-    val starterModelExtracted: Flow<Boolean> = App.ctx.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.STARTER_MODEL_EXTRACTED] ?: false
-    }
-
-    val brisqueSettings: Flow<BrisqueSettings> = App.ctx.dataStore.data.map { prefs ->
-        BrisqueSettings(
-            coarseStep = prefs[PreferenceKeys.BRISQUE_COARSE_STEP] ?: DEFAULT_BRISQUE_COARSE_STEP,
-            fineStep = prefs[PreferenceKeys.BRISQUE_FINE_STEP] ?: DEFAULT_BRISQUE_FINE_STEP,
-            fineRange = prefs[PreferenceKeys.BRISQUE_FINE_RANGE] ?: DEFAULT_BRISQUE_FINE_RANGE,
-            minWidthRatio = prefs[PreferenceKeys.BRISQUE_MIN_WIDTH_RATIO]
-                ?: DEFAULT_BRISQUE_MIN_WIDTH_RATIO,
-            brisqueWeight = prefs[PreferenceKeys.BRISQUE_WEIGHT] ?: DEFAULT_BRISQUE_WEIGHT,
-            sharpnessWeight = prefs[PreferenceKeys.BRISQUE_SHARPNESS_WEIGHT]
-                ?: DEFAULT_BRISQUE_SHARPNESS_WEIGHT
+    fun loadDefaultImageSource(): String? = prefs().getString(KEY_DEFAULT_IMAGE_SOURCE, null)
+    fun saveDefaultImageSource(source: String?) = prefs().edit {
+        if (source == null) remove(KEY_DEFAULT_IMAGE_SOURCE) else putString(
+            KEY_DEFAULT_IMAGE_SOURCE, source
         )
     }
 
-    suspend fun setShowSaveDialog(show: Boolean) {
-        App.ctx.dataStore.edit { prefs ->
-            prefs[PreferenceKeys.SHOW_SAVE_DIALOG] = show
-        }
+    fun loadHapticFeedbackEnabled(): Boolean = prefs().getBoolean(KEY_HAPTIC_FEEDBACK_ENABLED, true)
+    fun saveHapticToggle(enabled: Boolean) =
+        prefs().edit { putBoolean(KEY_HAPTIC_FEEDBACK_ENABLED, enabled) }
+
+    fun loadSwapSwipeActions(): Boolean = prefs().getBoolean(KEY_SWAP_SWIPE_ACTIONS, false)
+    fun saveSwapSwipeActions(swap: Boolean) =
+        prefs().edit { putBoolean(KEY_SWAP_SWIPE_ACTIONS, swap) }
+
+    fun loadCompatModelCleanup(): Boolean = prefs().getBoolean(KEY_COMPAT_MODEL_CLEANUP, false)
+    fun saveCompatModelCleanup(completed: Boolean) =
+        prefs().edit { putBoolean(KEY_COMPAT_MODEL_CLEANUP, completed) }
+
+    fun loadChunkSize(): Int = prefs().getInt(KEY_CHUNK_SIZE, DEFAULT_CHUNK_SIZE)
+    fun saveChunkSize(size: Int) = prefs().edit { putInt(KEY_CHUNK_SIZE, size) }
+
+    fun loadOverlapSize(): Int = prefs().getInt(KEY_OVERLAP_SIZE, DEFAULT_OVERLAP_SIZE)
+    fun saveOverlapSize(size: Int) = prefs().edit { putInt(KEY_OVERLAP_SIZE, size) }
+
+    fun loadOnnxDeviceThreads(): Int =
+        prefs().getInt(KEY_ONNX_DEVICE_THREADS, DEFAULT_ONNX_DEVICE_THREADS)
+
+    fun saveOnnxDeviceThreads(numThreads: Int) =
+        prefs().edit { putInt(KEY_ONNX_DEVICE_THREADS, numThreads) }
+
+    fun loadGlobalStrength(): Float = prefs().getFloat(KEY_GLOBAL_STRENGTH, DEFAULT_GLOBAL_STRENGTH)
+    fun saveGlobalStrength(strength: Float) =
+        prefs().edit { putFloat(KEY_GLOBAL_STRENGTH, strength) }
+
+    fun loadActiveModel(): String? = prefs().getString(KEY_ACTIVE_MODEL, null)
+    fun saveActiveModel(modelName: String) = prefs().edit { putString(KEY_ACTIVE_MODEL, modelName) }
+    fun clearActiveModel() = prefs().edit { remove(KEY_ACTIVE_MODEL) }
+
+    fun loadStarterModelExtracted(): Boolean =
+        prefs().getBoolean(KEY_STARTER_MODEL_EXTRACTED, false)
+
+    fun saveStarterModelExtracted(extracted: Boolean) =
+        prefs().edit { putBoolean(KEY_STARTER_MODEL_EXTRACTED, extracted) }
+
+    fun loadBrisqueSettings(): BrisqueSettings {
+        return BrisqueSettings(
+            coarseStep = prefs().getInt(KEY_BRISQUE_COARSE_STEP, DEFAULT_BRISQUE_COARSE_STEP),
+            fineStep = prefs().getInt(KEY_BRISQUE_FINE_STEP, DEFAULT_BRISQUE_FINE_STEP),
+            fineRange = prefs().getInt(KEY_BRISQUE_FINE_RANGE, DEFAULT_BRISQUE_FINE_RANGE),
+            minWidthRatio = prefs().getFloat(
+                KEY_BRISQUE_MIN_WIDTH_RATIO, DEFAULT_BRISQUE_MIN_WIDTH_RATIO
+            ),
+            brisqueWeight = prefs().getFloat(KEY_BRISQUE_WEIGHT, DEFAULT_BRISQUE_WEIGHT),
+            sharpnessWeight = prefs().getFloat(
+                KEY_BRISQUE_SHARPNESS_WEIGHT, DEFAULT_BRISQUE_SHARPNESS_WEIGHT
+            )
+        )
     }
 
-    suspend fun setDefaultImageSource(source: String?) {
-        App.ctx.dataStore.edit { prefs ->
-            if (source == null) {
-                prefs.remove(PreferenceKeys.DEFAULT_IMAGE_SOURCE)
-            } else {
-                prefs[PreferenceKeys.DEFAULT_IMAGE_SOURCE] = source
-            }
-        }
+    fun saveBrisqueSettings(settings: BrisqueSettings) = prefs().edit {
+        putInt(KEY_BRISQUE_COARSE_STEP, settings.coarseStep)
+        putInt(KEY_BRISQUE_FINE_STEP, settings.fineStep)
+        putInt(KEY_BRISQUE_FINE_RANGE, settings.fineRange)
+        putFloat(KEY_BRISQUE_MIN_WIDTH_RATIO, settings.minWidthRatio)
+        putFloat(KEY_BRISQUE_WEIGHT, settings.brisqueWeight)
+        putFloat(KEY_BRISQUE_SHARPNESS_WEIGHT, settings.sharpnessWeight)
     }
 
-    suspend fun setHapticFeedbackEnabled(enabled: Boolean) {
-        App.ctx.dataStore.edit { prefs ->
-            prefs[PreferenceKeys.HAPTIC_FEEDBACK_ENABLED] = enabled
-        }
-        appHapticsEnabled = enabled
+    fun loadProcessingMode(): ModelType? =
+        prefs().getString(KEY_PROCESSING_MODE, null)?.let { ModelType.fromString(it) }
+
+    fun saveProcessingMode(mode: ModelType?) = prefs().edit {
+        if (mode == null) remove(KEY_PROCESSING_MODE)
+        else putString(KEY_PROCESSING_MODE, mode.name)
     }
 
-    suspend fun setSwapSwipeActions(swap: Boolean) {
-        App.ctx.dataStore.edit { prefs ->
-            prefs[PreferenceKeys.SWAP_SWIPE_ACTIONS] = swap
-        }
-    }
+    fun loadOidnHdr(): Boolean = prefs().getBoolean(KEY_OIDN_HDR, false)
+    fun saveOidnHdr(hdr: Boolean) = prefs().edit { putBoolean(KEY_OIDN_HDR, hdr) }
+    fun loadOidnSrgb(): Boolean = prefs().getBoolean(KEY_OIDN_SRGB, false)
+    fun saveOidnSrgb(srgb: Boolean) = prefs().edit { putBoolean(KEY_OIDN_SRGB, srgb) }
+    fun loadOidnQuality(): Int = prefs().getInt(KEY_OIDN_QUALITY, DEFAULT_OIDN_QUALITY)
+    fun saveOidnQuality(quality: Int) = prefs().edit { putInt(KEY_OIDN_QUALITY, quality) }
+    fun loadOidnNumThreads(): Int = prefs().getInt(KEY_OIDN_NUM_THREADS, DEFAULT_OIDN_NUM_THREADS)
+    fun saveOidnNumThreads(numThreads: Int) =
+        prefs().edit { putInt(KEY_OIDN_NUM_THREADS, numThreads) }
 
-    suspend fun setCompatModelCleanup(completed: Boolean) {
-        App.ctx.dataStore.edit { prefs ->
-            prefs[PreferenceKeys.COMPAT_MODEL_CLEANUP] = completed
-        }
-    }
+    fun loadOidnInputScale(): Float =
+        prefs().getFloat(KEY_OIDN_INPUT_SCALE, DEFAULT_OIDN_INPUT_SCALE)
 
-    suspend fun getCompatModelCleanupImmediate(): Boolean = compatModelCleanup.first()
-
-    suspend fun setChunkSize(size: Int) {
-        App.ctx.dataStore.edit { prefs ->
-            prefs[PreferenceKeys.CHUNK_SIZE] = size
-        }
-    }
-
-    suspend fun setOverlapSize(size: Int) {
-        App.ctx.dataStore.edit { prefs ->
-            prefs[PreferenceKeys.OVERLAP_SIZE] = size
-        }
-    }
-
-    suspend fun setOnnxDeviceThreads(numThreads: Int) {
-        App.ctx.dataStore.edit { prefs ->
-            prefs[PreferenceKeys.ONNX_DEVICE_THREADS] = numThreads
-        }
-    }
-
-    suspend fun setGlobalStrength(strength: Float) {
-        App.ctx.dataStore.edit { prefs ->
-            prefs[PreferenceKeys.GLOBAL_STRENGTH] = strength
-        }
-    }
-
-    suspend fun setBrisqueSettings(settings: BrisqueSettings) {
-        App.ctx.dataStore.edit { prefs ->
-            prefs[PreferenceKeys.BRISQUE_COARSE_STEP] = settings.coarseStep
-            prefs[PreferenceKeys.BRISQUE_FINE_STEP] = settings.fineStep
-            prefs[PreferenceKeys.BRISQUE_FINE_RANGE] = settings.fineRange
-            prefs[PreferenceKeys.BRISQUE_MIN_WIDTH_RATIO] = settings.minWidthRatio
-            prefs[PreferenceKeys.BRISQUE_WEIGHT] = settings.brisqueWeight
-            prefs[PreferenceKeys.BRISQUE_SHARPNESS_WEIGHT] = settings.sharpnessWeight
-        }
-    }
-
-    suspend fun setActiveModel(modelName: String) {
-        App.ctx.dataStore.edit { prefs ->
-            prefs[PreferenceKeys.ACTIVE_MODEL] = modelName
-        }
-    }
-
-    suspend fun clearActiveModel() {
-        App.ctx.dataStore.edit { prefs ->
-            prefs.remove(PreferenceKeys.ACTIVE_MODEL)
-        }
-    }
-
-    suspend fun setCurrentProcessingModel(modelName: String) {
-        App.ctx.dataStore.edit { prefs ->
-            prefs[PreferenceKeys.CURRENT_PROCESSING_MODEL] = modelName
-        }
-    }
-
-    suspend fun getActiveModel(): String? = activeModel.first()
-
-    suspend fun setStarterModelExtracted(extracted: Boolean) {
-        App.ctx.dataStore.edit { prefs ->
-            prefs[PreferenceKeys.STARTER_MODEL_EXTRACTED] = extracted
-        }
-    }
-
-    suspend fun getStarterModelExtractedImmediate(): Boolean = starterModelExtracted.first()
-
-    val processingMode: Flow<ModelType?> = App.ctx.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.PROCESSING_MODE]?.let { ModelType.fromString(it) }
-    }
-
-    suspend fun setProcessingMode(mode: ModelType?) {
-        App.ctx.dataStore.edit { prefs ->
-            if (mode == null) prefs.remove(PreferenceKeys.PROCESSING_MODE)
-            else prefs[PreferenceKeys.PROCESSING_MODE] = mode.name
-        }
-    }
-
-    val oidnHdr: Flow<Boolean> = App.ctx.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.OIDN_HDR] ?: false
-    }
-
-    val oidnSrgb: Flow<Boolean> = App.ctx.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.OIDN_SRGB] ?: false
-    }
-
-    val oidnQuality: Flow<Int> = App.ctx.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.OIDN_QUALITY] ?: DEFAULT_OIDN_QUALITY
-    }
-
-    val oidnMaxMemoryMB: Flow<Int> = App.ctx.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.OIDN_MAX_MEMORY_MB] ?: DEFAULT_OIDN_MAX_MEMORY_MB
-    }
-
-    val oidnNumThreads: Flow<Int> = App.ctx.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.OIDN_NUM_THREADS] ?: DEFAULT_OIDN_NUM_THREADS
-    }
-
-    val oidnInputScale: Flow<Float> = App.ctx.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.OIDN_INPUT_SCALE] ?: DEFAULT_OIDN_INPUT_SCALE
-    }
-
-    suspend fun setOidnHdr(hdr: Boolean) {
-        App.ctx.dataStore.edit { prefs -> prefs[PreferenceKeys.OIDN_HDR] = hdr }
-    }
-
-    suspend fun setOidnSrgb(srgb: Boolean) {
-        App.ctx.dataStore.edit { prefs -> prefs[PreferenceKeys.OIDN_SRGB] = srgb }
-    }
-
-    suspend fun setOidnQuality(quality: Int) {
-        App.ctx.dataStore.edit { prefs -> prefs[PreferenceKeys.OIDN_QUALITY] = quality }
-    }
-
-    suspend fun setOidnNumThreads(numThreads: Int) {
-        App.ctx.dataStore.edit { prefs -> prefs[PreferenceKeys.OIDN_NUM_THREADS] = numThreads }
-    }
-
-    suspend fun setOidnInputScale(inputScale: Float) {
-        App.ctx.dataStore.edit { prefs -> prefs[PreferenceKeys.OIDN_INPUT_SCALE] = inputScale }
-    }
+    fun saveOidnInputScale(inputScale: Float) =
+        prefs().edit { putFloat(KEY_OIDN_INPUT_SCALE, inputScale) }
 
     fun loadAppTheme(): AppTheme {
-        return runCatching {
-            val prefs = runBlocking {
-                App.ctx.dataStore.data.first()
-            }
-
-            when (prefs[PreferenceKeys.APP_THEME]) {
-                "light" -> AppTheme.Light
-                "dark" -> AppTheme.Dark
-                "oled" -> AppTheme.OLED
-                else -> AppTheme.Dynamic
-            }
-        }.getOrDefault(AppTheme.Dynamic)
+        return when (prefs().getString(KEY_APP_THEME, "dynamic")) {
+            "light" -> AppTheme.Light
+            "dark" -> AppTheme.Dark
+            "oled" -> AppTheme.OLED
+            else -> AppTheme.Dynamic
+        }
     }
 
-    suspend fun setAppTheme(theme: AppTheme) {
-        App.ctx.dataStore.edit { prefs ->
-            prefs[PreferenceKeys.APP_THEME] = when (theme) {
+    fun saveAppTheme(theme: AppTheme) = prefs().edit {
+        putString(
+            KEY_APP_THEME, when (theme) {
                 AppTheme.Dynamic -> "dynamic"
                 AppTheme.Light -> "light"
                 AppTheme.Dark -> "dark"
                 AppTheme.OLED -> "oled"
             }
-        }
+        )
     }
 
-    val glassSlider: Flow<Boolean> = App.ctx.dataStore.data.map { prefs ->
-        prefs[PreferenceKeys.GLASS_SLIDER] ?: false
-    }
+    fun loadGlassSlider(): Boolean = prefs().getBoolean(KEY_GLASS_SLIDER, false)
+    fun saveGlassSlider(enabled: Boolean) = prefs().edit { putBoolean(KEY_GLASS_SLIDER, enabled) }
 
-    suspend fun setGlassSlider(enabled: Boolean) {
-        App.ctx.dataStore.edit { prefs ->
-            prefs[PreferenceKeys.GLASS_SLIDER] = enabled
-        }
-    }
+    fun saveCurrentProcessingModel(modelName: String) =
+        prefs().edit { putString(KEY_CURRENT_PROCESSING_MODEL, modelName) }
 }
 
 class ImageRepository {
