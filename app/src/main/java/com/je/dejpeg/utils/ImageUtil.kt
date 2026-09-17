@@ -27,6 +27,7 @@ import androidx.core.content.FileProvider
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
 import com.je.dejpeg.R
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -346,6 +347,7 @@ object ImageActions {
     }
 
     fun saveImage(
+        scope: CoroutineScope,
         context: Context,
         bitmap: Bitmap,
         filename: String? = null,
@@ -354,7 +356,7 @@ object ImageActions {
         onSuccess: () -> Unit = {},
         onError: (String) -> Unit = {}
     ) {
-        @OptIn(DelicateCoroutinesApi::class) GlobalScope.launch(Dispatchers.IO) {
+        scope.launch(Dispatchers.IO) {
             try {
                 val fileNameRaw = filename?.takeIf { it.isNotBlank() } ?: "DeJPEG_${
                     SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(
@@ -394,7 +396,6 @@ object ImageActions {
                 context.contentResolver.openOutputStream(uri)
                     ?.use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
                     ?: throw IOException("Failed to open output stream")
-
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     values.clear()
                     values.put(MediaStore.Images.Media.IS_PENDING, 0)
@@ -406,12 +407,9 @@ object ImageActions {
                 }
 
                 if (imageId != null) {
-                    try {
-                        CacheManager.deleteRecoveryPair(
-                            context, imageId, deleteProcessed = true, deleteUnprocessed = false
-                        )
-                    } catch (_: Exception) {
-                    }
+                    CacheManager.deleteRecoveryPair(
+                        context, imageId, deleteProcessed = true, deleteUnprocessed = false
+                    )
                 }
 
                 withContext(Dispatchers.Main) { onSuccess() }

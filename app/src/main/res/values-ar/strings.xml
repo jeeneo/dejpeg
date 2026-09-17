@@ -33,13 +33,10 @@
     <string name="error_sharing_image">خطأ في مشاركة الصورة: %1$s</string>
     <string name="select_image_source">اختيار مصدر الصورة</string>
     <string name="gallery">المعرض</string>
-    <string name="gallery_picker_desc">يستخدم تطبيق المعرض الخاص بجهازك أو تطبيق جهة خارجية لاختيار الصور. هذه الطريقة موصى بها وتعمل على معظم الأجهزة وتدعم أسماء الملفات.</string>
     <string name="media_picker">منتقي الصور</string>
-    <string name="internal_picker_desc">يستخدم منتقي الصور المدمج في أندرويد، أكثر وعيًا بالخصوصية ولكنه يقيد أسماء الملفات.</string>
     <string name="documents">المستندات</string>
-    <string name="documents_picker_desc">يفتح منتقي SAF القياسي. مفيد للوصول إلى الصور في المجلدات أو المواقع/المزودين الآخرين.</string>
     <string name="camera">الكاميرا</string>
-    <string name="camera_desc">يفتح كاميرا جهازك، سيتم استيراد الصور الملتقطة تلقائيًا.</string>
+
     <string name="set_as_default">تعيين كافتراضي</string>
     <string name="info">معلومات</string>
     <string name="ok">موافق</string>

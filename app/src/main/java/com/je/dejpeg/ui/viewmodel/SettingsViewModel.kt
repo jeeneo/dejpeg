@@ -30,7 +30,6 @@ data class ActiveSelection(
 
 class SettingsViewModel : ViewModel() {
     val activeSelection = MutableStateFlow(ActiveSelection())
-    val hasCheckedModels = MutableStateFlow(false)
     val shouldShowNoModelDialog = MutableStateFlow(false)
     val chunkSize = MutableStateFlow(AppPreferences.DEFAULT_CHUNK_SIZE)
     val overlapSize = MutableStateFlow(AppPreferences.DEFAULT_OVERLAP_SIZE)
@@ -59,6 +58,14 @@ class SettingsViewModel : ViewModel() {
         appPreferences?.saveProcessingMode(selection.type)
     }
 
+    private suspend fun installedModels(type: ModelType): List<String> =
+        withContext(Dispatchers.IO) { modelManager?.getInstalledModels(type) ?: emptyList() }
+
+    private suspend fun activateStarterModel(name: String) {
+        setActiveModel(name)
+        importedModels.update { it + (ModelType.ONNX to installedModels(ModelType.ONNX)) }
+    }
+
     fun setActiveModel(name: String) {
         val type = ModelType.fromFilename(name) ?: return
         modelManager?.setActiveModel(name)
@@ -68,63 +75,46 @@ class SettingsViewModel : ViewModel() {
     fun initialize() {
         if (isInitialized) return
         isInitialized = true
-        val context = App.ctx
         appPreferences = AppPreferences()
-        modelManager = ModelManager.create(context)
-
+        modelManager = ModelManager.create(App.ctx)
         val prefs = appPreferences!!
-        chunkSize.value = prefs.loadChunkSize()
-        overlapSize.value = prefs.loadOverlapSize()
-        onnxDeviceThreads.value = prefs.loadOnnxDeviceThreads()
-        globalStrength.value = prefs.loadGlobalStrength()
-        oidnHdr.value = prefs.loadOidnHdr()
-        oidnSrgb.value = prefs.loadOidnSrgb()
-        oidnQuality.value = prefs.loadOidnQuality()
-        oidnNumThreads.value = prefs.loadOidnNumThreads()
-        oidnInputScale.value = prefs.loadOidnInputScale()
+
+        with(prefs) {
+            chunkSize.value = loadChunkSize()
+            overlapSize.value = loadOverlapSize()
+            onnxDeviceThreads.value = loadOnnxDeviceThreads()
+            globalStrength.value = loadGlobalStrength()
+            oidnHdr.value = loadOidnHdr()
+            oidnSrgb.value = loadOidnSrgb()
+            oidnQuality.value = loadOidnQuality()
+            oidnNumThreads.value = loadOidnNumThreads()
+            oidnInputScale.value = loadOidnInputScale()
+        }
 
         viewModelScope.launch {
             ModelMigrationHelper.migrateModelsIfNeeded()
-
-            val newInstalled = mutableMapOf<ModelType, List<String>>()
-
-            ModelType.entries.forEach { type ->
-                newInstalled[type] = withContext(Dispatchers.IO) {
-                    modelManager?.getInstalledModels(type) ?: emptyList()
-                }
+            withContext(Dispatchers.IO) {
+                modelManager?.initializeStarterModel() ?: emptyList()
             }
-
-            importedModels.value = newInstalled
-
+            val installed = ModelType.entries.associateWith { installedModels(it) }
+            importedModels.value = installed
+            val allInstalled = installed.values.flatten()
             val savedType = prefs.loadProcessingMode()?.takeIf { it.enabled }
             val savedName = savedType?.let { type ->
-                withContext(Dispatchers.IO) { modelManager?.getActiveModelName(type) }?.takeIf { name ->
-                    newInstalled[type]?.contains(
-                        name
+                withContext(Dispatchers.IO) { modelManager?.getActiveModelName(type) }?.takeIf {
+                    installed[type]?.contains(
+                        it
                     ) == true
                 }
             }
             activeSelection.value = ActiveSelection(savedType, savedName)
-            hasCheckedModels.value = true
-
-            val starterExtracted = withContext(Dispatchers.IO) {
-                modelManager?.initializeStarterModel() ?: false
-            }
-            if (starterExtracted) {
-                val onnxInstalled = withContext(Dispatchers.IO) {
-                    modelManager?.getInstalledModels(ModelType.ONNX) ?: emptyList()
-                }
-                importedModels.value += (ModelType.ONNX to onnxInstalled)
-                if (activeSelection.value.type == null) {
-                    val starterName = withContext(Dispatchers.IO) {
-                        modelManager?.getActiveModelName(ModelType.ONNX)
-                    }
-                    updateSelection(ActiveSelection(ModelType.ONNX, starterName))
+            if (savedName == null && allInstalled.isNotEmpty()) {
+                val starterName = allInstalled.find { it == ModelManager.STARTER_MODEL_NAME }
+                if (starterName != null) {
+                    activateStarterModel(starterName)
                 }
             }
-
-            val anyModelInstalled = importedModels.value.values.any { it.isNotEmpty() }
-            if (!anyModelInstalled) {
+            if (importedModels.value.values.none { it.isNotEmpty() }) {
                 shouldShowNoModelDialog.value = true
             }
         }
@@ -132,17 +122,13 @@ class SettingsViewModel : ViewModel() {
 
     fun refreshInstalledModels(type: ModelType = ModelType.ONNX) {
         viewModelScope.launch {
-            val installed = withContext(Dispatchers.IO) {
-                modelManager?.getInstalledModels(type) ?: emptyList()
-            }
-            val active = withContext(Dispatchers.IO) {
-                val name = modelManager?.getActiveModelName(type)
-                if (name != null && !installed.contains(name)) null else name
-            }
+            val installed = installedModels(type)
+            val active =
+                withContext(Dispatchers.IO) { modelManager?.getActiveModelName(type) }?.takeIf {
+                    installed.contains(it)
+                }
             importedModels.value += (type to installed)
-            activeSelection.update { sel ->
-                if (sel.type == type) sel.copy(modelName = active) else sel
-            }
+            activeSelection.update { sel -> if (sel.type == type) sel.copy(modelName = active) else sel }
         }
     }
 

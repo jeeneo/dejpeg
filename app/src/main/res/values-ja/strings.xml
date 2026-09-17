@@ -28,13 +28,10 @@
     <string name="error_sharing_image">画像の共有エラー: %1$s</string>
     <string name="select_image_source">画像の選択元</string>
     <string name="gallery">ギャラリー</string>
-    <string name="gallery_picker_desc">デバイスまたはサードパーティのギャラリーアプリを使用して画像を選択します。この方法が推奨され、ほとんどのデバイスで動作し、ファイル名をサポートしています。</string>
     <string name="media_picker">写真ピッカー</string>
-    <string name="internal_picker_desc">Android内蔵の写真ピッカーを使用します。プライバシーに配慮していますが、ファイル名が制限されます。</string>
     <string name="documents">ドキュメント</string>
-    <string name="documents_picker_desc">標準のSAFピッカーを開きます。フォルダや他の場所/プロバイダーの画像にアクセスするのに便利です。</string>
     <string name="camera">カメラ</string>
-    <string name="camera_desc">デバイスのカメラを開きます。撮影した写真は自動的にインポートされます。</string>
+
     <string name="set_as_default">デフォルトに設定</string>
     <string name="info">情報</string>
     <string name="ok">OK</string>

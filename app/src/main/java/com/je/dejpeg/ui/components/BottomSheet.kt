@@ -85,7 +85,7 @@ fun BottomSheet(
     ) {
         Surface(
             color = MaterialTheme.colorScheme.surfaceContainer,
-            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+            shape = RoundedCornerShape(topStart = ScreenHorizontalPadding, topEnd = ScreenHorizontalPadding),
             shadowElevation = 2.dp,
             modifier = Modifier.fillMaxWidth()
         ) {

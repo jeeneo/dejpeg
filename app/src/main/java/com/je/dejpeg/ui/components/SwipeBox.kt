@@ -1,6 +1,7 @@
 /*
- * SPDX-FileCopyrightText: 2025 - 2026 dryerlint <https://codeberg.org/dryerlint>
- * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
+ * SPDX-FileCopyrightText: 2026 dryerlint <https://codeberg.org/dryerlint>
+ * UX component under Apache-2.0
+ * SPDX-License-Identifier: Apache License 2.0
  */
 
 package com.je.dejpeg.ui.components
@@ -40,6 +41,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,7 +55,10 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
+import com.je.dejpeg.data.HapticPatterns
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -94,12 +99,10 @@ fun SwipeBox(
             }
             .then(
                 if (collapseFraction.value < 1f) {
-                    Modifier
-                        .height(with(density) {
+                    Modifier.height(with(density) {
                             (measuredHeightPx * collapseFraction.value).toInt().coerceAtLeast(0)
                                 .toDp()
-                        })
-                        .clipToBounds()
+                        }).clipToBounds()
                 } else Modifier
             )
             .pointerInput(canInteract) {
@@ -222,13 +225,10 @@ fun CardWrapper(
                 val isRight = offsetPx > 0f
                 val revealedPx = abs(offsetPx).coerceIn(0f, maxWidthPx)
                 val thresholdPx = maxWidthPx * thresholdFrac
-                val rawProgress =
-                    if (thresholdPx > 0f) (revealedPx / thresholdPx).coerceIn(0f, 1f) else 0f
-                val progress = FastOutSlowInEasing.transform(rawProgress)
-                val armed = rawProgress >= 1f
-                LaunchedEffect(isRight, armed) {
-
-                }
+                val progress = if (thresholdPx > 0f) {
+                    FastOutSlowInEasing.transform((revealedPx / thresholdPx).coerceIn(0f, 1f))
+                } else 0f
+                val armed = thresholdPx > 0f && revealedPx >= thresholdPx
                 val idleColor = MaterialTheme.colorScheme.surfaceVariant
                 val activeColor = if (isRight) rightSwipeBgColor else leftSwipeBgColor
                 val contColor = lerp(idleColor, activeColor, progress)
@@ -243,21 +243,24 @@ fun CardWrapper(
                 val visible = revealedPx > 1f
                 val alpha by animateFloatAsState(
                     targetValue = if (visible) 1f else 0f,
-                    animationSpec = tween(durationMillis = 60),
-                    label = "swipeAlpha"
+                    animationSpec = tween(durationMillis = 60)
                 )
                 val armedAnim = remember { Animatable(0f) }
-                LaunchedEffect(armed) {
-                    armedAnim.animateTo(
-                        targetValue = if (armed) 1f else 0f, animationSpec = if (armed) {
-                            spring(
-                                dampingRatio = Spring.DampingRatioHighBouncy,
-                                stiffness = Spring.StiffnessMediumLow
-                            )
-                        } else {
-                            tween(durationMillis = 180, easing = FastOutSlowInEasing)
-                        }
-                    )
+                val armedState = rememberUpdatedState(armed)
+                LaunchedEffect(Unit) {
+                    snapshotFlow { armedState.value }.drop(1).collectLatest { isArmed ->
+                        HapticPatterns.longPress()
+                        armedAnim.animateTo(
+                            targetValue = if (isArmed) 1f else 0f, animationSpec = if (isArmed) {
+                                spring(
+                                    dampingRatio = Spring.DampingRatioHighBouncy,
+                                    stiffness = Spring.StiffnessMediumLow
+                                )
+                            } else {
+                                tween(durationMillis = 180, easing = FastOutSlowInEasing)
+                            }
+                        )
+                    }
                 }
                 val armedFactor = armedAnim.value.coerceIn(0f, 1f)
                 val iconSize = lerp(24.dp, 32.dp, armedFactor)
@@ -265,7 +268,7 @@ fun CardWrapper(
                 val halfIconSize = iconSize / 2
 
                 // extent the inset just far enough so that the user doesn't see it move minus the spacing
-                val fixedInset = 34.dp - 2.dp
+                val fixedInset = 34.dp - GroupedListSpacing
 
                 val iconCenterFromEdge = maxOf(fixedInset, revealedDp / 2)
                 val iconOffset = iconCenterFromEdge - halfIconSize
@@ -277,7 +280,7 @@ fun CardWrapper(
                         .align(edgeAlignment)
                         .width(revealedDp)
                         .fillMaxHeight()
-                        .padding(start = 2.dp, end = 2.dp)
+                        .padding(start = GroupedListSpacing, end = GroupedListSpacing)
                         .graphicsLayer { this.alpha = alpha }
                         .clip(RoundedCornerShape(cornerRadius))
                         .background(contColor)) {

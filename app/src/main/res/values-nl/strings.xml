@@ -29,13 +29,10 @@
     <string name="error_sharing_image">Fout bij delen afbeelding: %1$s</string>
     <string name="select_image_source">Afbeeldingsbron selecteren</string>
     <string name="gallery">Galerij</string>
-    <string name="gallery_picker_desc">Gebruikt de galerij-app van je apparaat of een derde partij om afbeeldingen te selecteren. Deze methode wordt aanbevolen, werkt op de meeste apparaten en ondersteunt bestandsnamen.</string>
     <string name="media_picker">Fotokiezer</string>
-    <string name="internal_picker_desc">Gebruikt de ingebouwde fotokiezer van Android, meer privacybewust maar beperkt bestandsnamen.</string>
     <string name="documents">Documenten</string>
-    <string name="documents_picker_desc">Opent de standaard SAF-kiezer. Handig voor toegang tot afbeeldingen in mappen of andere locaties/providers.</string>
     <string name="camera">Camera</string>
-    <string name="camera_desc">Opent de camera van je apparaat, gemaakte foto\'s worden automatisch geïmporteerd.</string>
+
     <string name="set_as_default">Als standaard instellen</string>
     <string name="info">Info</string>
     <string name="ok">OK</string>

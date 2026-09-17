@@ -236,7 +236,7 @@ class BrisqueViewModel : ViewModel() {
         val suffix = if (state.descaledBitmap != null) "_descaled" else "_brisque"
         val name = "${state.filename.substringBeforeLast(".")}${suffix}"
         saveState.value = SaveState.Saving(0, 1)
-        ImageActions.saveImage(context = context, bitmap = bmp, filename = name, onSuccess = {
+        ImageActions.saveImage(scope = viewModelScope, context = context, bitmap = bmp, filename = name, onSuccess = {
             viewModelScope.launch {
                 SnackbarController.pushEvent(
                     SnackySnackbarEvents.MessageEvent(

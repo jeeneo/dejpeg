@@ -133,14 +133,18 @@ class ProcessingService : Service() {
         super.onCreate()
         NotificationService.checkChannel(this)
         startForegroundCompat("Initializing...")
+        broadcastPid()
+        modelManager = ModelManager.create(applicationContext)
+        processors = buildProcessors(applicationContext, modelManager!!)
+    }
+
+    private fun broadcastPid() {
         val pid = Process.myPid()
         Intent(PID_ACTION).apply {
             setPackage(packageName)
             putExtra(PID_EXTRA_VALUE, pid)
         }.also { sendBroadcast(it) }
-        Log.d("ProcessingService", "Service started with PID: $pid")
-        modelManager = ModelManager.create(applicationContext)
-        processors = buildProcessors(applicationContext, modelManager!!)
+        Log.d("ProcessingService", "Service PID: $pid")
     }
 
     private fun buildProcessors(
@@ -559,7 +563,10 @@ class ProcessingService : Service() {
         modelManager = null
     }
 
-    override fun onBind(intent: Intent?): IBinder = binder
+    override fun onBind(intent: Intent?): IBinder {
+        broadcastPid()
+        return binder
+    }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         Log.d("ProcessingService", "onTaskRemoved() -> cancelling")

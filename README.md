@@ -1,13 +1,11 @@
 <img src="fastlane/assets/logo/dejpeg_logo_curved.svg" alt="A gray mountain rotated 45 degrees clockwise with a lowercase letter j rotated 90 degrees clockwise" height="72" >
 
 <br>
-
 <div>
 <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/01.png" width="200" alt="">
 <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/02.png" width="200" alt="">
 <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/03.png" width="200" alt="">
 </div>
-
 <br>
 
 <a href="https://apt.izzysoft.de/fdroid/index/apk/com.je.dejpeg"><img src="fastlane/assets/IzzyOnDroid.png" width="180" alt="IzzyOnDroid"></a>
@@ -49,7 +47,8 @@ To set up [Intel® Oidn Denoising](https://www.openimagedenoise.org/), see [oidn
 
 This is a GUI for `1x` image processing models, used under their respective licenses
 
-DeJPEG v4 and onward is licensed under [AGPLv3-or-later](https://spdx.org/licenses/AGPL-3.0-or-later.html)
+DeJPEG v4 and onward is licensed under [AGPLv3-or-later](https://spdx.org/licenses/AGPL-3.0-or-later.html) with certain components under Apache-2.0
+
 Older versions (v3 and under) are under GPLv3-only.
 
   Credits to [@adrianerrea](https://github.com/adrianerrea/fromPytorchtoMobile) for a starting point, [FBCNN](https://github.com/jiaxi-jiang/FBCNN) and [SCUNet](https://github.com/cszn/SCUNet) creators plus all other model owners.

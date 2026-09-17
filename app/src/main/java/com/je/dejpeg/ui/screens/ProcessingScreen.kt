@@ -150,6 +150,7 @@ import com.je.dejpeg.ui.components.GroupedListSpacing
 import com.je.dejpeg.ui.components.ImageSourceDialog
 import com.je.dejpeg.ui.components.MorphButton
 import com.je.dejpeg.ui.components.PreparingShareDialog
+import com.je.dejpeg.ui.components.ScreenHorizontalPadding
 import com.je.dejpeg.ui.components.SettingsSheetContent
 import com.je.dejpeg.ui.components.SimpleAlertDialog
 import com.je.dejpeg.ui.components.SnackbarController
@@ -354,7 +355,7 @@ fun ProcessingScreen(
         Row(
             Modifier
                 .fillMaxWidth()
-                .padding(bottom = 8.dp, start = 16.dp, end = 16.dp),
+                .padding(bottom = 8.dp, start = ScreenHorizontalPadding, end = ScreenHorizontalPadding),
             Arrangement.SpaceBetween,
             Alignment.CenterVertically
         ) {
@@ -526,9 +527,9 @@ fun ProcessingScreen(
             Card(
                 Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 16.dp, start = 16.dp, end = 16.dp),
+                    .padding(bottom = ScreenHorizontalPadding, start = ScreenHorizontalPadding, end = ScreenHorizontalPadding),
                 colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceContainer),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(ScreenHorizontalPadding)
             ) {
                 Column(Modifier.padding(12.dp)) {
                     if (isOidnMode) {
@@ -648,7 +649,7 @@ fun ProcessingScreen(
                     Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .padding(start = 16.dp, end = 16.dp),
+                        .padding(start = ScreenHorizontalPadding, end = ScreenHorizontalPadding),
                     Arrangement.SpaceBetween
                 ) {
                     LazyColumn(
@@ -862,11 +863,10 @@ fun LazyItemScope.ImageCard(
         val pulseAlpha by rememberInfiniteTransition().animateFloat(
             initialValue = 0.04f, targetValue = 0.11f, animationSpec = infiniteRepeatable(
                 animation = tween(1200, easing = EaseInOutSine), repeatMode = RepeatMode.Reverse
-            ), label = "pulse_alpha"
+            )
         )
         val baseColor by animateColorAsState(
-            targetValue = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-            label = "item_base_color"
+            targetValue = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
         )
 
         SegmentedListItem(
@@ -877,34 +877,7 @@ fun LazyItemScope.ImageCard(
             ),
             shapes = cardShapes,
             contentPadding = PaddingValues(0.dp),
-            modifier = Modifier
-                .clip(cardShapes.shape)
-                .drawBehind {
-                    drawRect(baseColor)
-                    if (!isProcessing) return@drawBehind
-                    if (chunkFraction >= 0f) {
-                        if (chunkFraction >= 1f) {
-                            drawRect(progressTint.copy(alpha = 0.16f))
-                        } else {
-                            val fillEnd = size.width * chunkFraction
-                            val gradientEnd = (fillEnd + 12.dp.toPx()).coerceAtMost(size.width)
-                            if (gradientEnd > 0f) {
-                                val solidStop = (fillEnd / gradientEnd).coerceIn(0f, 1f)
-                                drawRect(
-                                    brush = Brush.horizontalGradient(
-                                        colorStops = arrayOf(
-                                            0f to progressTint.copy(alpha = 0.16f),
-                                            solidStop to progressTint.copy(alpha = 0.16f),
-                                            1f to Color.Transparent
-                                        ), startX = 0f, endX = gradientEnd
-                                    )
-                                )
-                            }
-                        }
-                    } else {
-                        drawRect(progressTint.copy(alpha = pulseAlpha))
-                    }
-                },
+            modifier = modifier,
             onClick = {
                 if (isProcessing) return@SegmentedListItem
                 if (isSelectionMode) onToggleSelection(image.id)
@@ -912,146 +885,179 @@ fun LazyItemScope.ImageCard(
             },
             onLongClick = if (isProcessing) null else { -> run { onToggleSelection(image.id) } },
             content = {
-                Row(
+                Box(
                     Modifier
-                        .fillMaxWidth()
-                        .padding(end = 8.dp, top = 8.dp, bottom = 8.dp)
-                ) {
-                    val imagePreview = remember(
-                        image.thumbnailBitmap, image.outputBitmap, image.inputBitmap
-                    ) {
-                        (image.thumbnailBitmap ?: image.outputBitmap
-                        ?: image.inputBitmap).asImageBitmap()
-                    }
-                    Box(
-                        Modifier.padding(start = 8.dp, end = 8.dp),
-                    ) {
-                        Surface(
-                            Modifier
-                                .size(84.dp)
-                                .clip(RoundedCornerShape(12.dp)),
-                            color = MaterialTheme.colorScheme.surfaceVariant
-                        ) {
-                            Image(
-                                imagePreview,
-                                image.filename,
-                                Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
-                    }
-                    Column(
-                        Modifier
-                            .weight(1f)
-                            .height(84.dp)
-                    ) {
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text(
-                                image.filename,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Medium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier
-                                    .weight(1f, fill = false)
-                                    .alignByBaseline()
-                            )
-                            Text(
-                                image.size,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.alignByBaseline()
-                            )
-                        }
-                        Spacer(Modifier.weight(1f))
-                        if (image.outputBitmap != null && !isProcessing) {
-                            Surface(
-                                shape = RoundedCornerShape(32.dp),
-                                color = MaterialTheme.colorScheme.primaryContainer
-                            ) {
-                                Text(
-                                    stringResource(R.string.status_complete_ui),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    fontWeight = FontWeight.Medium,
-                                    modifier = Modifier.padding(
-                                        horizontal = 8.dp, vertical = 2.dp
-                                    )
-                                )
-                            }
-                        } else if (!isProcessing) {
-                            Surface(
-                                shape = RoundedCornerShape(32.dp),
-                                color = MaterialTheme.colorScheme.primaryContainer
-                            ) {
-                                Text(
-                                    stringResource(R.string.status_ready),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    fontWeight = FontWeight.Medium,
-                                    modifier = Modifier.padding(
-                                        horizontal = 8.dp, vertical = 2.dp
-                                    )
-                                )
-                            }
-                        }
-                        if (isProcessing && image.progress.isNotEmpty()) {
-                            Surface(
-                                shape = RoundedCornerShape(32.dp),
-                                color = MaterialTheme.colorScheme.primaryContainer
-                            ) {
-                                Text(
-                                    image.progress,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    fontWeight = FontWeight.Medium,
-                                    modifier = Modifier.padding(
-                                        horizontal = 8.dp, vertical = 2.dp
-                                    )
-                                )
-                            }
-                        }
-                        Spacer(Modifier.weight(1f))
-                        ImageCardSplitButton(
-                            image = image,
-                            isProcessing = isProcessing,
-                            onProcess = { id ->
-                                tryProcess {
-                                    takeProcess(id)
-                                }
-                            },
-                            onRemove = {
-                                if (isSelectionMode) {
-                                    onRequestRemoval(selectedImageIds.toList())
+                        .fillMaxSize()
+                        .drawBehind {
+                            drawRect(baseColor)
+                            if (!isProcessing) return@drawBehind
+                            if (chunkFraction >= 0f) {
+                                val fadeWidth = 28.dp.toPx()
+                                val baseAlpha = 0.15f
+                                if (chunkFraction >= 1f) {
+                                    drawRect(progressTint.copy(alpha = baseAlpha))
                                 } else {
-                                    negativeAction()?.invoke()
+                                    val fillWidth = size.width * chunkFraction
+                                    val fadeEnd = (fillWidth + fadeWidth).coerceAtMost(size.width)
+                                    if (fadeEnd > 0f) {
+                                        val fadeStartFraction =
+                                            (fillWidth / fadeEnd).coerceIn(0f, 1f)
+                                        drawRect(
+                                            brush = Brush.horizontalGradient(
+                                                colorStops = arrayOf(
+                                                    0f to progressTint.copy(alpha = baseAlpha),
+                                                    fadeStartFraction to progressTint.copy(alpha = baseAlpha),
+                                                    1f to Color.Transparent
+                                                ), startX = 0f, endX = fadeEnd
+                                            )
+                                        )
+                                    }
                                 }
-                            },
-                            onBrisque = {
-                                onNavigateToBrisque(
-                                    image.id
+                            } else {
+                                drawRect(progressTint.copy(alpha = pulseAlpha))
+                            }
+                        }) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(end = 8.dp, top = 8.dp, bottom = 8.dp)
+                    ) {
+                        val imagePreview = remember(
+                            image.thumbnailBitmap, image.outputBitmap, image.inputBitmap
+                        ) {
+                            (image.thumbnailBitmap ?: image.outputBitmap
+                            ?: image.inputBitmap).asImageBitmap()
+                        }
+                        Box(
+                            Modifier.padding(start = 8.dp, end = 8.dp),
+                        ) {
+                            Surface(
+                                Modifier
+                                    .size(84.dp)
+                                    .clip(RoundedCornerShape(12.dp)),
+                                color = MaterialTheme.colorScheme.surfaceVariant
+                            ) {
+                                Image(
+                                    imagePreview,
+                                    image.filename,
+                                    Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
                                 )
-                            },
-                            onSave = {
-                                onRequestSave(
-                                    if (isSelectionMode) selectedImageIds else listOf(image.id),
-                                    false
+                            }
+                        }
+                        Column(
+                            Modifier
+                                .weight(1f)
+                                .height(84.dp)
+                        ) {
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    image.filename,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier
+                                        .weight(1f, fill = false)
+                                        .alignByBaseline()
                                 )
-                            },
-                            onImportOutput = {
-                                viewModel.importOutputAsNewImage(image.id)
-                            },
-                            isCompareReady = selectedImageIds.size == 2,
-                            selectedCount = if (isSelected) selectedImageIds.size else 0,
-                            onCompare = {
-                                val (idA, idB) = selectedImageIds
-                                onNavigateToCompare(idA, idB)
-                            },
-                            clearSelection = onClearSelection
-                        )
+                                Text(
+                                    image.size,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.alignByBaseline()
+                                )
+                            }
+                            Spacer(Modifier.weight(1f))
+                            if (image.outputBitmap != null && !isProcessing) {
+                                Surface(
+                                    shape = RoundedCornerShape(32.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer
+                                ) {
+                                    Text(
+                                        stringResource(R.string.status_complete_ui),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier.padding(
+                                            horizontal = 8.dp, vertical = GroupedListSpacing
+                                        )
+                                    )
+                                }
+                            } else if (!isProcessing) {
+                                Surface(
+                                    shape = RoundedCornerShape(32.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer
+                                ) {
+                                    Text(
+                                        stringResource(R.string.status_ready),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier.padding(
+                                            horizontal = 8.dp, vertical = GroupedListSpacing
+                                        )
+                                    )
+                                }
+                            }
+                            if (isProcessing && image.progress.isNotEmpty()) {
+                                Surface(
+                                    shape = RoundedCornerShape(32.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer
+                                ) {
+                                    Text(
+                                        image.progress,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier.padding(
+                                            horizontal = 8.dp, vertical = GroupedListSpacing
+                                        )
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.weight(1f))
+                            ImageCardSplitButton(
+                                image = image,
+                                isProcessing = isProcessing,
+                                onProcess = { id ->
+                                    tryProcess {
+                                        takeProcess(id)
+                                    }
+                                },
+                                onRemove = {
+                                    if (isSelectionMode) {
+                                        onRequestRemoval(selectedImageIds.toList())
+                                    } else {
+                                        negativeAction()?.invoke()
+                                    }
+                                },
+                                onBrisque = {
+                                    onNavigateToBrisque(
+                                        image.id
+                                    )
+                                },
+                                onSave = {
+                                    onRequestSave(
+                                        if (isSelectionMode) selectedImageIds else listOf(image.id),
+                                        false
+                                    )
+                                },
+                                onImportOutput = {
+                                    viewModel.importOutputAsNewImage(image.id)
+                                },
+                                isCompareReady = selectedImageIds.size == 2,
+                                selectedCount = if (isSelected) selectedImageIds.size else 0,
+                                onCompare = {
+                                    val (idA, idB) = selectedImageIds
+                                    onNavigateToCompare(idA, idB)
+                                },
+                                clearSelection = onClearSelection
+                            )
+                        }
                     }
                 }
             })
@@ -1277,8 +1283,7 @@ private fun ImageCardSplitButton(
                         .graphicsLayer { rotationZ = chevronRotation })
             }
             DropdownMenu(
-                expanded = menuExpanded,
-                onDismissRequest = { HapticPatterns.tap(); menuExpanded = false }) {
+                expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                 if ((selectedCount > 1 && cardState != CardState.Processing) || cardState == CardState.Stale) {
                     DropdownMenuItem(
                         text = { Text(saveLabel) },

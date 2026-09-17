@@ -252,7 +252,7 @@ class ProcessingViewModel : ViewModel() {
             if (queue.contains(id) && !queue.isActive(id)) {
                 queue.remove(id)
                 queue.decrementActiveTotal()
-                imageRepository.updateImageState(id) { resetImageProcessingState(it) }
+                imageRepository.updateImageState(id) { resetProcessing(it) }
                 return
             }
             queue.cancelInProgress = true
@@ -284,7 +284,7 @@ class ProcessingViewModel : ViewModel() {
         completedChunks = 0, totalChunks = 0
     )
 
-    private fun resetImageProcessingState(
+    private fun resetProcessing(
         item: ImageItem,
         isProcessing: Boolean = false,
         progress: String = "",
@@ -296,27 +296,6 @@ class ProcessingViewModel : ViewModel() {
         completedChunks = 0,
         totalChunks = 0
     )
-
-    fun processImages() {
-        viewModelScope.launch {
-            if (queue.cancelInProgress) return@launch
-            val imagesToProcess = imageRepository.images.value.filter { it.uri != null }
-            if (imagesToProcess.isEmpty()) return@launch
-
-            queue.enqueue(imagesToProcess.map { it.id })
-
-            imagesToProcess.forEach { image ->
-                imageRepository.updateImageState(image.id) {
-                    resetChunkProgress(it).copy(
-                        isProcessing = true, progress = statusQueued, isCancelling = false
-                    )
-                }
-            }
-
-            uiState.value = ProcessingUiState.Processing(0, imagesToProcess.size)
-            processNextInQueue()
-        }
-    }
 
     fun processImage(id: String) {
         viewModelScope.launch {
@@ -431,7 +410,7 @@ class ProcessingViewModel : ViewModel() {
         }
         imageRepository.images.value.filter { it.isProcessing && it.id != queue.currentProcessingId }
             .forEach { image ->
-                imageRepository.updateImageState(image.id) { resetImageProcessingState(it) }
+                imageRepository.updateImageState(image.id) { resetProcessing(it) }
             }
         uiState.value = ProcessingUiState.Idle
     }
@@ -474,14 +453,14 @@ class ProcessingViewModel : ViewModel() {
                     }
                 } else {
                     imageRepository.updateImageState(imageId) {
-                        resetImageProcessingState(
+                        resetProcessing(
                             it, progress = "Decode failed"
                         )
                     }
                 }
             } catch (e: Exception) {
                 imageRepository.updateImageState(imageId) {
-                    resetImageProcessingState(
+                    resetProcessing(
                         it, progress = "${e.message}"
                     )
                 }
@@ -544,7 +523,7 @@ class ProcessingViewModel : ViewModel() {
         cancelCancelWatchdog()
         if (!imageId.isNullOrEmpty()) {
             imageRepository.updateImageState(imageId) {
-                resetImageProcessingState(
+                resetProcessing(
                     it, progress = displayMessage
                 )
             }
@@ -554,7 +533,7 @@ class ProcessingViewModel : ViewModel() {
                     viewModelScope.launch(Dispatchers.IO) {
                         Log.d("ProcessingViewModel", "Cleaning up cache for imageId: $imageId")
                         CacheManager.deleteRecoveryPair(
-                            ctx, imageId, deleteProcessed = true, deleteUnprocessed = true
+                            ctx, imageId, deleteProcessed = true, deleteUnprocessed = false
                         )
                     }
                 }
@@ -638,7 +617,7 @@ class ProcessingViewModel : ViewModel() {
         } else if (queue.contains(imageId)) {
             queue.remove(imageId)
             queue.decrementActiveTotal()
-            imageRepository.updateImageState(imageId) { resetImageProcessingState(it) }
+            imageRepository.updateImageState(imageId) { resetProcessing(it) }
         }
     }
 
@@ -675,6 +654,7 @@ class ProcessingViewModel : ViewModel() {
                     saveState.value = SaveState.Saving(index + 1, imageIds.size)
                     suspendCancellableCoroutine { cont ->
                         ImageActions.saveImage(
+                            scope = viewModelScope,
                             context = context,
                             bitmap = image.outputBitmap ?: return@suspendCancellableCoroutine,
                             filename = name,

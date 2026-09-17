@@ -44,7 +44,6 @@ import kotlin.math.ceil
 class ImageProcessor(
     private val context: Context, private val modelManager: ModelManager
 ) : Processor {
-
     private companion object {
         const val MODEL_PAD_FACTOR = 8
     }
@@ -470,8 +469,7 @@ class ImageProcessor(
                 }
             }
         }
-        val minImgSize =
-            modelManager.getMinSpatialSize(info.modelName)
+        val minImgSize = modelManager.getMinSpatialSize(info.modelName)
         val w = if (info.expectedWidth != null && info.expectedWidth > 0) {
             info.expectedWidth
         } else {
@@ -586,7 +584,12 @@ class ImageProcessor(
                         val r = clamp255(outputArray[i] * 255f)
                         val g = clamp255(outputArray[w * h + i] * 255f)
                         val b = clamp255(outputArray[2 * w * h + i] * 255f)
-                        outPixels[i] = Color.argb(alpha, r, g, b)
+                        outPixels[i] = if (modelManager.forcesGrayscale(info.modelName)) {
+                            val gray = (0.299f * r + 0.587f * g + 0.114f * b).toInt().coerceIn(0, 255)
+                            Color.argb(alpha, gray, gray, gray)
+                        } else {
+                            Color.argb(alpha, r, g, b)
+                        }
                     }
                 }
                 fullResultBitmap.setPixels(outPixels, 0, w, 0, 0, w, h)

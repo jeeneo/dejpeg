@@ -191,6 +191,9 @@ class ImageProcessor(
 
         val isRmbg = modelManager.getActiveModelName(ModelType.LITERT)
             ?.contains("rmbg", ignoreCase = true) == true
+        val forcesGrayscale = modelManager.forcesGrayscale(
+            modelManager.getActiveModelName(ModelType.LITERT)
+        )
         val needsResize = isRmbg && (originalW != modelW || originalH != modelH)
         val needsPadding = !isRmbg && (originalW != modelW || originalH != modelH)
 
@@ -371,7 +374,12 @@ class ImageProcessor(
                     g = clamp255(outputArray[i * 3 + 1] * 255f)
                     b = clamp255(outputArray[i * 3 + 2] * 255f)
                 }
-                outPixels[i] = Color.argb(255, r, g, b)
+                outPixels[i] = if (forcesGrayscale) {
+                    val gray = (0.299f * r + 0.587f * g + 0.114f * b).toInt().coerceIn(0, 255)
+                    Color.argb(255, gray, gray, gray)
+                } else {
+                    Color.argb(255, r, g, b)
+                }
             }
             val fullResult = createBitmap(outW, outH, Bitmap.Config.ARGB_8888)
             fullResult.setPixels(outPixels, 0, outW, 0, 0, outW, outH)

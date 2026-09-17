@@ -9,8 +9,6 @@ package com.je.dejpeg.utils
 
 import android.content.Context
 import android.util.Log
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.gpu.CompatibilityList
 import org.tensorflow.lite.gpu.GpuDelegate
@@ -18,11 +16,7 @@ import java.io.File
 import java.io.FileInputStream
 import java.nio.channels.FileChannel
 
-class LiteRtModelManager(
-    context: Context,
-    coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
-) : ModelManager(context, coroutineScope) {
-
+class LiteRtModelManager(context: Context) : ModelManager(context) {
     private var currentInterpreter: Interpreter? = null
     private var gpuDelegate: GpuDelegate? = null
 

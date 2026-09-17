@@ -31,13 +31,10 @@
     <string name="error_sharing_image">Ошибка отправки изображения: %1$s</string>
     <string name="select_image_source">Выберите источник изображения</string>
     <string name="gallery">Галерея</string>
-    <string name="gallery_picker_desc">Использует галерею устройства или стороннее приложение для выбора изображений. Рекомендуемый метод, работает на большинстве устройств и поддерживает имена файлов.</string>
     <string name="media_picker">Выбор фото</string>
-    <string name="internal_picker_desc">Использует встроенный выбор фото Android: более приватный, но с ограничениями на доступ к именам файлов.</string>
     <string name="documents">Документы</string>
-    <string name="documents_picker_desc">Открывает стандартный SAF-выбор. Полезно для доступа к файлам в папках и других источниках.</string>
     <string name="camera">Камера</string>
-    <string name="camera_desc">Открывает камеру устройства, снятые фото будут импортированы автоматически.</string>
+
     <string name="set_as_default">Установить по умолчанию</string>
     <string name="info">Информация</string>
     <string name="ok">ОК</string>
@@ -271,7 +268,6 @@
     <string name="status_ready">Готово</string>
     <string name="glass_slider">Стеклянный ползунок</string>
     <string name="import_output">Импорт результата</string>
-    <string name="compare_title">Сравнение</string>
     <string name="compare">Сравнить</string>
     <plurals name="selected_count">
         <item quantity="one">Выбрано (%1$d)</item>

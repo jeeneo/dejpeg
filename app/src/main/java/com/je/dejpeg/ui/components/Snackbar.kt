@@ -99,7 +99,7 @@ fun SnackBarBox(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .statusBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .padding(horizontal = ScreenHorizontalPadding, vertical = 8.dp)
                         .fillMaxWidth()
                         .zIndex((MAX_SNACKBARS - stackDepth).toFloat())
                         .offset { IntOffset(0, animatedOffset.roundToPx()) }
@@ -284,7 +284,7 @@ private fun SnackbarContent(
         Column {
             Text(
                 text = snackbarData.event.message,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = ScreenHorizontalPadding),
                 style = MaterialTheme.typography.bodyLarge,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis

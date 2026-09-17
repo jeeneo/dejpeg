@@ -269,7 +269,7 @@ fun BeforeAfterSlider(
                                         effects = {
                                             lens(
                                                 refractionHeight = 12.dp.toPx(),
-                                                refractionAmount = 16.dp.toPx(),
+                                                refractionAmount = ScreenHorizontalPadding.toPx(),
                                                 chromaticAberration = true
                                             )
                                         })

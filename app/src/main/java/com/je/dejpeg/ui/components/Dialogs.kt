@@ -898,7 +898,7 @@ fun LabeledSwitch(
                 onCheckedChange(!checked)
             },
             modifier = Modifier
-                .padding(end = 2.dp)
+                .padding(end = GroupedListSpacing)
                 .height(24.dp)
                 .aspectRatio(2f)
                 .wrapContentSize(Alignment.Center),

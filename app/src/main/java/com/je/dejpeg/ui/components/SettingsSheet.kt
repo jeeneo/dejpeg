@@ -203,10 +203,14 @@ fun SettingsSheetContent(
                     },
                     onLongClick = {
                         scope.launch {
-                            val extracted = withContext(Dispatchers.IO) {
-                                modelManager.extractStarterModel(setAsActive = true)
+                            if (processingViewModel.isProcessingOrQueueActive()) {
+                                return@launch
                             }
-                            if (extracted) {
+                            val extracted = withContext(Dispatchers.IO) {
+                                modelManager.extractStarterModel()
+                            }
+                            if (extracted.isNotEmpty()) {
+                                settingsViewModel.setActiveModel(ModelManager.STARTER_MODEL_NAME)
                                 settingsViewModel.refreshInstalledModels(ModelType.ONNX)
                                 SnackbarController.pushEvent(
                                     SnackySnackbarEvents.MessageEvent(
@@ -664,7 +668,7 @@ fun SettingsSheetContent(
                 .padding(
                     end = 12.dp,
                     bottom = WindowInsets.navigationBars.asPaddingValues()
-                        .calculateBottomPadding() + 16.dp
+                        .calculateBottomPadding() + ScreenHorizontalPadding
                 )
                 .height(56.dp)
                 .width(110.dp)
@@ -691,7 +695,7 @@ fun SettingsSheetContent(
             showImportProgress.value = false
             importError.value = null
         }) {
-            Column(Modifier.padding(16.dp)) {
+            Column(Modifier.padding(ScreenHorizontalPadding)) {
                 Text(
                     stringResource(R.string.importing_model),
                     style = MaterialTheme.typography.titleMedium,
@@ -728,7 +732,7 @@ fun SettingsSheetContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(ScreenHorizontalPadding))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = {
                         showImportProgress.value = false
@@ -745,7 +749,7 @@ fun SettingsSheetContent(
     }
     modelInfoDialog.value?.let { (modelName, infoText) ->
         ModalBottomSheet(onDismissRequest = { modelInfoDialog.value = null }) {
-            Column(Modifier.padding(16.dp)) {
+            Column(Modifier.padding(ScreenHorizontalPadding)) {
                 Text(
                     modelName,
                     style = MaterialTheme.typography.titleMedium,

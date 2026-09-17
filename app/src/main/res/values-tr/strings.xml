@@ -29,13 +29,10 @@
     <string name="error_sharing_image">Görseli paylaşma hatası: %1$s</string>
     <string name="select_image_source">Görsel kaynağını seçin</string>
     <string name="gallery">Galeri</string>
-    <string name="gallery_picker_desc">Görselleri seçmek için cihazınızın veya 3. taraf galeri uygulamasını kullanır. Bu yöntem önerilir, çoğu cihazda çalışır ve dosya adlarını destekler.</string>
     <string name="media_picker">Fotoğraf seçici</string>
-    <string name="internal_picker_desc">Android\'in yerleşik fotoğraf seçicisini kullanır, gizliliğe daha duyarlıdır ancak dosya adlarını kısıtlar.</string>
     <string name="documents">Belgeler</string>
-    <string name="documents_picker_desc">Standart SAF seçicisini açar. Klasörlerdeki veya diğer konumlardaki/sağlayıcılardaki görsellere erişmek için kullanışlıdır.</string>
     <string name="camera">Kamera</string>
-    <string name="camera_desc">Cihazınızın kamerasını açar, çekilen fotoğraflar otomatik olarak içe aktarılır.</string>
+
     <string name="set_as_default">Varsayılan olarak ayarla</string>
     <string name="info">Bilgi</string>
     <string name="ok">Tamam</string>

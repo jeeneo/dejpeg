@@ -18,8 +18,6 @@ import android.util.Log
 import com.je.dejpeg.BuildConfig
 import com.je.dejpeg.R
 import com.je.dejpeg.data.AppPreferences
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
@@ -46,8 +44,7 @@ enum class ModelType(val extensions: List<String>, val enabled: Boolean = true) 
 }
 
 open class ModelManager(
-    protected val context: Context,
-    protected val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
+    protected val context: Context
 ) {
     private var currentSession: OrtSession? = null
     private var ortEnv: OrtEnvironment? = null
@@ -62,8 +59,8 @@ open class ModelManager(
 
     companion object {
         private const val STARTER_MODELS_ASSET_DIR = "embedonnx"
+        const val STARTER_MODEL_NAME = "1x_StarSample_V2.0_Lite_NS.onnx"
         private const val GPU_DELEGATE_CACHE_DIR = "gpu_delegate_cache"
-
         private val MODEL_INFO_RES_IDS = mapOf(
             // fbcnn (jpeg model)
             "fbcnn_color" to R.string.model_info_fbcnn_color,
@@ -102,22 +99,6 @@ open class ModelManager(
             "1x-DeBink-v4" to R.string.model_info_1x_de_bink_v4,
             "1x-DeBink-v5" to R.string.model_info_1x_de_bink_v5,
             "1x-DeBink-v6" to R.string.model_info_1x_de_bink_v6,
-
-            // JPEG quality range models
-            // why did we even have these, these are deathly slow, slate for removal in next release
-            // attempt maybe litert conversion
-            /*
-            "1x_JPEG_00-20-fp16.ort" to R.string.model_info_1x_jpeg_00_20,
-            "1x_JPEG_20-40-fp16.ort" to R.string.model_info_1x_jpeg_20_40,
-            "1x_JPEG_40-60-fp16.ort" to R.string.model_info_1x_jpeg_40_60,
-            "1x_JPEG_60-80-fp16.ort" to R.string.model_info_1x_jpeg_60_80,
-            "1x_JPEG_80-100-fp16.ort" to R.string.model_info_1x_jpeg_80_100,
-            "1x_artifacts_jpg_00_20_alsa-fp16" to R.string.model_info_1x_artifacts_jpg_00_20_alsa,
-            "1x_artifacts_jpg_20_40_alsa-fp16" to R.string.model_info_1x_artifacts_jpg_20_40_alsa,
-            "1x_artifacts_jpg_40_60_alsa-fp16" to R.string.model_info_1x_artifacts_jpg_40_60_alsa,
-            "1x_artifacts_jpg_60_80_alsa-fp16" to R.string.model_info_1x_artifacts_jpg_60_80_alsa,
-            "1x_artifacts_jpg_80_100_alsa-fp16" to R.string.model_info_1x_artifacts_jpg_80_100_alsa,
-            */
 
             // miscellaneous
             "1x-Anti-Aliasing-fp16" to R.string.model_info_1x_anti_aliasing,
@@ -159,6 +140,10 @@ open class ModelManager(
             "rmbg" to Pair(1024, 1024), "u2net" to Pair(320, 320)
         )
 
+        private val FORCE_GRAYSCALE_BY_NAME = setOf(
+            "1xBook-Compact-fp16"
+        )
+
         fun gpuCacheToken(modelName: String): String =
             modelName.replace("[^a-zA-Z0-9_-]".toRegex(), "_").trimEnd('_')
 
@@ -174,15 +159,13 @@ open class ModelManager(
         fun gpuCacheExists(context: Context, modelName: String): Boolean =
             gpuCacheFiles(context, modelName).isNotEmpty()
 
-        fun create(
-            context: Context, coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
-        ): ModelManager {
+        fun create(context: Context): ModelManager {
             return if (BuildConfig.LITERT_ENABLED) {
                 Class.forName("com.je.dejpeg.utils.LiteRtModelManager")
-                    .getDeclaredConstructor(Context::class.java, CoroutineScope::class.java)
-                    .newInstance(context, coroutineScope) as ModelManager
+                    .getDeclaredConstructor(Context::class.java)
+                    .newInstance(context) as ModelManager
             } else {
-                ModelManager(context, coroutineScope)
+                ModelManager(context)
             }
         }
     }
@@ -206,6 +189,11 @@ open class ModelManager(
             if (normalized.contains(pattern)) return size
         }
         return 0
+    }
+
+    fun forcesGrayscale(modelName: String?): Boolean {
+        val normalized = modelName?.lowercase() ?: return false
+        return FORCE_GRAYSCALE_BY_NAME.any { normalized.contains(it.lowercase()) }
     }
 
     fun hasActiveModel(type: ModelType = ModelType.ONNX): Boolean {
@@ -237,11 +225,6 @@ open class ModelManager(
         }
         Log.d("ModelManager", "setActiveModel($modelType) called with: $modelName")
         cachedActiveModels[modelType] = modelName
-        when (modelType) {
-            ModelType.ONNX -> unloadModel()
-            ModelType.LITERT -> unloadLiteRtModel()
-            ModelType.OIDN -> {}
-        }
         appPreferences.saveActiveModel(modelName)
         Log.d("ModelManager", "Active $modelType model saved to SharedPreferences: $modelName")
     }
@@ -273,27 +256,11 @@ open class ModelManager(
         if (currentSession != null && activeModel == cachedActiveModels[ModelType.ONNX]) {
             return currentSession!!
         }
-
-        val oldSession = currentSession
-        val oldEnv = ortEnv
-        currentSession = null
-        ortEnv = null
-
-        try {
-            oldSession?.close()
-        } catch (e: Exception) {
-            Log.e("ModelManager", "Error closing old session: ${e.message}")
-        }
-        try {
-            oldEnv?.close()
-        } catch (e: Exception) {
-            Log.e("ModelManager", "Error closing old env: ${e.message}")
-        }
-        System.gc(); System.runFinalization(); System.gc()
-
+        unloadModel()
+        System.runFinalization()
+        System.gc()
         val modelFile = File(getModelsDir(ModelType.ONNX), activeModel)
         if (!modelFile.exists()) throw Exception("Model file does not exist: ${modelFile.absolutePath}")
-
         try {
             ortEnv = OrtEnvironment.getEnvironment(OrtLoggingLevel.ORT_LOGGING_LEVEL_VERBOSE, "ort")
             val opts = OrtSession.SessionOptions()
@@ -479,9 +446,9 @@ open class ModelManager(
             index++
             importModel(
                 modelUri = uri, onProgress = { p ->
-                    val adjusted = ((index - 1) * 100 + p) / total
-                    onProgress(adjusted)
-                }, onSuccess = { name, type -> onSuccess(name, type) }, onError = onError
+                val adjusted = ((index - 1) * 100 + p) / total
+                onProgress(adjusted)
+            }, onSuccess = { name, type -> onSuccess(name, type) }, onError = onError
             )
         }
     }
@@ -539,70 +506,73 @@ open class ModelManager(
         }
     }
 
-    fun initializeStarterModel(): Boolean {
+    fun initializeStarterModel(): List<String> {
         return try {
-            val alreadyExtracted = appPreferences.loadStarterModelExtracted()
-            if (alreadyExtracted) {
-                Log.d("ModelManager", "Starter model already extracted, skipping")
-                return false
+            if (appPreferences.loadStarterModelExtracted()) {
+                Log.d("ModelManager", "initializeStarterModel: already extracted, skipping")
+                return emptyList()
             }
             val modelsDir = getModelsDir(ModelType.ONNX)
+            Log.d(
+                "ModelManager",
+                "initializeStarterModel: modelsDir=$modelsDir, exists=${modelsDir.exists()}"
+            )
             val hasModels =
                 modelsDir.exists() && modelsDir.listFiles { _, name -> ModelType.ONNX.matches(name) }
                     ?.isNotEmpty() == true
             if (hasModels) {
-                Log.d("ModelManager", "Models already exist, skipping starter model extraction")
-                markStarterModelExtracted()
-                return false
+                Log.d(
+                    "ModelManager",
+                    "initializeStarterModel: ONNX models already exist on disk, marking extracted"
+                )
+                appPreferences.saveStarterModelExtracted(true)
+                return emptyList()
             }
-            extractStarterModel(setAsActive = true)
+            Log.d(
+                "ModelManager", "initializeStarterModel: no ONNX models found, extracting starter"
+            )
+            val result = extractStarterModel()
+            Log.d("ModelManager", "initializeStarterModel: extractStarterModel returned $result")
+            result
         } catch (e: Exception) {
             Log.e("ModelManager", "Error initializing starter model: ${e.message}", e)
-            false
+            emptyList()
         }
     }
 
-    private fun markStarterModelExtracted() {
-        appPreferences.saveStarterModelExtracted(true)
-    }
-
-    fun extractStarterModel(
-        setAsActive: Boolean = false, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}
-    ): Boolean {
+    fun extractStarterModel(onError: (String) -> Unit = {}): List<String> {
         return try {
             val modelsDir = getModelsDir(ModelType.ONNX)
-            val shouldSetAsActive =
-                setAsActive || !modelsDir.exists() || modelsDir.listFiles { _, name ->
-                    ModelType.ONNX.matches(name)
-                }?.isEmpty() == true
+            Log.d("ModelManager", "extractStarterModel: targetDir=$modelsDir")
             val extracted = copyStarterModelsFromAssets(modelsDir)
-            if (extracted) {
-                if (shouldSetAsActive) setActiveModel(
-                    "1x-span-anime-pretrain-fp16.onnx"
-                )
-                markStarterModelExtracted()
-                onSuccess()
-                return true
+            Log.d("ModelManager", "extractStarterModel: copied ${extracted.size} file(s)")
+            if (extracted.isEmpty()) {
+                onError(context.getString(R.string.failed_to_extract_starter_models))
+                return emptyList()
             }
-            onError(context.getString(R.string.failed_to_extract_starter_models))
-            false
+            appPreferences.saveStarterModelExtracted(true)
+            extracted
         } catch (e: Exception) {
             Log.e("ModelManager", "Error extracting starter models: ${e.message}", e)
             onError(e.message ?: context.getString(R.string.unknown_error))
-            false
+            emptyList()
         }
     }
 
-    private fun copyStarterModelsFromAssets(targetDir: File): Boolean {
+    private fun copyStarterModelsFromAssets(targetDir: File): List<String> {
         return try {
             if (!targetDir.exists()) targetDir.mkdirs()
             val assetFiles = context.assets.list(STARTER_MODELS_ASSET_DIR) ?: emptyArray()
+            Log.d(
+                "ModelManager",
+                "copyStarterModelsFromAssets: assetFiles=${assetFiles.size}, names=${assetFiles.contentToString()}"
+            )
             if (assetFiles.isEmpty()) {
                 Log.w(
                     "ModelManager",
                     "No starter model files found in assets/$STARTER_MODELS_ASSET_DIR"
                 )
-                return false
+                return emptyList()
             }
             for (filename in assetFiles) {
                 val outFile = File(targetDir, filename)
@@ -612,10 +582,10 @@ open class ModelManager(
                 Log.d("ModelManager", "Copied starter model: $filename")
             }
             Log.d("ModelManager", "Successfully copied ${assetFiles.size} starter model(s)")
-            true
+            assetFiles.toList()
         } catch (e: Exception) {
             Log.e("ModelManager", "Error copying starter models from assets: ${e.message}", e)
-            false
+            emptyList()
         }
     }
 }

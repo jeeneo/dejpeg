@@ -90,6 +90,7 @@ import com.je.dejpeg.data.BrisqueSettings
 import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.processing.BRISQUEDescaler
 import com.je.dejpeg.ui.components.ErrorAlertDialog
+import com.je.dejpeg.ui.components.ScreenHorizontalPadding
 import com.je.dejpeg.ui.components.SimpleAlertDialog
 import com.je.dejpeg.ui.viewmodel.BrisqueViewModel
 import com.je.dejpeg.ui.viewmodel.SaveState
@@ -166,7 +167,7 @@ fun BRISQUEScreen(
             Box(
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .padding(horizontal = ScreenHorizontalPadding, vertical = 8.dp)
                     .clickable {
                         showImageModal = true
                     }, Alignment.Center
@@ -192,7 +193,7 @@ fun BRISQUEScreen(
         LazyColumn(
             Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = ScreenHorizontalPadding),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item { Spacer(Modifier.height(8.dp)) }
@@ -213,7 +214,7 @@ fun BRISQUEScreen(
                             )
                             Row(
                                 Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                horizontalArrangement = Arrangement.spacedBy(ScreenHorizontalPadding)
                             ) {
                                 Column(
                                     Modifier.weight(1f),
@@ -304,7 +305,7 @@ fun BRISQUEScreen(
                     ) {
                         if (brisqueState?.isAssessing == true) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
+                                modifier = Modifier.size(ScreenHorizontalPadding),
                                 color = MaterialTheme.colorScheme.onPrimary,
                                 strokeWidth = 1.5.dp
                             )
@@ -335,7 +336,7 @@ fun BRISQUEScreen(
                     ) {
                         if (brisqueState?.isDescaling == true) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
+                                modifier = Modifier.size(ScreenHorizontalPadding),
                                 color = MaterialTheme.colorScheme.onSecondary,
                                 strokeWidth = 1.5.dp
                             )
@@ -549,8 +550,8 @@ private fun DescaleProgressDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 300.dp, max = 500.dp)
-                .padding(16.dp),
-            shape = RoundedCornerShape(16.dp),
+                .padding(ScreenHorizontalPadding),
+            shape = RoundedCornerShape(ScreenHorizontalPadding),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(

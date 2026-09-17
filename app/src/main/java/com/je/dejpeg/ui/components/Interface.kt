@@ -47,7 +47,7 @@ data class CornerRole(
     }
 }
 
-fun CornerRole.toShape(outer: Dp = 16.dp, inner: Dp = 6.dp): RoundedCornerShape =
+fun CornerRole.toShape(outer: Dp = ScreenHorizontalPadding, inner: Dp = 6.dp): RoundedCornerShape =
     RoundedCornerShape(
         topStart = if (topStart) outer else inner,
         topEnd = if (topEnd) outer else inner,
@@ -57,7 +57,7 @@ fun CornerRole.toShape(outer: Dp = 16.dp, inner: Dp = 6.dp): RoundedCornerShape 
 
 @Composable
 fun CornerRole.toListItemShapes(
-    outer: Dp = 16.dp,
+    outer: Dp = ScreenHorizontalPadding,
     inner: Dp = 6.dp,
 ): ListItemShapes = remember(this, outer, inner) {
     val idle = toShape(outer, inner)

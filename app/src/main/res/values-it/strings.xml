@@ -30,13 +30,10 @@
     <string name="error_sharing_image">Errore nella condivisione dell\'immagine: %1$s</string>
     <string name="select_image_source">Seleziona origine immagine</string>
     <string name="gallery">Galleria</string>
-    <string name="gallery_picker_desc">Utilizza l\'app galleria del dispositivo o di terze parti per selezionare le immagini. Questo metodo è consigliato e funziona sulla maggior parte dei dispositivi supportando i nomi dei file.</string>
     <string name="media_picker">Selettore foto</string>
-    <string name="internal_picker_desc">Utilizza il selettore foto integrato di Android, più attento alla privacy ma limita i nomi dei file.</string>
     <string name="documents">Documenti</string>
-    <string name="documents_picker_desc">Apre il selettore SAF standard. Utile per accedere alle immagini in cartelle o altre posizioni/provider.</string>
     <string name="camera">Fotocamera</string>
-    <string name="camera_desc">Apre la fotocamera del tuo dispositivo, le foto scattate verranno automaticamente importate.</string>
+
     <string name="set_as_default">Imposta come predefinito</string>
     <string name="info">Informazioni</string>
     <string name="ok">OK</string>
