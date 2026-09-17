@@ -27,8 +27,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 data class ActiveSelection(
-    val type: ModelType? = null,
-    val modelName: String? = null
+    val type: ModelType? = null, val modelName: String? = null
 )
 
 class SettingsViewModel : ViewModel() {
@@ -106,8 +105,11 @@ class SettingsViewModel : ViewModel() {
 
             val savedType = prefs.processingMode.first()?.takeIf { it.enabled }
             val savedName = savedType?.let { type ->
-                withContext(Dispatchers.IO) { modelManager?.getActiveModelName(type) }
-                    ?.takeIf { name -> newInstalled[type]?.contains(name) == true }
+                withContext(Dispatchers.IO) { modelManager?.getActiveModelName(type) }?.takeIf { name ->
+                        newInstalled[type]?.contains(
+                            name
+                        ) == true
+                    }
             }
             activeSelection.value = ActiveSelection(savedType, savedName)
             hasCheckedModels.value = true
@@ -151,15 +153,15 @@ class SettingsViewModel : ViewModel() {
         }
     }
 
-    fun importModel(
-        uri: Uri,
+    fun importModels(
+        uris: List<Uri>,
         onProgress: (Int) -> Unit = {},
         onSuccess: (String, ModelType) -> Unit = { _, _ -> },
         onError: (String) -> Unit = {}
     ) {
         viewModelScope.launch(Dispatchers.IO) {
-            modelManager?.importModel(
-                modelUri = uri,
+            modelManager?.importModels(
+                modelUris = uris,
                 onProgress = { launch(Dispatchers.Main) { onProgress(it) } },
                 onSuccess = { modelName, modelType ->
                     importedModels.value += (modelType to (importedModels.value[modelType].orEmpty() + modelName))

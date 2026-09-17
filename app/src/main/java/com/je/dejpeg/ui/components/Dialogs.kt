@@ -791,7 +791,7 @@ enum class SettingsSection {
 }
 
 @Composable
-fun PreferenceGroupHeading(title: String, modifier: Modifier = Modifier) {
+fun Heading(title: String, modifier: Modifier = Modifier) {
     Column(
         verticalArrangement = Arrangement.Center,
         modifier = modifier

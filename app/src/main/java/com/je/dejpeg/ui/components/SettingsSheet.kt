@@ -45,13 +45,12 @@ import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ListItemColors
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -135,13 +134,13 @@ fun SettingsSheetContent(
     val allModels = importedModels.flatMap { (type, names) -> names.map { name -> name to type } }
 
     val modelPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri ->
-        uri?.let { it ->
+        contract = ActivityResultContracts.OpenMultipleDocuments()
+    ) { uris ->
+        if (uris.isNotEmpty()) {
             showImportProgress.value = true
             importProgress = 0
-            settingsViewModel.importModel(
-                it,
+            settingsViewModel.importModels(
+                uris,
                 onProgress = { importProgress = it },
                 onSuccess = { name, _ ->
                     showImportProgress.value = false
@@ -178,12 +177,17 @@ fun SettingsSheetContent(
                     end = 12.dp
                 )
         ) {
-            PreferenceGroupHeading(stringResource(R.string.settings_title_models))
+            Heading(stringResource(R.string.settings_title_models))
 
             val hasModels = allModels.isNotEmpty()
             val hasCard = processingMode == ModelType.OIDN || processingMode == ModelType.ONNX
             val extractedMsg = stringResource(R.string.extracted_starter_models)
             val failedMsg = stringResource(R.string.failed_to_extract_starter_models)
+            val colors =
+                ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest)
+            val currentTheme = App.state.appTheme.value
+            val glassSlider by appPreferences.glassSlider.collectAsState(initial = true)
+
             Spacer(modifier = Modifier.height(GroupedListSpacing))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -192,7 +196,9 @@ fun SettingsSheetContent(
                 SegmentedListItem(
                     modifier = Modifier.weight(1f),
                     colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-                    onClick = { modelPickerLauncher.launch("*/*") },
+                    onClick = {
+                        modelPickerLauncher.launch(arrayOf("*/*"))
+                    },
                     onLongClick = {
                         scope.launch {
                             val extracted = withContext(Dispatchers.IO) {
@@ -257,8 +263,9 @@ fun SettingsSheetContent(
             }
 
             allModels.forEachIndexed { index, (modelName, modelType) ->
-                val isActive = modelName == activeSelection.modelName && processingMode == modelType
                 key(modelName, modelType) {
+                    val isActive =
+                        modelName == activeSelection.modelName && processingMode == modelType
                     val last = index == allModels.lastIndex && !hasCard
                     Spacer(modifier = Modifier.height(GroupedListSpacing))
                     SegmentedListItem(
@@ -333,17 +340,6 @@ fun SettingsSheetContent(
                         })
                 }
             }
-
-            val resolvedThreads = ThreadUtils.resolveThreadCount(onnxDeviceThreads)
-            val threadValue = if (onnxDeviceThreads == 0) {
-                stringResource(R.string.thread_value_auto, resolvedThreads)
-            } else {
-                onnxDeviceThreads.toString()
-            }
-            val threadLabel = "${stringResource(R.string.processing_threads_desc)} • $threadValue"
-            val colors =
-                ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest)
-
             Spacer(modifier = Modifier.height(GroupedListSpacing))
             AnimatedVisibility(
                 visible = hasModels,
@@ -352,6 +348,14 @@ fun SettingsSheetContent(
             ) {
                 val isExpanded =
                     expandedSection == SettingsSection.OidnSettings || expandedSection == SettingsSection.OnnxSettings
+                val resolvedThreads = ThreadUtils.resolveThreadCount(onnxDeviceThreads)
+                val threadValue = if (onnxDeviceThreads == 0) {
+                    stringResource(R.string.thread_value_auto, resolvedThreads)
+                } else {
+                    onnxDeviceThreads.toString()
+                }
+                val threadLabel =
+                    "${stringResource(R.string.processing_threads_desc)} • $threadValue"
                 AnimatedVisibility(
                     visible = processingMode == ModelType.ONNX,
                     enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
@@ -460,37 +464,11 @@ fun SettingsSheetContent(
                                 5 to stringResource(R.string.oidn_quality_balanced),
                                 6 to stringResource(R.string.oidn_quality_high)
                             )
-                            val rows = qualityOptions.chunked(2)
-                            rows.forEachIndexed { rowIndex, rowOptions ->
-                                val isTopRow = rowIndex == 0
-                                val isBottomRow = rowIndex == rows.lastIndex
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(
-                                        GroupedListSpacing
-                                    )
-                                ) {
-                                    rowOptions.forEachIndexed { colIndex, (value, label) ->
-                                        val isFirstCol = colIndex == 0
-                                        val isLastCol = colIndex == rowOptions.lastIndex
-                                        SegmentedListItem(
-                                            colors = colors,
-                                            modifier = Modifier.weight(1f),
-                                            shapes = CornerRole(
-                                                topStart = isTopRow && isFirstCol,
-                                                topEnd = isTopRow && isLastCol,
-                                                bottomStart = isBottomRow && isFirstCol,
-                                                bottomEnd = isBottomRow && isLastCol
-                                            ).toListItemShapes(),
-                                            selected = oidnQuality == value,
-                                            onClick = {
-                                                settingsViewModel.setOidnQualityPref(value)
-                                            }) {
-                                            Text(label)
-                                        }
-                                    }
-                                }
-                            }
+                            SegmentedOptionGrid(
+                                options = qualityOptions,
+                                selected = oidnQuality,
+                                colors = colors,
+                                onSelect = { value -> settingsViewModel.setOidnQualityPref(value) })
                             Spacer(modifier = Modifier.height(8.dp))
                             val resolvedOidnThreads = ThreadUtils.resolveThreadCount(oidnNumThreads)
                             val maxThreads = remember {
@@ -526,19 +504,15 @@ fun SettingsSheetContent(
                         })
                 }
             }
-            val currentTheme = App.state.appTheme.value
-            var themeMenuExpanded by remember { mutableStateOf(false) }
-            val glassSlider by appPreferences.glassSlider.collectAsState(initial = true)
-            val isExpanded = expandedSection == SettingsSection.MainSettings
             Spacer(Modifier.height(6.dp))
-            PreferenceGroupHeading("Settings")
+            Heading("Settings")
             PreferenceItem(
                 index = 1,
                 count = 1,
                 icon = Icons.Rounded.Settings,
                 iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                 title = stringResource(R.string.settings_item_title_options),
-                expanded = isExpanded,
+                expanded = expandedSection == SettingsSection.MainSettings,
                 expandedContent = {
                     SegmentedListItem(
                         colors = colors, shapes = segmentedShapes(1, 6), onClick = {
@@ -637,44 +611,23 @@ fun SettingsSheetContent(
                                 }
                             }) { Text(stringResource(R.string.clear_default_source)) }
                     })
-                    SegmentedListItem(colors = colors, shapes = segmentedShapes(6, 6), onClick = {
-                        themeMenuExpanded = true
-                    }, content = {
-                        Text(
-                            text = stringResource(R.string.theme),
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }, trailingContent = {
-                        Box {
-                            TextButton(
-                                onClick = {
-                                    themeMenuExpanded = true
-                                }) {
-                                Text(currentTheme.name)
-                            }
-                            DropdownMenu(
-                                expanded = themeMenuExpanded, onDismissRequest = {
-                                    themeMenuExpanded = false
-                                }) {
-                                AppTheme.entries.forEach { theme ->
-                                    val label = when (theme) {
-                                        AppTheme.Dynamic -> stringResource(R.string.theme_dynamic)
-                                        AppTheme.Light -> stringResource(R.string.theme_light)
-                                        AppTheme.Dark -> stringResource(R.string.theme_dark)
-                                        AppTheme.OLED -> stringResource(R.string.theme_oled)
-                                    }
-                                    DropdownMenuItem(text = { Text(label) }, onClick = {
-                                        themeMenuExpanded = false
-                                        scope.launch {
-                                            appPreferences.setAppTheme(theme)
-                                        }
-                                        App.state.appTheme.value = theme
-                                    })
-                                }
-                            }
+                    val themeOptions = AppTheme.entries.map { theme ->
+                        theme to when (theme) {
+                            AppTheme.Dynamic -> stringResource(R.string.theme_dynamic)
+                            AppTheme.Light -> stringResource(R.string.theme_light)
+                            AppTheme.Dark -> stringResource(R.string.theme_dark)
+                            AppTheme.OLED -> stringResource(R.string.theme_oled)
                         }
-                    })
+                    }
+                    SegmentedOptionGrid(
+                        options = themeOptions,
+                        selected = currentTheme,
+                        colors = colors,
+                        dontRound = true,
+                        onSelect = { theme ->
+                            scope.launch { appPreferences.setAppTheme(theme) }
+                            App.state.appTheme.value = theme
+                        })
                 },
                 onClick = {
                     toggle(SettingsSection.MainSettings)
@@ -686,7 +639,7 @@ fun SettingsSheetContent(
         val press by rememberMaterialPressState(interaction)
         FloatingActionButton(
             onClick = {
-                modelPickerLauncher.launch("*/*")
+                modelPickerLauncher.launch(arrayOf("*/*"))
             },
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -791,6 +744,44 @@ fun SettingsSheetContent(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(64.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun <T> SegmentedOptionGrid(
+    options: List<Pair<T, String>>,
+    selected: T,
+    colors: ListItemColors,
+    columns: Int = 2,
+    onSelect: (T) -> Unit,
+    dontRound: Boolean = false,
+) {
+    val rows = options.chunked(columns)
+    rows.forEachIndexed { rowIndex, rowOptions ->
+        val isTopRow = rowIndex == 0
+        val isBottomRow = rowIndex == rows.lastIndex
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(GroupedListSpacing)
+        ) {
+            rowOptions.forEachIndexed { colIndex, (value, label) ->
+                val isFirstCol = colIndex == 0
+                val isLastCol = colIndex == rowOptions.lastIndex
+                SegmentedListItem(
+                    colors = colors,
+                    modifier = Modifier.weight(1f),
+                    shapes = CornerRole(
+                        topStart = if (dontRound) false else isTopRow && isFirstCol,
+                        topEnd = if (dontRound) false else isTopRow && isLastCol,
+                        bottomStart = isBottomRow && isFirstCol,
+                        bottomEnd = isBottomRow && isLastCol
+                    ).toListItemShapes(),
+                    selected = selected == value,
+                    onClick = { onSelect(value) }) {
+                    Text(label)
+                }
             }
         }
     }

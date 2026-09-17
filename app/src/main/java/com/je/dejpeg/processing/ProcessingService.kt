@@ -614,8 +614,8 @@ class ServiceCommunicationHelper(
         if (isBound) return
         val generation = ++bindingEpoch
         crashHandled = false
-        intentionalKill = false
 
+        var deathRecipientLinked = false
         val deathRecipient = IBinder.DeathRecipient {
             mainHandler.post {
                 if (generation != bindingEpoch) return@post
@@ -640,6 +640,7 @@ class ServiceCommunicationHelper(
                 activeBinding = Binding(this, deathRecipient, binder)
                 try {
                     binder?.linkToDeath(deathRecipient, 0)
+                    deathRecipientLinked = true
                     Log.d("ServiceCommHelper", "DeathRecipient linked successfully")
                 } catch (e: Exception) {
                     Log.e("ServiceCommHelper", "Failed to link DeathRecipient: ${e.message}")
@@ -648,6 +649,14 @@ class ServiceCommunicationHelper(
 
             override fun onServiceDisconnected(name: ComponentName?) {
                 if (generation != bindingEpoch) return
+                if (!deathRecipientLinked) {
+                    Log.w(
+                        "ServiceCommHelper",
+                        "Service disconnected before DeathRecipient linked, skipping [gen=$generation]"
+                    )
+                    cleanupBinding()
+                    return
+                }
                 Log.w("ServiceCommHelper", "Service disconnected unexpectedly [gen=$generation]")
                 val imageId = currentProcessingImageId
                 cleanupBinding()

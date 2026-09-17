@@ -235,7 +235,6 @@ fun ProcessingScreen(
     val currentIsActive by rememberUpdatedState(isActive)
     val currentSettingsExpanded by rememberUpdatedState(settingsExpanded)
     val currentIsSelectionMode by rememberUpdatedState(isSelectionMode)
-    val currentClearSelection by rememberUpdatedState(clearSelection)
     val predictiveBackCallback = remember {
         object : OnBackPressedCallback(false) {
             override fun handleOnBackProgressed(backEvent: BackEventCompat) {
@@ -253,7 +252,7 @@ fun ProcessingScreen(
                 if (currentSettingsExpanded) {
                     settingsExpanded = false
                 } else if (currentIsSelectionMode) {
-                    currentClearSelection()
+                    clearSelection()
                 }
                 settingsBackProgress = 0f
             }
@@ -509,14 +508,14 @@ fun ProcessingScreen(
             }
         }
         AnimatedVisibility(
-            visible = images.isNotEmpty() && supportsStrength,
+            visible = images.isNotEmpty() && (supportsStrength || isOidnMode),
             enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
             exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
         ) {
             Card(
                 Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 16.dp),
+                    .padding(bottom = 16.dp, start = 16.dp, end = 16.dp),
                 colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceContainer),
                 shape = RoundedCornerShape(16.dp)
             ) {
@@ -782,6 +781,10 @@ fun LazyItemScope.ImageCard(
 ) {
     val isSelected = selectedImageIds.contains(image.id)
     val isProcessing = image.isProcessing
+    val processSelectedImages: () -> Unit = {
+        val ids = if (isSelectionMode) selectedImageIds else listOf(image.id)
+        ids.forEach(viewModel::processImage)
+    }
     val positiveAction: () -> (() -> Unit)? = {
         if (image.outputBitmap != null) {
             { onRequestSave(listOf(image.id), false) }
@@ -997,11 +1000,12 @@ fun LazyItemScope.ImageCard(
                         ImageCardSplitButton(
                             image = image,
                             isProcessing = isProcessing,
-                            onProcess = { tryProcess { viewModel.processImage(image.id) } },
+                            onProcess = {
+                                tryProcess { processSelectedImages() }
+                            },
                             onRemove = {
                                 if (isSelectionMode) {
                                     onRequestRemoval(selectedImageIds.toList())
-                                    onClearSelection()
                                 } else {
                                     negativeAction()?.invoke()
                                 }
@@ -1025,8 +1029,8 @@ fun LazyItemScope.ImageCard(
                             onCompare = {
                                 val (idA, idB) = selectedImageIds
                                 onNavigateToCompare(idA, idB)
-                                onClearSelection()
                             },
+                            clearSelection = onClearSelection
                         )
                     }
                 }
@@ -1147,6 +1151,7 @@ private fun ImageCardSplitButton(
     isCompareReady: Boolean = false,
     onCompare: () -> Unit = {},
     selectedCount: Int,
+    clearSelection: () -> Unit = {},
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     val fastSpatialSpec = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
@@ -1260,7 +1265,29 @@ private fun ImageCardSplitButton(
                         onClick = {
                             menuExpanded = false
                             onSave()
+                            clearSelection()
                         })
+                }
+                if (cardState == CardState.Stale) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.save)) },
+                        leadingIcon = { Icon(Icons.Rounded.Save, null) },
+                        onClick = {
+                            menuExpanded = false
+                            onSave()
+                            clearSelection()
+                        })
+                }
+                if (cardState != CardState.Processing) {
+                    DropdownMenuItem(text = { Text(removeLabel) }, leadingIcon = {
+                        Icon(
+                            Icons.Rounded.Delete, null, tint = MaterialTheme.colorScheme.error
+                        )
+                    }, onClick = {
+                        menuExpanded = false
+                        onRemove()
+                        clearSelection()
+                    })
                 }
                 if (isCompareReady) {
                     DropdownMenuItem(
@@ -1269,6 +1296,7 @@ private fun ImageCardSplitButton(
                         onClick = {
                             menuExpanded = false
                             onCompare()
+                            clearSelection()
                         })
                 }
                 if (cardState == CardState.Complete) {
@@ -1280,6 +1308,7 @@ private fun ImageCardSplitButton(
                         onClick = {
                             menuExpanded = false
                             onProcess()
+                            clearSelection()
                         })
                 }
                 if (cardState == CardState.Complete) {
@@ -1289,17 +1318,8 @@ private fun ImageCardSplitButton(
                         onClick = {
                             menuExpanded = false
                             onImportOutput()
+                            clearSelection()
                         })
-                }
-                if (cardState == CardState.Stale) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.save)) },
-                        leadingIcon = { Icon(Icons.Rounded.Save, null) },
-                        onClick = {
-                            menuExpanded = false
-                            onSave()
-                        })
-
                 }
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.brisque_analysis)) },
@@ -1319,17 +1339,8 @@ private fun ImageCardSplitButton(
                     onClick = {
                         menuExpanded = false
                         onBrisque()
+                        clearSelection()
                     })
-                if (cardState != CardState.Processing) {
-                    DropdownMenuItem(text = { Text(removeLabel) }, leadingIcon = {
-                        Icon(
-                            Icons.Rounded.Delete, null, tint = MaterialTheme.colorScheme.error
-                        )
-                    }, onClick = {
-                        menuExpanded = false
-                        onRemove()
-                    })
-                }
             }
         }
     }

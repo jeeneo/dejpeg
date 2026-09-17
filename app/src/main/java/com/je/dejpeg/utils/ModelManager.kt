@@ -474,6 +474,28 @@ open class ModelManager(
         }
     }
 
+    fun importModels(
+        modelUris: List<Uri>,
+        onProgress: (Int) -> Unit = {},
+        onSuccess: (String, ModelType) -> Unit = { _, _ -> },
+        onError: (String) -> Unit = {}
+    ) {
+        val total = modelUris.size
+        var index = 0
+        for (uri in modelUris) {
+            index++
+            importModel(
+                modelUri = uri,
+                onProgress = { p ->
+                    val adjusted = ((index - 1) * 100 + p) / total
+                    onProgress(adjusted)
+                },
+                onSuccess = { name, type -> onSuccess(name, type) },
+                onError = onError
+            )
+        }
+    }
+
     fun deleteModel(
         modelName: String, type: ModelType = ModelType.ONNX, onDeleted: (String) -> Unit = {}
     ) {
