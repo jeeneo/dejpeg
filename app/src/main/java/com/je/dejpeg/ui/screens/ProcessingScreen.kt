@@ -780,7 +780,7 @@ fun LazyItemScope.ImageCard(
     viewModel: ProcessingViewModel,
     onToggleSelection: (String) -> Unit,
     swapSwipeActions: Boolean,
-    onRequestSave: (List<String>, Boolean) -> Unit,
+    onRequestSave: (List<String>, Boolean) -> Boolean,
     tryProcess: (() -> Unit) -> Unit,
     takeProcess: (String?) -> Unit,
     onCancelProcessing: (String) -> Unit,
@@ -795,7 +795,8 @@ fun LazyItemScope.ImageCard(
 
     val positiveAction: () -> (() -> Unit)? = {
         if (image.outputBitmap != null) {
-            { onRequestSave(listOf(image.id), false) }
+            onRequestSave(listOf(image.id), false)
+            null
         } else {
             tryProcess { viewModel.processImage(image.id) }
             null

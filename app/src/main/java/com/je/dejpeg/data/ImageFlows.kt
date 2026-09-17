@@ -53,14 +53,18 @@ class ImageFlows internal constructor(
             PendingAction.ConfirmRemoval(needsConfirmation)
     }
 
-    fun requestSave(ids: Collection<String>, removeAfter: Boolean) {
+    fun requestSave(ids: Collection<String>, removeAfter: Boolean): Boolean {
         val validIds = ids.mapNotNull { id -> images.firstOrNull { it.id == id } }
             .filter { it.outputBitmap != null }.map { it.id }
-        if (validIds.isEmpty()) return
+        if (validIds.isEmpty()) return false
         val request = SaveRequest(validIds, removeAfter)
-        if (validIds.size > 1) performSave(request, null, false)
-        else if (showSaveDialog) pending = PendingAction.Save(request)
-        else gate(request, null)
+        if (validIds.size > 1) {
+            performSave(request, null, false); return false
+        } else if (showSaveDialog) {
+            pending = PendingAction.Save(request); return true
+        } else {
+            gate(request, null); return false
+        }
     }
 
     fun saveAllNow() {
