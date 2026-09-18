@@ -61,6 +61,7 @@ import androidx.compose.ui.zIndex
 import androidx.core.graphics.createBitmap
 import com.je.dejpeg.R
 import com.je.dejpeg.data.AppPreferences
+import com.je.dejpeg.data.HapticPatterns
 import com.je.dejpeg.data.ImageFlowDialogs
 import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.data.rememberImageFlows
@@ -158,7 +159,9 @@ fun ImageScreen(
                     ) {
                         var leftMenuExpanded by remember { mutableStateOf(false) }
                         Box {
-                            TextButton(onClick = { leftMenuExpanded = true }) {
+                            TextButton(onClick = {
+                                HapticPatterns.tap(); leftMenuExpanded = true
+                            }) {
                                 Text(
                                     if (leftSource == BitmapSource.Output) image.filename + " (output)" else image.filename,
                                     style = MaterialTheme.typography.titleMedium
@@ -168,11 +171,13 @@ fun ImageScreen(
                                 expanded = leftMenuExpanded,
                                 onDismissRequest = { leftMenuExpanded = false }) {
                                 DropdownMenuItem(text = { Text("Input") }, onClick = {
+                                    HapticPatterns.tap()
                                     leftSource = BitmapSource.Input
                                     leftMenuExpanded = false
                                 })
                                 if (image.outputBitmap != null) {
                                     DropdownMenuItem(text = { Text("Output") }, onClick = {
+                                        HapticPatterns.tap()
                                         leftSource = BitmapSource.Output
                                         leftMenuExpanded = false
                                     })
@@ -182,7 +187,9 @@ fun ImageScreen(
                         var rightMenuExpanded by remember { mutableStateOf(false) }
                         Box {
                             val ci = compareImage!!
-                            TextButton(onClick = { rightMenuExpanded = true }) {
+                            TextButton(onClick = {
+                                HapticPatterns.tap(); rightMenuExpanded = true
+                            }) {
                                 Text(
                                     if (rightSource == BitmapSource.Output) ci.filename + " (output)" else ci.filename,
                                     style = MaterialTheme.typography.titleMedium
@@ -192,11 +199,13 @@ fun ImageScreen(
                                 expanded = rightMenuExpanded,
                                 onDismissRequest = { rightMenuExpanded = false }) {
                                 DropdownMenuItem(text = { Text("Input") }, onClick = {
+                                    HapticPatterns.tap()
                                     rightSource = BitmapSource.Input
                                     rightMenuExpanded = false
                                 })
                                 if (ci.outputBitmap != null) {
                                     DropdownMenuItem(text = { Text("Output") }, onClick = {
+                                        HapticPatterns.tap()
                                         rightSource = BitmapSource.Output
                                         rightMenuExpanded = false
                                     })
@@ -209,7 +218,7 @@ fun ImageScreen(
                 }
             },
             navigationIcon = {
-                IconButton(onClick = { onBack() }) {
+                IconButton(onClick = { HapticPatterns.tap(); onBack() }) {
                     Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Back")
                 }
             },
@@ -251,6 +260,7 @@ fun ImageScreen(
                                 )
                             },
                             onClick = {
+                                HapticPatterns.tap()
                                 isPreparingShare = true
                                 ImageActions.shareImage(
                                     context = context,
@@ -274,6 +284,7 @@ fun ImageScreen(
                                 )
                             },
                             onClick = {
+                                HapticPatterns.tap()
                                 flows.requestSave(listOf(imageId), false)
                             })
                     }
@@ -294,7 +305,7 @@ fun ImageScreen(
                     title = { Text(stringResource(R.string.error_saving_image_title)) },
                     text = { Text(err.message) },
                     confirmButton = {
-                        TextButton(onClick = { viewModel.dismissSaveError() }) {
+                        TextButton(onClick = { HapticPatterns.tap(); viewModel.dismissSaveError() }) {
                             Text(stringResource(R.string.ok))
                         }
                     })

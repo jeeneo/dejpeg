@@ -14,6 +14,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -40,6 +41,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.data.AppState
+import com.je.dejpeg.data.AppTheme
 import com.je.dejpeg.data.HapticPatterns
 import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.ui.components.ActivitySnackySnackbarController
@@ -50,7 +52,6 @@ import com.je.dejpeg.ui.components.SnackySnackbarHostState
 import com.je.dejpeg.ui.screens.BRISQUEScreen
 import com.je.dejpeg.ui.screens.ImageScreen
 import com.je.dejpeg.ui.screens.ProcessingScreen
-import com.je.dejpeg.ui.theme.AppTheme
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
 import com.je.dejpeg.utils.ModelManager
@@ -107,7 +108,6 @@ class MainActivity : ComponentActivity() {
         }
         handleShareIntent(intent)
 
-        // https://stackoverflow.com/a/79267436
         setContent {
             AppTheme {
                 ScreenController()
@@ -121,6 +121,7 @@ class MainActivity : ComponentActivity() {
         handleShareIntent(intent)
     }
 
+    @Suppress("DEPRECATION")
     private fun handleShareIntent(intent: Intent?) {
         if (intent == null) return
         val hash = System.identityHashCode(intent)
@@ -153,7 +154,8 @@ class MainActivity : ComponentActivity() {
             contentResolver.takePersistableUriPermission(
                 uri, Intent.FLAG_GRANT_READ_URI_PERMISSION and Intent.FLAG_GRANT_READ_URI_PERMISSION
             )
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.i("addSharedUri", "Error adding shared URI: $e")
         }
         imageRepository.addSharedUri(uri)
     }

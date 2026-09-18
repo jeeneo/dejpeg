@@ -23,7 +23,6 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import com.je.dejpeg.App
-import com.je.dejpeg.ui.theme.AppTheme
 import com.je.dejpeg.ui.viewmodel.ImageItem
 import com.je.dejpeg.utils.ImageLoadingHelper
 import com.je.dejpeg.utils.ImageSource
@@ -121,17 +120,17 @@ data class BrisqueSettings(
 class AppPreferences {
     companion object {
         const val PREFS_NAME = "app_prefs"
-        const val KEY_SHOW_SAVE_DIALOG = "showSaveDialog"
-        const val KEY_DEFAULT_IMAGE_SOURCE = "defaultImageSource"
-        const val KEY_HAPTIC_FEEDBACK_ENABLED = "hapticFeedbackEnabled"
-        const val KEY_SWAP_SWIPE_ACTIONS = "swapSwipeActions"
-        const val KEY_COMPAT_MODEL_CLEANUP = "compatModelCleanup"
+        const val KEY_SHOW_SAVE_DIALOG = "show_save_confirmation"
+        const val KEY_DEFAULT_IMAGE_SOURCE = "default_image_picker"
+        const val KEY_HAPTIC_FEEDBACK_ENABLED = "haptics_enabled"
+        const val KEY_SWAP_SWIPE_ACTIONS = "swap_swipe_actions"
+        const val KEY_COMPAT_MODEL_CLEANUP = "compat_model_cleanup"
         const val KEY_CHUNK_SIZE = "chunk_size"
         const val KEY_OVERLAP_SIZE = "overlap_size"
         const val KEY_ONNX_DEVICE_THREADS = "onnx_device_threads"
         const val KEY_GLOBAL_STRENGTH = "global_strength"
-        const val KEY_ACTIVE_MODEL = "activeModel"
-        const val KEY_STARTER_MODEL_EXTRACTED = "starterModelExtracted"
+        const val KEY_ACTIVE_MODEL = "active_model"
+        const val KEY_STARTER_MODEL_EXTRACTED = "starter_models_extracted"
         const val KEY_BRISQUE_COARSE_STEP = "brisque_coarse_step"
         const val KEY_BRISQUE_FINE_STEP = "brisque_fine_step"
         const val KEY_BRISQUE_FINE_RANGE = "brisque_fine_range"
@@ -146,7 +145,8 @@ class AppPreferences {
         const val KEY_OIDN_NUM_THREADS = "oidn_num_threads"
         const val KEY_OIDN_INPUT_SCALE = "oidn_input_scale"
         const val KEY_APP_THEME = "app_theme"
-        const val KEY_GLASS_SLIDER = "before_after_screen_glasseffect"
+        const val KEY_GLASS_SLIDER = "before_after_screen_glass_slider"
+
         const val DEFAULT_CHUNK_SIZE = 512
         const val DEFAULT_OVERLAP_SIZE = 16
         const val DEFAULT_ONNX_DEVICE_THREADS = 0

@@ -613,6 +613,7 @@ class ImageProcessor(
         return 0.coerceAtLeast(255.coerceAtMost(v.toInt()))
     }
 
+    @Suppress("UNCHECKED_CAST")
     private fun extractOutputArray(
         outputValue: Any, channels: Int, h: Int, w: Int
     ): Pair<FloatArray, Int> {

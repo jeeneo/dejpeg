@@ -422,7 +422,6 @@ class ProcessingViewModel : ViewModel() {
         val wasKilled = serviceHelper?.cancelProcessing {
             viewModelScope.launch(Dispatchers.IO) {
                 CacheManager.clearChunks(ctx)
-                CacheManager.clearAbandonedImages(ctx)
             }
         } ?: false
         if (wasActive) {
@@ -611,7 +610,6 @@ class ProcessingViewModel : ViewModel() {
             serviceHelper?.cancelProcessing {
                 viewModelScope.launch(Dispatchers.IO) {
                     CacheManager.clearChunks(ctx)
-                    CacheManager.clearAbandonedImages(ctx)
                 }
             }
         } else if (queue.contains(imageId)) {

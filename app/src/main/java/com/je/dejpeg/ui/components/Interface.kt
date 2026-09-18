@@ -28,7 +28,11 @@ val GroupedListSpacing: Dp = 2.dp
 val ScreenHorizontalPadding: Dp = 16.dp
 
 @Composable
-fun segmentedShapes(index: Int, count: Int) = ListItemDefaults.segmentedShapes(index - 1, count)
+fun segmentedListShapes(index: Int, count: Int) = ListItemDefaults.segmentedShapes(index - 1, count)
+
+@Composable
+fun segmentedShape(index: Int, count: Int): Shape =
+    ListItemDefaults.segmentedShapes(index - 1, count).shape
 
 data class CornerRole(
     val topStart: Boolean = false,
@@ -55,6 +59,7 @@ fun CornerRole.toShape(outer: Dp = ScreenHorizontalPadding, inner: Dp = 6.dp): R
         bottomStart = if (bottomStart) outer else inner,
         bottomEnd = if (bottomEnd) outer else inner,
     )
+
 
 @Composable
 fun CornerRole.toListItemShapes(
@@ -126,9 +131,14 @@ fun MorphButton(
     colors: ButtonColors = ButtonDefaults.buttonColors()
 ) {
     Button(
-        onClick = { HapticPatterns.tap(); onClick() }, modifier = modifier, enabled = enabled, shapes = ButtonShapes(
+        onClick = { HapticPatterns.tap(); onClick() },
+        modifier = modifier,
+        enabled = enabled,
+        shapes = ButtonShapes(
             shape = RoundedCornerShape(21.dp), pressedShape = RoundedCornerShape(8.dp)
-        ), interactionSource = interactionSource, colors = colors
+        ),
+        interactionSource = interactionSource,
+        colors = colors
     ) { Text(label) }
 }
 
@@ -155,4 +165,3 @@ fun rememberMaterialPressState(
     }
     return remember { derivedStateOf { progress.value } }
 }
-

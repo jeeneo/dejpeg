@@ -69,6 +69,7 @@ import androidx.compose.ui.util.lerp
 import com.je.dejpeg.App
 import com.je.dejpeg.R
 import com.je.dejpeg.data.AppPreferences
+import com.je.dejpeg.data.AppTheme
 import com.je.dejpeg.data.HapticPatterns
 import com.je.dejpeg.data.SettingsSection
 import com.je.dejpeg.data.ThreadUtils
@@ -83,9 +84,8 @@ import com.je.dejpeg.ui.components.SnackbarController
 import com.je.dejpeg.ui.components.SnackbarDuration
 import com.je.dejpeg.ui.components.SnackySnackbarEvents
 import com.je.dejpeg.ui.components.rememberMaterialPressState
-import com.je.dejpeg.ui.components.segmentedShapes
+import com.je.dejpeg.ui.components.segmentedListShapes
 import com.je.dejpeg.ui.components.toListItemShapes
-import com.je.dejpeg.ui.theme.AppTheme
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
 import com.je.dejpeg.utils.ModelManager
@@ -376,7 +376,7 @@ fun SettingsSheetContent(
                                 Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
                             }
                             SegmentedListItem(
-                                colors = cardColors, shapes = segmentedShapes(1, 3), content = {
+                                colors = cardColors, shapes = segmentedListShapes(1, 3), content = {
                                     PowerSlider(
                                         label = stringResource(R.string.chunk_size),
                                         value = chunkSize,
@@ -384,7 +384,7 @@ fun SettingsSheetContent(
                                         onChange = { settingsViewModel.setChunkSize(it) })
                                 })
                             SegmentedListItem(
-                                colors = cardColors, shapes = segmentedShapes(2, 3), content = {
+                                colors = cardColors, shapes = segmentedListShapes(2, 3), content = {
                                     PowerSlider(
                                         label = stringResource(R.string.overlap_size),
                                         value = overlapSize,
@@ -393,7 +393,7 @@ fun SettingsSheetContent(
 
                                 })
                             SegmentedListItem(
-                                colors = cardColors, shapes = segmentedShapes(3, 3), content = {
+                                colors = cardColors, shapes = segmentedListShapes(3, 3), content = {
                                     PowerSlider(
                                         label = threadLabel,
                                         value = onnxDeviceThreads,
@@ -422,7 +422,7 @@ fun SettingsSheetContent(
                         expanded = isExpanded,
                         expandedContent = {
                             SegmentedListItem(
-                                colors = cardColors, shapes = segmentedShapes(1, 2), onClick = {
+                                colors = cardColors, shapes = segmentedListShapes(1, 2), onClick = {
                                     HapticPatterns.tap()
                                     settingsViewModel.setOidnHdrPref(
                                         !oidnHDR
@@ -436,7 +436,7 @@ fun SettingsSheetContent(
                             }
                             SegmentedListItem(
                                 colors = cardColors,
-                                shapes = segmentedShapes(2, 2),
+                                shapes = segmentedListShapes(2, 2),
                                 onClick = {
                                     HapticPatterns.tap()
                                     settingsViewModel.setOidnSrgbPref(
@@ -488,7 +488,7 @@ fun SettingsSheetContent(
                             Spacer(modifier = Modifier.height(8.dp))
                             SegmentedListItem(
                                 colors = cardColors,
-                                shapes = segmentedShapes(1, 1),
+                                shapes = segmentedListShapes(1, 1),
                             ) {
                                 PowerSlider(
                                     hideValue = true,
@@ -515,7 +515,7 @@ fun SettingsSheetContent(
                 expanded = expandedSection == SettingsSection.MainSettings,
                 expandedContent = {
                     SegmentedListItem(
-                        colors = cardColors, shapes = segmentedShapes(1, 6), onClick = {
+                        colors = cardColors, shapes = segmentedListShapes(1, 6), onClick = {
                             scope.launch {
                                 hapticsEnabled = !hapticsEnabled
                                 if (hapticsEnabled) {
@@ -540,7 +540,7 @@ fun SettingsSheetContent(
                             })
                     }
                     SegmentedListItem(
-                        colors = cardColors, shapes = segmentedShapes(2, 6), onClick = {
+                        colors = cardColors, shapes = segmentedListShapes(2, 6), onClick = {
                             HapticPatterns.tap()
                             scope.launch {
                                 showSaveDialog = !showSaveDialog
@@ -559,7 +559,7 @@ fun SettingsSheetContent(
                             })
                     }
                     SegmentedListItem(
-                        colors = cardColors, shapes = segmentedShapes(3, 6), onClick = {
+                        colors = cardColors, shapes = segmentedListShapes(3, 6), onClick = {
                             HapticPatterns.tap()
                             scope.launch {
                                 swapSwipeActions = !swapSwipeActions
@@ -578,7 +578,7 @@ fun SettingsSheetContent(
                             })
                     }
                     SegmentedListItem(
-                        colors = cardColors, shapes = segmentedShapes(4, 6), onClick = {
+                        colors = cardColors, shapes = segmentedListShapes(4, 6), onClick = {
                             HapticPatterns.tap()
                             scope.launch {
                                 glassSlider = !glassSlider
@@ -597,7 +597,7 @@ fun SettingsSheetContent(
                     val clearedDefaultSourceMsg = stringResource(R.string.cleared_default_source)
                     SegmentedListItem(
                         colors = cardColors,
-                        shapes = segmentedShapes(5, 6),
+                        shapes = segmentedListShapes(5, 6),
                         onClick = {
                             HapticPatterns.tap()
                             scope.launch {

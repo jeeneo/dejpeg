@@ -616,7 +616,7 @@ fun ProcessingScreen(
                                 Spacer(Modifier.height(8.dp))
                                 MorphButton(
                                     interactionSource = buttonInteractionSource,
-                                    onClick = { HapticPatterns.tap(); launchImportIntent() },
+                                    onClick = { launchImportIntent() },
                                     label = stringResource(R.string.add_images),
                                 )
                             }
@@ -689,7 +689,7 @@ fun ProcessingScreen(
         images.firstOrNull { it.id == targetId }?.let { image ->
             CancelProcessingDialog(
                 imageFilename = image.filename,
-                onDismissRequest = { imageIdToCancel = null },
+                dismiss = { imageIdToCancel = null },
                 onConfirm = {
                     processingViewModel.cancelQueuedImage(targetId)
                     imageIdToCancel = null
@@ -706,7 +706,7 @@ fun ProcessingScreen(
     if (showCancelAllDialog) {
         CancelProcessingDialog(
             imageFilename = null,
-            onDismissRequest = { showCancelAllDialog = false },
+            dismiss = { showCancelAllDialog = false },
             onConfirm = {
                 processingViewModel.cancelProcessing()
                 showCancelAllDialog = false

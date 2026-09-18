@@ -5,6 +5,7 @@
 
 package com.je.dejpeg.ui.screens
 
+import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -87,6 +88,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.je.dejpeg.R
 import com.je.dejpeg.data.BrisqueSettings
+import com.je.dejpeg.data.HapticPatterns
 import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.processing.BRISQUEDescaler
 import com.je.dejpeg.ui.components.ErrorAlertDialog
@@ -140,19 +142,22 @@ fun BRISQUEScreen(
                 )
             },
             navigationIcon = {
-                IconButton(onClick = { onBack() }) {
+                IconButton(onClick = { HapticPatterns.tap(); onBack() }) {
                     Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back_desc))
                 }
             },
             actions = {
                 IconButton(onClick = {
+                    HapticPatterns.tap()
                     showInfoDialog = true
                 }) { Icon(Icons.Rounded.Info, stringResource(R.string.info_desc)) }
                 IconButton(onClick = {
+                    HapticPatterns.tap()
                     showBRISQUESettings = true
                 }) { Icon(Icons.Rounded.Settings, stringResource(R.string.settings_desc)) }
                 IconButton(
                     onClick = {
+                        HapticPatterns.tap()
                         brisqueViewModel.saveCurrentImage(context)
                     }, enabled = brisqueState != null
                 ) {
@@ -168,6 +173,7 @@ fun BRISQUEScreen(
                     .fillMaxWidth()
                     .padding(horizontal = ScreenHorizontalPadding, vertical = 8.dp)
                     .clickable {
+                        HapticPatterns.tap()
                         showImageModal = true
                     }, Alignment.Center
             ) {
@@ -295,7 +301,7 @@ fun BRISQUEScreen(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
-                        onClick = { brisqueViewModel.assessQuality(context) },
+                        onClick = { HapticPatterns.tap(); brisqueViewModel.assessQuality(context) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(40.dp),
@@ -323,6 +329,7 @@ fun BRISQUEScreen(
                     }
                     Button(
                         onClick = {
+                            HapticPatterns.tap()
                             if (brisqueState?.descaledBitmap != null) showConfirm =
                                 true else brisqueViewModel.descaleImage(context)
                         },
@@ -654,7 +661,7 @@ private fun DescaleProgressDialog(
                 }
 
                 OutlinedButton(
-                    onClick = { onCancel() },
+                    onClick = { HapticPatterns.tap(); onCancel() },
                     Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
@@ -720,6 +727,7 @@ private fun ImageViewerModal(
             }
             IconButton(
                 onClick = {
+                    HapticPatterns.tap()
                     scope.launch { sheetState.hide() }.invokeOnCompletion {
                         if (!sheetState.isVisible) onDismiss()
                     }
@@ -741,6 +749,7 @@ private fun ImageViewerModal(
     }
 }
 
+@SuppressLint("MissingHapticFeedback")
 @Composable
 private fun BRISQUESettings(
     settings: BrisqueSettings,
@@ -785,6 +794,7 @@ private fun BRISQUESettings(
                     style = MaterialTheme.typography.labelMedium
                 )
                 if (infoText.isNotEmpty()) IconButton(onClick = {
+                    HapticPatterns.tap()
                     expandedInfo =
                         if (expandedInfo == label) null else label
                 }, Modifier.size(24.dp)) {
@@ -802,6 +812,7 @@ private fun BRISQUESettings(
             Slider(
                 state = sliderState,
                 onValueChange = { newIdx ->
+                    HapticPatterns.tap()
                     val newIndex = newIdx.roundToInt().coerceIn(0, steps)
                     if (newIndex != index) {
                         index = newIndex
@@ -818,6 +829,7 @@ private fun BRISQUESettings(
         }
     }
 
+    //noinspection MissingHapticFeedback
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.brisque_settings_title)) },
@@ -900,7 +912,7 @@ private fun BRISQUESettings(
         },
         confirmButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = { onDismiss() }) {
+                TextButton(onClick = { HapticPatterns.tap(); onDismiss() }) {
                     Text(
                         stringResource(
                             R.string.cancel
@@ -908,6 +920,7 @@ private fun BRISQUESettings(
                     )
                 }
                 TextButton(onClick = {
+                    HapticPatterns.tap()
                     coarseStep = 20f
                     fineStep = 5f
                     fineRange = 30f
@@ -916,6 +929,7 @@ private fun BRISQUESettings(
                     sharpnessWeight = 0.3f
                 }) { Text(stringResource(R.string.reset)) }
                 Button(onClick = {
+                    HapticPatterns.tap()
                     brisqueViewModel.updateSettings(
                         BrisqueSettings(
                             coarseStep.toInt(),

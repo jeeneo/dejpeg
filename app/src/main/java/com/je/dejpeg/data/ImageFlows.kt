@@ -191,7 +191,6 @@ fun ImageFlowDialogs(flows: ImageFlows) {
             }
             SaveImageDialog(
                 defaultFilename = single?.filename.orEmpty(),
-                showSaveAllOption = flows.images.any { it.outputBitmap != null },
                 initialSaveAll = false,
                 overwriteMode = false,
                 onDismissRequest = flows::dismiss,
@@ -201,7 +200,6 @@ fun ImageFlowDialogs(flows: ImageFlows) {
 
         is PendingAction.Overwrite -> SaveImageDialog(
             defaultFilename = action.filename,
-            showSaveAllOption = false,
             initialSaveAll = false,
             overwriteMode = true,
             onDismissRequest = flows::dismiss,

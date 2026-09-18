@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
-package com.je.dejpeg.ui.theme
+package com.je.dejpeg.data
 
 import android.os.Build
 import androidx.activity.ComponentActivity
@@ -245,6 +245,7 @@ val ExpressiveTypography = Typography(
     ),
 )
 
+// https://stackoverflow.com/a/79267436
 @Composable
 fun AppTheme(
     content: @Composable () -> Unit

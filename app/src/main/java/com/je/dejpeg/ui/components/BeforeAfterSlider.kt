@@ -62,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.get
 import com.je.dejpeg.R
+import com.je.dejpeg.data.HapticPatterns
 import com.je.dejpeg.ui.screens.rememberCheckerShader
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
@@ -203,7 +204,6 @@ fun BeforeAfterSlider(
         }
         if (containerSize.width > 0) {
             val sliderX = containerSize.width * sliderPosition
-            //  val lineBackdrop = rememberLayerBackdrop()
 
             // trackbar
             Box(
@@ -239,9 +239,7 @@ fun BeforeAfterSlider(
                     )
                 }
 
-                // round center handle
-                // val combinedBackdrop = rememberCombinedBackdrop(backdrop, lineBackdrop)
-
+                // round center handles
                 Box(
                     Modifier
                         .fillMaxHeight()
@@ -249,7 +247,7 @@ fun BeforeAfterSlider(
                         .offset(x = with(density) { sliderX.toDp() - 32.dp })
                         .pointerInput(Unit) {
                             detectDragGestures(
-                                onDragStart = { },
+                                onDragStart = { HapticPatterns.tap() },
                                 onDrag = { change, dragAmount ->
                                     change.consume()
                                     sliderPosition =

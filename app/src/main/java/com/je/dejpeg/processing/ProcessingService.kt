@@ -154,10 +154,9 @@ class ProcessingService : Service() {
             ModelType.OIDN to OIDNProcessor(context),
         )
         if (BuildConfig.LITERT_ENABLED) {
-            map[ModelType.LITERT] =
-                Class.forName("com.je.dejpeg.processing.litert.ImageProcessor")
-                    .getDeclaredConstructor(Context::class.java, ModelManager::class.java)
-                    .newInstance(context, modelManager) as Processor
+            map[ModelType.LITERT] = Class.forName("com.je.dejpeg.processing.litert.ImageProcessor")
+                .getDeclaredConstructor(Context::class.java, ModelManager::class.java)
+                .newInstance(context, modelManager) as Processor
         }
         return map
     }
@@ -190,7 +189,6 @@ class ProcessingService : Service() {
                 Log.d("ProcessingService", "Processing $filename (mode: ${processingMode.name})")
 
                 modelName?.let { name ->
-                    // Derive model type from filename
                     val modelType = ModelType.fromFilename(name)
                     modelType?.let { type ->
                         val currentModel = modelManager?.getCurrentModelName(type)
@@ -762,7 +760,9 @@ class ServiceCommunicationHelper(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
             } else {
-                context.registerReceiver(receiver, filter)
+                ContextCompat.registerReceiver(
+                    context, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED
+                )
             }
             isRegistered = true
             Log.d("ServiceCommHelper", "Receiver registered successfully")

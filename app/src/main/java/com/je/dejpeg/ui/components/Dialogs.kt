@@ -19,7 +19,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,7 +31,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -58,7 +56,6 @@ import androidx.compose.material3.ListItemColors
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Slider
@@ -67,6 +64,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
@@ -127,7 +126,7 @@ fun StyledAlertDialog(
         onDismissRequest = onDismissRequest,
         modifier = modifier,
         shape = RoundedCornerShape(ScreenHorizontalPadding),
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         icon = icon?.let {
             {
                 Icon(
@@ -137,11 +136,11 @@ fun StyledAlertDialog(
         },
         title = title,
         text = text,
-        confirmButton = confirmButton,
-        dismissButton = dismissButton
-    )
+        confirmButton = { confirmButton() },
+        dismissButton = { dismissButton?.invoke() })
 }
 
+//noinspection MissingHapticFeedback
 @Composable
 fun ErrorAlertDialog(
     title: String,
@@ -160,6 +159,7 @@ fun ErrorAlertDialog(
         dismissButton = {
             val scope = rememberCoroutineScope()
             TextButton(onClick = {
+                HapticPatterns.tap()
                 clipboardManager?.setPrimaryClip(
                     ClipData.newPlainText(context.getString(R.string.error), errorMessage)
                 )
@@ -174,11 +174,13 @@ fun ErrorAlertDialog(
             }) { Text(stringResource(R.string.copy)) }
         },
         confirmButton = {
+            //noinspection MissingHapticFeedback
             MorphButton(
                 label = confirmButtonText ?: stringResource(R.string.ok), onClick = { onDismiss() })
         })
 }
 
+//noinspection MissingHapticFeedback
 @Composable
 fun SimpleAlertDialog(
     title: String,
@@ -204,6 +206,7 @@ fun SimpleAlertDialog(
             }
         },
         confirmButton = {
+            //noinspection MissingHapticFeedback
             MorphButton(
                 label = resolvedText, onClick = {
                     onConfirm()
@@ -214,7 +217,6 @@ fun SimpleAlertDialog(
 @Composable
 fun SaveImageDialog(
     defaultFilename: String,
-    showSaveAllOption: Boolean = false,
     initialSaveAll: Boolean = false,
     overwriteMode: Boolean = false,
     onDismissRequest: () -> Unit,
@@ -224,11 +226,20 @@ fun SaveImageDialog(
     var textState by remember(defaultFilename) { mutableStateOf(fileExt) }
     var saveAll by remember(initialSaveAll) { mutableStateOf(initialSaveAll) }
     var skipNext by remember { mutableStateOf(false) }
+    val colors =
+        ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
     StyledAlertDialog(onDismissRequest = onDismissRequest, title = {
         Text(stringResource(if (overwriteMode) R.string.overwrite_image else R.string.save_image))
     }, text = {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(
+        Column(verticalArrangement = Arrangement.spacedBy(GroupedListSpacing)) {
+            TextField(
+                colors = TextFieldDefaults.colors(
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                unfocusedIndicatorColor = Color.Transparent,
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                focusedIndicatorColor = Color.Transparent,
+            ),
+                shape = segmentedShape(1, 3),
                 value = textState,
                 onValueChange = { textState = it },
                 modifier = Modifier.fillMaxWidth(),
@@ -239,53 +250,49 @@ fun SaveImageDialog(
                     { Text(stringResource(R.string.already_exists)) }
                 } else null)
             if (!overwriteMode) {
-                Column(Modifier.padding(top = 4.dp)) {
-                    if (showSaveAllOption) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { saveAll = !saveAll }
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(
-                                checked = saveAll,
-                                onCheckedChange = { saveAll = it },
-                                modifier = Modifier.size(32.dp)
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                stringResource(R.string.save_all),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { skipNext = !skipNext }
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically) {
+                SegmentedListItem(
+                    colors = colors,
+                    shapes = segmentedListShapes(2, 3),
+                    onClick = { HapticPatterns.tap(); saveAll = !saveAll },
+                    leadingContent = {
                         Checkbox(
-                            checked = skipNext,
-                            onCheckedChange = { skipNext = it },
+                            checked = saveAll,
+                            onCheckedChange = { HapticPatterns.tap(); saveAll = it },
                             modifier = Modifier.size(32.dp)
                         )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            stringResource(R.string.dont_show_dialog),
-                            style = MaterialTheme.typography.bodyMedium
+                    }) {
+                    Text(
+                        stringResource(R.string.save_all),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
+                SegmentedListItem(
+                    colors = colors,
+                    shapes = segmentedListShapes(3, 3),
+                    onClick = { HapticPatterns.tap(); skipNext = !skipNext },
+                    leadingContent = {
+                        Checkbox(
+                            checked = skipNext,
+                            onCheckedChange = { HapticPatterns.tap(); skipNext = it },
+                            modifier = Modifier.size(32.dp)
                         )
-                    }
+                    }) {
+                    Text(
+                        stringResource(R.string.dont_show_dialog),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
             }
         }
     }, dismissButton = {
         TextButton(
-            onClick = { onDismissRequest() },
+            onClick = { HapticPatterns.tap(); onDismissRequest() },
         ) {
             Text(stringResource(R.string.nope))
         }
     }, confirmButton = {
+        //noinspection MissingHapticFeedback
         MorphButton(
             label = stringResource(R.string.save), onClick = {
                 onSave(sanitizeFilename(textState), saveAll, skipNext)
@@ -377,7 +384,7 @@ fun RemoveImageDialog(
         )
     }, dismissButton = {
         TextButton(
-            onClick = { onDismissRequest() },
+            onClick = { HapticPatterns.tap(); onDismissRequest() },
         ) {
             Text(stringResource(R.string.nope))
         }
@@ -388,12 +395,14 @@ fun RemoveImageDialog(
         ) {
             TextButton(
                 onClick = {
+                    HapticPatterns.tap()
                     onRemove()
                     onDismissRequest()
                 },
             ) {
                 Text(stringResource(R.string.remove))
             }
+            //noinspection MissingHapticFeedback
             MorphButton(
                 label = stringResource(R.string.save), onClick = { onSaveAndRemove() })
         }
@@ -403,10 +412,10 @@ fun RemoveImageDialog(
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun CancelProcessingDialog(
-    imageFilename: String? = null, onDismissRequest: () -> Unit, onConfirm: () -> Unit
+    imageFilename: String? = null, dismiss: () -> Unit, onConfirm: () -> Unit
 ) {
     StyledAlertDialog(
-        onDismissRequest = onDismissRequest,
+        onDismissRequest = dismiss,
         title = { Text(stringResource(R.string.stop_processing_title)) },
         text = {
             Text(
@@ -419,15 +428,16 @@ fun CancelProcessingDialog(
         },
         dismissButton = {
             TextButton(
-                onClick = { onDismissRequest() },
+                onClick = { HapticPatterns.tap(); dismiss() },
             ) {
                 Text(stringResource(R.string.nope))
             }
         },
         confirmButton = {
+            //noinspection MissingHapticFeedback
             MorphButton(
                 label = stringResource(R.string.yes_stop),
-                onClick = { onConfirm(); onDismissRequest() },
+                onClick = { onConfirm(); dismiss() },
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
             )
         })
@@ -450,6 +460,8 @@ fun ImageSourceDialog(
         action()
     }
     val sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden)
+    val colors =
+        ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
     LaunchedEffect(sheetState) {
         viewModel.imagePickedEvent.collect {
             sheetState.hide()
@@ -484,7 +496,7 @@ fun ImageSourceDialog(
                     SegmentedListItem(
                         modifier = Modifier.height(100.dp),
                         shapes = CornerRole(topStart = true).toListItemShapes(),
-                        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                        colors = colors,
                         content = {
                             Column(
                                 modifier = Modifier.fillMaxSize(),
@@ -501,6 +513,7 @@ fun ImageSourceDialog(
                             }
                         },
                         onClick = {
+                            HapticPatterns.tap()
                             scope.launch { handleSelection("gallery") { viewModel.launchGalleryPicker() } }
                         })
                 }
@@ -508,7 +521,7 @@ fun ImageSourceDialog(
                     SegmentedListItem(
                         modifier = Modifier.height(100.dp),
                         shapes = CornerRole(topEnd = true).toListItemShapes(),
-                        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                        colors = colors,
                         content = {
                             Column(
                                 modifier = Modifier.fillMaxSize(),
@@ -525,6 +538,7 @@ fun ImageSourceDialog(
                             }
                         },
                         onClick = {
+                            HapticPatterns.tap()
                             scope.launch { handleSelection("internal") { viewModel.launchInternalPhotoPicker() } }
                         })
                 }
@@ -532,7 +546,7 @@ fun ImageSourceDialog(
                     SegmentedListItem(
                         modifier = Modifier.height(100.dp),
                         shapes = CornerRole().toListItemShapes(),
-                        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                        colors = colors,
                         content = {
                             Column(
                                 modifier = Modifier.fillMaxSize(),
@@ -549,6 +563,7 @@ fun ImageSourceDialog(
                             }
                         },
                         onClick = {
+                            HapticPatterns.tap()
                             scope.launch { handleSelection("documents") { viewModel.launchDocumentsPicker() } }
                         })
 
@@ -557,7 +572,7 @@ fun ImageSourceDialog(
                     SegmentedListItem(
                         modifier = Modifier.height(100.dp),
                         shapes = CornerRole().toListItemShapes(),
-                        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                        colors = colors,
                         content = {
                             Column(
                                 modifier = Modifier.fillMaxSize(),
@@ -573,22 +588,20 @@ fun ImageSourceDialog(
                             }
                         },
                         onClick = {
+                            HapticPatterns.tap()
                             scope.launch { handleSelection("camera") { viewModel.launchCamera() } }
                         })
                 }
             }
-            SegmentedListItem(
-                checked = setAsDefault, onCheckedChange = {
-                    setAsDefault = it
-                }, shapes = segmentedShapes(2, 2), colors = ListItemDefaults.segmentedColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                ), content = {
-                    Text(
-                        stringResource(R.string.set_as_default),
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center
-                    )
-                })
+            SegmentedListItem(checked = setAsDefault, onCheckedChange = {
+                setAsDefault = it
+            }, shapes = segmentedListShapes(2, 2), colors = colors, content = {
+                Text(
+                    stringResource(R.string.set_as_default),
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+            })
         }
     }
 }
@@ -746,9 +759,11 @@ fun RecoveryDialog(
             }
         }, dismissButton = {
             TextButton(onClick = {
+                HapticPatterns.tap()
                 clearCache()
             }) { Text(discardButtonText) }
         }, confirmButton = {
+            //noinspection MissingHapticFeedback
             MorphButton(
                 label = recoverButtonText, onClick = {
                     Log.d("RecoveryDialog", "User chose to keep recovered images")
@@ -857,7 +872,7 @@ fun PowerSlider(
     }
 }
 
-
+//noinspection MissingHapticFeedback
 @Composable
 fun LabeledSwitch(
     title: String,
@@ -920,70 +935,70 @@ fun PreferenceItem(
     Column(modifier = modifier.fillMaxWidth()) {
         SegmentedListItem(
             colors = colors, shapes = CornerRole(
-                bottomStart = !expanded, bottomEnd = !expanded, topStart = pill, topEnd = pill
-            ).toListItemShapes(), onClick = { HapticPatterns.tap(); onClick() }, leadingContent = {
-                when (icon) {
-                    is ImageVector -> Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = iconTint ?: Color.Unspecified,
-                        modifier = Modifier.size(21.dp)
-                    )
+            bottomStart = !expanded, bottomEnd = !expanded, topStart = pill, topEnd = pill
+        ).toListItemShapes(), onClick = { HapticPatterns.tap(); onClick() }, leadingContent = {
+            when (icon) {
+                is ImageVector -> Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint ?: Color.Unspecified,
+                    modifier = Modifier.size(21.dp)
+                )
 
-                    is Painter -> Icon(
-                        painter = icon,
-                        contentDescription = null,
-                        tint = iconTint ?: Color.Unspecified,
-                        modifier = Modifier.size(21.dp)
-                    )
-                }
-            }, content = {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        title,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    AnimatedVisibility(
-                        visible = !subtitle.isNullOrEmpty(),
-                        enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
-                        exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
-                    ) {
-                        Spacer(modifier = Modifier.height(3.dp))
-                        if (subtitle != null) {
-                            Text(
-                                subtitle,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
+                is Painter -> Icon(
+                    painter = icon,
+                    contentDescription = null,
+                    tint = iconTint ?: Color.Unspecified,
+                    modifier = Modifier.size(21.dp)
+                )
+            }
+        }, content = {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                AnimatedVisibility(
+                    visible = !subtitle.isNullOrEmpty(),
+                    enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
+                    exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
+                ) {
+                    Spacer(modifier = Modifier.height(3.dp))
+                    if (subtitle != null) {
+                        Text(
+                            subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
-            }, trailingContent = {
-                if (trailing != null) {
-                    trailing()
-                } else {
-                    val chevronRotation by animateFloatAsState(
-                        targetValue = if (expanded) 90f else 0f, label = "chevron"
-                    )
-                    Icon(
-                        Icons.Rounded.ChevronRight,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier
-                            .size(34.dp)
-                            .rotate(chevronRotation)
-                    )
-                }
-            })
+            }
+        }, trailingContent = {
+            if (trailing != null) {
+                trailing()
+            } else {
+                val chevronRotation by animateFloatAsState(
+                    targetValue = if (expanded) 90f else 0f, label = "chevron"
+                )
+                Icon(
+                    Icons.Rounded.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier
+                        .size(34.dp)
+                        .rotate(chevronRotation)
+                )
+            }
+        })
         Spacer(modifier = Modifier.height(GroupedListSpacing))
         AnimatedVisibility(visible = expanded) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 SegmentedListItem(
-                    shapes = segmentedShapes(2, 2), colors = colors
+                    shapes = segmentedListShapes(2, 2), colors = colors
                 ) {
                     Column(
                         verticalArrangement = Arrangement.spacedBy(GroupedListSpacing),
