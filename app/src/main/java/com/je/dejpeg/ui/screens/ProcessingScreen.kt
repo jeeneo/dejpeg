@@ -709,9 +709,6 @@ fun ProcessingScreen(
                     }
                 }
             }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
             BottomSheet(
                 expanded = settingsExpanded,
                 onExpandedChange = { settingsExpanded = it },

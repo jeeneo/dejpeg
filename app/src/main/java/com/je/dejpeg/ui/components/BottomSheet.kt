@@ -8,17 +8,20 @@ package com.je.dejpeg.ui.components
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -46,7 +49,6 @@ fun BottomSheet(
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
     expandedHeight: Dp,
-    dragHandle: @Composable () -> Unit = { BottomSheetDefaults.DragHandle() },
     backProgress: Float = 0f,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -85,59 +87,65 @@ fun BottomSheet(
             .height(with(density) { heightPx.toDp() })
             .clipToBounds()
     ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 1.dp)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    enabled = expanded && progress == 0f
+                ) {
+                    onExpandedChange(false)
+                }
+                .pointerInput(expanded, animating, progress) {
+                    if (!expanded || animating || progress > 0f) {
+                        return@pointerInput
+                    }
+                    detectVerticalDragGestures(onVerticalDrag = { change, dragAmount ->
+                        change.consume()
+                        heightPx = (heightPx - dragAmount).coerceIn(0f, expandedHeightPx)
+                    }, onDragEnd = {
+                        val settled = heightPx >= expandedHeightPx * 0.9f
+                        scope.launch {
+                            animate(
+                                initialValue = heightPx,
+                                targetValue = if (settled) expandedHeightPx else 0f,
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                    stiffness = Spring.StiffnessMedium
+                                )
+                            ) { value, _ -> heightPx = value }
+                            onExpandedChange(settled)
+                        }
+                    }, onDragCancel = {
+                        scope.launch {
+                            animate(
+                                initialValue = heightPx,
+                                targetValue = if (expanded) expandedHeightPx else 0f,
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                    stiffness = Spring.StiffnessMedium
+                                )
+                            ) { value, _ -> heightPx = value }
+                        }
+                    })
+                }) {
+            Spacer(modifier = Modifier.height(24.dp))
+            Box(
+                modifier = Modifier
+                    .size(width = 48.dp, height = 4.dp)
+                    .background(Color.Gray, RoundedCornerShape(50))
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+        }
         Surface(
-            color = background,
-            shape = RoundedCornerShape(topStart = ScreenHorizontalPadding, topEnd = ScreenHorizontalPadding),
-            shadowElevation = 2.dp,
-            modifier = Modifier.fillMaxWidth()
+            color = background, shape = RoundedCornerShape(
+                topStart = ScreenHorizontalPadding, topEnd = ScreenHorizontalPadding
+            ), shadowElevation = 2.dp, modifier = Modifier.fillMaxWidth()
         ) {
             Column(Modifier.fillMaxWidth()) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(enabled = expanded && progress == 0f) {
-                            onExpandedChange(false)
-                        }
-                        .pointerInput(expanded, animating, progress) {
-                            if (!expanded || animating || progress > 0f) {
-                                return@pointerInput
-                            }
-                            detectVerticalDragGestures(
-                                onVerticalDrag = { change, dragAmount ->
-                                    change.consume()
-                                    heightPx =
-                                        (heightPx - dragAmount).coerceIn(0f, expandedHeightPx)
-                                },
-                                onDragEnd = {
-                                    val settled = heightPx >= expandedHeightPx * 0.9f
-                                    scope.launch {
-                                        animate(
-                                            initialValue = heightPx,
-                                            targetValue = if (settled) expandedHeightPx else 0f,
-                                            animationSpec = spring(
-                                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                                stiffness = Spring.StiffnessMedium
-                                            )
-                                        ) { value, _ -> heightPx = value }
-                                        onExpandedChange(settled)
-                                    }
-                                },
-                                onDragCancel = {
-                                    scope.launch {
-                                        animate(
-                                            initialValue = heightPx,
-                                            targetValue = if (expanded) expandedHeightPx else 0f,
-                                            animationSpec = spring(
-                                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                                stiffness = Spring.StiffnessMedium
-                                            )
-                                        ) { value, _ -> heightPx = value }
-                                    }
-                                })
-                        }) {
-                    dragHandle()
-                }
                 content()
             }
         }

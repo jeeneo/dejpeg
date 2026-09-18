@@ -172,7 +172,7 @@ fun SettingsSheetContent(
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(
-                    top = 8.dp,
+                    top = 18.dp,
                     bottom = WindowInsets.navigationBars.asPaddingValues()
                         .calculateBottomPadding() + 90.dp,
                     start = 12.dp,
