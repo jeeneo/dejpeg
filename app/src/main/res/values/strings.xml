@@ -94,7 +94,6 @@
     <string name="saving_image_progress">Saving %1$d of %2$d</string>
     <string name="error_processing_title">Processing error</string>
     <string name="error_native_crash">The processing service died unexpectedly. This usually indicates an incompatible model or insufficient memory.</string>
-    <string name="error_copied">Copied to clipboard</string>
     <plurals name="recover_images_title">
         <item quantity="one">Recover %1$d image</item>
         <item quantity="other">Recover %1$d images</item>
@@ -113,7 +112,6 @@
     <string name="settings_desc">Settings</string>
     <string name="reset">Reset</string>
     <string name="yes">Yes</string>
-    <string name="error">Error</string>
     <string name="unknown_error">Unknown error</string>
     <string name="invalid_file_type">Only the following model filetypes are supported: %1$s</string>
     <string name="failed_to_import_model">Failed to import model</string>
@@ -205,7 +203,6 @@
     <string name="settings_title_models">Models</string>
     <string name="settings_item_title_options">Settings</string>
     <string name="settings_item_onnx_processing">ONNX</string>
-    <string name="theme">App theme</string>
     <string name="theme_dynamic">Dynamic</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
@@ -213,8 +210,6 @@
     <string name="glass_slider">Glass slider</string>
     <string name="import_output">Import output image</string>
     <string name="compare">Compare</string>
-    <string name="settings_tooltip_download">Opens the model list in your web browser</string>
-    <string name="settings_tooltip_extract">Import model (holding extracts starter models)</string>
     <plurals name="selected_count">
         <item quantity="one">Selected (%1$d)</item>
         <item quantity="other">Selected (%1$d)</item>

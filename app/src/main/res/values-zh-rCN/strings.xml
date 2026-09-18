@@ -84,7 +84,6 @@
     <string name="saving_image_progress">正在保存 %2$d 项中的第 %1$d 项</string>
     <string name="error_processing_title">处理出错</string>
     <string name="error_native_crash">处理服务意外终止。这通常表示模型不兼容或内存不足。</string>
-    <string name="error_copied">已复制到剪贴板</string>
     <plurals name="recover_images_title">
         <item quantity="other">恢复 %1$d 张图像</item>
     </plurals>
@@ -153,7 +152,6 @@
     <string name="settings_desc">设置</string>
     <string name="reset">重置</string>
     <string name="yes">是</string>
-    <string name="error">错误</string>
     <string name="unknown_error">未知错误</string>
     <string name="failed_to_import_model">导入模型失败</string>
     <string name="model_already_imported">已导入名为 %1$s 的模型</string>
@@ -243,7 +241,6 @@
     <string name="settings_title_models">模型</string>
     <string name="settings_item_title_options">选项</string>
     <string name="settings_item_onnx_processing">ONNX 处理</string>
-    <string name="theme">应用主题</string>
     <string name="theme_dynamic">动态</string>
     <string name="theme_light">浅色</string>
     <string name="theme_dark">深色</string>
@@ -253,4 +250,16 @@
     <string name="status_ready">準備好了</string>
     <string name="glass_slider">玻璃质感滑块</string>
     <string name="import_output">导入结果图像</string>
+    <string name="remove_images_title">移除图片？</string>
+    <plurals name="remove_images_question">
+        <item quantity="other">你尚未保存这%1$d张图片，是否要移除？</item>
+    </plurals>
+    <string name="gpu_cache_title">GPU缓存</string>
+    <string name="gpu_cache_text">正在为模型创建GPU缓存，这可能需要几秒钟，但只需执行一次。</string>
+    <string name="invalid_file_type">仅支持以下模型文件类型：%1$s</string>
+    <string name="compare">比较</string>
+    <plurals name="selected_count">
+        <item quantity="other">已选%1$d项</item>
+    </plurals>
+    <string name="cant_delete_model">处理中无法删除模型</string>
 </resources>

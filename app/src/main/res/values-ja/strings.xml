@@ -84,7 +84,6 @@
     <string name="saving_image_progress">保存中 %1$d / %2$d</string>
     <string name="error_processing_title">処理エラー</string>
     <string name="error_native_crash">処理サービスが予期せず終了しました。これは通常、互換性のないモデルまたはメモリ不足を示しています。</string>
-    <string name="error_copied">クリップボードにコピーしました</string>
     <plurals name="recover_images_title">
         <item quantity="other">%1$d枚の画像を復元</item>
     </plurals>
@@ -155,7 +154,6 @@
     <string name="settings_desc">設定</string>
     <string name="reset">リセット</string>
     <string name="yes">はい</string>
-    <string name="error">エラー</string>
     <string name="unknown_error">不明なエラー</string>
     <string name="failed_to_import_model">モデルのインポートに失敗しました</string>
     <string name="model_already_imported">%1$s という名前のモデルはすでにインポートされています</string>
@@ -245,7 +243,6 @@
     <string name="settings_title_models">モデル</string>
     <string name="settings_item_title_options">オプション</string>
     <string name="settings_item_onnx_processing">ONNX処理</string>
-    <string name="theme">アプリテーマ</string>
     <string name="theme_dynamic">ダイナミック</string>
     <string name="theme_light">ライト</string>
     <string name="theme_dark">ダーク</string>
@@ -253,4 +250,16 @@
     <string name="status_ready">準備完了</string>
     <string name="glass_slider">ガラス風スライダ</string>
     <string name="import_output">出力画像をインポート</string>
+    <string name="remove_images_title">画像を削除？</string>
+    <plurals name="remove_images_question">
+        <item quantity="other">これらの%1$d枚の画像はまだ保存されていません。削除しますか？</item>
+    </plurals>
+    <string name="gpu_cache_title">GPUキャッシュ</string>
+    <string name="gpu_cache_text">モデルのGPUキャッシュを作成中です。数秒かかりますが、一度だけ実行すれば済みます。</string>
+    <string name="invalid_file_type">サポートされているモデルファイル形式は以下のみです: %1$s</string>
+    <string name="compare">比較</string>
+    <plurals name="selected_count">
+        <item quantity="other">選択中 (%1$d)</item>
+    </plurals>
+    <string name="cant_delete_model">処理中はモデルを削除できません</string>
 </resources>

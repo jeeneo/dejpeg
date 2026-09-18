@@ -22,7 +22,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.je.dejpeg.data.HapticPatterns
 
 val GroupedListSpacing: Dp = 2.dp
 val ScreenHorizontalPadding: Dp = 16.dp
@@ -131,14 +130,9 @@ fun MorphButton(
     colors: ButtonColors = ButtonDefaults.buttonColors()
 ) {
     Button(
-        onClick = { HapticPatterns.tap(); onClick() },
-        modifier = modifier,
-        enabled = enabled,
-        shapes = ButtonShapes(
+        onClick = onClick, modifier = modifier, enabled = enabled, shapes = ButtonShapes(
             shape = RoundedCornerShape(21.dp), pressedShape = RoundedCornerShape(8.dp)
-        ),
-        interactionSource = interactionSource,
-        colors = colors
+        ), interactionSource = interactionSource, colors = colors
     ) { Text(label) }
 }
 

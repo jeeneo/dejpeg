@@ -94,7 +94,6 @@
     <string name="saving_image_progress">حفظ %1$d من %2$d</string>
     <string name="error_processing_title">خطأ في المعالجة</string>
     <string name="error_native_crash">توقفت خدمة المعالجة بشكل غير متوقع. يشير هذا عادةً إلى نموذج غير متوافق أو ذاكرة غير كافية.</string>
-    <string name="error_copied">تم النسخ إلى الحافظة</string>
     <plurals name="recover_images_title">
         <item quantity="zero">استرداد %1$d صورة</item>
         <item quantity="one">استرداد صورة واحدة</item>
@@ -173,7 +172,6 @@
     <string name="settings_desc">الإعدادات</string>
     <string name="reset">إعادة تعيين</string>
     <string name="yes">نعم</string>
-    <string name="error">خطأ</string>
     <string name="unknown_error">خطأ غير معروف</string>
     <string name="failed_to_import_model">فشل استيراد النموذج</string>
     <string name="model_already_imported">تم بالفعل استيراد نموذج باسم %1$s</string>
@@ -268,7 +266,6 @@
     <string name="settings_title_models">النماذج</string>
     <string name="settings_item_title_options">الخيارات</string>
     <string name="settings_item_onnx_processing">المعالجة ONNX</string>
-    <string name="theme">مظهر التطبيق</string>
     <string name="theme_dynamic">ديناميكي</string>
     <string name="theme_light">فاتح</string>
     <string name="theme_dark">داكن</string>
@@ -278,4 +275,26 @@
     <string name="status_ready">جاهز</string>
     <string name="glass_slider">شريط تمرير زجاجي</string>
     <string name="import_output">استيراد الصورة الناتجة</string>
+    <string name="remove_images_title">إزالة الصور؟</string>
+    <plurals name="remove_images_question">
+        <item quantity="zero">لم تقم بحفظ هذه الصور، هل تريد إزالتها؟</item>
+        <item quantity="one">لم تقم بحفظ هذه الصورة بعد، هل تريد إزالتها؟</item>
+        <item quantity="two">لم تقم بحفظ هاتين الصورتين بعد، هل تريد إزالتهما؟</item>
+        <item quantity="few">لم تقم بحفظ هذه الصور %1$d بعد، هل تريد إزالتها؟</item>
+        <item quantity="many">لم تقم بحفظ هذه الصور %1$d بعد، هل تريد إزالتها؟</item>
+        <item quantity="other">لم تقم بحفظ هذه الصور %1$d بعد، هل تريد إزالتها؟</item>
+    </plurals>
+    <string name="gpu_cache_title">ذاكرة GPU المؤقتة</string>
+    <string name="gpu_cache_text">إنشاء ذاكرة GPU المؤقتة للنموذج، قد يستغرق ذلك بضع ثوانٍ لكنه يحتاج إلى القيام به مرة واحدة فقط.</string>
+    <string name="invalid_file_type">أنواع ملفات النماذج المدعومة الوحيدة هي: %1$s</string>
+    <string name="compare">مقارنة</string>
+    <plurals name="selected_count">
+        <item quantity="zero">تم التحديد (%1$d)</item>
+        <item quantity="one">تم التحديد (%1$d)</item>
+        <item quantity="two">تم التحديد (%1$d)</item>
+        <item quantity="few">تم التحديد (%1$d)</item>
+        <item quantity="many">تم التحديد (%1$d)</item>
+        <item quantity="other">تم التحديد (%1$d)</item>
+    </plurals>
+    <string name="cant_delete_model">لا يمكنك حذف النماذج أثناء المعالجة</string>
 </resources>

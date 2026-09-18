@@ -86,7 +86,6 @@
     <string name="saving_image_progress">Opslaan %1$d van %2$d</string>
     <string name="error_processing_title">Verwerkingsfout</string>
     <string name="error_native_crash">De verwerkingsservice is onverwacht gestopt. Dit duidt meestal op een incompatibel model of onvoldoende geheugen.</string>
-    <string name="error_copied">Gekopieerd naar klembord</string>
     <plurals name="recover_images_title">
         <item quantity="one">%1$d afbeelding herstellen</item>
         <item quantity="other">%1$d afbeeldingen herstellen</item>
@@ -157,7 +156,6 @@
     <string name="settings_desc">Instellingen</string>
     <string name="reset">Resetten</string>
     <string name="yes">Ja</string>
-    <string name="error">Fout</string>
     <string name="unknown_error">Onbekende fout</string>
     <string name="failed_to_import_model">Model importeren mislukt</string>
     <string name="model_already_imported">Er is al een model met de naam %1$s geïmporteerd</string>
@@ -248,7 +246,6 @@
     <string name="settings_title_models">Modellen</string>
     <string name="settings_item_title_options">Opties</string>
     <string name="settings_item_onnx_processing">ONNX Verwerking</string>
-    <string name="theme">App-thema</string>
     <string name="theme_dynamic">Dynamisch</string>
     <string name="theme_light">Licht</string>
     <string name="theme_dark">Donker</string>
@@ -258,4 +255,18 @@
     <string name="status_ready">Voorbereid</string>
     <string name="glass_slider">Glazen schuifregelaar</string>
     <string name="import_output">Uitvoerafbeelding importeren</string>
+    <string name="remove_images_title">Afbeeldingen verwijderen?</string>
+    <plurals name="remove_images_question">
+        <item quantity="one">Je hebt deze afbeelding nog niet opgeslagen, wil je deze verwijderen?</item>
+        <item quantity="other">Je hebt deze %1$d afbeeldingen nog niet opgeslagen, wil je deze verwijderen?</item>
+    </plurals>
+    <string name="gpu_cache_title">GPU-cache</string>
+    <string name="gpu_cache_text">GPU-cache voor model aan het maken, dit kan een paar seconden duren maar hoeft maar één keer gedaan te worden.</string>
+    <string name="invalid_file_type">Alleen de volgende modelbestandstypen worden ondersteund: %1$s</string>
+    <string name="compare">Vergelijken</string>
+    <plurals name="selected_count">
+        <item quantity="one">Geselecteerd (%1$d)</item>
+        <item quantity="other">Geselecteerd (%1$d)</item>
+    </plurals>
+    <string name="cant_delete_model">Je kunt geen modellen verwijderen tijdens het verwerken</string>
 </resources>

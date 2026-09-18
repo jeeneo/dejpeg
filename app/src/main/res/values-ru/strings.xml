@@ -90,7 +90,6 @@
     <string name="saving_image_progress">Сохранение %1$d из %2$d</string>
     <string name="error_processing_title">Ошибка обработки</string>
     <string name="error_native_crash">Служба обработки завершилась неожиданно. Обычно это связано с несовместимой моделью или нехваткой памяти.</string>
-    <string name="error_copied">Скопировано в буфер обмена</string>
     <plurals name="recover_images_title">
         <item quantity="one">Восстановить %1$d изображение</item>
         <item quantity="few">Восстановить %1$d изображения</item>
@@ -167,7 +166,6 @@
     <string name="settings_desc">Настройки</string>
     <string name="reset">Сбросить</string>
     <string name="yes">Да</string>
-    <string name="error">Ошибка</string>
     <string name="unknown_error">Неизвестная ошибка</string>
     <string name="failed_to_import_model">Не удалось импортировать модель</string>
     <string name="model_already_imported">Модель %1$s уже импортирована</string>
@@ -260,7 +258,6 @@
     <string name="settings_title_models">Модели</string>
     <string name="settings_item_title_options">Параметры</string>
     <string name="settings_item_onnx_processing">ONNX Обработка</string>
-    <string name="theme">Тема приложения</string>
     <string name="theme_dynamic">Динамическая</string>
     <string name="theme_light">Светлая</string>
     <string name="theme_dark">Тёмная</string>
@@ -278,4 +275,12 @@
     <string name="invalid_file_type">Поддерживаются только следующие файлы моделей: %1$s</string>
     <string name="gpu_cache_title">GPU кэш</string>
     <string name="gpu_cache_text">Создание кэша GPU для модели; это может занять несколько секунд, но выполняется только один раз.</string>
+    <string name="remove_images_title">Удалить изображения?</string>
+    <plurals name="remove_images_question">
+        <item quantity="one">Вы ещё не сохранили это %1$d изображение, удалить его?</item>
+        <item quantity="few">Вы ещё не сохранили эти %1$d изображения, удалить их?</item>
+        <item quantity="many">Вы ещё не сохранили эти %1$d изображений, удалить их?</item>
+        <item quantity="other">Вы ещё не сохранили эти %1$d изображений, удалить их?</item>
+    </plurals>
+    <string name="cant_delete_model">Нельзя удалять модели во время обработки</string>
 </resources>

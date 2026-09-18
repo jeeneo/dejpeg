@@ -8,9 +8,9 @@ class HapticIssueRegistry : IssueRegistry() {
     override val issues = listOf(HapticFeedbackDetector.ISSUE)
     override val api = CURRENT_API
     override val vendor = Vendor(
-        vendorName = "DeJPEG",
+        vendorName = "dejpeg",
         identifier = "lint-rules",
-        feedbackUrl = "https://github.com/je/dejpeg/issues",
+        feedbackUrl = "",
         contact = null
     )
 }

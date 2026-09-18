@@ -86,7 +86,6 @@
     <string name="saving_image_progress">Kaydediliyor %1$d / %2$d</string>
     <string name="error_processing_title">İşlem hatası</string>
     <string name="error_native_crash">İşlem hizmeti beklenmedik bir şekilde sonlandırıldı. Bu genellikle uyumsuz bir modeli veya yetersiz belleği gösterir.</string>
-    <string name="error_copied">Panoya kopyalandı</string>
     <plurals name="recover_images_title">
         <item quantity="one">%1$d görseli kurtar</item>
         <item quantity="other">%1$d görseli kurtar</item>
@@ -157,7 +156,6 @@
     <string name="settings_desc">Ayarlar</string>
     <string name="reset">Sıfırla</string>
     <string name="yes">Evet</string>
-    <string name="error">Hata</string>
     <string name="unknown_error">Bilinmeyen hata</string>
     <string name="failed_to_import_model">Model içe aktarılamadı</string>
     <string name="model_already_imported">%1$s adında bir model zaten içe aktarılmış</string>
@@ -248,7 +246,6 @@
     <string name="settings_title_models">Modeller</string>
     <string name="settings_item_title_options">Seçenekler</string>
     <string name="settings_item_onnx_processing">ONNX İşleme</string>
-    <string name="theme">Uygulama teması</string>
     <string name="theme_dynamic">Dinamik</string>
     <string name="theme_light">Açık</string>
     <string name="theme_dark">Koyu</string>
@@ -258,4 +255,18 @@
     <string name="status_ready">Hazır</string>
     <string name="glass_slider">Cam kaydırıcı</string>
     <string name="import_output">Sonucu içe aktar</string>
+    <string name="remove_images_title">Görselleri kaldır?</string>
+    <plurals name="remove_images_question">
+        <item quantity="one">Bu görsel henüz kaydedilmedi, kaldırmak ister misiniz?</item>
+        <item quantity="other">Bu %1$d görsel henüz kaydedilmedi, kaldırmak ister misiniz?</item>
+    </plurals>
+    <string name="gpu_cache_title">GPU önbelleği</string>
+    <string name="gpu_cache_text">Model için GPU önbelleği oluşturuluyor, birkaç saniye sürebilir ancak sadece bir kez yapılmalıdır.</string>
+    <string name="invalid_file_type">Desteklenen model dosya türleri şu şekildedir: %1$s</string>
+    <string name="compare">Karşılaştır</string>
+    <plurals name="selected_count">
+        <item quantity="one">Seçilen (%1$d)</item>
+        <item quantity="other">Seçilen (%1$d)</item>
+    </plurals>
+    <string name="cant_delete_model">İşlem sırasında modeller silinemez</string>
 </resources>

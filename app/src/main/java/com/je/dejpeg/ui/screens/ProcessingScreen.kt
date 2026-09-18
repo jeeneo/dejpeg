@@ -443,6 +443,7 @@ fun ProcessingScreen(
                         shape = RoundedCornerShape(otherCorner),
                         interactionSource = otherInteraction,
                         expanded = allComplete,
+                        modifier = Modifier.weight(1f),
                         icon = {
                             Crossfade(targetState = icon, label = "fab_icon") { animatedIcon ->
                                 Icon(
@@ -453,7 +454,11 @@ fun ProcessingScreen(
                         },
                         text = {
                             Crossfade(targetState = labelRes, label = "fab_text") { animatedLabel ->
-                                Text(stringResource(animatedLabel))
+                                Text(
+                                    stringResource(animatedLabel),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
                         },
                         onClick = {
@@ -612,9 +617,10 @@ fun ProcessingScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Spacer(Modifier.height(8.dp))
+                                //noinspection MissingHapticFeedback
                                 MorphButton(
                                     interactionSource = buttonInteractionSource,
-                                    onClick = { launchImportIntent() },
+                                    onClick = { HapticPatterns.tap(); launchImportIntent() },
                                     label = stringResource(R.string.add_images),
                                 )
                             }

@@ -143,6 +143,8 @@ fun StyledAlertDialog(
         title = title,
         text = contents,
         confirmButton = {
+            HapticPatterns.tap()
+            //noinspection MissingHapticFeedback
             MorphButton(
                 label = confirmButtonText,
                 onClick = onConfirm,
@@ -150,8 +152,11 @@ fun StyledAlertDialog(
                     ?: ButtonDefaults.buttonColors())
         },
         dismissButton = {
+            HapticPatterns.tap()
             if (dismissButtonText.isNotEmpty()) {
-                TextButton(onClick = onDismissButton ?: onDismissRequest) { Text(dismissButtonText) }
+                TextButton(
+                    onClick = onDismissButton ?: onDismissRequest
+                ) { Text(dismissButtonText) }
             }
         })
 }

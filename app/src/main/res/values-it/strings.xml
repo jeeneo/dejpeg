@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="image">Immagine</string>
     <string name="save">Salva</string>
     <string name="before">Prima</string>
@@ -88,7 +88,6 @@
     <string name="saving_image_progress">Salvataggio %1$d di %2$d</string>
     <string name="error_processing_title">Errore di elaborazione</string>
     <string name="error_native_crash">Il servizio di elaborazione è terminato in modo imprevisto. Ciò indica solitamente un modello incompatibile o memoria insufficiente.</string>
-    <string name="error_copied">Copiato negli appunti</string>
     <plurals name="recover_images_title">
         <item quantity="one">Recupera %1$d immagine</item>
         <item quantity="many">Recupera %1$d immagini</item>
@@ -127,7 +126,7 @@
     <string name="model_info_1x_nmkd_jaywreck3_lite">Compressione generale</string>
     <string name="model_info_1x_nmkd_h264_texturize">Texturizzazione, compressione h264</string>
     <string name="model_info_vhs_sharpen_1x_46000_g">Compressione VHS</string>
-    <string name="model_info_1x_bc_gone_smooth_110000_g">Compressione BC1</string>
+    <string name="model_info_1x_bc_gone_smooth_110000_g" tools:ignore="Typos">Compressione BC1</string>
     <string name="model_info_1x_cinepak">Compressione Cinepak, msvideo1, roq</string>
     <string name="model_info_1x_bc_gone_detailed_v2_40_60_115000_g">Compressione BC1 con dettaglio</string>
     <string name="model_info_1x_de_bink_v4">Compressione Bink, geometria migliore</string>
@@ -161,7 +160,6 @@
     <string name="settings_desc">Impostazioni</string>
     <string name="reset">Ripristina</string>
     <string name="yes">Sì</string>
-    <string name="error">Errore</string>
     <string name="unknown_error">Errore sconosciuto</string>
     <string name="failed_to_import_model">Impossibile importare il modello</string>
     <string name="model_already_imported">Un modello chiamato %1$s è già stato importato</string>
@@ -253,7 +251,6 @@
     <string name="settings_title_models">Modelli</string>
     <string name="settings_item_title_options">Opzioni</string>
     <string name="settings_item_onnx_processing">ONNX Elaborazione</string>
-    <string name="theme">Tema app</string>
     <string name="theme_dynamic">Dinamico</string>
     <string name="theme_light">Chiaro</string>
     <string name="theme_dark">Scuro</string>
@@ -263,4 +260,20 @@
     <string name="status_ready">Pronto</string>
     <string name="glass_slider">Cursore effetto vetro</string>
     <string name="import_output">Importa risultato</string>
+    <string name="remove_images_title">Rimuovere le immagini?</string>
+    <plurals name="remove_images_question">
+        <item quantity="one">Non hai ancora salvato questa immagine, vuoi rimuoverla?</item>
+        <item quantity="many">Non hai ancora salvato queste %1$d immagini, vuoi rimuoverle?</item>
+        <item quantity="other">Non hai ancora salvato queste %1$d immagini, vuoi rimuoverle?</item>
+    </plurals>
+    <string name="gpu_cache_title">Cache GPU</string>
+    <string name="gpu_cache_text">Creazione della cache GPU per il modello, potrebbe richiedere qualche secondo ma deve essere eseguita solo una volta.</string>
+    <string name="invalid_file_type">Sono supportati solo i seguenti tipi di file modello: %1$s</string>
+    <string name="compare">Confronta</string>
+    <plurals name="selected_count">
+        <item quantity="one">Selezionato (%1$d)</item>
+        <item quantity="many">Selezionato (%1$d)</item>
+        <item quantity="other">Selezionato (%1$d)</item>
+    </plurals>
+    <string name="cant_delete_model">Non puoi eliminare i modelli durante l\'elaborazione</string>
 </resources>
