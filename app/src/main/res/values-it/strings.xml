@@ -249,7 +249,7 @@
     <string name="oidn_quality_high">Alta</string>
     <string name="oidn_num_threads">Thread</string>
     <string name="oidn_settings_desc">HDR, sRGB, qualità, thread</string>
-    <string name="model_switch_blocked_processing">Non puoi cambiare modello durante l\'elaborazione</string>
+    <string name="cant_switch_model">Non puoi cambiare modello durante l\'elaborazione</string>
     <string name="settings_title_models">Modelli</string>
     <string name="settings_item_title_options">Opzioni</string>
     <string name="settings_item_onnx_processing">ONNX Elaborazione</string>

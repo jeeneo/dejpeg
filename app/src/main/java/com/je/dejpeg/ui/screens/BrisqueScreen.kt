@@ -6,6 +6,7 @@
 package com.je.dejpeg.ui.screens
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.graphics.Bitmap
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -91,9 +92,8 @@ import com.je.dejpeg.data.BrisqueSettings
 import com.je.dejpeg.data.HapticPatterns
 import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.processing.BRISQUEDescaler
-import com.je.dejpeg.ui.components.ErrorAlertDialog
 import com.je.dejpeg.ui.components.ScreenHorizontalPadding
-import com.je.dejpeg.ui.components.SimpleAlertDialog
+import com.je.dejpeg.ui.components.StyledAlertDialog
 import com.je.dejpeg.ui.viewmodel.BrisqueViewModel
 import com.je.dejpeg.ui.viewmodel.SaveState
 import kotlinx.coroutines.launch
@@ -136,11 +136,11 @@ fun BRISQUEScreen(
     ) {
         TopAppBar(
             title = {
-                Text(
-                    stringResource(R.string.brisque_analysis),
-                    style = MaterialTheme.typography.titleMedium
-                )
-            },
+            Text(
+                stringResource(R.string.brisque_analysis),
+                style = MaterialTheme.typography.titleMedium
+            )
+        },
             navigationIcon = {
                 IconButton(onClick = { HapticPatterns.tap(); onBack() }) {
                     Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back_desc))
@@ -371,12 +371,19 @@ fun BRISQUEScreen(
             item { Spacer(Modifier.height(8.dp)) }
         }
     }
-    if (showConfirm) ConfirmDialog(onConfirm = {
-        brisqueViewModel.descaleImage(
-            context
-        ); showConfirm = false
-    }, onDismiss = { showConfirm = false })
-    if (showInfoDialog) InfoDialog(onDismiss = { showInfoDialog = false })
+    if (showConfirm) StyledAlertDialog(
+        onDismissRequest = { showConfirm = false },
+        onConfirm = { brisqueViewModel.descaleImage(context); showConfirm = false },
+        title = { Text(stringResource(R.string.brisque_descale_again_title)) },
+        contents = { Text(stringResource(R.string.brisque_descale_again_message)) },
+        confirmButtonText = stringResource(R.string.yes),
+        dismissButtonText = stringResource(R.string.cancel))
+    if (showInfoDialog) StyledAlertDialog(
+        onDismissRequest = { showInfoDialog = false },
+        onConfirm = { showInfoDialog = false },
+        title = { Text(stringResource(R.string.brisque_about_title)) },
+        contents = { Text(stringResource(R.string.brisque_about_message)) },
+        confirmButtonText = stringResource(R.string.ok))
     if (showBRISQUESettings) BRISQUESettings(
         settings = brisqueSettings,
         brisqueViewModel = brisqueViewModel,
@@ -409,12 +416,13 @@ fun BRISQUEScreen(
     }
 
     (saveState as? SaveState.Error)?.let { err ->
-        ErrorAlertDialog(
-            title = stringResource(R.string.error_saving_image_title),
-            errorMessage = err.message,
-            onDismiss = { brisqueViewModel.dismissSaveError() },
-            context = context
-        )
+        StyledAlertDialog(
+            onDismissRequest = { brisqueViewModel.dismissSaveError() },
+            onConfirm = { brisqueViewModel.dismissSaveError() },
+            title = { Text(stringResource(R.string.error_saving_image_title)) },
+            contents = { Text(err.message) },
+            confirmButtonText = stringResource(R.string.ok),
+            dismissButtonText = stringResource(R.string.copy))
     }
 }
 
@@ -488,22 +496,10 @@ private fun InfoRow(
     }
 }
 
-@Composable
-private fun ConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
-    SimpleAlertDialog(
-        title = stringResource(R.string.brisque_descale_again_title),
-        message = stringResource(R.string.brisque_descale_again_message),
-        onDismiss = onDismiss,
-        onConfirm = onConfirm,
-        confirmButtonText = stringResource(R.string.yes),
-        dismissButtonText = stringResource(R.string.cancel)
-    )
-}
-
 private data class ScoreInfo(val color: Color, val label: String)
 
 private fun getScoreInfo(
-    value: Float, isBRISQUE: Boolean = true, context: android.content.Context
+    value: Float, isBRISQUE: Boolean = true, context: Context
 ): ScoreInfo = when {
     isBRISQUE -> when {
         value < 30 -> ScoreInfo(
@@ -526,16 +522,6 @@ private fun getScoreInfo(
         value >= 10 -> ScoreInfo(Color(0xFFFF9800), context.getString(R.string.sharpness_soft))
         else -> ScoreInfo(Color(0xFFF44336), context.getString(R.string.sharpness_blurry))
     }
-}
-
-@Composable
-private fun InfoDialog(onDismiss: () -> Unit) {
-    SimpleAlertDialog(
-        title = stringResource(R.string.brisque_about_title),
-        message = stringResource(R.string.brisque_about_message),
-        onDismiss = onDismiss,
-        confirmButtonText = stringResource(R.string.ok)
-    )
 }
 
 @Composable
@@ -795,8 +781,7 @@ private fun BRISQUESettings(
                 )
                 if (infoText.isNotEmpty()) IconButton(onClick = {
                     HapticPatterns.tap()
-                    expandedInfo =
-                        if (expandedInfo == label) null else label
+                    expandedInfo = if (expandedInfo == label) null else label
                 }, Modifier.size(24.dp)) {
                     Icon(
                         Icons.Rounded.Info, stringResource(R.string.info_desc), Modifier.size(18.dp)
@@ -810,16 +795,14 @@ private fun BRISQUESettings(
             )
             LaunchedEffect(index) { sliderState.value = index.toFloat() }
             Slider(
-                state = sliderState,
-                onValueChange = { newIdx ->
+                state = sliderState, onValueChange = { newIdx ->
                     HapticPatterns.tap()
                     val newIndex = newIdx.roundToInt().coerceIn(0, steps)
                     if (newIndex != index) {
                         index = newIndex
                         onValueChange(range.start + (newIndex * stepSize))
                     }
-                },
-                modifier = Modifier.fillMaxWidth()
+                }, modifier = Modifier.fillMaxWidth()
             )
             if (expandedInfo == label && infoText.isNotEmpty()) Text(
                 infoText,

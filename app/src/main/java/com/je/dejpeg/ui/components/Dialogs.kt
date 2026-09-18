@@ -5,9 +5,6 @@
 
 package com.je.dejpeg.ui.components
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
@@ -56,6 +53,7 @@ import androidx.compose.material3.ListItemColors
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Slider
@@ -64,8 +62,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
@@ -116,14 +112,24 @@ import kotlin.math.roundToInt
 fun StyledAlertDialog(
     modifier: Modifier = Modifier,
     onDismissRequest: () -> Unit,
+    onConfirm: () -> Unit,
+    onDismissButton: (() -> Unit)? = null,
     title: @Composable () -> Unit,
-    text: @Composable (() -> Unit)? = null,
-    confirmButton: @Composable () -> Unit,
-    dismissButton: @Composable (() -> Unit)? = null,
-    icon: ImageVector? = null
+    contents: @Composable (() -> Unit)? = null,
+    confirmButtonText: String = stringResource(R.string.ok),
+    dismissButtonText: String = "",
+    blocking: Boolean = false,
+    icon: ImageVector? = null,
+    confirmButtonColor: Color? = null
 ) {
     AlertDialog(
-        onDismissRequest = onDismissRequest,
+        onDismissRequest = {
+            if (blocking) {
+                return@AlertDialog
+            } else {
+                onDismissRequest()
+            }
+        },
         modifier = modifier,
         shape = RoundedCornerShape(ScreenHorizontalPadding),
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -135,84 +141,21 @@ fun StyledAlertDialog(
             }
         },
         title = title,
-        text = text,
-        confirmButton = { confirmButton() },
-        dismissButton = { dismissButton?.invoke() })
-}
-
-//noinspection MissingHapticFeedback
-@Composable
-fun ErrorAlertDialog(
-    title: String,
-    errorMessage: String,
-    onDismiss: () -> Unit,
-    context: Context,
-    confirmButtonText: String? = null
-) {
-    val clipboardManager =
-        remember(context) { context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager }
-
-    StyledAlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = { Text(errorMessage) },
-        dismissButton = {
-            val scope = rememberCoroutineScope()
-            TextButton(onClick = {
-                HapticPatterns.tap()
-                clipboardManager?.setPrimaryClip(
-                    ClipData.newPlainText(context.getString(R.string.error), errorMessage)
-                )
-                scope.launch {
-                    SnackbarController.pushEvent(
-                        SnackySnackbarEvents.MessageEvent(
-                            message = context.getString(R.string.error_copied),
-                            duration = SnackbarDuration.Short
-                        )
-                    )
-                }
-            }) { Text(stringResource(R.string.copy)) }
-        },
+        text = contents,
         confirmButton = {
-            //noinspection MissingHapticFeedback
             MorphButton(
-                label = confirmButtonText ?: stringResource(R.string.ok), onClick = { onDismiss() })
-        })
-}
-
-//noinspection MissingHapticFeedback
-@Composable
-fun SimpleAlertDialog(
-    title: String,
-    onDismiss: () -> Unit,
-    message: String? = null,
-    confirmButtonText: String? = null,
-    onConfirm: () -> Unit = onDismiss,
-    dismissButtonText: String = "",
-    icon: ImageVector? = null,
-    content: (@Composable () -> Unit)? = null
-) {
-    val resolvedText = confirmButtonText ?: stringResource(R.string.ok)
-    StyledAlertDialog(
-        onDismissRequest = { onDismiss() },
-        icon = icon,
-        title = { Text(title) },
-        text = content ?: message?.let { { Text(it) } },
+                label = confirmButtonText,
+                onClick = onConfirm,
+                colors = confirmButtonColor?.let { ButtonDefaults.buttonColors(containerColor = it) }
+                    ?: ButtonDefaults.buttonColors())
+        },
         dismissButton = {
-            TextButton(
-                onClick = { onDismiss() },
-            ) {
-                Text(dismissButtonText)
+            if (dismissButtonText.isNotEmpty()) {
+                TextButton(onClick = onDismissButton ?: onDismissRequest) { Text(dismissButtonText) }
             }
-        },
-        confirmButton = {
-            //noinspection MissingHapticFeedback
-            MorphButton(
-                label = resolvedText, onClick = {
-                    onConfirm()
-                })
         })
 }
+
 
 @Composable
 fun SaveImageDialog(
@@ -228,76 +171,66 @@ fun SaveImageDialog(
     var skipNext by remember { mutableStateOf(false) }
     val colors =
         ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
-    StyledAlertDialog(onDismissRequest = onDismissRequest, title = {
-        Text(stringResource(if (overwriteMode) R.string.overwrite_image else R.string.save_image))
-    }, text = {
-        Column(verticalArrangement = Arrangement.spacedBy(GroupedListSpacing)) {
-            TextField(
-                colors = TextFieldDefaults.colors(
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                unfocusedIndicatorColor = Color.Transparent,
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                focusedIndicatorColor = Color.Transparent,
-            ),
-                shape = segmentedShape(1, 3),
-                value = textState,
-                onValueChange = { textState = it },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                label = { Text(stringResource(R.string.filename)) },
-                isError = overwriteMode,
-                supportingText = if (overwriteMode) {
-                    { Text(stringResource(R.string.already_exists)) }
-                } else null)
-            if (!overwriteMode) {
-                SegmentedListItem(
-                    colors = colors,
-                    shapes = segmentedListShapes(2, 3),
-                    onClick = { HapticPatterns.tap(); saveAll = !saveAll },
-                    leadingContent = {
-                        Checkbox(
-                            checked = saveAll,
-                            onCheckedChange = { HapticPatterns.tap(); saveAll = it },
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }) {
-                    Text(
-                        stringResource(R.string.save_all),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+    StyledAlertDialog(
+        onDismissRequest = onDismissRequest,
+        onConfirm = { onSave(sanitizeFilename(textState), saveAll, skipNext) },
+        title = {
+            Text(stringResource(if (overwriteMode) R.string.overwrite_image else R.string.save_image))
+        },
+        contents = {
+            Column(verticalArrangement = Arrangement.spacedBy(GroupedListSpacing)) {
+                OutlinedTextField(
+                    value = textState,
+                    onValueChange = { textState = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.filename)) },
+                    isError = overwriteMode,
+                    supportingText = if (overwriteMode) {
+                        { Text(stringResource(R.string.already_exists)) }
+                    } else null)
 
-                SegmentedListItem(
-                    colors = colors,
-                    shapes = segmentedListShapes(3, 3),
-                    onClick = { HapticPatterns.tap(); skipNext = !skipNext },
-                    leadingContent = {
-                        Checkbox(
-                            checked = skipNext,
-                            onCheckedChange = { HapticPatterns.tap(); skipNext = it },
-                            modifier = Modifier.size(32.dp)
+                Spacer(modifier = Modifier.height(10.dp))
+
+                if (!overwriteMode) {
+                    SegmentedListItem(
+                        colors = colors,
+                        shapes = segmentedListShapes(1, 2),
+                        onClick = { HapticPatterns.tap(); saveAll = !saveAll },
+                        leadingContent = {
+                            Checkbox(
+                                checked = saveAll,
+                                onCheckedChange = { HapticPatterns.tap(); saveAll = it },
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }) {
+                        Text(
+                            stringResource(R.string.save_all),
+                            style = MaterialTheme.typography.bodyMedium
                         )
-                    }) {
-                    Text(
-                        stringResource(R.string.dont_show_dialog),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    }
+                    SegmentedListItem(
+                        colors = colors,
+                        shapes = segmentedListShapes(2, 2),
+                        onClick = { HapticPatterns.tap(); skipNext = !skipNext },
+                        leadingContent = {
+                            Checkbox(
+                                checked = skipNext,
+                                onCheckedChange = { HapticPatterns.tap(); skipNext = it },
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }) {
+                        Text(
+                            stringResource(R.string.dont_show_dialog),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
                 }
             }
-        }
-    }, dismissButton = {
-        TextButton(
-            onClick = { HapticPatterns.tap(); onDismissRequest() },
-        ) {
-            Text(stringResource(R.string.nope))
-        }
-    }, confirmButton = {
-        //noinspection MissingHapticFeedback
-        MorphButton(
-            label = stringResource(R.string.save), onClick = {
-                onSave(sanitizeFilename(textState), saveAll, skipNext)
-            })
-    })
+        },
+        confirmButtonText = stringResource(R.string.save),
+        dismissButtonText = stringResource(R.string.nope)
+    )
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
@@ -369,44 +302,29 @@ fun RemoveImageDialog(
     imageFilename: String?,
     count: Int = 1,
     onDismissRequest: () -> Unit,
-    onRemove: () -> Unit,
+    onDismissButton: (() -> Unit)? = null,
     onSaveAndRemove: () -> Unit
 ) {
-    StyledAlertDialog(onDismissRequest = onDismissRequest, title = {
-        Text(
-            if (count > 1) stringResource(R.string.remove_images_title)
-            else stringResource(R.string.remove_image_title)
-        )
-    }, text = {
-        Text(
-            if (count > 1) pluralStringResource(R.plurals.remove_images_question, count, count)
-            else stringResource(R.string.remove_image_question, imageFilename.orEmpty())
-        )
-    }, dismissButton = {
-        TextButton(
-            onClick = { HapticPatterns.tap(); onDismissRequest() },
-        ) {
-            Text(stringResource(R.string.nope))
-        }
-    }, confirmButton = {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            TextButton(
-                onClick = {
-                    HapticPatterns.tap()
-                    onRemove()
-                    onDismissRequest()
-                },
-            ) {
-                Text(stringResource(R.string.remove))
-            }
-            //noinspection MissingHapticFeedback
-            MorphButton(
-                label = stringResource(R.string.save), onClick = { onSaveAndRemove() })
-        }
-    })
+    StyledAlertDialog(
+        onDismissRequest = onDismissRequest,
+        onDismissButton = onDismissButton,
+        onConfirm = { onSaveAndRemove() },
+        title = {
+            Text(
+                if (count > 1) stringResource(R.string.remove_images_title)
+                else stringResource(R.string.remove_image_title)
+            )
+        },
+        contents = {
+            Text(
+                if (count > 1) pluralStringResource(R.plurals.remove_images_question, count, count)
+                else stringResource(R.string.remove_image_question, imageFilename.orEmpty())
+            )
+        },
+        confirmButtonText = stringResource(R.string.save),
+        dismissButtonText = stringResource(R.string.remove),
+        confirmButtonColor = MaterialTheme.colorScheme.primary
+    )
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -416,8 +334,9 @@ fun CancelProcessingDialog(
 ) {
     StyledAlertDialog(
         onDismissRequest = dismiss,
+        onConfirm = { onConfirm(); dismiss() },
         title = { Text(stringResource(R.string.stop_processing_title)) },
-        text = {
+        contents = {
             Text(
                 if (imageFilename != null) {
                     stringResource(R.string.stop_processing_question, imageFilename)
@@ -426,21 +345,10 @@ fun CancelProcessingDialog(
                 }
             )
         },
-        dismissButton = {
-            TextButton(
-                onClick = { HapticPatterns.tap(); dismiss() },
-            ) {
-                Text(stringResource(R.string.nope))
-            }
-        },
-        confirmButton = {
-            //noinspection MissingHapticFeedback
-            MorphButton(
-                label = stringResource(R.string.yes_stop),
-                onClick = { onConfirm(); dismiss() },
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-            )
-        })
+        confirmButtonText = stringResource(R.string.yes_stop),
+        dismissButtonText = stringResource(R.string.nope),
+        confirmButtonColor = MaterialTheme.colorScheme.error
+    )
 }
 
 @OptIn(
@@ -685,60 +593,63 @@ fun RecoveryDialog(
             }
         }
 
-        StyledAlertDialog(onDismissRequest = {}, title = {
+        StyledAlertDialog(onDismissRequest = { clearCache() }, blocking = true, onConfirm = {
+            Log.d("RecoveryDialog", "User chose to keep recovered images")
+            recoveryImages.value.forEach { img ->
+                val processed = img.processedBitmap
+                val unprocessedFile = CacheManager.getUnprocessedImage(context, img.imageId)
+                val uri = unprocessedFile?.let {
+                    FileProvider.getUriForFile(
+                        context, "${context.packageName}.provider", it
+                    )
+                }
+                imageRepository.addImage(
+                    ImageItem(
+                        id = img.imageId,
+                        uri = uri,
+                        filename = recoveredImagePrefix,
+                        inputBitmap = img.unprocessedBitmap ?: processed,
+                        outputBitmap = processed,
+                        thumbnailBitmap = ImageLoadingHelper.generateThumbnail(
+                            processed
+                        ),
+                        size = "${processed.width}x${processed.height}",
+                        hasBeenSaved = false
+                    )
+                )
+            }
+            showDialog.value = false
+        }, title = {
             Text(
                 pluralStringResource(
                     R.plurals.recover_images_title, count, count
                 )
             )
-        }, text = {
+        }, contents = {
             Column {
                 Text(pluralStringResource(R.plurals.recover_images_message, count, count))
-                if (count <= 3) {
-                    Spacer(modifier = Modifier.height(ScreenHorizontalPadding))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        recoveryImages.value.take(3).forEach { img ->
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .aspectRatio(1f)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceContainer)
-                            ) {
-                                Image(
-                                    bitmap = img.processedBitmap.asImageBitmap(),
-                                    contentDescription = stringResource(R.string.image),
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            }
+                Spacer(modifier = Modifier.height(ScreenHorizontalPadding))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    recoveryImages.value.take(3).forEach { img ->
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .aspectRatio(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.surfaceContainer)
+                        ) {
+                            Image(
+                                bitmap = img.processedBitmap.asImageBitmap(),
+                                contentDescription = stringResource(R.string.image),
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
                         }
                     }
-                } else {
-                    Spacer(modifier = Modifier.height(ScreenHorizontalPadding))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        recoveryImages.value.take(3).forEach { img ->
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .aspectRatio(1f)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceContainer)
-                            ) {
-                                Image(
-                                    bitmap = img.processedBitmap.asImageBitmap(),
-                                    contentDescription = stringResource(R.string.image),
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            }
-                        }
+                    if (count > 3) {
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -757,42 +668,7 @@ fun RecoveryDialog(
                     }
                 }
             }
-        }, dismissButton = {
-            TextButton(onClick = {
-                HapticPatterns.tap()
-                clearCache()
-            }) { Text(discardButtonText) }
-        }, confirmButton = {
-            //noinspection MissingHapticFeedback
-            MorphButton(
-                label = recoverButtonText, onClick = {
-                    Log.d("RecoveryDialog", "User chose to keep recovered images")
-                    recoveryImages.value.forEach { img ->
-                        val processed = img.processedBitmap
-                        val unprocessedFile = CacheManager.getUnprocessedImage(context, img.imageId)
-                        val uri = unprocessedFile?.let {
-                            FileProvider.getUriForFile(
-                                context, "${context.packageName}.provider", it
-                            )
-                        }
-                        imageRepository.addImage(
-                            ImageItem(
-                                id = img.imageId,
-                                uri = uri,
-                                filename = recoveredImagePrefix,
-                                inputBitmap = img.unprocessedBitmap ?: processed,
-                                outputBitmap = processed,
-                                thumbnailBitmap = ImageLoadingHelper.generateThumbnail(
-                                    processed
-                                ),
-                                size = "${processed.width}x${processed.height}",
-                                hasBeenSaved = false
-                            )
-                        )
-                    }
-                    showDialog.value = false
-                })
-        })
+        }, confirmButtonText = recoverButtonText, dismissButtonText = discardButtonText)
     }
 }
 

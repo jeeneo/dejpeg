@@ -239,7 +239,7 @@
     <string name="oidn_quality_high">高</string>
     <string name="oidn_num_threads">线程</string>
     <string name="oidn_settings_desc">HDR，sRGB，质量，线程</string>
-    <string name="model_switch_blocked_processing">处理中无法切换模型</string>
+    <string name="cant_switch_model">处理中无法切换模型</string>
     <string name="settings_title_models">模型</string>
     <string name="settings_item_title_options">选项</string>
     <string name="settings_item_onnx_processing">ONNX 处理</string>

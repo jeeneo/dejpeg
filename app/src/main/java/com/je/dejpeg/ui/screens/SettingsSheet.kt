@@ -82,7 +82,7 @@ import com.je.dejpeg.ui.components.PreferenceItem
 import com.je.dejpeg.ui.components.ScreenHorizontalPadding
 import com.je.dejpeg.ui.components.SnackbarController
 import com.je.dejpeg.ui.components.SnackbarDuration
-import com.je.dejpeg.ui.components.SnackySnackbarEvents
+import com.je.dejpeg.ui.components.SnackbarEvents
 import com.je.dejpeg.ui.components.rememberMaterialPressState
 import com.je.dejpeg.ui.components.segmentedListShapes
 import com.je.dejpeg.ui.components.toListItemShapes
@@ -113,7 +113,6 @@ fun SettingsSheetContent(
     var importProgress by remember { mutableIntStateOf(0) }
     val importedModelMessage = stringResource(R.string.imported_model)
     val deletedModelMessage = stringResource(R.string.deleted_model)
-    val blockedSwitchingMessage = stringResource(R.string.model_switch_blocked_processing)
     val chunkSize by settingsViewModel.chunkSize.collectAsState()
     val overlapSize by settingsViewModel.overlapSize.collectAsState()
     val onnxDeviceThreads by settingsViewModel.onnxDeviceThreads.collectAsState()
@@ -152,7 +151,7 @@ fun SettingsSheetContent(
                     showImportProgress.value = false
                     scope.launch {
                         SnackbarController.pushEvent(
-                            SnackySnackbarEvents.MessageEvent(
+                            SnackbarEvents.MessageEvent(
                                 message = importedModelMessage.format(name),
                                 duration = SnackbarDuration.Short
                             )
@@ -218,7 +217,7 @@ fun SettingsSheetContent(
                                 }
                                 settingsViewModel.refreshInstalledModels(ModelType.ONNX)
                                 SnackbarController.pushEvent(
-                                    SnackySnackbarEvents.MessageEvent(
+                                    SnackbarEvents.MessageEvent(
                                         message = extractedMsg, duration = SnackbarDuration.Short
                                     )
                                 )
@@ -265,6 +264,9 @@ fun SettingsSheetContent(
                     val isActive =
                         modelName == activeSelection.modelName && processingMode == modelType
                     val last = index == allModels.lastIndex && !hasCard
+                    val cantSwitchModel = stringResource(R.string.cant_switch_model)
+                    val cantDeleteModel = stringResource(R.string.cant_delete_model)
+
                     Spacer(modifier = Modifier.height(GroupedListSpacing))
                     SegmentedListItem(
                         colors = colors, selected = isActive, onClick = {
@@ -272,8 +274,8 @@ fun SettingsSheetContent(
                             if (processingViewModel.isProcessingOrQueueActive()) {
                                 scope.launch {
                                     SnackbarController.pushEvent(
-                                        SnackySnackbarEvents.MessageEvent(
-                                            message = blockedSwitchingMessage,
+                                        SnackbarEvents.MessageEvent(
+                                            message = cantSwitchModel,
                                             duration = SnackbarDuration.Short
                                         )
                                     )
@@ -310,17 +312,28 @@ fun SettingsSheetContent(
                                 IconButton(
                                     onClick = {
                                         HapticPatterns.tap()
-                                        settingsViewModel.deleteModel(
-                                            modelName, modelType
-                                        ) {
+                                        if (processingViewModel.isProcessingOrQueueActive()) {
                                             scope.launch {
                                                 SnackbarController.pushEvent(
-                                                    SnackySnackbarEvents.MessageEvent(
-                                                        message = deletedModelMessage.format(
-                                                            it
-                                                        ), duration = SnackbarDuration.Short
+                                                    SnackbarEvents.MessageEvent(
+                                                        message = cantDeleteModel,
+                                                        duration = SnackbarDuration.Short
                                                     )
                                                 )
+                                            }
+                                        } else {
+                                            settingsViewModel.deleteModel(
+                                                modelName, modelType
+                                            ) {
+                                                scope.launch {
+                                                    SnackbarController.pushEvent(
+                                                        SnackbarEvents.MessageEvent(
+                                                            message = deletedModelMessage.format(
+                                                                it
+                                                            ), duration = SnackbarDuration.Short
+                                                        )
+                                                    )
+                                                }
                                             }
                                         }
                                     }, modifier = Modifier.size(32.dp)
@@ -604,7 +617,7 @@ fun SettingsSheetContent(
                                 defaultImageSource = null
                                 appPreferences.saveDefaultImageSource(null)
                                 SnackbarController.pushEvent(
-                                    SnackySnackbarEvents.MessageEvent(
+                                    SnackbarEvents.MessageEvent(
                                         message = clearedDefaultSourceMsg,
                                         duration = SnackbarDuration.Short
                                     )
@@ -633,7 +646,7 @@ fun SettingsSheetContent(
                                         defaultImageSource = null
                                         appPreferences.saveDefaultImageSource(null)
                                         SnackbarController.pushEvent(
-                                            SnackySnackbarEvents.MessageEvent(
+                                            SnackbarEvents.MessageEvent(
                                                 message = clearedDefaultSourceMsg,
                                                 duration = SnackbarDuration.Short
                                             )

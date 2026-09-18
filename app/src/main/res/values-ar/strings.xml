@@ -264,7 +264,7 @@
     <string name="oidn_quality_high">عالي</string>
     <string name="oidn_num_threads">المسارات</string>
     <string name="oidn_settings_desc">HDR، sRGB، الجودة، المسارات</string>
-    <string name="model_switch_blocked_processing">لا يمكنك تبديل النماذج أثناء المعالجة</string>
+    <string name="cant_switch_model">لا يمكنك تبديل النماذج أثناء المعالجة</string>
     <string name="settings_title_models">النماذج</string>
     <string name="settings_item_title_options">الخيارات</string>
     <string name="settings_item_onnx_processing">المعالجة ONNX</string>

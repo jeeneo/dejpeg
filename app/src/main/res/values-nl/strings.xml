@@ -244,7 +244,7 @@
     <string name="oidn_quality_high">Hoog</string>
     <string name="oidn_num_threads">Threads</string>
     <string name="oidn_settings_desc">HDR, sRGB, kwaliteit, threads</string>
-    <string name="model_switch_blocked_processing">Je kunt niet van model wisselen tijdens de verwerking</string>
+    <string name="cant_switch_model">Je kunt niet van model wisselen tijdens de verwerking</string>
     <string name="settings_title_models">Modellen</string>
     <string name="settings_item_title_options">Opties</string>
     <string name="settings_item_onnx_processing">ONNX Verwerking</string>

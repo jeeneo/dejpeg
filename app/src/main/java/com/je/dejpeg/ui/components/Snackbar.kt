@@ -113,10 +113,10 @@ fun SnackBarBox(
 }
 
 class ActivitySnackySnackbarController {
-    private val _events = Channel<SnackySnackbarEvents>(Channel.UNLIMITED)
+    private val _events = Channel<SnackbarEvents>(Channel.UNLIMITED)
     val events = _events.receiveAsFlow()
 
-    suspend fun pushEvent(event: SnackySnackbarEvents) = _events.send(event)
+    suspend fun pushEvent(event: SnackbarEvents) = _events.send(event)
 }
 
 object SnackbarController {
@@ -131,25 +131,25 @@ object SnackbarController {
         if (bound == controller) bound = null
     }
 
-    suspend fun pushEvent(event: SnackySnackbarEvents) {
+    suspend fun pushEvent(event: SnackbarEvents) {
         bound?.pushEvent(event)
     }
 }
 
-sealed interface SnackySnackbarEvents {
+sealed interface SnackbarEvents {
     val message: String
 
     data class MessageEvent(
         override val message: String,
         val duration: SnackbarDuration = SnackbarDuration.Short,
         val icon: Int? = null
-    ) : SnackySnackbarEvents
+    ) : SnackbarEvents
 }
 
 enum class SnackbarDuration { Short, Long }
 
 class SnackySnackbarData(
-    val event: SnackySnackbarEvents, private val cont: CancellableContinuation<Unit>
+    val event: SnackbarEvents, private val cont: CancellableContinuation<Unit>
 ) {
     fun dismiss() {
         if (cont.isActive) cont.resume(Unit)
@@ -160,7 +160,7 @@ class SnackySnackbarHostState {
     val stack: SnapshotStateList<SnackySnackbarData> =
         mutableListOf<SnackySnackbarData>().toMutableStateList()
 
-    suspend fun show(event: SnackySnackbarEvents) {
+    suspend fun show(event: SnackbarEvents) {
         var data: SnackySnackbarData? = null
         suspendCancellableCoroutine { cont ->
             data = SnackySnackbarData(event, cont)
@@ -181,7 +181,7 @@ private fun SnackbarContent(
     snackbarData: SnackySnackbarData, onDismiss: () -> Unit
 ) {
     val durationMs: Long? =
-        when ((snackbarData.event as? SnackySnackbarEvents.MessageEvent)?.duration) {
+        when ((snackbarData.event as? SnackbarEvents.MessageEvent)?.duration) {
             SnackbarDuration.Short -> 4000L
             SnackbarDuration.Long -> 10000L
             else -> null

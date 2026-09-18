@@ -251,7 +251,9 @@ fun CardWrapper(
                 val armedState = rememberUpdatedState(armed)
                 LaunchedEffect(Unit) {
                     snapshotFlow { armedState.value }.drop(1).collectLatest { isArmed ->
-                        HapticPatterns.longPress()
+                        if (isArmed) {
+                            HapticPatterns.longPress()
+                        }
                         armedAnim.animateTo(
                             targetValue = if (isArmed) 1f else 0f, animationSpec = if (isArmed) {
                                 spring(

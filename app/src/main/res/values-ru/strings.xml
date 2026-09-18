@@ -256,7 +256,7 @@
     <string name="oidn_quality_high">Высокое</string>
     <string name="oidn_num_threads">Потоки</string>
     <string name="oidn_settings_desc">HDR, sRGB, качество, потоки</string>
-    <string name="model_switch_blocked_processing">Нельзя переключать модели во время обработки</string>
+    <string name="cant_switch_model">Нельзя переключать модели во время обработки</string>
     <string name="settings_title_models">Модели</string>
     <string name="settings_item_title_options">Параметры</string>
     <string name="settings_item_onnx_processing">ONNX Обработка</string>

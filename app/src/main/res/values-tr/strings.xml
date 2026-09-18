@@ -244,7 +244,7 @@
     <string name="oidn_quality_high">Yüksek</string>
     <string name="oidn_num_threads">İş parçacıkları</string>
     <string name="oidn_settings_desc">HDR, sRGB, kalite, iş parçacıkları</string>
-    <string name="model_switch_blocked_processing">İşlem sırasında model değiştiremezsiniz</string>
+    <string name="cant_switch_model">İşlem sırasında model değiştiremezsiniz</string>
     <string name="settings_title_models">Modeller</string>
     <string name="settings_item_title_options">Seçenekler</string>
     <string name="settings_item_onnx_processing">ONNX İşleme</string>

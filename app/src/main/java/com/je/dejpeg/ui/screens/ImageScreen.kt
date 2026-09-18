@@ -293,12 +293,9 @@ fun ImageScreen(
                 SingleImageView(beforeBitmap, needsChecker)
             }
         }
-
         if (isPreparingShare) PreparingShareDialog()
-
         if (!isCompareMode) {
             ImageFlowDialogs(flows)
-
             (saveState as? SaveState.Error)?.let { err ->
                 AlertDialog(
                     onDismissRequest = { viewModel.dismissSaveError() },
@@ -310,7 +307,6 @@ fun ImageScreen(
                         }
                     })
             }
-
             (saveState as? SaveState.Saving)?.let { state ->
                 SaveProgressDialog(state)
             }

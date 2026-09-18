@@ -119,7 +119,6 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
@@ -144,16 +143,15 @@ import com.je.dejpeg.ui.components.BottomSheet
 import com.je.dejpeg.ui.components.CancelProcessingDialog
 import com.je.dejpeg.ui.components.CardWrapper
 import com.je.dejpeg.ui.components.CornerRole
-import com.je.dejpeg.ui.components.ErrorAlertDialog
 import com.je.dejpeg.ui.components.GroupedListSpacing
 import com.je.dejpeg.ui.components.ImageSourceDialog
 import com.je.dejpeg.ui.components.MorphButton
 import com.je.dejpeg.ui.components.PreparingShareDialog
 import com.je.dejpeg.ui.components.ScreenHorizontalPadding
-import com.je.dejpeg.ui.components.SimpleAlertDialog
 import com.je.dejpeg.ui.components.SnackbarController
 import com.je.dejpeg.ui.components.SnackbarDuration
-import com.je.dejpeg.ui.components.SnackySnackbarEvents
+import com.je.dejpeg.ui.components.SnackbarEvents
+import com.je.dejpeg.ui.components.StyledAlertDialog
 import com.je.dejpeg.ui.components.rememberMaterialPressState
 import com.je.dejpeg.ui.components.toListItemShapes
 import com.je.dejpeg.ui.viewmodel.ImageItem
@@ -285,7 +283,7 @@ fun ProcessingScreen(
     fun tryProcess(block: () -> Unit) {
         if (!settingsViewModel.hasActiveModel(processingMode)) scope.launch {
             SnackbarController.pushEvent(
-                SnackySnackbarEvents.MessageEvent(
+                SnackbarEvents.MessageEvent(
                     message = noModelMessage, duration = SnackbarDuration.Long
                 )
             )
@@ -715,11 +713,13 @@ fun ProcessingScreen(
 
     val saveState by processingViewModel.saveState.collectAsState()
     (saveState as? SaveState.Error)?.let { err ->
-        ErrorAlertDialog(
-            title = stringResource(R.string.error_saving_image_title),
-            errorMessage = err.message,
-            onDismiss = { processingViewModel.dismissSaveError() },
-            context = context
+        StyledAlertDialog(
+            onDismissRequest = { processingViewModel.dismissSaveError() },
+            onConfirm = { processingViewModel.dismissSaveError() },
+            title = { Text(stringResource(R.string.error_saving_image_title)) },
+            contents = { Text(err.message) },
+            confirmButtonText = stringResource(R.string.ok),
+            dismissButtonText = stringResource(R.string.copy)
         )
     }
 
@@ -729,19 +729,21 @@ fun ProcessingScreen(
 
     ImageFlowDialogs(flows)
     processingErrorDialog?.let { errorMsg ->
-        val context = LocalContext.current
-        ErrorAlertDialog(
-            title = stringResource(R.string.error_processing_title),
-            errorMessage = errorMsg,
-            onDismiss = { processingViewModel.dismissProcessingErrorDialog() },
-            context = context
+        StyledAlertDialog(
+            onDismissRequest = { processingViewModel.dismissProcessingErrorDialog() },
+            onConfirm = { processingViewModel.dismissProcessingErrorDialog() },
+            title = { Text(stringResource(R.string.error_processing_title)) },
+            contents = { Text(errorMsg) },
+            confirmButtonText = stringResource(R.string.ok),
+            dismissButtonText = stringResource(R.string.copy)
         )
     }
     if (gpuCacheCreatingDialog) {
-        SimpleAlertDialog(
-            title = stringResource(R.string.gpu_cache_title),
-            message = stringResource(R.string.gpu_cache_text),
-            onDismiss = { processingViewModel.dismissGpuCacheCreatingDialog() },
+        StyledAlertDialog(
+            onDismissRequest = { processingViewModel.dismissGpuCacheCreatingDialog() },
+            onConfirm = { processingViewModel.dismissGpuCacheCreatingDialog() },
+            title = { Text(stringResource(R.string.gpu_cache_title)) },
+            contents = { Text(stringResource(R.string.gpu_cache_text)) },
             confirmButtonText = stringResource(R.string.ok)
         )
     }
@@ -783,6 +785,7 @@ fun LazyItemScope.ImageCard(
     val isProcessing = image.isProcessing
 
     val positiveAction: () -> (() -> Unit)? = {
+        HapticPatterns.tap()
         if (image.outputBitmap != null) {
             onRequestSave(listOf(image.id), false)
             null
@@ -793,6 +796,7 @@ fun LazyItemScope.ImageCard(
     }
 
     val negativeAction: () -> (() -> Unit)? = {
+        HapticPatterns.tap()
         when {
             isProcessing && viewModel.isCurrent(image.id) -> {
                 onCancelProcessing(image.id)

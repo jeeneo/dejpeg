@@ -21,7 +21,7 @@ import com.je.dejpeg.processing.ProcessingService
 import com.je.dejpeg.processing.ServiceCommunicationHelper
 import com.je.dejpeg.ui.components.SnackbarController
 import com.je.dejpeg.ui.components.SnackbarDuration
-import com.je.dejpeg.ui.components.SnackySnackbarEvents
+import com.je.dejpeg.ui.components.SnackbarEvents
 import com.je.dejpeg.utils.CacheManager
 import com.je.dejpeg.utils.ImageActions
 import com.je.dejpeg.utils.ImagePickerHelper
@@ -674,7 +674,7 @@ class ProcessingViewModel : ViewModel() {
                         R.plurals.image_saved_to_gallery, savedCount, savedCount
                     )
                     SnackbarController.pushEvent(
-                        SnackySnackbarEvents.MessageEvent(
+                        SnackbarEvents.MessageEvent(
                             message = message, duration = SnackbarDuration.Short
                         )
                     )

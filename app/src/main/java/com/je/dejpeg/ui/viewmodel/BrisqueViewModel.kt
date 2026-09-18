@@ -18,7 +18,7 @@ import com.je.dejpeg.processing.BRISQUEAssessor
 import com.je.dejpeg.processing.BRISQUEDescaler
 import com.je.dejpeg.ui.components.SnackbarController
 import com.je.dejpeg.ui.components.SnackbarDuration
-import com.je.dejpeg.ui.components.SnackySnackbarEvents
+import com.je.dejpeg.ui.components.SnackbarEvents
 import com.je.dejpeg.utils.ImageActions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -244,7 +244,7 @@ class BrisqueViewModel : ViewModel() {
             onSuccess = {
                 viewModelScope.launch {
                     SnackbarController.pushEvent(
-                        SnackySnackbarEvents.MessageEvent(
+                        SnackbarEvents.MessageEvent(
                             message = context.resources.getQuantityString(
                                 R.plurals.image_saved_to_gallery, 1, 1
                             ), duration = SnackbarDuration.Short

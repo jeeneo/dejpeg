@@ -8,7 +8,6 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
@@ -17,7 +16,6 @@ import com.je.dejpeg.ui.components.SaveImageDialog
 import com.je.dejpeg.ui.viewmodel.ImageItem
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.utils.ImageActions
-import kotlinx.coroutines.CoroutineScope
 
 data class SaveRequest(
     val imageIds: List<String>,
@@ -33,7 +31,6 @@ sealed interface PendingAction {
 @Stable
 class ImageFlows internal constructor(
     private val context: Context,
-    private val scope: CoroutineScope,
     private val appPreferences: AppPreferences,
     private val viewModel: ProcessingViewModel,
     private val releaseSharedUri: (Uri) -> Unit,
@@ -156,10 +153,9 @@ fun rememberImageFlows(
     onRemoveSharedUri: (Uri) -> Unit,
 ): ImageFlows {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     val flows = remember {
         ImageFlows(
-            context, scope, appPreferences, processingViewModel, onRemoveSharedUri
+            context, appPreferences, processingViewModel, onRemoveSharedUri
         )
     }
     val currentImages by rememberUpdatedState(images)
@@ -179,8 +175,8 @@ fun ImageFlowDialogs(flows: ImageFlows) {
             RemoveImageDialog(
                 imageFilename = targets.singleOrNull()?.filename,
                 count = targets.size,
-                onDismissRequest = flows::dismiss,
-                onRemove = { flows.confirmRemoval(false) },
+                onDismissRequest = { flows.dismiss() },
+                onDismissButton = { flows.confirmRemoval(false) },
                 onSaveAndRemove = { flows.confirmRemoval(true) },
             )
         }
