@@ -121,7 +121,6 @@ class MainActivity : ComponentActivity() {
         handleShareIntent(intent)
     }
 
-    @Suppress("DEPRECATION")
     private fun handleShareIntent(intent: Intent?) {
         if (intent == null) return
         val hash = System.identityHashCode(intent)

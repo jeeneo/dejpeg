@@ -1,5 +1,3 @@
-@file:Suppress("SpellCheckingInspection")
-
 package com.je.dejpeg.processing
 
 import android.content.Context
@@ -107,7 +105,6 @@ class BRISQUEDescaler(
         val combinedScore: Float
     )
 
-    @Suppress("StringFormatMatches")
     suspend fun descale(
         context: Context,
         bitmap: Bitmap,

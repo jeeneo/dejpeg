@@ -1,13 +1,4 @@
-/*
- * SPDX-FileCopyrightText: 2025 - 2026 dryerlint <https://codeberg.org/dryerlint>
- * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
- */
-
-@file:Suppress(
-    "KotlinConstantConditions", "SimplifyBooleanWithConstants", "SpellCheckingInspection"
-)
-
-package com.je.dejpeg.ui.components
+package com.je.dejpeg.ui.screens
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -81,6 +72,19 @@ import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.data.HapticPatterns
 import com.je.dejpeg.data.SettingsSection
 import com.je.dejpeg.data.ThreadUtils
+import com.je.dejpeg.ui.components.CornerRole
+import com.je.dejpeg.ui.components.GroupedListSpacing
+import com.je.dejpeg.ui.components.Heading
+import com.je.dejpeg.ui.components.LabeledSwitch
+import com.je.dejpeg.ui.components.PowerSlider
+import com.je.dejpeg.ui.components.PreferenceItem
+import com.je.dejpeg.ui.components.ScreenHorizontalPadding
+import com.je.dejpeg.ui.components.SnackbarController
+import com.je.dejpeg.ui.components.SnackbarDuration
+import com.je.dejpeg.ui.components.SnackySnackbarEvents
+import com.je.dejpeg.ui.components.rememberMaterialPressState
+import com.je.dejpeg.ui.components.segmentedShapes
+import com.je.dejpeg.ui.components.toListItemShapes
 import com.je.dejpeg.ui.theme.AppTheme
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
@@ -93,9 +97,9 @@ import kotlinx.coroutines.withContext
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsSheetContent(
+    modifier: Modifier = Modifier,
     settingsViewModel: SettingsViewModel,
     processingViewModel: ProcessingViewModel,
-    modifier: Modifier = Modifier,
 ) {
     val modelManager = remember { ModelManager.create(App.ctx) }
     val appPreferences = remember { AppPreferences() }
@@ -183,7 +187,7 @@ fun SettingsSheetContent(
             val hasModels = allModels.isNotEmpty()
             val hasCard = processingMode == ModelType.OIDN || processingMode == ModelType.ONNX
             val extractedMsg = stringResource(R.string.extracted_starter_models)
-            val failedMsg = stringResource(R.string.failed_to_extract_starter_models)
+//            val failedMsg = stringResource(R.string.failed_to_extract_starter_models)
             val colors = ListItemDefaults.segmentedColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                 selectedContainerColor = MaterialTheme.colorScheme.outlineVariant
@@ -201,27 +205,21 @@ fun SettingsSheetContent(
             ) {
                 SegmentedListItem(
                     modifier = Modifier.weight(1f), colors = colors, onClick = {
+                        HapticPatterns.tap()
                         modelPickerLauncher.launch(arrayOf("*/*"))
                     }, onLongClick = {
                         scope.launch {
-                            if (processingViewModel.isProcessingOrQueueActive()) {
-                                return@launch
-                            }
                             val extracted = withContext(Dispatchers.IO) {
                                 modelManager.extractStarterModel()
                             }
                             if (extracted.isNotEmpty()) {
-                                settingsViewModel.setActiveModel(ModelManager.STARTER_MODEL_NAME)
+                                if (allModels.isEmpty() && !processingViewModel.isProcessingOrQueueActive()) {
+                                    settingsViewModel.setActiveModel(ModelManager.STARTER_MODEL_NAME)
+                                }
                                 settingsViewModel.refreshInstalledModels(ModelType.ONNX)
                                 SnackbarController.pushEvent(
                                     SnackySnackbarEvents.MessageEvent(
                                         message = extractedMsg, duration = SnackbarDuration.Short
-                                    )
-                                )
-                            } else {
-                                SnackbarController.pushEvent(
-                                    SnackySnackbarEvents.MessageEvent(
-                                        message = failedMsg, duration = SnackbarDuration.Short
                                     )
                                 )
                             }
@@ -243,6 +241,7 @@ fun SettingsSheetContent(
                     })
                 SegmentedListItem(
                     modifier = Modifier.weight(1f), colors = colors, onClick = {
+                        HapticPatterns.tap()
                         uriHandler.openUri("https://codeberg.org/dryerlint/dejpeg/src/branch/main/models")
                     }, shapes = CornerRole(
                         topEnd = true, bottomEnd = !hasModels
@@ -269,6 +268,7 @@ fun SettingsSheetContent(
                     Spacer(modifier = Modifier.height(GroupedListSpacing))
                     SegmentedListItem(
                         colors = colors, selected = isActive, onClick = {
+                            HapticPatterns.tap()
                             if (processingViewModel.isProcessingOrQueueActive()) {
                                 scope.launch {
                                     SnackbarController.pushEvent(
@@ -296,6 +296,7 @@ fun SettingsSheetContent(
                             Row {
                                 modelManager.getModelInfo(modelName)?.let {
                                     IconButton(onClick = {
+                                        HapticPatterns.tap()
                                         modelInfoDialog.value = modelName to it
                                     }, modifier = Modifier.size(32.dp)) {
                                         Icon(
@@ -308,6 +309,7 @@ fun SettingsSheetContent(
                                 }
                                 IconButton(
                                     onClick = {
+                                        HapticPatterns.tap()
                                         settingsViewModel.deleteModel(
                                             modelName, modelType
                                         ) {
@@ -355,6 +357,7 @@ fun SettingsSheetContent(
                     enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
                     exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
                 ) {
+                    //noinspection MissingHapticFeedback
                     PreferenceItem(
                         colors = colors,
                         index = 1,
@@ -407,6 +410,7 @@ fun SettingsSheetContent(
                     enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
                     exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
                 ) {
+                    //noinspection MissingHapticFeedback
                     PreferenceItem(
                         colors = colors,
                         index = 1,
@@ -419,6 +423,7 @@ fun SettingsSheetContent(
                         expandedContent = {
                             SegmentedListItem(
                                 colors = cardColors, shapes = segmentedShapes(1, 2), onClick = {
+                                    HapticPatterns.tap()
                                     settingsViewModel.setOidnHdrPref(
                                         !oidnHDR
                                     )
@@ -433,6 +438,7 @@ fun SettingsSheetContent(
                                 colors = cardColors,
                                 shapes = segmentedShapes(2, 2),
                                 onClick = {
+                                    HapticPatterns.tap()
                                     settingsViewModel.setOidnSrgbPref(
                                         !oidnSRGB
                                     )
@@ -498,6 +504,7 @@ fun SettingsSheetContent(
             }
             Spacer(Modifier.height(6.dp))
             Heading("Settings")
+            //noinspection MissingHapticFeedback
             PreferenceItem(
                 colors = colors,
                 index = 1,
@@ -534,6 +541,7 @@ fun SettingsSheetContent(
                     }
                     SegmentedListItem(
                         colors = cardColors, shapes = segmentedShapes(2, 6), onClick = {
+                            HapticPatterns.tap()
                             scope.launch {
                                 showSaveDialog = !showSaveDialog
                                 appPreferences.saveShowSaveDialog(showSaveDialog)
@@ -543,6 +551,7 @@ fun SettingsSheetContent(
                             title = stringResource(R.string.show_save_dialog),
                             checked = showSaveDialog,
                             onCheckedChange = { new ->
+                                HapticPatterns.tap()
                                 scope.launch {
                                     showSaveDialog = new
                                     appPreferences.saveShowSaveDialog(new)
@@ -551,6 +560,7 @@ fun SettingsSheetContent(
                     }
                     SegmentedListItem(
                         colors = cardColors, shapes = segmentedShapes(3, 6), onClick = {
+                            HapticPatterns.tap()
                             scope.launch {
                                 swapSwipeActions = !swapSwipeActions
                                 appPreferences.saveSwapSwipeActions(swapSwipeActions)
@@ -561,6 +571,7 @@ fun SettingsSheetContent(
                             checked = swapSwipeActions,
                             onCheckedChange = { new ->
                                 scope.launch {
+                                    HapticPatterns.tap()
                                     swapSwipeActions = new
                                     appPreferences.saveSwapSwipeActions(new)
                                 }
@@ -568,6 +579,7 @@ fun SettingsSheetContent(
                     }
                     SegmentedListItem(
                         colors = cardColors, shapes = segmentedShapes(4, 6), onClick = {
+                            HapticPatterns.tap()
                             scope.launch {
                                 glassSlider = !glassSlider
                                 appPreferences.saveGlassSlider(glassSlider)
@@ -577,6 +589,7 @@ fun SettingsSheetContent(
                             title = stringResource(R.string.glass_slider),
                             checked = glassSlider,
                             onCheckedChange = { new ->
+                                HapticPatterns.tap()
                                 glassSlider = new
                                 appPreferences.saveGlassSlider(new)
                             })
@@ -586,6 +599,7 @@ fun SettingsSheetContent(
                         colors = cardColors,
                         shapes = segmentedShapes(5, 6),
                         onClick = {
+                            HapticPatterns.tap()
                             scope.launch {
                                 defaultImageSource = null
                                 appPreferences.saveDefaultImageSource(null)
@@ -614,6 +628,7 @@ fun SettingsSheetContent(
                         trailingContent = {
                             TextButton(
                                 onClick = {
+                                    HapticPatterns.tap()
                                     scope.launch {
                                         defaultImageSource = null
                                         appPreferences.saveDefaultImageSource(null)
@@ -654,6 +669,7 @@ fun SettingsSheetContent(
         val press by rememberMaterialPressState(interaction)
         FloatingActionButton(
             onClick = {
+                HapticPatterns.tap()
                 modelPickerLauncher.launch(arrayOf("*/*"))
             },
             containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -732,6 +748,7 @@ fun SettingsSheetContent(
                 Spacer(modifier = Modifier.height(ScreenHorizontalPadding))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = {
+                        HapticPatterns.tap()
                         showImportProgress.value = false
                         importError.value = null
                     }) {
@@ -794,7 +811,7 @@ fun <T> SegmentedOptionGrid(
                         bottomEnd = isBottomRow && isLastCol
                     ).toListItemShapes(),
                     selected = selected == value,
-                    onClick = { onSelect(value) }) {
+                    onClick = { HapticPatterns.tap(); onSelect(value) }) {
                     Text(label, fontWeight = FontWeight.SemiBold)
                 }
             }

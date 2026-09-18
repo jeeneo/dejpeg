@@ -99,10 +99,12 @@ fun SwipeBox(
             }
             .then(
                 if (collapseFraction.value < 1f) {
-                    Modifier.height(with(density) {
+                    Modifier
+                        .height(with(density) {
                             (measuredHeightPx * collapseFraction.value).toInt().coerceAtLeast(0)
                                 .toDp()
-                        }).clipToBounds()
+                        })
+                        .clipToBounds()
                 } else Modifier
             )
             .pointerInput(canInteract) {

@@ -8,6 +8,7 @@ package com.je.dejpeg.ui.components
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,6 +41,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.je.dejpeg.data.HapticPatterns
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,6 +61,9 @@ fun BottomSheet(
     val progress = backProgress.coerceIn(0f, 1f)
     var heightPx by remember { mutableFloatStateOf(0f) }
     var animating by remember { mutableStateOf(false) }
+    val settleThreshold = 0.9f
+    var pastThreshold by remember { mutableStateOf(false) }
+
     LaunchedEffect(expanded, expandedHeightPx, progress) {
         val target = if (expanded) {
             val lowerBy = expandedHeightPx * progress * 0.2f
@@ -97,17 +103,30 @@ fun BottomSheet(
                     indication = null,
                     enabled = expanded && progress == 0f
                 ) {
+                    HapticPatterns.tap()
                     onExpandedChange(false)
                 }
                 .pointerInput(expanded, animating, progress) {
                     if (!expanded || animating || progress > 0f) {
                         return@pointerInput
                     }
-                    detectVerticalDragGestures(onVerticalDrag = { change, dragAmount ->
+                    val isPast = heightPx >= expandedHeightPx * settleThreshold
+                    detectVerticalDragGestures(onDragStart = { _ ->
+                        pastThreshold = heightPx >= expandedHeightPx * settleThreshold
+                    }, onVerticalDrag = { change, dragAmount ->
                         change.consume()
                         heightPx = (heightPx - dragAmount).coerceIn(0f, expandedHeightPx)
+                        val isPast = heightPx >= expandedHeightPx * settleThreshold
+                        if (isPast != pastThreshold) {
+                            pastThreshold = isPast
+                            HapticPatterns.tap()
+                        }
                     }, onDragEnd = {
-                        val settled = heightPx >= expandedHeightPx * 0.9f
+                        val settled = heightPx >= expandedHeightPx * settleThreshold
+                        if (isPast != pastThreshold) {
+                            pastThreshold = isPast
+                            HapticPatterns.tap()
+                        }
                         scope.launch {
                             animate(
                                 initialValue = heightPx,
@@ -117,6 +136,7 @@ fun BottomSheet(
                                     stiffness = Spring.StiffnessMedium
                                 )
                             ) { value, _ -> heightPx = value }
+                            pastThreshold = settled
                             onExpandedChange(settled)
                         }
                     }, onDragCancel = {
@@ -129,16 +149,17 @@ fun BottomSheet(
                                     stiffness = Spring.StiffnessMedium
                                 )
                             ) { value, _ -> heightPx = value }
+                            pastThreshold = expanded
                         }
                     })
                 }) {
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(22.dp))
             Box(
                 modifier = Modifier
                     .size(width = 48.dp, height = 4.dp)
                     .background(Color.Gray, RoundedCornerShape(50))
             )
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(22.dp))
         }
         Surface(
             color = background, shape = RoundedCornerShape(

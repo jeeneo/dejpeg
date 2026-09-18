@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
-@file:Suppress("SpellCheckingInspection")
-
 package com.je.dejpeg.ui.components
 
 import androidx.compose.animation.AnimatedVisibility

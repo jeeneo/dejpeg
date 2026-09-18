@@ -101,6 +101,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.FileProvider
 import com.je.dejpeg.R
 import com.je.dejpeg.data.AppPreferences
+import com.je.dejpeg.data.HapticPatterns
 import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.ui.viewmodel.ImageItem
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
@@ -847,7 +848,7 @@ fun PowerSlider(
                     val newIdx = it.roundToInt().coerceIn(effectivePowers.indices)
                     if (newIdx != index) {
                         index = newIdx
-                        // ha
+                        HapticPatterns.tap()
                         onChange(effectivePowers[newIdx])
                     }
                 }, enabled = effectivePowers.size > 1
@@ -920,7 +921,7 @@ fun PreferenceItem(
         SegmentedListItem(
             colors = colors, shapes = CornerRole(
                 bottomStart = !expanded, bottomEnd = !expanded, topStart = pill, topEnd = pill
-            ).toListItemShapes(), onClick = { onClick() }, leadingContent = {
+            ).toListItemShapes(), onClick = { HapticPatterns.tap(); onClick() }, leadingContent = {
                 when (icon) {
                     is ImageVector -> Icon(
                         imageVector = icon,
@@ -987,7 +988,9 @@ fun PreferenceItem(
                     Column(
                         verticalArrangement = Arrangement.spacedBy(GroupedListSpacing),
                     ) {
+                        Spacer(modifier = Modifier.height(8.dp))
                         expandedContent?.invoke()
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
             }

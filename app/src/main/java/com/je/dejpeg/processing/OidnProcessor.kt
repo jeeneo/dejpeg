@@ -11,7 +11,6 @@ import kotlinx.coroutines.withContext
 class OIDNProcessor(private val context: Context) : Processor {
     companion object {
         init {
-            @Suppress("KotlinConstantConditions")
             if (BuildConfig.OIDN_ENABLED) {
                 System.loadLibrary("oidn_jni")
             }

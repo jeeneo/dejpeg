@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
-@file:Suppress("SpellCheckingInspection")
 
 package com.je.dejpeg.data
 
@@ -166,7 +165,7 @@ class AppPreferences {
         const val DEFAULT_BRISQUE_SHARPNESS_WEIGHT = 0.3f
     }
 
-    private fun prefs() = App.ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    internal fun prefs() = App.ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     fun loadShowSaveDialog(): Boolean = prefs().getBoolean(KEY_SHOW_SAVE_DIALOG, true)
     fun saveShowSaveDialog(show: Boolean) = prefs().edit { putBoolean(KEY_SHOW_SAVE_DIALOG, show) }

@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
-@file:Suppress("KotlinConstantConditions", "SpellCheckingInspection")
-
 package com.je.dejpeg.utils
 
 import ai.onnxruntime.OrtEnvironment
@@ -331,7 +329,6 @@ open class ModelManager(
 
     open fun deleteGpuCache(modelName: String, type: ModelType = ModelType.LITERT): Boolean = false
 
-    @Suppress("KotlinConstantConditions")
     fun importModel(
         modelUri: Uri,
         onProgress: (Int) -> Unit = {},
@@ -446,9 +443,9 @@ open class ModelManager(
             index++
             importModel(
                 modelUri = uri, onProgress = { p ->
-                val adjusted = ((index - 1) * 100 + p) / total
-                onProgress(adjusted)
-            }, onSuccess = { name, type -> onSuccess(name, type) }, onError = onError
+                    val adjusted = ((index - 1) * 100 + p) / total
+                    onProgress(adjusted)
+                }, onSuccess = { name, type -> onSuccess(name, type) }, onError = onError
             )
         }
     }

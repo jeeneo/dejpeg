@@ -3,14 +3,12 @@
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
-@file:Suppress("SpellCheckingInspection", "AssignedValueIsNeverRead")
-
 package com.je.dejpeg.ui.screens
 
-import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.net.Uri
 import android.view.animation.PathInterpolator
 import androidx.activity.BackEventCompat
@@ -20,13 +18,13 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.animateColor
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.EaseInOutSine
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
@@ -34,11 +32,9 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
-import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -63,7 +59,6 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -89,6 +84,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
@@ -107,6 +103,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -130,6 +127,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
@@ -152,7 +150,6 @@ import com.je.dejpeg.ui.components.ImageSourceDialog
 import com.je.dejpeg.ui.components.MorphButton
 import com.je.dejpeg.ui.components.PreparingShareDialog
 import com.je.dejpeg.ui.components.ScreenHorizontalPadding
-import com.je.dejpeg.ui.components.SettingsSheetContent
 import com.je.dejpeg.ui.components.SimpleAlertDialog
 import com.je.dejpeg.ui.components.SnackbarController
 import com.je.dejpeg.ui.components.SnackbarDuration
@@ -191,7 +188,17 @@ fun ProcessingScreen(
     val context = App.ctx
     val appPreferences = remember { AppPreferences() }
     val defaultImageSource = remember { appPreferences.loadDefaultImageSource() }
-    val swapSwipeActions = remember { appPreferences.loadSwapSwipeActions() }
+    val swapSwipeActions by produceState(initialValue = appPreferences.loadSwapSwipeActions()) {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == AppPreferences.KEY_SWAP_SWIPE_ACTIONS) {
+                value = appPreferences.loadSwapSwipeActions()
+            }
+        }
+        appPreferences.prefs().registerOnSharedPreferenceChangeListener(listener)
+        awaitDispose {
+            appPreferences.prefs().unregisterOnSharedPreferenceChangeListener(listener)
+        }
+    }
     val images by imageRepository.images.collectAsState()
     val globalStrength by settingsViewModel.globalStrength.collectAsState()
     val activeSelection by settingsViewModel.activeSelection.collectAsState()
@@ -349,6 +356,16 @@ fun ProcessingScreen(
         }
     }
 
+    @Composable
+    fun rememberMorphingFabCorner(
+        baseCorner: Float, targetCorner: Float = 28f
+    ): Pair<MutableInteractionSource, Dp> {
+        val interaction = remember { MutableInteractionSource() }
+        val press by rememberMaterialPressState(interaction)
+        val corner = lerp(baseCorner, targetCorner, press)
+        return interaction to corner.dp
+    }
+
     val displayCount = if (isSelectionMode) selectedImageIds.size else images.size
     Column(
         Modifier
@@ -390,136 +407,80 @@ fun ProcessingScreen(
                 val isProcessing = uiState is ProcessingUiState.Processing
                 val allComplete =
                     images.isNotEmpty() && images.all { it.outputBitmap != null && !it.isOutputStale && !it.isProcessing }
-                val procInteraction = remember { MutableInteractionSource() }
-                val procPress by rememberMaterialPressState(procInteraction)
-                val fabCorner = lerp(if (allComplete) 16f else 18f, 28f, procPress)
-                val fabWidthDp by animateDpAsState(
-                    targetValue = if (allComplete) 121.dp else 56.dp, animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    ), label = "fab_width"
-                )
-
-                val fabContainerColor by animateColorAsState(
-                    targetValue = if (isProcessing) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.secondaryContainer,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    ),
-                    label = "fab_container"
-                )
-
-                val fabContentColor by animateColorAsState(
-                    targetValue = if (isProcessing) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSecondaryContainer,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    ),
-                    label = "fab_content"
-                )
-                val settingsInteraction = remember { MutableInteractionSource() }
-                val settingsPress by rememberMaterialPressState(settingsInteraction)
+                val baseCorner = if (allComplete) 16f else 18f
+                val (settingsInteraction, settingsCorner) = rememberMorphingFabCorner(baseCorner)
                 FloatingActionButton(
+                    shape = RoundedCornerShape(settingsCorner),
+                    interactionSource = settingsInteraction,
                     onClick = {
                         HapticPatterns.tap()
                         if (!settingsExpanded) clearSelection()
                         settingsExpanded = !settingsExpanded
                     },
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    shape = RoundedCornerShape(lerp(16f, 28f, settingsPress).dp),
-                    interactionSource = settingsInteraction,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 ) {
-                    AnimatedContent(
-                        targetState = settingsExpanded, label = "settings_icon", transitionSpec = {
-                            fadeIn(spring(stiffness = Spring.StiffnessMedium)) togetherWith fadeOut(
-                                spring(stiffness = Spring.StiffnessMedium)
-                            )
-                        }) { expanded ->
-                        Icon(
-                            if (expanded) Icons.Rounded.KeyboardArrowDown
-                            else Icons.Rounded.Settings,
-                            contentDescription = stringResource(R.string.settings)
-                        )
-                    }
+                    Icon(
+                        if (settingsExpanded) Icons.Rounded.KeyboardArrowDown else Icons.Rounded.Settings,
+                        contentDescription = stringResource(R.string.settings)
+                    )
                 }
+                val (otherInteraction, otherCorner) = rememberMorphingFabCorner(baseCorner)
                 if (images.isNotEmpty()) {
-                    FloatingActionButton(
-                        onClick = {
-                            HapticPatterns.tap()
-                            if (isProcessing) {
-                                showCancelAllDialog = true
-                            } else if (allComplete) {
-                                flows.saveAllNow()
-                            } else {
-                                tryProcess { takeProcess() }
+                    val containerColor by animateColorAsState(
+                        if (isProcessing) MaterialTheme.colorScheme.errorContainer
+                        else MaterialTheme.colorScheme.secondaryContainer, label = "fab_container"
+                    )
+                    val contentColor by animateColorAsState(
+                        if (isProcessing) MaterialTheme.colorScheme.onErrorContainer
+                        else MaterialTheme.colorScheme.onSecondaryContainer, label = "fab_content"
+                    )
+                    val (icon, labelRes) = when {
+                        isProcessing -> Icons.Rounded.Close to R.string.cancel
+                        allComplete -> Icons.Rounded.Save to R.string.save_all
+                        else -> Icons.Rounded.PlayArrow to R.string.process
+                    }
+                    val contentDescription = stringResource(labelRes)
+                    ExtendedFloatingActionButton(
+                        shape = RoundedCornerShape(otherCorner),
+                        interactionSource = otherInteraction,
+                        expanded = allComplete,
+                        icon = {
+                            Crossfade(targetState = icon, label = "fab_icon") { animatedIcon ->
+                                Icon(
+                                    animatedIcon,
+                                    contentDescription = if (allComplete) null else contentDescription
+                                )
                             }
                         },
-                        containerColor = fabContainerColor,
-                        contentColor = fabContentColor,
-                        shape = RoundedCornerShape(fabCorner.dp),
-                        interactionSource = procInteraction,
-                        modifier = Modifier
-                            .height(56.dp)
-                            .widthIn(min = 56.dp)
-                            .width(fabWidthDp)
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            AnimatedContent(
-                                targetState = when {
-                                    isProcessing -> 0
-                                    allComplete -> 1
-                                    else -> 2
-                                }, label = "proc_icon", transitionSpec = {
-                                    fadeIn(animationSpec = spring(stiffness = Spring.StiffnessMedium)).togetherWith(
-                                        fadeOut(animationSpec = spring(stiffness = Spring.StiffnessMedium))
-                                    )
-                                }, modifier = Modifier.size(24.dp)
-                            ) { state ->
-                                Icon(
-                                    when (state) {
-                                        0 -> Icons.Rounded.Close
-                                        1 -> Icons.Rounded.Save
-                                        else -> Icons.Rounded.PlayArrow
-                                    }, null
-                                )
+                        text = {
+                            Crossfade(targetState = labelRes, label = "fab_text") { animatedLabel ->
+                                Text(stringResource(animatedLabel))
                             }
-                            AnimatedVisibility(
-                                visible = allComplete,
-                                enter = fadeIn(spring(stiffness = Spring.StiffnessMedium)) + expandHorizontally(
-                                    spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                                    expandFrom = Alignment.Start
-                                ),
-                                exit = fadeOut(spring(stiffness = Spring.StiffnessMedium)) + shrinkHorizontally(
-                                    spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                                    shrinkTowards = Alignment.Start
-                                )
-                            ) {
-                                Row {
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(
-                                        stringResource(R.string.save_all),
-                                        style = MaterialTheme.typography.labelLarge
-                                    )
-                                }
+                        },
+                        onClick = {
+                            HapticPatterns.tap()
+                            when {
+                                isProcessing -> showCancelAllDialog = true
+                                allComplete -> flows.saveAllNow()
+                                else -> tryProcess { takeProcess() }
                             }
-                        }
-                    }
+                        },
+                        containerColor = containerColor,
+                        contentColor = contentColor
+                    )
                 }
-                val addInteraction = remember { MutableInteractionSource() }
-                val addPress by rememberMaterialPressState(addInteraction)
-                val addCorner = lerp(18f, 28f, addPress)
+                val (addInteraction, addCorner) = rememberMorphingFabCorner(baseCorner)
                 FloatingActionButton(
+                    shape = RoundedCornerShape(addCorner),
+                    interactionSource = addInteraction,
                     onClick = { HapticPatterns.tap(); launchImportIntent() },
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    shape = RoundedCornerShape(addCorner.dp),
-                    interactionSource = addInteraction
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 ) {
-                    Icon(Icons.Rounded.Add, stringResource(R.string.add_images))
+                    Icon(
+                        Icons.Rounded.Add, contentDescription = stringResource(R.string.add_images)
+                    )
                 }
             }
         }
@@ -904,6 +865,7 @@ fun LazyItemScope.ImageCard(
             contentPadding = PaddingValues(0.dp),
             modifier = modifier,
             onClick = {
+                HapticPatterns.tap()
                 if (isProcessing) return@SegmentedListItem
                 if (isSelectionMode) onToggleSelection(image.id)
                 else onNavigateToBeforeAfter(image.id)
@@ -1185,7 +1147,6 @@ fun SaveProgressDialog(saveState: SaveState.Saving) {
         })
 }
 
-@SuppressLint("MissingHapticFeedback")
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ImageCardSplitButton(
@@ -1285,6 +1246,7 @@ private fun ImageCardSplitButton(
             Spacer(Modifier.width(4.dp))
             Text(leadingLabel, style = MaterialTheme.typography.labelMedium)
         }
+        //noinspection MissingHapticFeedback
         Box {
             SplitButtonDefaults.TrailingButton(
                 checked = menuExpanded,

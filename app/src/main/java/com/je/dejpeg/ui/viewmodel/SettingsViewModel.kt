@@ -3,10 +3,6 @@
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
-@file:Suppress(
-    "KotlinConstantConditions", "SimplifyBooleanWithConstants", "SpellCheckingInspection"
-)
-
 package com.je.dejpeg.ui.viewmodel
 
 import android.net.Uri
@@ -98,7 +94,7 @@ class SettingsViewModel : ViewModel() {
             }
             val installed = ModelType.entries.associateWith { installedModels(it) }
             importedModels.value = installed
-            val allInstalled = installed.values.flatten()
+            val allModels = installed.values.flatten()
             val savedType = prefs.loadProcessingMode()?.takeIf { it.enabled }
             val savedName = savedType?.let { type ->
                 withContext(Dispatchers.IO) { modelManager?.getActiveModelName(type) }?.takeIf {
@@ -108,8 +104,8 @@ class SettingsViewModel : ViewModel() {
                 }
             }
             activeSelection.value = ActiveSelection(savedType, savedName)
-            if (savedName == null && allInstalled.isNotEmpty()) {
-                val starterName = allInstalled.find { it == ModelManager.STARTER_MODEL_NAME }
+            if (savedName == null && allModels.isNotEmpty()) {
+                val starterName = allModels.find { it == ModelManager.STARTER_MODEL_NAME }
                 if (starterName != null) {
                     activateStarterModel(starterName)
                 }

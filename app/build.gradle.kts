@@ -1,5 +1,3 @@
-@file:Suppress("SpellCheckingInspection")
-
 import java.util.Properties
 
 plugins {
@@ -112,7 +110,6 @@ android {
         disable += "IconXmlAndPng"
     }
     androidResources {
-        @Suppress("UnstableApiUsage")
         generateLocaleConfig = true
     }
     dependenciesInfo {
@@ -147,9 +144,6 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.compose.animation.core)
     implementation(libs.backdrop)
-
-    testImplementation(libs.junit)
-
     if (!onnxOnly) {
         implementation("com.google.ai.edge.litert:litert:1.4.2")
         implementation("com.google.ai.edge.litert:litert-gpu:1.4.2")

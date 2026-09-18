@@ -5,7 +5,6 @@
 
 package com.je.dejpeg.utils
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
 import android.util.Log
@@ -14,7 +13,6 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 
-@SuppressLint("Recycle")
 object CacheManager {
     private const val TAG = "CacheManager"
     private const val CHUNKS_DIR = "processing_chunks"

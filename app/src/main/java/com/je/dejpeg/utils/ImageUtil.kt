@@ -3,11 +3,8 @@
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
-@file:Suppress("SpellCheckingInspection")
-
 package com.je.dejpeg.utils
 
-import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.ContentUris
 import android.content.ContentValues
@@ -45,7 +42,6 @@ sealed interface ImageSource {
     data class FromFile(val file: File) : ImageSource
 }
 
-@SuppressLint("Recycle")
 object ImageLoadingHelper {
     fun loadBitmap(source: ImageSource): Bitmap? = when (source) {
         is ImageSource.FromUri -> loadFromUri(source.context, source.uri)

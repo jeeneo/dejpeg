@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
-@file:Suppress("GrazieInspection", "SpellCheckingInspection")
-
 package com.je.dejpeg.processing
 
 import ai.onnxruntime.NodeInfo
@@ -585,7 +583,8 @@ class ImageProcessor(
                         val g = clamp255(outputArray[w * h + i] * 255f)
                         val b = clamp255(outputArray[2 * w * h + i] * 255f)
                         outPixels[i] = if (modelManager.forcesGrayscale(info.modelName)) {
-                            val gray = (0.299f * r + 0.587f * g + 0.114f * b).toInt().coerceIn(0, 255)
+                            val gray =
+                                (0.299f * r + 0.587f * g + 0.114f * b).toInt().coerceIn(0, 255)
                             Color.argb(alpha, gray, gray, gray)
                         } else {
                             Color.argb(alpha, r, g, b)
@@ -614,7 +613,6 @@ class ImageProcessor(
         return 0.coerceAtLeast(255.coerceAtMost(v.toInt()))
     }
 
-    @Suppress("UNCHECKED_CAST")
     private fun extractOutputArray(
         outputValue: Any, channels: Int, h: Int, w: Int
     ): Pair<FloatArray, Int> {
