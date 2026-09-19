@@ -143,8 +143,6 @@ import com.je.dejpeg.ui.components.BottomSheet
 import com.je.dejpeg.ui.components.CancelProcessingDialog
 import com.je.dejpeg.ui.components.CardWrapper
 import com.je.dejpeg.ui.components.CornerRole
-import com.je.dejpeg.ui.components.SwipeConfig
-import com.je.dejpeg.ui.components.SwipeSide
 import com.je.dejpeg.ui.components.GroupedListSpacing
 import com.je.dejpeg.ui.components.ImageSourceDialog
 import com.je.dejpeg.ui.components.MorphButton
@@ -154,6 +152,8 @@ import com.je.dejpeg.ui.components.SnackbarController
 import com.je.dejpeg.ui.components.SnackbarDuration
 import com.je.dejpeg.ui.components.SnackbarEvents
 import com.je.dejpeg.ui.components.StyledAlertDialog
+import com.je.dejpeg.ui.components.SwipeConfig
+import com.je.dejpeg.ui.components.SwipeSide
 import com.je.dejpeg.ui.components.rememberMaterialPressState
 import com.je.dejpeg.ui.components.toListItemShapes
 import com.je.dejpeg.ui.viewmodel.ImageItem
@@ -381,6 +381,7 @@ fun ProcessingScreen(
                 ), Arrangement.SpaceBetween, Alignment.CenterVertically
         ) {
             AnimatedContent(
+                modifier = Modifier.weight(1f, fill = false).padding(end = 8.dp),
                 targetState = isSelectionMode, label = "header_text", transitionSpec = {
                     fadeIn(spring(stiffness = Spring.StiffnessMedium)) + slideInVertically(
                         spring(dampingRatio = Spring.DampingRatioMediumBouncy),
@@ -396,7 +397,9 @@ fun ProcessingScreen(
                     )
                     else stringResource(R.string.images, images.size),
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 1
                 )
             }
             Row(
@@ -795,7 +798,7 @@ fun LazyItemScope.ImageCard(
     val isProcessing = image.isProcessing
 
     val positiveAction: () -> (() -> Unit)? = {
-        // HapticPatterns.tap()
+        HapticPatterns.tap()
         if (image.outputBitmap != null) {
             onRequestSave(listOf(image.id), false)
             null
@@ -806,7 +809,7 @@ fun LazyItemScope.ImageCard(
     }
 
     val negativeAction: () -> (() -> Unit)? = {
-        // HapticPatterns.tap()
+        HapticPatterns.tap()
         when {
             isProcessing && viewModel.isCurrent(image.id) -> {
                 onCancelProcessing(image.id)
