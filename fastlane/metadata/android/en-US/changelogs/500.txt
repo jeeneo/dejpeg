@@ -1,0 +1,8 @@
+Feature changes/fixes:
+- Changed setting screen to bottom sheet
+- Improved expressive UX
+- Fixed some instability bugs
+- Deprecated 1x_JPEG_*.ort and 1x_artifacts_jpg_*.onnx for being too slow
+
+Breaking changes:
+- Preference keys have been reset/rotated

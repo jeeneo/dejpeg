@@ -1,7 +1,7 @@
 > [!CAUTION]
 > Running for an extended amount of time can make your device run hot, please monitor device temperature
 
-Each model has an <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAABcElEQVRIS2NkoDFgpLH5DAQtePDggRELC8va////KyA7Bsi/z8TEFCgjI3MRnyNxWvD48WN7oMYDxPjw79+/1goKCsewqcVqwZMnT5YDXRhBjOEwNUD1c+Xk5FLQ9WBY8OjRo+2MjIwepBgOUwvUtwIYZJHIelEsAAaLOVDyBDmGw/QA40VDWlr6JtxSZMOAFvzHZ7isrCzYQcSqA6mF+wAYNG5AL+6khgWsrKy6EhISV1AsALrqJVBAjJLgQdJ7HuhbI3QL8AYPqRbDghMeRITCFWQBsXGArHZ4WXAL6DVVaqQioBnXgMGpjRLJwOLBEpjdsZYnMEuJjQNg2WQMLJvOoVhASgYilCBgDsGwAOgLA6AvzpOaJJHV4y0qoL7YAqS9ybEE6LgVwBIVd2EHM5TM4no60PAsdIfhq3AcgIr3E+MToMvNgIafxqaWYJUJLARNgYXgGqBmOTQDbgGr0kBJSclr+BxB0AJifDCgFgAA79ikGbsxV9sAAAAASUVORK5CYII=" width="24" alt="Info icon"> icon which contains information regarding it's purpose that you can view after importing.
+Most models have an info <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAABcElEQVRIS2NkoDFgpLH5DAQtePDggRELC8va////KyA7Bsi/z8TEFCgjI3MRnyNxWvD48WN7oMYDxPjw79+/1goKCsewqcVqwZMnT5YDXRhBjOEwNUD1c+Xk5FLQ9WBY8OjRo+2MjIwepBgOUwvUtwIYZJHIelEsAAaLOVDyBDmGw/QA40VDWlr6JtxSZMOAFvzHZ7isrCzYQcSqA6mF+wAYNG5AL+6khgWsrKy6EhISV1AsALrqJVBAjJLgQdJ7HuhbI3QL8AYPqRbDghMeRITCFWQBsXGArHZ4WXAL6DVVaqQioBnXgMGpjRLJwOLBEpjdsZYnMEuJjQNg2WQMLJvOoVhASgYilCBgDsGwAOgLA6AvzpOaJJHV4y0qoL7YAqS9ybEE6LgVwBIVd2EHM5TM4no60PAsdIfhq3AcgIr3E+MToMvNgIafxqaWYJUJLARNgYXgGqBmOTQDbgGr0kBJSclr+BxB0AJifDCgFgAA79ikGbsxV9sAAAAASUVORK5CYII=" width="24" alt="Info icon"> icon you can press which will show information regarding it's purpose.
 
 Speed:
 - ➤ = fast, good on low-end devices
@@ -37,9 +37,15 @@ Speed:
 
 note: after downloading these models, rename to contain either `u2net` or `rmbg` (e.g. `bria_rmbg_1.4.onnx`) respectively to their type for correct operation otherwise issues may occur when processing
 
-## LiteRT GPU
+## LiteRT
 
-there's an *experimental* version of DeJPEG using GPU acceleration (LiteRT) with [converted `.tflite` models](https://huggingface.co/colpona/dejpeg-models/tree/main/litert), you can download this version in Releases and import as normal.
+This version attempts to use your phones GPU to process images at a much faster rate compared to onnx CPU based processing, however with limitations (chunks hardcoded 256 or 512) and fewer models.
+
+- [1xBook-Compact-fp16](https://huggingface.co/colpona/dejpeg-models/resolve/main/litert/1xBook-Compact-fp16.tflite?download=true)
+- [1xOverExposureCorrection_compact-fp16](https://huggingface.co/colpona/dejpeg-models/resolve/main/litert/1xOverExposureCorrection_compact-fp16.tflite?download=true)
+- [fbcnn_color_fp16](https://huggingface.co/colpona/dejpeg-models/resolve/main/litert/fbcnn_color_fp16.tflite?download=true)
+- [rmbg14](https://huggingface.co/colpona/dejpeg-models/resolve/main/litert/rmbg14.tflite?download=true)
+- [1x_StarSample_V2.0_Lite_NS](https://huggingface.co/colpona/dejpeg-models/resolve/main/litert/1x_StarSample_V2.0_Lite_NS_fp16.tflite?download=true)
 
 ----
 
@@ -108,6 +114,5 @@ there's an *experimental* version of DeJPEG using GPU acceleration (LiteRT) with
 - ✚ ➽ [1x_artifacts_dithering_alsa-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_artifacts_dithering_alsa-fp16.onnx) - usage: dithering
 - ✚ ➽ [1x_nmkdbrighten_10000_G-fp16.onnx](https://huggingface.co/colpona/dejpeg-models/resolve/main/other-models/1x_nmkdbrighten_10000_G-fp16.onnx) - usage: brightening
 - ✚ ➽ [deblurring_nafnet_2025may](https://huggingface.co/opencv/deblurring_nafnet/resolve/main/deblurring_nafnet_2025may.onnx?download=true)  ([source](https://github.com/megvii-research/NAFNet)), additional models [here](https://huggingface.co/deepghs/image_restoration/tree/main) - it's meant for deblurring (and denoising) but this model behaves really weirdly. use at own risk.
-
 
 <!-- this readme was typed out by a real human -->
