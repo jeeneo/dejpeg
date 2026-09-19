@@ -143,6 +143,8 @@ import com.je.dejpeg.ui.components.BottomSheet
 import com.je.dejpeg.ui.components.CancelProcessingDialog
 import com.je.dejpeg.ui.components.CardWrapper
 import com.je.dejpeg.ui.components.CornerRole
+import com.je.dejpeg.ui.components.SwipeConfig
+import com.je.dejpeg.ui.components.SwipeSide
 import com.je.dejpeg.ui.components.GroupedListSpacing
 import com.je.dejpeg.ui.components.ImageSourceDialog
 import com.je.dejpeg.ui.components.MorphButton
@@ -443,7 +445,6 @@ fun ProcessingScreen(
                         shape = RoundedCornerShape(otherCorner),
                         interactionSource = otherInteraction,
                         expanded = allComplete,
-                        modifier = Modifier.weight(1f),
                         icon = {
                             Crossfade(targetState = icon, label = "fab_icon") { animatedIcon ->
                                 Icon(
@@ -721,7 +722,8 @@ fun ProcessingScreen(
     (saveState as? SaveState.Error)?.let { err ->
         StyledAlertDialog(
             onDismissRequest = { processingViewModel.dismissSaveError() },
-            onConfirm = { processingViewModel.dismissSaveError() },
+            confirmButton = { processingViewModel.dismissSaveError() },
+            dismissButton = { processingViewModel.dismissSaveError() },
             title = { Text(stringResource(R.string.error_saving_image_title)) },
             contents = { Text(err.message) },
             confirmButtonText = stringResource(R.string.ok),
@@ -737,7 +739,8 @@ fun ProcessingScreen(
     processingErrorDialog?.let { errorMsg ->
         StyledAlertDialog(
             onDismissRequest = { processingViewModel.dismissProcessingErrorDialog() },
-            onConfirm = { processingViewModel.dismissProcessingErrorDialog() },
+            confirmButton = { processingViewModel.dismissProcessingErrorDialog() },
+            dismissButton = { processingViewModel.dismissProcessingErrorDialog() },
             title = { Text(stringResource(R.string.error_processing_title)) },
             contents = { Text(errorMsg) },
             confirmButtonText = stringResource(R.string.ok),
@@ -747,7 +750,8 @@ fun ProcessingScreen(
     if (gpuCacheCreatingDialog) {
         StyledAlertDialog(
             onDismissRequest = { processingViewModel.dismissGpuCacheCreatingDialog() },
-            onConfirm = { processingViewModel.dismissGpuCacheCreatingDialog() },
+            confirmButton = { processingViewModel.dismissGpuCacheCreatingDialog() },
+            dismissButton = { processingViewModel.dismissGpuCacheCreatingDialog() },
             title = { Text(stringResource(R.string.gpu_cache_title)) },
             contents = { Text(stringResource(R.string.gpu_cache_text)) },
             confirmButtonText = stringResource(R.string.ok)
@@ -791,7 +795,7 @@ fun LazyItemScope.ImageCard(
     val isProcessing = image.isProcessing
 
     val positiveAction: () -> (() -> Unit)? = {
-        HapticPatterns.tap()
+        // HapticPatterns.tap()
         if (image.outputBitmap != null) {
             onRequestSave(listOf(image.id), false)
             null
@@ -802,7 +806,7 @@ fun LazyItemScope.ImageCard(
     }
 
     val negativeAction: () -> (() -> Unit)? = {
-        HapticPatterns.tap()
+        // HapticPatterns.tap()
         when {
             isProcessing && viewModel.isCurrent(image.id) -> {
                 onCancelProcessing(image.id)
@@ -824,8 +828,19 @@ fun LazyItemScope.ImageCard(
             }
         }
     }
-    val onSwipeLeft: () -> (() -> Unit)? = if (swapSwipeActions) negativeAction else positiveAction
-    val onSwipeRight: () -> (() -> Unit)? = if (swapSwipeActions) positiveAction else negativeAction
+    val config = SwipeConfig(
+        right = SwipeSide(
+            action = positiveAction,
+            icon = if (image.outputBitmap != null) Icons.Rounded.Save else Icons.Rounded.PlayArrow,
+            iconTint = MaterialTheme.colorScheme.tertiary,
+        ),
+        left = SwipeSide(
+            action = negativeAction,
+            icon = if (isProcessing) Icons.Rounded.Close else Icons.Rounded.Delete,
+            iconTint = MaterialTheme.colorScheme.error,
+        ),
+        swap = swapSwipeActions,
+    )
 
     CardWrapper(
         modifier = modifier.animateItem(
@@ -837,12 +852,8 @@ fun LazyItemScope.ImageCard(
                 dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium
             )
         ),
-        onSwipeLeft = onSwipeLeft,
-        onSwipeRight = onSwipeRight,
+        config = config,
         rightSwipeEnabled = !isSelectionMode && !isProcessing,
-        hasOutputBitmap = image.outputBitmap != null,
-        swapSwipeActions = swapSwipeActions,
-        isProcessing = isProcessing,
     ) {
         val cardShapes =
             CornerRole.forPosition(index + 1, images.count()).toListItemShapes().let { base ->

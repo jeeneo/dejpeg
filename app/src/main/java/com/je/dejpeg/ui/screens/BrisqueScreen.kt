@@ -373,14 +373,16 @@ fun BRISQUEScreen(
     }
     if (showConfirm) StyledAlertDialog(
         onDismissRequest = { showConfirm = false },
-        onConfirm = { brisqueViewModel.descaleImage(context); showConfirm = false },
+        confirmButton = { brisqueViewModel.descaleImage(context); showConfirm = false },
+        dismissButton = { showConfirm = false },
         title = { Text(stringResource(R.string.brisque_descale_again_title)) },
         contents = { Text(stringResource(R.string.brisque_descale_again_message)) },
         confirmButtonText = stringResource(R.string.yes),
         dismissButtonText = stringResource(R.string.cancel))
     if (showInfoDialog) StyledAlertDialog(
         onDismissRequest = { showInfoDialog = false },
-        onConfirm = { showInfoDialog = false },
+        confirmButton = { showInfoDialog = false },
+        dismissButton = { showInfoDialog = false },
         title = { Text(stringResource(R.string.brisque_about_title)) },
         contents = { Text(stringResource(R.string.brisque_about_message)) },
         confirmButtonText = stringResource(R.string.ok))
@@ -418,7 +420,8 @@ fun BRISQUEScreen(
     (saveState as? SaveState.Error)?.let { err ->
         StyledAlertDialog(
             onDismissRequest = { brisqueViewModel.dismissSaveError() },
-            onConfirm = { brisqueViewModel.dismissSaveError() },
+            confirmButton = { brisqueViewModel.dismissSaveError() },
+            dismissButton = { brisqueViewModel.dismissSaveError() },
             title = { Text(stringResource(R.string.error_saving_image_title)) },
             contents = { Text(err.message) },
             confirmButtonText = stringResource(R.string.ok),

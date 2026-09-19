@@ -25,11 +25,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -46,8 +41,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.onSizeChanged
@@ -63,11 +60,26 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
+data class SwipeSide(
+    val action: () -> (() -> Unit)?,
+    val icon: ImageVector,
+    val iconTint: Color,
+)
+
+data class SwipeConfig(
+    val right: SwipeSide,
+    val left: SwipeSide,
+    val swap: Boolean,
+) {
+    val resolvedRight: SwipeSide get() = if (swap) left else right
+    val resolvedLeft: SwipeSide get() = if (swap) right else left
+}
+
 @Composable
 fun SwipeBox(
+    modifier: Modifier = Modifier,
     onQualifiedStartToEnd: () -> (() -> Unit)?,
     onQualifiedEndToStart: () -> (() -> Unit)?,
-    modifier: Modifier = Modifier,
     enableDismissFromStartToEnd: Boolean = true,
     enableDismissFromEndToStart: Boolean = true,
     gesturesEnabled: Boolean = true,
@@ -99,12 +111,10 @@ fun SwipeBox(
             }
             .then(
                 if (collapseFraction.value < 1f) {
-                    Modifier
-                        .height(with(density) {
+                    Modifier.height(with(density) {
                             (measuredHeightPx * collapseFraction.value).toInt().coerceAtLeast(0)
                                 .toDp()
-                        })
-                        .clipToBounds()
+                        }).clipToBounds()
                 } else Modifier
             )
             .pointerInput(canInteract) {
@@ -184,40 +194,29 @@ fun SwipeBox(
 @Composable
 fun CardWrapper(
     modifier: Modifier = Modifier,
-    onSwipeLeft: () -> (() -> Unit)?,
-    onSwipeRight: () -> (() -> Unit)?,
-    swapSwipeActions: Boolean,
+    config: SwipeConfig,
     rightSwipeEnabled: Boolean = true,
-    isProcessing: Boolean = false,
-    hasOutputBitmap: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val currentOnSwipeLeft by rememberUpdatedState(onSwipeLeft)
-    val currentOnSwipeRight by rememberUpdatedState(onSwipeRight)
-    val leftSwipeIcon = if (swapSwipeActions) {
-        if (isProcessing) Icons.Rounded.Close else Icons.Rounded.Delete
-    } else {
-        if (hasOutputBitmap) Icons.Rounded.Save else Icons.Rounded.PlayArrow
-    }
-    val leftSwipeIconTint =
-        if (swapSwipeActions) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary
+    val leftAction = config.resolvedRight.action
+    val rightAction = config.resolvedLeft.action
+    val leftIcon = config.resolvedRight.icon
+    val leftIconTint = config.resolvedRight.iconTint
+    val rightIcon = config.resolvedLeft.icon
+    val rightIconTint = config.resolvedLeft.iconTint
+
+    val currentOnSwipeLeft by rememberUpdatedState(leftAction)
+    val currentOnSwipeRight by rememberUpdatedState(rightAction)
     val leftSwipeBgColor =
-        if (swapSwipeActions) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.tertiaryContainer
-    val rightSwipeIcon = if (swapSwipeActions) {
-        if (hasOutputBitmap) Icons.Rounded.Save else Icons.Rounded.PlayArrow
-    } else {
-        if (isProcessing) Icons.Rounded.Close else Icons.Rounded.Delete
-    }
-    val rightSwipeIconTint =
-        if (swapSwipeActions) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
+        if (leftIconTint == MaterialTheme.colorScheme.error) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.tertiaryContainer
     val rightSwipeBgColor =
-        if (swapSwipeActions) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.onError
+        if (rightIconTint == MaterialTheme.colorScheme.error) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.tertiaryContainer
 
     val thresholdFrac = 0.4f
     SwipeBox(
+        modifier = modifier,
         onQualifiedStartToEnd = { currentOnSwipeRight() },
         onQualifiedEndToStart = { currentOnSwipeLeft() },
-        modifier = modifier,
         enableDismissFromStartToEnd = true,
         enableDismissFromEndToStart = rightSwipeEnabled,
         positionalThreshold = { totalWidth -> totalWidth * thresholdFrac },
@@ -236,10 +235,10 @@ fun CardWrapper(
                 val contColor = lerp(idleColor, activeColor, progress)
                 val iconTint = lerp(
                     MaterialTheme.colorScheme.onSurfaceVariant,
-                    if (isRight) rightSwipeIconTint else leftSwipeIconTint,
+                    if (isRight) rightIconTint else leftIconTint,
                     progress
                 )
-                val icon = if (isRight) rightSwipeIcon else leftSwipeIcon
+                val icon = if (isRight) rightIcon else leftIcon
                 val revealedDp = with(density) { revealedPx.toDp() }
                 val edgeAlignment = if (isRight) Alignment.CenterStart else Alignment.CenterEnd
                 val visible = revealedPx > 1f

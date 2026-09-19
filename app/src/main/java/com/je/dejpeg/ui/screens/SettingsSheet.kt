@@ -73,6 +73,7 @@ import com.je.dejpeg.data.AppTheme
 import com.je.dejpeg.data.HapticPatterns
 import com.je.dejpeg.data.SettingsSection
 import com.je.dejpeg.data.ThreadUtils
+import com.je.dejpeg.ui.components.CardWrapper
 import com.je.dejpeg.ui.components.CornerRole
 import com.je.dejpeg.ui.components.GroupedListSpacing
 import com.je.dejpeg.ui.components.Heading
@@ -83,6 +84,8 @@ import com.je.dejpeg.ui.components.ScreenHorizontalPadding
 import com.je.dejpeg.ui.components.SnackbarController
 import com.je.dejpeg.ui.components.SnackbarDuration
 import com.je.dejpeg.ui.components.SnackbarEvents
+import com.je.dejpeg.ui.components.SwipeConfig
+import com.je.dejpeg.ui.components.SwipeSide
 import com.je.dejpeg.ui.components.rememberMaterialPressState
 import com.je.dejpeg.ui.components.segmentedListShapes
 import com.je.dejpeg.ui.components.toListItemShapes
@@ -268,10 +271,64 @@ fun SettingsSheetContent(
                     val cantDeleteModel = stringResource(R.string.cant_delete_model)
 
                     Spacer(modifier = Modifier.height(GroupedListSpacing))
+                    val isProcessing = processingViewModel.isProcessingOrQueueActive()
+                    val deleteAction: () -> (() -> Unit)? = {
+                        if (isProcessing) {
+                            scope.launch {
+                                SnackbarController.pushEvent(
+                                    SnackbarEvents.MessageEvent(
+                                        message = cantDeleteModel, duration = SnackbarDuration.Short
+                                    )
+                                )
+                            }
+                            null
+                        } else {
+                            {
+                                settingsViewModel.deleteModel(
+                                    modelName, modelType
+                                ) { deletedName ->
+                                    scope.launch {
+                                        SnackbarController.pushEvent(
+                                            SnackbarEvents.MessageEvent(
+                                                message = deletedModelMessage.format(
+                                                    deletedName
+                                                ), duration = SnackbarDuration.Short
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    val infoAction: () -> (() -> Unit)? = {
+                        if (!isProcessing) {
+                            modelManager.getModelInfo(modelName)?.let {
+                                modelInfoDialog.value = modelName to it
+                            }
+                        }
+                        null
+                    }
+                    val config = SwipeConfig(
+                        right = SwipeSide(
+                            action = infoAction,
+                            icon = Icons.Rounded.Info,
+                            iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        ),
+                        left = SwipeSide(
+                            action = deleteAction,
+                            icon = Icons.Rounded.Delete,
+                            iconTint = MaterialTheme.colorScheme.error,
+                        ),
+                        swap = swapSwipeActions,
+                    )
+                    CardWrapper(
+                        config = config,
+                        rightSwipeEnabled = !isProcessing,
+                    ) {
                     SegmentedListItem(
                         colors = colors, selected = isActive, onClick = {
                             HapticPatterns.tap()
-                            if (processingViewModel.isProcessingOrQueueActive()) {
+                            if (isProcessing) {
                                 scope.launch {
                                     SnackbarController.pushEvent(
                                         SnackbarEvents.MessageEvent(
@@ -312,7 +369,7 @@ fun SettingsSheetContent(
                                 IconButton(
                                     onClick = {
                                         HapticPatterns.tap()
-                                        if (processingViewModel.isProcessingOrQueueActive()) {
+                                        if (isProcessing) {
                                             scope.launch {
                                                 SnackbarController.pushEvent(
                                                     SnackbarEvents.MessageEvent(
@@ -347,6 +404,7 @@ fun SettingsSheetContent(
                                 }
                             }
                         })
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(GroupedListSpacing))

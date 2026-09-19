@@ -112,8 +112,8 @@ import kotlin.math.roundToInt
 fun StyledAlertDialog(
     modifier: Modifier = Modifier,
     onDismissRequest: () -> Unit,
-    onConfirm: () -> Unit,
-    onDismissButton: (() -> Unit)? = null,
+    confirmButton: () -> Unit,
+    dismissButton: () -> Unit,
     title: @Composable () -> Unit,
     contents: @Composable (() -> Unit)? = null,
     confirmButtonText: String = stringResource(R.string.ok),
@@ -143,20 +143,20 @@ fun StyledAlertDialog(
         title = title,
         text = contents,
         confirmButton = {
-            HapticPatterns.tap()
-            //noinspection MissingHapticFeedback
             MorphButton(
                 label = confirmButtonText,
-                onClick = onConfirm,
+                onClick = { HapticPatterns.tap(); confirmButton() },
                 colors = confirmButtonColor?.let { ButtonDefaults.buttonColors(containerColor = it) }
                     ?: ButtonDefaults.buttonColors())
         },
         dismissButton = {
-            HapticPatterns.tap()
             if (dismissButtonText.isNotEmpty()) {
                 TextButton(
-                    onClick = onDismissButton ?: onDismissRequest
-                ) { Text(dismissButtonText) }
+                    onClick = { HapticPatterns.tap(); dismissButton() }) {
+                    Text(
+                        dismissButtonText
+                    )
+                }
             }
         })
 }
@@ -178,7 +178,8 @@ fun SaveImageDialog(
         ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
     StyledAlertDialog(
         onDismissRequest = onDismissRequest,
-        onConfirm = { onSave(sanitizeFilename(textState), saveAll, skipNext) },
+        confirmButton = { onSave(sanitizeFilename(textState), saveAll, skipNext) },
+        dismissButton = { onDismissRequest() },
         title = {
             Text(stringResource(if (overwriteMode) R.string.overwrite_image else R.string.save_image))
         },
@@ -307,13 +308,13 @@ fun RemoveImageDialog(
     imageFilename: String?,
     count: Int = 1,
     onDismissRequest: () -> Unit,
-    onDismissButton: (() -> Unit)? = null,
+    onDismissButton: (() -> Unit),
     onSaveAndRemove: () -> Unit
 ) {
     StyledAlertDialog(
         onDismissRequest = onDismissRequest,
-        onDismissButton = onDismissButton,
-        onConfirm = { onSaveAndRemove() },
+        confirmButton = { onSaveAndRemove() },
+        dismissButton = { onDismissButton() },
         title = {
             Text(
                 if (count > 1) stringResource(R.string.remove_images_title)
@@ -339,7 +340,8 @@ fun CancelProcessingDialog(
 ) {
     StyledAlertDialog(
         onDismissRequest = dismiss,
-        onConfirm = { onConfirm(); dismiss() },
+        confirmButton = { onConfirm(); dismiss() },
+        dismissButton = dismiss,
         title = { Text(stringResource(R.string.stop_processing_title)) },
         contents = {
             Text(
@@ -598,7 +600,7 @@ fun RecoveryDialog(
             }
         }
 
-        StyledAlertDialog(onDismissRequest = { clearCache() }, blocking = true, onConfirm = {
+        StyledAlertDialog(onDismissRequest = { clearCache() }, blocking = true, confirmButton = {
             Log.d("RecoveryDialog", "User chose to keep recovered images")
             recoveryImages.value.forEach { img ->
                 val processed = img.processedBitmap
@@ -624,7 +626,7 @@ fun RecoveryDialog(
                 )
             }
             showDialog.value = false
-        }, title = {
+        }, dismissButton = { clearCache() }, title = {
             Text(
                 pluralStringResource(
                     R.plurals.recover_images_title, count, count
