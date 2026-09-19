@@ -381,8 +381,12 @@ fun ProcessingScreen(
                 ), Arrangement.SpaceBetween, Alignment.CenterVertically
         ) {
             AnimatedContent(
-                modifier = Modifier.weight(1f, fill = false).padding(end = 8.dp),
-                targetState = isSelectionMode, label = "header_text", transitionSpec = {
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .padding(end = 8.dp),
+                targetState = isSelectionMode,
+                label = "header_text",
+                transitionSpec = {
                     fadeIn(spring(stiffness = Spring.StiffnessMedium)) + slideInVertically(
                         spring(dampingRatio = Spring.DampingRatioMediumBouncy),
                         initialOffsetY = { if (targetState) it else -it }) togetherWith fadeOut(
@@ -858,14 +862,6 @@ fun LazyItemScope.ImageCard(
         config = config,
         rightSwipeEnabled = !isSelectionMode && !isProcessing,
     ) {
-        val cardShapes =
-            CornerRole.forPosition(index + 1, images.count()).toListItemShapes().let { base ->
-                if (isProcessing) {
-                    base.copy(pressedShape = base.shape)
-                } else {
-                    base
-                }
-            }
         val progressTint = MaterialTheme.colorScheme.primary
         val chunkFraction = if (image.totalChunks > 1) {
             image.completedChunks.toFloat() / image.totalChunks.coerceAtLeast(1)
@@ -885,7 +881,7 @@ fun LazyItemScope.ImageCard(
                 containerColor = Color.Transparent,
                 selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer
             ),
-            shapes = cardShapes,
+            shapes = CornerRole.forPosition(index + 1, images.count()).toListItemShapes(),
             contentPadding = PaddingValues(0.dp),
             modifier = modifier,
             onClick = {

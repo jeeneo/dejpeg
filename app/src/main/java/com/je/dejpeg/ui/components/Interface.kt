@@ -1,5 +1,6 @@
 package com.je.dejpeg.ui.components
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -29,9 +30,9 @@ val ScreenHorizontalPadding: Dp = 16.dp
 @Composable
 fun segmentedListShapes(index: Int, count: Int) = ListItemDefaults.segmentedShapes(index - 1, count)
 
-@Composable
-fun segmentedShape(index: Int, count: Int): Shape =
-    ListItemDefaults.segmentedShapes(index - 1, count).shape
+//@Composable
+//fun segmentedShape(index: Int, count: Int): Shape =
+//    ListItemDefaults.segmentedShapes(index - 1, count).shape
 
 data class CornerRole(
     val topStart: Boolean = false,
@@ -120,6 +121,7 @@ fun horizontalSegmentedShapes(
     }
 }
 
+@SuppressLint("MissingHapticFeedback")
 @Composable
 fun MorphButton(
     label: String,
