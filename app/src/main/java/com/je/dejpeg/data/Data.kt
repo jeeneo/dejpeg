@@ -36,9 +36,6 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
 
-enum class SettingsSection {
-    OnnxSettings, OidnSettings, MainSettings
-}
 
 class AppState(prefs: AppPreferences) {
     val appTheme: MutableState<AppTheme> = mutableStateOf(prefs.loadAppTheme())
