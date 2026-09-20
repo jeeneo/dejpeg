@@ -127,6 +127,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
@@ -167,6 +168,13 @@ import java.util.Locale
 import kotlin.math.roundToInt
 
 private enum class CardState { Idle, Processing, Complete, Stale }
+
+private fun cardStateOf(image: ImageItem): CardState = when {
+    image.isProcessing -> CardState.Processing
+    image.outputBitmap != null && image.isOutputStale -> CardState.Stale
+    image.outputBitmap != null -> CardState.Complete
+    else -> CardState.Idle
+}
 
 @OptIn(
     ExperimentalMaterial3Api::class,
@@ -800,6 +808,7 @@ fun LazyItemScope.ImageCard(
 ) {
     val isSelected = selectedImageIds.contains(image.id)
     val isProcessing = image.isProcessing
+    val cardState = cardStateOf(image)
 
     val positiveAction: () -> (() -> Unit)? = {
         HapticPatterns.tap()
@@ -979,53 +988,7 @@ fun LazyItemScope.ImageCard(
                                 )
                             }
                             Spacer(Modifier.weight(1f))
-                            if (image.outputBitmap != null && !isProcessing) {
-                                Surface(
-                                    shape = RoundedCornerShape(32.dp),
-                                    color = MaterialTheme.colorScheme.primaryContainer
-                                ) {
-                                    Text(
-                                        stringResource(R.string.status_complete_ui),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        fontWeight = FontWeight.Medium,
-                                        modifier = Modifier.padding(
-                                            horizontal = 8.dp, vertical = GroupedListSpacing
-                                        )
-                                    )
-                                }
-                            } else if (!isProcessing) {
-                                Surface(
-                                    shape = RoundedCornerShape(32.dp),
-                                    color = MaterialTheme.colorScheme.primaryContainer
-                                ) {
-                                    Text(
-                                        stringResource(R.string.status_ready),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        fontWeight = FontWeight.Medium,
-                                        modifier = Modifier.padding(
-                                            horizontal = 8.dp, vertical = GroupedListSpacing
-                                        )
-                                    )
-                                }
-                            }
-                            if (isProcessing && image.progress.isNotEmpty()) {
-                                Surface(
-                                    shape = RoundedCornerShape(32.dp),
-                                    color = MaterialTheme.colorScheme.primaryContainer
-                                ) {
-                                    Text(
-                                        image.progress,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        fontWeight = FontWeight.Medium,
-                                        modifier = Modifier.padding(
-                                            horizontal = 8.dp, vertical = GroupedListSpacing
-                                        )
-                                    )
-                                }
-                            }
+                            ImageCardStatusChip(cardState, image.progress)
                             Spacer(Modifier.weight(1f))
                             ImageCardSplitButton(
                                 image = image,
@@ -1068,6 +1031,46 @@ fun LazyItemScope.ImageCard(
                     }
                 }
             })
+    }
+}
+
+@Composable
+private fun ImageCardStatusChip(state: CardState, progressText: String) {
+    val label = when (state) {
+        CardState.Complete -> stringResource(R.string.status_complete_ui)
+        CardState.Processing -> progressText
+        else -> stringResource(R.string.status_ready)
+    }
+    val visible = state != CardState.Processing || progressText.isNotEmpty()
+    val fastSpatial = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
+    val fastFloat = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
+    val fastOffset = MaterialTheme.motionScheme.fastSpatialSpec<IntOffset>()
+    AnimatedContent(
+        targetState = visible to label,
+        transitionSpec = {
+            fadeIn(fastFloat) +
+                slideInVertically(fastOffset) { it / 2 } togetherWith
+                fadeOut(fastFloat) +
+                slideOutVertically(fastOffset) { -it / 2 }
+        },
+        label = "status_chip",
+    ) { (show, text) ->
+        if (show) {
+            Surface(
+                shape = RoundedCornerShape(32.dp),
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                Text(
+                    text,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(
+                        horizontal = 8.dp, vertical = GroupedListSpacing
+                    )
+                )
+            }
+        }
     }
 }
 
