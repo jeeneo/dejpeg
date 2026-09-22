@@ -31,7 +31,7 @@ If you'd like to use models on PCs (Linux/Mac/Windows), look at [chaiNNer](https
 
 This app will not be on the Play Store.
 
-For faster processing, the `extra` releases contain the LiteRT backend which supports [`.tflite` 1x models](https://codeberg.org/dryerlint/dejpeg/src/branch/main/models#litert-gpu).
+For faster processing, the `extra` releases contain the LiteRT backend which supports [`.tflite` 1x models](https://codeberg.org/dryerlint/dejpeg/src/branch/main/models#litert)
 
 <details>
 <summary><h3>building</h3></summary>

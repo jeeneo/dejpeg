@@ -179,59 +179,59 @@ fun SettingsSheetContent(
             ) {
                 SegmentedListItem(
                     modifier = Modifier.weight(1f), colors = colors, onClick = {
-                        HapticPatterns.tap()
-                        modelPickerLauncher.launch(arrayOf("*/*"))
-                    }, onLongClick = {
-                        scope.launch {
-                            val extracted = withContext(Dispatchers.IO) {
-                                modelManager.extractStarterModel()
-                            }
-                            if (extracted.isNotEmpty()) {
-                                if (allModels.isEmpty() && !processingViewModel.isProcessingOrQueueActive()) {
-                                    settingsViewModel.setActiveModel(ModelManager.STARTER_MODEL_NAME)
-                                }
-                                settingsViewModel.refreshInstalledModels(ModelType.ONNX)
-                                SnackbarController.pushEvent(
-                                    SnackbarEvents.MessageEvent(
-                                        message = extractedMsg, duration = SnackbarDuration.Short
-                                    )
-                                )
-                            }
+                    HapticPatterns.tap()
+                    modelPickerLauncher.launch(arrayOf("*/*"))
+                }, onLongClick = {
+                    scope.launch {
+                        val extracted = withContext(Dispatchers.IO) {
+                            modelManager.extractStarterModel()
                         }
-                    }, shapes = CornerRole(
-                        topStart = true, bottomStart = !hasModels
-                    ).toListItemShapes(), leadingContent = {
-                        Icon(
-                            Icons.Rounded.Add, null, modifier = Modifier.size(24.dp)
-                        )
-                    }, content = {
-                        Text(
-                            stringResource(R.string.import_model_text),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    })
+                        if (extracted.isNotEmpty()) {
+                            if (allModels.isEmpty() && !processingViewModel.isProcessingOrQueueActive()) {
+                                settingsViewModel.setActiveModel(ModelManager.STARTER_MODEL_NAME)
+                            }
+                            settingsViewModel.refreshInstalledModels(ModelType.ONNX)
+                            SnackbarController.pushEvent(
+                                SnackbarEvents.MessageEvent(
+                                    message = extractedMsg, duration = SnackbarDuration.Short
+                                )
+                            )
+                        }
+                    }
+                }, shapes = CornerRole(
+                    topStart = true, bottomStart = !hasModels
+                ).toListItemShapes(), leadingContent = {
+                    Icon(
+                        Icons.Rounded.Add, null, modifier = Modifier.size(24.dp)
+                    )
+                }, content = {
+                    Text(
+                        stringResource(R.string.import_model_text),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                })
                 SegmentedListItem(
                     modifier = Modifier.weight(1f), colors = colors, onClick = {
-                        HapticPatterns.tap()
-                        uriHandler.openUri("https://codeberg.org/dryerlint/dejpeg/src/branch/main/models")
-                    }, shapes = CornerRole(
-                        topEnd = true, bottomEnd = !hasModels
-                    ).toListItemShapes(), leadingContent = {
-                        Icon(
-                            Icons.Rounded.Download, null, modifier = Modifier.size(24.dp)
-                        )
-                    }, content = {
-                        Text(
-                            stringResource(R.string.download),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    })
+                    HapticPatterns.tap()
+                    uriHandler.openUri("https://codeberg.org/dryerlint/dejpeg/src/branch/main/models")
+                }, shapes = CornerRole(
+                    topEnd = true, bottomEnd = !hasModels
+                ).toListItemShapes(), leadingContent = {
+                    Icon(
+                        Icons.Rounded.Download, null, modifier = Modifier.size(24.dp)
+                    )
+                }, content = {
+                    Text(
+                        stringResource(R.string.download),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                })
             }
 
             allModels.forEachIndexed { index, (modelName, modelType) ->
@@ -380,8 +380,6 @@ fun SettingsSheetContent(
                 }
             }
 
-//            Spacer(modifier = Modifier.height(GroupedListSpacing))
-
             AnimatedVisibility(
                 visible = processingMode == ModelType.ONNX,
                 enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
@@ -446,7 +444,13 @@ fun SettingsSheetContent(
                             title = stringResource(R.string.oidn_hdr),
                             desc = stringResource(R.string.oidn_hdr_desc),
                             checked = hdr,
-                            onCheckedChange = { settingsViewModel.setOidnHdrPref(it) })
+                            onCheckedChange = {
+                                run {
+                                    HapticPatterns.tap(); settingsViewModel.setOidnHdrPref(
+                                    it
+                                )
+                                }
+                            })
                     }
                     Spacer(modifier = Modifier.height(GroupedListSpacing))
                     SegmentedListItem(colors = colors, shapes = segmentedListShapes(2, 2)) {
@@ -454,7 +458,13 @@ fun SettingsSheetContent(
                             title = stringResource(R.string.oidn_srgb),
                             desc = stringResource(R.string.oidn_srgb_desc),
                             checked = sRGB,
-                            onCheckedChange = { settingsViewModel.setOidnSrgbPref(it) })
+                            onCheckedChange = {
+                                run {
+                                    HapticPatterns.tap(); settingsViewModel.setOidnSrgbPref(
+                                    it
+                                )
+                                }
+                            })
                     }
                     Spacer(Modifier.height(GroupedListSpacing))
                     Heading(stringResource(R.string.oidn_quality))
@@ -489,7 +499,13 @@ fun SettingsSheetContent(
                             hideValue = true,
                             value = threads,
                             powers = (0..maxThreads).toList(),
-                            onChange = { settingsViewModel.setOidnNumThreadsPref(it) })
+                            onChange = {
+                                run {
+                                    HapticPatterns.tap(); settingsViewModel.setOidnNumThreadsPref(
+                                    it
+                                )
+                                }
+                            })
                     }
                     Spacer(modifier = Modifier.height(GroupedListSpacing))
                 }
@@ -497,32 +513,77 @@ fun SettingsSheetContent(
 
             Heading(stringResource(R.string.settings))
             Spacer(modifier = Modifier.height(GroupedListSpacing))
-            SegmentedListItem(colors = colors, shapes = segmentedListShapes(1, 6)) {
+            SegmentedListItem(
+                colors = colors, shapes = segmentedListShapes(1, 6), onClick = {
+                    if (!hapticsEnabled) {
+                        HapticPatterns.tap(true)
+                    }
+                    hapticsEnabled = !hapticsEnabled
+                    appPreferences.saveHapticToggle(hapticsEnabled)
+                    HapticPatterns.appHapticsEnabled = hapticsEnabled
+                }) {
                 LabeledSwitch(
                     title = stringResource(R.string.vibration_on_touch),
                     checked = hapticsEnabled,
-                    onCheckedChange = { new -> hapticsEnabled = new })
+                    onCheckedChange = { new ->
+                        run {
+                            if (!hapticsEnabled) {
+                                HapticPatterns.tap(true)
+                            }
+                            hapticsEnabled = new
+                            appPreferences.saveHapticToggle(hapticsEnabled)
+                            HapticPatterns.appHapticsEnabled = hapticsEnabled
+                        }
+                    })
             }
             Spacer(modifier = Modifier.height(GroupedListSpacing))
-            SegmentedListItem(colors = colors, shapes = segmentedListShapes(2, 6)) {
+            SegmentedListItem(
+                colors = colors, shapes = segmentedListShapes(2, 6), onClick = {
+                    HapticPatterns.tap(); showSaveDialog =
+                    !showSaveDialog; appPreferences.saveShowSaveDialog(showSaveDialog)
+                }) {
                 LabeledSwitch(
                     title = stringResource(R.string.show_save_dialog),
                     checked = showSaveDialog,
-                    onCheckedChange = { new -> showSaveDialog = new })
+                    onCheckedChange = { new ->
+                        run {
+                            HapticPatterns.tap(); showSaveDialog =
+                            new; appPreferences.saveShowSaveDialog(showSaveDialog)
+                        }
+                    })
             }
             Spacer(modifier = Modifier.height(GroupedListSpacing))
-            SegmentedListItem(colors = colors, shapes = segmentedListShapes(3, 6)) {
+            SegmentedListItem(
+                colors = colors, shapes = segmentedListShapes(3, 6), onClick = {
+                    HapticPatterns.tap(); swapSwipeActions =
+                    !swapSwipeActions; appPreferences.saveSwapSwipeActions(swapSwipeActions)
+                }) {
                 LabeledSwitch(
                     title = stringResource(R.string.swap_swipe_actions),
                     checked = swapSwipeActions,
-                    onCheckedChange = { new -> swapSwipeActions = new })
+                    onCheckedChange = { new ->
+                        run {
+                            HapticPatterns.tap(); swapSwipeActions =
+                            new; appPreferences.saveSwapSwipeActions(swapSwipeActions)
+                        }
+                    })
             }
             Spacer(modifier = Modifier.height(GroupedListSpacing))
-            SegmentedListItem(colors = colors, shapes = segmentedListShapes(4, 6)) {
+            SegmentedListItem(
+                colors = colors, shapes = segmentedListShapes(4, 6), onClick = {
+                    HapticPatterns.tap(); glassSlider =
+                    !glassSlider; appPreferences.saveGlassSlider(glassSlider)
+                }) {
                 LabeledSwitch(
                     title = stringResource(R.string.glass_slider),
                     checked = glassSlider,
-                    onCheckedChange = { new -> glassSlider = new })
+                    onCheckedChange = { new ->
+                        run {
+                            HapticPatterns.tap(); glassSlider = new; appPreferences.saveGlassSlider(
+                            glassSlider
+                        )
+                        }
+                    })
             }
             Spacer(modifier = Modifier.height(GroupedListSpacing))
             val clearedDefaultSourceMsg = stringResource(R.string.cleared_default_source)
