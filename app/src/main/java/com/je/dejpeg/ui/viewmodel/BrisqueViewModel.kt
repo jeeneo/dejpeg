@@ -25,6 +25,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.cancellation.CancellationException
 
 sealed class SaveState {
     object Idle : SaveState()
@@ -37,14 +38,13 @@ data class BrisqueImageState(
     val filename: String,
     val brisqueScore: Float? = null,
     val sharpnessScore: Float? = null,
-    val isAssessing: Boolean = false,
+    val isBusy: Boolean = false,
     val assessError: String? = null,
     val descaledBitmap: Bitmap? = null,
     val descaleInfo: DescaleInfo? = null,
     val isDescaling: Boolean = false,
     val descaleError: String? = null,
     val descaleProgress: BRISQUEDescaler.ProgressUpdate? = null,
-    val descaleLog: List<String> = emptyList()
 )
 
 data class DescaleInfo(
@@ -56,14 +56,17 @@ data class DescaleInfo(
     val sharpness: Float
 )
 
-class BrisqueViewModel : ViewModel() {
+class BrisqueViewModel(
+    originalBitmap: Bitmap,
+    filename: String,
+) : ViewModel() {
     private val brisqueAssessor = BRISQUEAssessor()
     private var brisqueDescaler: BRISQUEDescaler? = null
+    private var assessJob: Job? = null
     private var descaleJob: Job? = null
-    private var appContext: Context? = null
     private var appPreferences: AppPreferences? = null
 
-    val imageState = MutableStateFlow<BrisqueImageState?>(null)
+    val imageState = MutableStateFlow(BrisqueImageState(originalBitmap, filename))
     val settings = MutableStateFlow(BrisqueSettings())
     val saveState = MutableStateFlow<SaveState>(SaveState.Idle)
 
@@ -76,16 +79,10 @@ class BrisqueViewModel : ViewModel() {
         appPreferences?.saveBrisqueSettings(newSettings)
     }
 
-    fun initialize(context: Context, bitmap: Bitmap, filename: String) {
-        appContext = App.ctx
+    fun initialize(context: Context) {
         appPreferences = AppPreferences()
-
         BRISQUEAssessor.initialize(context.applicationContext)
         settings.value = appPreferences?.loadBrisqueSettings() ?: BrisqueSettings()
-
-        imageState.value = BrisqueImageState(
-            originalBitmap = bitmap, filename = filename
-        )
     }
 
     private fun checkDescaleInit(context: Context): BRISQUEDescaler {
@@ -96,10 +93,10 @@ class BrisqueViewModel : ViewModel() {
     }
 
     fun assessQuality(context: Context) {
-        val state = imageState.value ?: return
-        if (state.isAssessing) return
-        imageState.value = state.copy(isAssessing = true, assessError = null)
-        viewModelScope.launch(Dispatchers.IO) {
+        val state = imageState.value
+        if (state.isBusy) return
+        imageState.value = state.copy(isBusy = true, assessError = null)
+        assessJob = viewModelScope.launch(Dispatchers.IO) {
             try {
                 BRISQUEDescaler.initialize(context.applicationContext)
                 val descaler = checkDescaleInit(context)
@@ -107,10 +104,10 @@ class BrisqueViewModel : ViewModel() {
                 val score = brisqueAssessor.assessImageQualityFromBitmap(bmp)
                 val sharpness = descaler.estimateSharpness(bmp)
                 withContext(Dispatchers.Main) {
-                    imageState.value = imageState.value?.copy(
+                    imageState.value = imageState.value.copy(
                         brisqueScore = if (score >= 0) score else null,
                         sharpnessScore = sharpness,
-                        isAssessing = false,
+                        isBusy = false,
                         assessError = if (score < 0) {
                             when (score) {
                                 -1.0f -> "BRISQUE error: Image processing failed"
@@ -119,35 +116,43 @@ class BrisqueViewModel : ViewModel() {
                             }
                         } else null
                     )
+                    assessJob = null
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                Log.d(TAG, "Assessment cancelled")
+                imageState.value = imageState.value.copy(isBusy = false)
+                assessJob = null
+                throw e
             } catch (e: Exception) {
                 Log.e(TAG, "BRISQUE assessment error", e)
                 withContext(Dispatchers.Main) {
-                    imageState.value = imageState.value?.copy(
-                        isAssessing = false, assessError = "Error: ${e.message}"
+                    imageState.value = imageState.value.copy(
+                        isBusy = false, assessError = "Error: ${e.message}"
                     )
+                    assessJob = null
                 }
             }
         }
     }
 
-    fun descaleImage(context: Context) {
-        val state = imageState.value ?: return
+    fun descaleImage() {
+        val state = imageState.value
         if (state.isDescaling) return
+        val context = App.ctx
         imageState.value = state.copy(
+            isBusy = true,
             isDescaling = true,
             descaleError = null,
             descaleProgress = null,
-            descaleLog = listOf(context.getString(R.string.brisque_starting_descale))
         )
         descaleJob = viewModelScope.launch(Dispatchers.IO) {
             try {
-                BRISQUEDescaler.initialize(context.applicationContext)
+                BRISQUEDescaler.initialize(context)
                 val descaler = checkDescaleInit(context)
                 val bmp = state.descaledBitmap ?: state.originalBitmap
                 val currentSettings = settings.value
                 val result = descaler.descale(
-                    context = context.applicationContext,
+                    context = context,
                     bitmap = bmp,
                     coarseStep = currentSettings.coarseStep,
                     fineStep = currentSettings.fineStep,
@@ -157,9 +162,8 @@ class BrisqueViewModel : ViewModel() {
                     sharpnessWeight = currentSettings.sharpnessWeight,
                     onProgress = { progress ->
                         viewModelScope.launch(Dispatchers.Main) {
-                            val log = imageState.value?.descaleLog ?: emptyList()
-                            imageState.value = imageState.value?.copy(
-                                descaleProgress = progress, descaleLog = log + progress.message
+                            imageState.value = imageState.value.copy(
+                                descaleProgress = progress
                             )
                         }
                     })
@@ -172,21 +176,24 @@ class BrisqueViewModel : ViewModel() {
                     sharpness = result.bestSharpness
                 )
                 withContext(Dispatchers.Main) {
-                    imageState.value = imageState.value?.copy(
+                    imageState.value = imageState.value.copy(
                         descaledBitmap = result.scaleBitmap,
                         descaleInfo = info,
+                        isBusy = false,
                         isDescaling = false,
                         brisqueScore = null,
+                        sharpnessScore = null,
                         descaleProgress = null,
-                        descaleLog = emptyList()
                     )
                     descaleJob = null
                 }
-            } catch (e: kotlinx.coroutines.CancellationException) {
+            } catch (e: CancellationException) {
                 Log.d(TAG, "Descaling cancelled")
                 withContext(Dispatchers.Main) {
-                    imageState.value = imageState.value?.copy(
-                        isDescaling = false, descaleProgress = null, descaleLog = emptyList()
+                    imageState.value = imageState.value.copy(
+                        isBusy = false,
+                        isDescaling = false,
+                        descaleProgress = null,
                     )
                     descaleJob = null
                 }
@@ -194,11 +201,11 @@ class BrisqueViewModel : ViewModel() {
             } catch (e: Exception) {
                 Log.e(TAG, "Error descaling image: ${e.message}", e)
                 withContext(Dispatchers.Main) {
-                    imageState.value = imageState.value?.copy(
+                    imageState.value = imageState.value.copy(
+                        isBusy = false,
                         isDescaling = false,
                         descaleError = e.message ?: "Descaling failed",
                         descaleProgress = null,
-                        descaleLog = emptyList()
                     )
                     descaleJob = null
                 }
@@ -206,8 +213,10 @@ class BrisqueViewModel : ViewModel() {
         }
     }
 
-    fun cancelDescaling(context: Context) {
-        Log.d(TAG, "Cancelling descale...")
+    fun cancelWork(context: Context) {
+        Log.d(TAG, "Cancelling work...")
+        assessJob?.cancel()
+        assessJob = null
         descaleJob?.cancel()
         descaleJob = null
         viewModelScope.launch(Dispatchers.IO) {
@@ -225,13 +234,13 @@ class BrisqueViewModel : ViewModel() {
                 Log.e(TAG, "Error cleaning up temp files: ${e.message}", e)
             }
         }
-        imageState.value = imageState.value?.copy(
-            isDescaling = false, descaleProgress = null, descaleLog = emptyList()
+        imageState.value = imageState.value.copy(
+            isBusy = false, isDescaling = false, descaleProgress = null
         )
     }
 
     fun saveCurrentImage(context: Context) {
-        val state = imageState.value ?: return
+        val state = imageState.value
         val bmp = state.descaledBitmap ?: state.originalBitmap
         val suffix = if (state.descaledBitmap != null) "_descaled" else "_brisque"
         val name = "${state.filename.substringBeforeLast(".")}${suffix}"
@@ -263,6 +272,6 @@ class BrisqueViewModel : ViewModel() {
     }
 
     override fun onCleared() {
-        imageState.value?.descaledBitmap?.recycle()
+        imageState.value.descaledBitmap?.recycle()
     }
 }

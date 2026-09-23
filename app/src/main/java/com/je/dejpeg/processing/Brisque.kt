@@ -64,13 +64,12 @@ class BRISQUEDescaler(
 ) {
     companion object {
         private const val TAG = "BRISQUEDescaler"
-        private const val DEFAULT_COARSE_STEP = 20           // pixels step for coarse scan
-        private const val DEFAULT_FINE_STEP = 5              // pixels step for fine scan
-        private const val DEFAULT_FINE_RANGE = 30            // pixels range around coarse best
-        private const val DEFAULT_MIN_WIDTH_RATIO =
-            0.5f     // minimum width as fraction of original
-        private const val BRISQUE_WEIGHT = 0.7f              // 70% weight for BRISQUE
-        private const val SHARPNESS_WEIGHT = 0.3f            // 30% weight for sharpness
+        private const val DEFAULT_COARSE_STEP = 20 // pixels step for coarse scan
+        private const val DEFAULT_FINE_STEP = 5 // pixels step for fine scan
+        private const val DEFAULT_FINE_RANGE = 30 // pixels range around coarse best
+        private const val DEFAULT_MIN_WIDTH_RATIO = 0.5f // minimum width as fraction of original
+        private const val BRISQUE_WEIGHT = 0.7f // 70% weight for BRISQUE
+        private const val SHARPNESS_WEIGHT = 0.3f // 30% weight for sharpness
         fun initialize(context: Context) {
             BRISQUEAssessor.initialize(context)
         }
@@ -930,4 +929,3 @@ internal object ImageResampler {
         }
     }
 }
-

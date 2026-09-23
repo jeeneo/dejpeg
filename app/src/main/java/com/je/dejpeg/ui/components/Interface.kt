@@ -133,6 +133,7 @@ fun MorphButton(
 ) {
     Button(
         onClick = onClick, modifier = modifier, enabled = enabled, shapes = ButtonShapes(
+            // the shape goes into a shape press that presses the shape into a pressed shape
             shape = RoundedCornerShape(21.dp), pressedShape = RoundedCornerShape(8.dp)
         ), interactionSource = interactionSource, colors = colors
     ) { Text(label) }
