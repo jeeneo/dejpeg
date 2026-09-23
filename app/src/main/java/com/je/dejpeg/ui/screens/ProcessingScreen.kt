@@ -157,6 +157,7 @@ import com.je.dejpeg.ui.components.SwipeConfig
 import com.je.dejpeg.ui.components.SwipeSide
 import com.je.dejpeg.ui.components.rememberMaterialPressState
 import com.je.dejpeg.ui.components.toListItemShapes
+import com.je.dejpeg.ui.components.toShape
 import com.je.dejpeg.ui.viewmodel.ImageItem
 import com.je.dejpeg.ui.viewmodel.ProcessingUiState
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
@@ -503,85 +504,91 @@ fun ProcessingScreen(
                 }
             }
         }
-        AnimatedVisibility(
-            visible = images.isNotEmpty() && (supportsStrength || isOidnMode),
-            enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
-            exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
+        val strengthVisible = images.isNotEmpty() && (supportsStrength || isOidnMode)
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            Card(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        bottom = ScreenHorizontalPadding,
-                        start = ScreenHorizontalPadding,
-                        end = ScreenHorizontalPadding
-                    ),
-                colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceContainer),
-                shape = RoundedCornerShape(ScreenHorizontalPadding)
+            AnimatedVisibility(
+                visible = strengthVisible,
+                enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
+                exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
             ) {
-                Column(Modifier.padding(12.dp)) {
-                    if (isOidnMode) {
-                        val displayValue =
-                            if (oidnInputScale == 0f) stringResource(R.string.text_auto) else String.format(
-                                Locale.ROOT, "%.1f", oidnInputScale
+                Card(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            bottom = GroupedListSpacing,
+                            start = ScreenHorizontalPadding,
+                            end = ScreenHorizontalPadding
+                        ),
+                    colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceContainerHigh),
+                    shape = CornerRole.forPosition(1, images.count() + 1).toShape(),
+                ) {
+                    Column(Modifier.padding(ScreenHorizontalPadding)) {
+                        if (isOidnMode) {
+                            val displayValue =
+                                if (oidnInputScale == 0f) stringResource(R.string.text_auto) else String.format(
+                                    Locale.ROOT, "%.1f", oidnInputScale
+                                )
+                            Text(
+                                stringResource(R.string.input_scale, displayValue),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium
                             )
-                        Text(
-                            stringResource(R.string.input_scale, displayValue),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        var prevScale by remember { mutableFloatStateOf(oidnInputScale) }
-                        val oidnSliderState = rememberSliderState(
-                            value = oidnInputScale,
-                            steps = 19,
-                            trackRange = 0f..10f,
-                        )
-                        LaunchedEffect(oidnInputScale) { oidnSliderState.value = oidnInputScale }
-                        Slider(
-                            state = oidnSliderState, onValueChange = {
-                                val v = (it * 2).roundToInt() / 2f; if (v != prevScale) {
-                                prevScale = v
-                            }; settingsViewModel.setOidnInputScale(v)
-                            }, modifier = Modifier
-                                .fillMaxWidth()
-                                .height(24.dp)
-                        )
-                    } else {
-                        Text(
-                            stringResource(R.string.strength, globalStrength.toInt()),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        var prevStrength by remember { mutableFloatStateOf(globalStrength) }
-                        val strengthSliderState = rememberSliderState(
-                            value = globalStrength,
-                            steps = 19,
-                            trackRange = 0f..100f,
-                        )
-                        LaunchedEffect(globalStrength) {
-                            strengthSliderState.value = globalStrength
+                            Spacer(Modifier.height(8.dp))
+                            var prevScale by remember { mutableFloatStateOf(oidnInputScale) }
+                            val oidnSliderState = rememberSliderState(
+                                value = oidnInputScale,
+                                steps = 19,
+                                trackRange = 0f..10f,
+                            )
+                            LaunchedEffect(oidnInputScale) {
+                                oidnSliderState.value = oidnInputScale
+                            }
+                            Slider(
+                                state = oidnSliderState, onValueChange = {
+                                    HapticPatterns.tap()
+                                    val v = (it * 2).roundToInt() / 2f; if (v != prevScale) {
+                                    prevScale = v
+                                }; settingsViewModel.setOidnInputScale(v)
+                                }, modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(24.dp)
+                            )
+                        } else {
+                            Text(
+                                stringResource(R.string.strength, globalStrength.toInt()),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            var prevStrength by remember { mutableFloatStateOf(globalStrength) }
+                            val strengthSliderState = rememberSliderState(
+                                value = globalStrength,
+                                steps = 19,
+                                trackRange = 0f..100f,
+                            )
+                            LaunchedEffect(globalStrength) {
+                                strengthSliderState.value = globalStrength
+                            }
+                            Slider(
+                                state = strengthSliderState, onValueChange = {
+                                    HapticPatterns.tap()
+                                    val v = (it / 5).roundToInt() * 5f; if (v != prevStrength) {
+                                    prevStrength = v
+                                }; settingsViewModel.setGlobalStrength(v)
+                                }, modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(24.dp)
+                            )
                         }
-                        Slider(
-                            state = strengthSliderState, onValueChange = {
-                                val v = (it / 5).roundToInt() * 5f; if (v != prevStrength) {
-                                prevStrength = v
-                            }; settingsViewModel.setGlobalStrength(v)
-                            }, modifier = Modifier
-                                .fillMaxWidth()
-                                .height(24.dp)
-                        )
                     }
                 }
             }
         }
-        val density = LocalDensity.current
-        val containerHeightDp = with(density) {
-            LocalWindowInfo.current.containerSize.height.toDp()
-        }
-        val sheetHeight = containerHeightDp * 0.5f
-        val sheetBackground = MaterialTheme.colorScheme.surface
+
 
         Column(Modifier.fillMaxSize()) {
             if (images.isEmpty()) {
@@ -684,19 +691,27 @@ fun ProcessingScreen(
                                 onNavigateToBeforeAfter = onNavigateToBeforeAfter,
                                 onNavigateToBrisque = onNavigateToBrisque,
                                 onNavigateToCompare = onNavigateToCompare,
-                                onClearSelection = clearSelection
+                                onClearSelection = clearSelection,
+                                strengthVisible = strengthVisible
                             )
                         }
                     }
                 }
             }
+
+            val density = LocalDensity.current
+            val containerHeightDp = with(density) {
+                LocalWindowInfo.current.containerSize.height.toDp()
+            }
+            val sheetHeight = containerHeightDp / 2
+            val sheetColor = MaterialTheme.colorScheme.surface
             BottomSheet(
                 expanded = settingsExpanded,
                 onExpandedChange = { settingsExpanded = it },
                 expandedHeight = sheetHeight,
                 modifier = Modifier.fillMaxWidth(),
                 backProgress = settingsBackProgress,
-                background = sheetBackground
+                background = sheetColor
             ) {
                 SettingsSheetContent(
                     settingsViewModel = settingsViewModel, processingViewModel = processingViewModel
@@ -805,7 +820,11 @@ fun LazyItemScope.ImageCard(
     onNavigateToBrisque: (String) -> Unit,
     onNavigateToCompare: (String, String) -> Unit,
     onClearSelection: () -> Unit,
+    strengthVisible: Boolean,
 ) {
+    val realIndex = if (strengthVisible) index + 2 else index + 1
+    val imagesCount = if (strengthVisible) images.count() + 1 else images.count()
+
     val isSelected = selectedImageIds.contains(image.id)
     val isProcessing = image.isProcessing
     val cardState = cardStateOf(image)
@@ -890,7 +909,7 @@ fun LazyItemScope.ImageCard(
                 containerColor = Color.Transparent,
                 selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer
             ),
-            shapes = CornerRole.forPosition(index + 1, images.count()).toListItemShapes(),
+            shapes = CornerRole.forPosition(realIndex, imagesCount).toListItemShapes(),
             contentPadding = PaddingValues(0.dp),
             modifier = modifier,
             onClick = {
@@ -1042,16 +1061,14 @@ private fun ImageCardStatusChip(state: CardState, progressText: String) {
         else -> stringResource(R.string.status_ready)
     }
     val visible = state != CardState.Processing || progressText.isNotEmpty()
-    val fastSpatial = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
     val fastFloat = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
     val fastOffset = MaterialTheme.motionScheme.fastSpatialSpec<IntOffset>()
     AnimatedContent(
         targetState = visible to label,
         transitionSpec = {
-            fadeIn(fastFloat) +
-                slideInVertically(fastOffset) { it / 2 } togetherWith
-                fadeOut(fastFloat) +
-                slideOutVertically(fastOffset) { -it / 2 }
+            fadeIn(fastFloat) + slideInVertically(fastOffset) { it / 2 } togetherWith fadeOut(
+                fastFloat
+            ) + slideOutVertically(fastOffset) { -it / 2 }
         },
         label = "status_chip",
     ) { (show, text) ->
