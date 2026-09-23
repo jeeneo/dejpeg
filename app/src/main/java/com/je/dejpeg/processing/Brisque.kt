@@ -2,7 +2,12 @@ package com.je.dejpeg.processing
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Rect
+import android.graphics.RectF
 import android.util.Log
+import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
 import com.je.dejpeg.R
 import kotlinx.coroutines.yield
@@ -15,6 +20,7 @@ import kotlin.math.abs
 import kotlin.math.exp
 import kotlin.math.floor
 import kotlin.math.pow
+import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 
@@ -118,226 +124,188 @@ class BRISQUEDescaler(
         val origW = bitmap.width
         val origH = bitmap.height
         val minW = (origW * minWidthRatio).toInt()
-        Log.d(TAG, "Starting: ${origW}x${origH}")
-        Log.d(TAG, "Min width: $minW, Coarse step: $coarseStep, Fine step: $fineStep")
-        onProgress?.invoke(
-            ProgressUpdate(
-                phase = context.getString(R.string.brisque_phase_initialization),
-                currentStep = 0,
-                totalSteps = 100,
-                currentSize = "${origW}x${origH}",
-                message = context.getString(R.string.brisque_analyzing_original)
+        Log.d(TAG, "Starting: ${origW}x${origH}, min $minW, coarse $coarseStep, fine $fineStep")
+
+        fun report(phase: String, step: Int, size: String, message: String) {
+            onProgress?.invoke(ProgressUpdate(phase, step, 100, size, message))
+        }
+
+        Scorer(bitmap, origW, origH).use { scorer ->
+            report(
+                context.getString(R.string.brisque_phase_initialization),
+                0,
+                "${origW}x${origH}",
+                context.getString(R.string.brisque_analyzing_original)
             )
-        )
-        val originalBrisqueScore = computeBRISQUE(bitmap)
-        val originalSharpness = estimateSharpness(bitmap)
-        Log.d(
-            TAG, "Original image BRISQUE: %.2f, Sharpness: %.2f".format(
-                originalBrisqueScore, originalSharpness
-            )
-        )
-        onProgress?.invoke(
-            ProgressUpdate(
-                phase = context.getString(R.string.brisque_phase_initialization),
-                currentStep = 5,
-                totalSteps = 100,
-                currentSize = "${origW}x${origH}",
-                message = context.getString(
-                    R.string.brisque_original_scores, originalBrisqueScore, originalSharpness
+
+            val original = scorer.score(origW)
+            Log.d(
+                TAG, "Original BRISQUE: %.2f, Sharpness: %.2f".format(
+                    original.brisqueScore, original.sharpness
                 )
             )
-        )
-        Log.d(TAG, "Scanning (coarse)...")
-        val coarseResults = mutableListOf<ScanResult>()
-        var bestCoarseIdx = 0
-        var bestCoarseScore = Float.MAX_VALUE
 
-        val totalCoarseSteps = ((origW - minW) / coarseStep) + 1
-        var coarseStepCount = 0
-
-        var w = origW
-        while (w >= minW) {
-            yield()
-            val h = (origH * (w.toFloat() / origW)).toInt()
-            coarseStepCount++
-            onProgress?.invoke(
-                ProgressUpdate(
-                    phase = context.getString(R.string.brisque_phase_coarse_scan),
-                    currentStep = 5 + (coarseStepCount * 45 / totalCoarseSteps),
-                    totalSteps = 100,
-                    currentSize = "${w}x${h}",
-                    message = context.getString(
-                        R.string.brisque_scaling_progress,
-                        "${w}x${h}",
-                        coarseStepCount,
-                        totalCoarseSteps
+            val coarseResults = mutableListOf<ScanResult>()
+            var bestCoarse: ScanResult = original
+            val totalCoarseSteps = ((origW - minW) / coarseStep) + 1
+            var count = 0
+            for (w in origW downTo minW step coarseStep) {
+                val result = scorer.score(w)
+                coarseResults += result
+                if (result.brisqueScore < bestCoarse.brisqueScore) bestCoarse = result
+                count++
+                if (count % 4 == 0 || count == totalCoarseSteps) {
+                    report(
+                        context.getString(R.string.brisque_phase_coarse_scan),
+                        5 + (count * 45 / totalCoarseSteps),
+                        "${result.width}x${result.height}",
+                        context.getString(
+                            R.string.brisque_scaling_progress,
+                            "${result.width}x${result.height}",
+                            count,
+                            totalCoarseSteps
+                        )
                     )
-                )
-            )
-            val resized = resizeBitmap(bitmap, w, h)
-            try {
-                val brisqueScore = computeBRISQUE(resized)
-                val sharpness = estimateSharpness(resized)
-                val result = ScanResult(w, h, brisqueScore, sharpness, brisqueScore)
-                coarseResults.add(result)
-                if (brisqueScore < bestCoarseScore) {
-                    bestCoarseScore = brisqueScore
-                    bestCoarseIdx = coarseResults.size - 1
                 }
-                Log.d(
-                    TAG, "Coarse: ${w}x${h} - BRISQUE: %.2f, Sharpness: %.2f".format(
-                        brisqueScore, sharpness
-                    )
-                )
-            } finally {
-                resized.recycle()
             }
-            w -= coarseStep
-        }
-        val bestCoarseResult = coarseResults[bestCoarseIdx]
-        Log.d(
-            TAG,
-            "Coarse best: ${bestCoarseResult.width}x${bestCoarseResult.height} with BRISQUE: %.2f".format(
-                bestCoarseResult.brisqueScore
+            Log.d(
+                TAG, "Coarse best: ${bestCoarse.width}x${bestCoarse.height} BRISQUE: %.2f".format(
+                    bestCoarse.brisqueScore
+                )
             )
-        )
-
-        onProgress?.invoke(
-            ProgressUpdate(
-                phase = context.getString(R.string.brisque_phase_coarse_complete),
-                currentStep = 50,
-                totalSteps = 100,
-                currentSize = "${bestCoarseResult.width}x${bestCoarseResult.height}",
-                message = context.getString(
+            report(
+                context.getString(R.string.brisque_phase_coarse_complete),
+                50,
+                "${bestCoarse.width}x${bestCoarse.height}",
+                context.getString(
                     R.string.brisque_best_coarse,
-                    "${bestCoarseResult.width}x${bestCoarseResult.height}",
-                    bestCoarseResult.brisqueScore
+                    "${bestCoarse.width}x${bestCoarse.height}",
+                    bestCoarse.brisqueScore
                 )
             )
-        )
 
-        Log.d(TAG, "Scanning (fine)...")
-        val fineResults = mutableListOf<ScanResult>()
-        val startW = maxOf(minW, bestCoarseResult.width - fineRange)
-        val endW = minOf(origW, bestCoarseResult.width + fineRange)
-        Log.d(TAG, "Fine scan range: $startW to $endW px")
-
-        val totalFineSteps = ((endW - startW) / fineStep) + 1
-        var fineStepCount = 0
-        w = startW
-        while (w <= endW) {
-            yield()
-            val h = (origH * (w.toFloat() / origW)).toInt()
-            fineStepCount++
-            onProgress?.invoke(
-                ProgressUpdate(
-                    phase = context.getString(R.string.brisque_phase_fine_scan),
-                    currentStep = 50 + (fineStepCount * 40 / totalFineSteps),
-                    totalSteps = 100,
-                    currentSize = "${w}x${h}",
-                    message = context.getString(
-                        R.string.brisque_refining_progress,
-                        "${w}x${h}",
-                        fineStepCount,
-                        totalFineSteps
+            // ---- Fine scan: cached widths (incl. coarse best) are re-scored free ----
+            val startW = maxOf(minW, bestCoarse.width - fineRange)
+            val endW = minOf(origW, bestCoarse.width + fineRange)
+            val fineResults = mutableListOf<ScanResult>()
+            val totalFineSteps = ((endW - startW) / fineStep) + 1
+            count = 0
+            for (w in startW..endW step fineStep) {
+                fineResults += scorer.score(w)
+                count++
+                if (count % 4 == 0 || count == totalFineSteps) {
+                    val r = fineResults.last()
+                    report(
+                        context.getString(R.string.brisque_phase_fine_scan),
+                        50 + (count * 40 / totalFineSteps),
+                        "${r.width}x${r.height}",
+                        context.getString(
+                            R.string.brisque_refining_progress,
+                            "${r.width}x${r.height}",
+                            count,
+                            totalFineSteps
+                        )
                     )
-                )
-            )
-            val resized = resizeBitmap(bitmap, w, h)
-            try {
-                val brisqueScore = computeBRISQUE(resized)
-                val sharpness = estimateSharpness(resized)
-                val result = ScanResult(w, h, brisqueScore, sharpness, 0f)
-                fineResults.add(result)
-                Log.d(
-                    TAG, "Fine: ${w}x${h} - BRISQUE: %.2f, Sharpness: %.2f".format(
-                        brisqueScore, sharpness
-                    )
-                )
-            } finally {
-                resized.recycle()
+                }
             }
-            w += fineStep
-        }
-        if (fineResults.isEmpty()) {
-            Log.w(TAG, "No fine results, using coarse best")
-            val descaled = resizeBitmap(bitmap, bestCoarseResult.width, bestCoarseResult.height)
+
+            if (fineResults.isEmpty()) {
+                Log.w(TAG, "No fine results, using coarse best")
+                return DescaleResult(
+                    originalWidth = origW,
+                    originalHeight = origH,
+                    detectedOptimalWidth = bestCoarse.width,
+                    detectedOptimalHeight = bestCoarse.height,
+                    bestBrisqueScore = bestCoarse.brisqueScore,
+                    bestSharpness = bestCoarse.sharpness,
+                    combinedScore = bestCoarse.brisqueScore,
+                    scaleBitmap = resizeBitmap(bitmap, bestCoarse.width, bestCoarse.height),
+                    coarseScanResults = coarseResults,
+                    fineScanResults = fineResults
+                )
+            }
+
+            report(
+                context.getString(R.string.brisque_phase_fine_done),
+                90,
+                "",
+                context.getString(R.string.brisque_analyzing)
+            )
+
+            val minBrisque = fineResults.minOf { it.brisqueScore }
+            val maxBrisque = fineResults.maxOf { it.brisqueScore }
+            val minSharpness = fineResults.minOf { it.sharpness }
+            val maxSharpness = fineResults.maxOf { it.sharpness }
+            val brisqueRange = if (maxBrisque > minBrisque) maxBrisque - minBrisque else 1f
+            val sharpnessRange =
+                if (maxSharpness > minSharpness) maxSharpness - minSharpness else 1f
+
+            val combinedScores = fineResults.map { result ->
+                val brisqueNorm = (result.brisqueScore - minBrisque) / brisqueRange
+                val sharpnessNorm =
+                    if (sharpnessRange > 0) (result.sharpness - minSharpness) / sharpnessRange else 0f
+                result.copy(
+                    combinedScore = brisqueWeight * brisqueNorm + sharpnessWeight * (1f - sharpnessNorm)
+                )
+            }
+            val best = combinedScores.minByOrNull { it.combinedScore } ?: combinedScores.first()
+
+            Log.d(
+                TAG,
+                "Fine best: ${best.width}x${best.height} - BRISQUE: %.2f, Sharpness: %.2f, Combined: %.4f".format(
+                    best.brisqueScore, best.sharpness, best.combinedScore
+                )
+            )
+            report(
+                context.getString(R.string.brisque_phase_finalizing),
+                95,
+                "${best.width}x${best.height}",
+                context.getString(R.string.brisque_analyzing)
+            )
+
             return DescaleResult(
                 originalWidth = origW,
                 originalHeight = origH,
-                detectedOptimalWidth = bestCoarseResult.width,
-                detectedOptimalHeight = bestCoarseResult.height,
-                bestBrisqueScore = bestCoarseResult.brisqueScore,
-                bestSharpness = bestCoarseResult.sharpness,
-                combinedScore = bestCoarseResult.brisqueScore,
-                scaleBitmap = descaled,
+                detectedOptimalWidth = best.width,
+                detectedOptimalHeight = best.height,
+                bestBrisqueScore = best.brisqueScore,
+                bestSharpness = best.sharpness,
+                combinedScore = best.combinedScore,
+                scaleBitmap = resizeBitmap(bitmap, best.width, best.height),
                 coarseScanResults = coarseResults,
-                fineScanResults = fineResults
+                fineScanResults = combinedScores
             )
         }
-        onProgress?.invoke(
-            ProgressUpdate(
-                phase = context.getString(R.string.brisque_phase_fine_done),
-                currentStep = 90,
-                totalSteps = 100,
-                currentSize = "",
-                message = context.getString(R.string.brisque_analyzing)
+    }
+
+    private inner class Scorer(
+        private val source: Bitmap, private val origW: Int, private val origH: Int
+    ) : AutoCloseable {
+        private val scratch = createBitmap(origW, origH)
+        private val canvas = Canvas(scratch)
+        private val paint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
+        private val srcRect = Rect(0, 0, source.width, source.height)
+
+        private val cache = HashMap<Int, ScanResult>()
+
+        suspend fun score(width: Int): ScanResult {
+            cache[width]?.let { return it }
+            yield()
+            val h = (origH * (width.toFloat() / origW)).roundToInt()
+            canvas.drawBitmap(
+                source, srcRect, RectF(0f, 0f, width.toFloat(), h.toFloat()), paint
             )
-        )
-
-        val brisqueScores = fineResults.map { it.brisqueScore }
-        val sharpnessScores = fineResults.map { it.sharpness }
-
-        val minBrisque = brisqueScores.minOrNull() ?: 0f
-        val maxBrisque = brisqueScores.maxOrNull() ?: 1f
-        val minSharpness = sharpnessScores.minOrNull() ?: 0f
-        val maxSharpness = sharpnessScores.maxOrNull() ?: 1f
-
-        val brisqueRange = if (maxBrisque > minBrisque) maxBrisque - minBrisque else 1f
-        val sharpnessRange = if (maxSharpness > minSharpness) maxSharpness - minSharpness else 1f
-
-        val combinedScores = fineResults.mapIndexed { _, result ->
-            val brisqueNorm = (result.brisqueScore - minBrisque) / brisqueRange
-            val sharpnessNorm =
-                if (sharpnessRange > 0) (result.sharpness - minSharpness) / sharpnessRange else 0f
-            val combined = brisqueWeight * brisqueNorm + sharpnessWeight * (1f - sharpnessNorm)
-            result.copy(combinedScore = combined)
+            val candidate = Bitmap.createBitmap(scratch, 0, 0, width, h)
+            return ScanResult(
+                width, h, computeBRISQUE(candidate), estimateSharpness(candidate), 0f
+            ).also {
+                cache[width] = it
+            }
         }
 
-        val bestFineIdx =
-            combinedScores.indices.minByOrNull { combinedScores[it].combinedScore } ?: 0
-        val bestFineResult = combinedScores[bestFineIdx]
-
-        Log.d(
-            TAG,
-            "Fine best: ${bestFineResult.width}x${bestFineResult.height} - BRISQUE: %.2f, Sharpness: %.2f, Combined: %.4f".format(
-                bestFineResult.brisqueScore, bestFineResult.sharpness, bestFineResult.combinedScore
-            )
-        )
-
-        onProgress?.invoke(
-            ProgressUpdate(
-                phase = context.getString(R.string.brisque_phase_finalizing),
-                currentStep = 95,
-                totalSteps = 100,
-                currentSize = "${bestFineResult.width}x${bestFineResult.height}",
-                message = context.getString(R.string.brisque_analyzing)
-            )
-        )
-        val descaled = resizeBitmap(bitmap, bestFineResult.width, bestFineResult.height)
-
-        return DescaleResult(
-            originalWidth = origW,
-            originalHeight = origH,
-            detectedOptimalWidth = bestFineResult.width,
-            detectedOptimalHeight = bestFineResult.height,
-            bestBrisqueScore = bestFineResult.brisqueScore,
-            bestSharpness = bestFineResult.sharpness,
-            combinedScore = bestFineResult.combinedScore,
-            scaleBitmap = descaled,
-            coarseScanResults = coarseResults,
-            fineScanResults = combinedScores
-        )
+        override fun close() {
+            scratch.recycle()
+        }
     }
 
     fun estimateSharpness(bmp: Bitmap): Float {
@@ -400,6 +368,8 @@ class BRISQUEDescaler(
  * AI transparency: LLMs were used in the creation of the Kotlin implementation of BRISQUE, which is in a legal grey area because of the use of LLM-based tools and therefore
  * (I would guess?) subject to Public Domain licenses? (IANAL)
  * Full credit is the OpenCV contributors, et. al. for the original C++ implementation, which was used as a reference for this Kotlin code.
+ * ---
+ * wait lol you idiot, why didnt you just port qualitybrisque.cpp into a standalone binary instead of bringing it to kotlin if its basically math and it didnt really need opencv's internals?
  */
 sealed class BrisqueResult {
     data class Success(val score: Float) : BrisqueResult()
