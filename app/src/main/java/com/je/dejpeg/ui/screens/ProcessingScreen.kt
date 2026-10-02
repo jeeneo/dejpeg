@@ -589,7 +589,6 @@ fun ProcessingScreen(
             }
         }
 
-
         Column(Modifier.fillMaxSize()) {
             if (images.isEmpty()) {
                 Box(

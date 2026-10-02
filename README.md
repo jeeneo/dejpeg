@@ -1,4 +1,4 @@
-<img src="fastlane/assets/logo/dejpeg_logo_curved.svg" alt="A gray mountain rotated 45 degrees clockwise with a lowercase letter j rotated 90 degrees clockwise" height="72" >
+<img src="fastlane/assets/logo/dejpeg_logo_circle.svg" alt="A gray mountain rotated 45 degrees clockwise with a lowercase letter j rotated 90 degrees clockwise" height="72" >
 
 <br>
 <div>

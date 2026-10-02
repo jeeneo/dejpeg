@@ -17,7 +17,6 @@ from nodes.properties.outputs import ImageOutput
 from ...settings import PyTorchSettings, get_settings
 from .. import restoration_group
 
-
 @torch.inference_mode()
 def denoise_fbcnn(
     img: np.ndarray,

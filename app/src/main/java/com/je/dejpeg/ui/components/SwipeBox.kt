@@ -208,9 +208,9 @@ fun CardWrapper(
     val currentOnSwipeLeft by rememberUpdatedState(leftAction)
     val currentOnSwipeRight by rememberUpdatedState(rightAction)
     val leftSwipeBgColor =
-        if (leftIconTint == MaterialTheme.colorScheme.error) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.tertiaryContainer
+        if (leftIconTint == MaterialTheme.colorScheme.error) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onTertiary
     val rightSwipeBgColor =
-        if (rightIconTint == MaterialTheme.colorScheme.error) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.tertiaryContainer
+        if (rightIconTint == MaterialTheme.colorScheme.error) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onTertiary
 
     val thresholdFrac = 0.4f
     SwipeBox(

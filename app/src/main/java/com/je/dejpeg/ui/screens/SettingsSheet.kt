@@ -145,7 +145,7 @@ fun SettingsSheetContent(
 
     val colors = ListItemDefaults.segmentedColors(
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        selectedContainerColor = MaterialTheme.colorScheme.outlineVariant
+        selectedContainerColor = MaterialTheme.colorScheme.inversePrimary
     )
     val currentTheme = App.state.appTheme.value
     var glassSlider by remember { mutableStateOf(appPreferences.loadGlassSlider()) }

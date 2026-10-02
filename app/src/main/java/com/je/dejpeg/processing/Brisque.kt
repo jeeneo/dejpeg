@@ -184,7 +184,6 @@ class BRISQUEDescaler(
                 )
             )
 
-            // ---- Fine scan: cached widths (incl. coarse best) are re-scored free ----
             val startW = maxOf(minW, bestCoarse.width - fineRange)
             val endW = minOf(origW, bestCoarse.width + fineRange)
             val fineResults = mutableListOf<ScanResult>()
