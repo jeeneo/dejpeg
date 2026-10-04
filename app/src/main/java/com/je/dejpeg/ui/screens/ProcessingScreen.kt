@@ -22,15 +22,9 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.animateColor
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.EaseInOutSine
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -66,6 +60,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AddPhotoAlternate
+import androidx.compose.material.icons.rounded.Cancel
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
@@ -87,6 +82,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedListItem
@@ -94,6 +90,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SplitButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.WavyProgressIndicatorDefaults
 import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -111,9 +108,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -889,23 +883,13 @@ fun LazyItemScope.ImageCard(
         config = config,
         rightSwipeEnabled = !isSelectionMode && !isProcessing,
     ) {
-        val progressTint = MaterialTheme.colorScheme.primary
-        val chunkFraction = if (image.totalChunks > 1) {
+        val progress = if (image.totalChunks > 1) {
             image.completedChunks.toFloat() / image.totalChunks.coerceAtLeast(1)
         } else -1f
-        val pulseAlpha by rememberInfiniteTransition().animateFloat(
-            initialValue = 0.04f, targetValue = 0.11f, animationSpec = infiniteRepeatable(
-                animation = tween(1200, easing = EaseInOutSine), repeatMode = RepeatMode.Reverse
-            )
-        )
-        val baseColor by animateColorAsState(
-            targetValue = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
-        )
-
         SegmentedListItem(
             selected = isSelected,
             colors = ListItemDefaults.segmentedColors(
-                containerColor = Color.Transparent,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                 selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer
             ),
             shapes = CornerRole.forPosition(realIndex, imagesCount).toListItemShapes(),
@@ -920,37 +904,8 @@ fun LazyItemScope.ImageCard(
             onLongClick = if (isProcessing) null else { -> run { onToggleSelection(image.id) } },
             content = {
                 Box(
-                    Modifier
-                        .fillMaxSize()
-                        .drawBehind {
-                            drawRect(baseColor)
-                            if (!isProcessing) return@drawBehind
-                            if (chunkFraction >= 0f) {
-                                val fadeWidth = 28.dp.toPx()
-                                val baseAlpha = 0.15f
-                                if (chunkFraction >= 1f) {
-                                    drawRect(progressTint.copy(alpha = baseAlpha))
-                                } else {
-                                    val fillWidth = size.width * chunkFraction
-                                    val fadeEnd = (fillWidth + fadeWidth).coerceAtMost(size.width)
-                                    if (fadeEnd > 0f) {
-                                        val fadeStartFraction =
-                                            (fillWidth / fadeEnd).coerceIn(0f, 1f)
-                                        drawRect(
-                                            brush = Brush.horizontalGradient(
-                                                colorStops = arrayOf(
-                                                    0f to progressTint.copy(alpha = baseAlpha),
-                                                    fadeStartFraction to progressTint.copy(alpha = baseAlpha),
-                                                    1f to Color.Transparent
-                                                ), startX = 0f, endX = fadeEnd
-                                            )
-                                        )
-                                    }
-                                }
-                            } else {
-                                drawRect(progressTint.copy(alpha = pulseAlpha))
-                            }
-                        }) {
+                    Modifier.fillMaxSize()
+                ) {
                     Row(
                         Modifier
                             .fillMaxWidth()
@@ -1016,6 +971,7 @@ fun LazyItemScope.ImageCard(
                                         takeProcess(id)
                                     }
                                 },
+                                chunkProgress = progress,
                                 onRemove = {
                                     if (isSelectionMode) {
                                         onRequestRemoval(selectedImageIds.toList())
@@ -1192,6 +1148,7 @@ private fun ImageCardSplitButton(
     modifier: Modifier = Modifier,
     image: ImageItem,
     isProcessing: Boolean,
+    chunkProgress: Float = -1f,
     onProcess: (String?) -> Unit,
     onRemove: () -> Unit,
     onBrisque: () -> Unit,
@@ -1259,10 +1216,7 @@ private fun ImageCardSplitButton(
             onClick = {
                 HapticPatterns.tap()
                 when (cardState) {
-                    CardState.Processing -> {
-                        onRemove()
-                    }
-
+                    CardState.Processing -> {}
                     CardState.Complete -> {
                         onSave()
                     }
@@ -1281,32 +1235,78 @@ private fun ImageCardSplitButton(
                 .weight(1f)
                 .height(36.dp),
         ) {
-            Icon(leadingIcon, contentDescription = null)
-            Spacer(Modifier.width(4.dp))
-            Text(leadingLabel, style = MaterialTheme.typography.labelMedium)
+            when (cardState) {
+                CardState.Processing -> {
+                    if (chunkProgress > 0f) {
+                        val anmProgress by animateFloatAsState(
+                            targetValue = chunkProgress.coerceIn(0f, 1f),
+                            animationSpec = WavyProgressIndicatorDefaults.ProgressAnimationSpec,
+                            label = "chunk_progress"
+                        )
+                        LinearWavyProgressIndicator(
+                            progress = { anmProgress },
+                            color = contentColor,
+                            trackColor = contentColor.copy(alpha = 0.3f),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    } else {
+                        LinearWavyProgressIndicator(
+                            color = contentColor,
+                            trackColor = contentColor.copy(alpha = 0.3f),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+
+                CardState.Complete, CardState.Idle, CardState.Stale -> {
+                    Icon(leadingIcon, contentDescription = null)
+                    Spacer(Modifier.width(4.dp))
+                    Text(leadingLabel, style = MaterialTheme.typography.labelMedium)
+                }
+            }
         }
+
         //noinspection MissingHapticFeedback
         Box {
             SplitButtonDefaults.TrailingButton(
                 checked = menuExpanded,
-                onCheckedChange = { HapticPatterns.tap(); menuExpanded = it },
+                onCheckedChange = {
+                    if (cardState == CardState.Processing) {
+                        onRemove()
+                    } else {
+                        HapticPatterns.tap()
+                        menuExpanded = it
+                    }
+                },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = containerColor,
                     contentColor = contentColor,
                 ),
                 modifier = Modifier.height(36.dp),
             ) {
-                val chevronRotation by animateFloatAsState(
-                    targetValue = if (menuExpanded) 0f else -90f,
-                    animationSpec = fastSpatialSpec,
-                    label = "chevronRotation"
-                )
-                Icon(
-                    Icons.Rounded.KeyboardArrowDown,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(SplitButtonDefaults.TrailingIconSize)
-                        .graphicsLayer { rotationZ = chevronRotation })
+                when (cardState) {
+                    CardState.Processing -> {
+                        Icon(
+                            Icons.Rounded.Cancel,
+                            contentDescription = null,
+                            modifier = Modifier.size(SplitButtonDefaults.TrailingIconSize)
+                        )
+                    }
+
+                    CardState.Complete, CardState.Idle, CardState.Stale -> {
+                        val chevronRotation by animateFloatAsState(
+                            targetValue = if (menuExpanded) 0f else -90f,
+                            animationSpec = fastSpatialSpec,
+                            label = "chevronRotation"
+                        )
+                        Icon(
+                            Icons.Rounded.KeyboardArrowDown,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(SplitButtonDefaults.TrailingIconSize)
+                                .graphicsLayer { rotationZ = chevronRotation })
+                    }
+                }
             }
             DropdownMenu(
                 expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {

@@ -124,7 +124,15 @@ class SettingsViewModel : ViewModel() {
                     installed.contains(it)
                 }
             importedModels.value += (type to installed)
-            activeSelection.update { sel -> if (sel.type == type) sel.copy(modelName = active) else sel }
+            val available = importedModels.value.values.flatten()
+            activeSelection.update { sel ->
+                when {
+                    sel.type == type -> sel.copy(modelName = active)
+                    sel.modelName != null && sel.modelName !in available ->
+                        active?.let { ActiveSelection(type, it) } ?: ActiveSelection()
+                    else -> sel
+                }
+            }
         }
     }
 
@@ -152,11 +160,13 @@ class SettingsViewModel : ViewModel() {
         modelName: String, type: ModelType = ModelType.ONNX, onDeleted: (String) -> Unit = {}
     ) {
         viewModelScope.launch(Dispatchers.IO) {
-            modelManager?.deleteModel(modelName, type)
+            val nextModel = modelManager?.deleteModel(modelName, type)
             withContext(Dispatchers.Main) { onDeleted(modelName) }
             refreshInstalledModels(type)
-            val remaining = modelManager?.getInstalledModels(type).orEmpty()
-            if (remaining.isEmpty() && activeSelection.value.type == type) {
+            if (nextModel != null) {
+                val nextType = ModelType.fromFilename(nextModel)
+                if (nextType != null) updateSelection(ActiveSelection(nextType, nextModel))
+            } else if (activeSelection.value.modelName == modelName) {
                 updateSelection(ActiveSelection())
             }
             val anyLeft = importedModels.value.values.any { it.isNotEmpty() }

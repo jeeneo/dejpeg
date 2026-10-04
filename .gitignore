@@ -1,4 +1,5 @@
 .gradle
+gradle/gradle-daemon-jvm.properties
 /local.properties
 /build
 .cxx

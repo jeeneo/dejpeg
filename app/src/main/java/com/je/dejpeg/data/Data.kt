@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
-
 package com.je.dejpeg.data
 
 import android.content.Context
@@ -35,7 +34,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
-
 
 class AppState(prefs: AppPreferences) {
     val appTheme: MutableState<AppTheme> = mutableStateOf(prefs.loadAppTheme())

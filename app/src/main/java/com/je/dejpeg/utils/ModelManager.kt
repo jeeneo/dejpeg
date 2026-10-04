@@ -450,9 +450,28 @@ open class ModelManager(
         }
     }
 
+    private fun activeModelFor(type: ModelType): String? {
+        val stored = appPreferences.loadActiveModel()
+        if (stored != null && type.matches(stored)) {
+            cachedActiveModels[type] = stored
+            return stored
+        }
+        return cachedActiveModels[type]?.takeIf { type.matches(it) }
+    }
+
+    private fun nextInstalledModel(type: ModelType, after: String): String? {
+        val installed = getInstalledModels(type).sorted()
+        return installed.firstOrNull { it > after } ?: installed.firstOrNull()
+    }
+
+    private fun anyInstalledModel(excluding: String): String? =
+        ModelType.entries.firstNotNullOfOrNull { type ->
+            getInstalledModels(type).sorted().firstOrNull { it != excluding }
+        }
+
     fun deleteModel(
         modelName: String, type: ModelType = ModelType.ONNX, onDeleted: (String) -> Unit = {}
-    ) {
+    ): String? {
         val modelFile = File(getModelsDir(type), modelName)
         if (modelFile.exists()) {
             modelFile.delete()
@@ -476,11 +495,11 @@ open class ModelManager(
             }
             onDeleted(modelName)
         }
-        if (modelName == getActiveModelName(type)) {
-            val remaining = getInstalledModels(type)
-            if (remaining.isNotEmpty()) setActiveModel(remaining.first())
-            else clearActiveModel()
-        }
+        if (modelName != activeModelFor(type)) return null
+        val next = nextInstalledModel(type, modelName) ?: anyInstalledModel(modelName)
+        if (next != null) setActiveModel(next)
+        else clearActiveModel()
+        return next
     }
 
     fun getModelInfo(modelName: String?): String? {
