@@ -114,6 +114,9 @@ class ProcessingViewModel : ViewModel() {
 
     lateinit var imageRepository: ImageRepository
 
+    @Volatile
+    var isAppVisible: Boolean = false
+
     private var _settingsViewModel: SettingsViewModel? = null
     var settingsViewModel: SettingsViewModel
         get() = _settingsViewModel!!
@@ -436,36 +439,29 @@ class ProcessingViewModel : ViewModel() {
 
     private fun handleProcessingComplete(imageId: String, path: String) {
         viewModelScope.launch {
-            try {
-                val bitmap = withContext(Dispatchers.IO) { BitmapFactory.decodeFile(path) }
-                if (bitmap != null) {
-                    CacheManager.saveProcessedImage(appContext!!, imageId, bitmap)
-                    imageRepository.updateImageState(imageId) {
-                        it.copy(
-                            outputBitmap = bitmap,
-                            isProcessing = false,
-                            progress = statusComplete,
-                            completedChunks = 0,
-                            totalChunks = 0,
-                            isOutputStale = false
-                        )
-                    }
-                } else {
-                    imageRepository.updateImageState(imageId) {
-                        resetProcessing(
-                            it, progress = "Decode failed"
-                        )
-                    }
-                }
-            } catch (e: Exception) {
+            val bitmap = runCatching {
+                withContext(Dispatchers.IO) { BitmapFactory.decodeFile(path) }
+            }.onFailure {
+                Log.e("ProcessingViewModel", "handleProcessingComplete: decode of $path failed", it)
+            }.getOrNull()
+            if (bitmap == null) {
                 imageRepository.updateImageState(imageId) {
-                    resetProcessing(
-                        it, progress = "${e.message}"
+                    resetProcessing(it, progress = "Decode failed")
+                }
+            } else {
+                imageRepository.updateImageState(imageId) {
+                    it.copy(
+                        outputBitmap = bitmap,
+                        isProcessing = false,
+                        progress = statusComplete,
+                        completedChunks = 0,
+                        totalChunks = 0,
+                        isOutputStale = false
                     )
                 }
-            } finally {
-                advanceQueue(imageId)
+                serviceHelper?.confirmUiApplied(isAppVisible)
             }
+            advanceQueue(imageId)
         }
     }
 
@@ -527,16 +523,6 @@ class ProcessingViewModel : ViewModel() {
                 )
             }
             queue.remove(imageId)
-            if (isCancelled) {
-                appContext?.let { ctx ->
-                    viewModelScope.launch(Dispatchers.IO) {
-                        Log.d("ProcessingViewModel", "Cleaning up cache for imageId: $imageId")
-                        CacheManager.deleteRecoveryPair(
-                            ctx, imageId, deleteProcessed = true, deleteUnprocessed = false
-                        )
-                    }
-                }
-            }
         }
         if (isCancelled && imageId == queue.currentProcessingId) {
             queue.cancelInProgress = false
@@ -592,7 +578,6 @@ class ProcessingViewModel : ViewModel() {
         }
     }
 
-    fun isCurrent(imageId: String) = queue.isActive(imageId)
 
     fun isProcessingOrQueueActive(): Boolean {
         return queue.cancelInProgress || queue.currentProcessingId != null || !queue.isEmpty

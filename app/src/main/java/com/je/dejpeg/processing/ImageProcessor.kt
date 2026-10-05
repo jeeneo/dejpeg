@@ -25,6 +25,7 @@ import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.data.ThreadUtils
 import com.je.dejpeg.utils.CacheManager
 import com.je.dejpeg.utils.ModelManager
+import com.je.dejpeg.utils.ModelManager.Companion.MODEL_PAD_FACTOR
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -42,9 +43,6 @@ import kotlin.math.ceil
 class ImageProcessor(
     private val context: Context, private val modelManager: ModelManager
 ) : Processor {
-    private companion object {
-        const val MODEL_PAD_FACTOR = 8
-    }
 
     @Volatile
     private var isCancelled = false
@@ -112,38 +110,40 @@ class ImageProcessor(
         info: ModelInfo,
         coresToUse: Int
     ): Bitmap {
-        val mustTile: Boolean
-        val effectiveMaxChunkSize: Int
-
         val width = inputBitmap.width
         val height = inputBitmap.height
         val hasTransparency = inputBitmap.hasAlpha()
         val processingConfig = Bitmap.Config.ARGB_8888
+        val bitmapToProcess =
+            if (inputBitmap.config != processingConfig) inputBitmap.copy(processingConfig, true)
+            else inputBitmap
 
-        val isRmbg = info.modelName?.contains("rmbg", ignoreCase = true) == true
-        val isU2NET = info.modelName?.contains("u2net", ignoreCase = true) == true
-        val isBackgroundRemover = isRmbg || isU2NET
+        val isBackgroundRemover = modelManager.isSequentialOnly(info.modelName)
         val expNotNull = info.expectedWidth != null && info.expectedHeight != null
 
+        withContext(Dispatchers.Main) {
+            callback.onProgress(context.getString(R.string.processing))
+        }
+
         if (isBackgroundRemover && expNotNull) {
-            val bitmapToProcess =
-                if (inputBitmap.config != processingConfig) inputBitmap.copy(processingConfig, true)
-                else inputBitmap
-            withContext(Dispatchers.Main) {
-                callback.onProgress(context.getString(R.string.processing))
-            }
             return processChunk(session, bitmapToProcess, processingConfig, hasTransparency, info)
         }
 
-        if (expNotNull) {
-            effectiveMaxChunkSize = minOf(info.expectedWidth, info.expectedHeight)
-            mustTile = width > info.expectedWidth || height > info.expectedHeight
+        val effectiveMaxChunkSize = if (expNotNull) {
+            minOf(info.expectedWidth, info.expectedHeight)
         } else {
-            effectiveMaxChunkSize = info.chunkSize
-            mustTile = width > effectiveMaxChunkSize || height > effectiveMaxChunkSize
+            info.chunkSize
+        }
+        val mustTile = if (expNotNull) {
+            width > info.expectedWidth || height > info.expectedHeight
+        } else {
+            width > effectiveMaxChunkSize || height > effectiveMaxChunkSize
         }
 
-        val processedBitmap = if (mustTile) processTiled(
+        if (!mustTile) {
+            return processChunk(session, bitmapToProcess, processingConfig, hasTransparency, info)
+        }
+        return processTiled(
             session,
             inputBitmap,
             callback,
@@ -153,19 +153,6 @@ class ImageProcessor(
             effectiveMaxChunkSize,
             coresToUse
         )
-        else {
-            val bitmapToProcess =
-                if (inputBitmap.config != processingConfig) inputBitmap.copy(processingConfig, true)
-                else inputBitmap
-            val progressMessage = { context.getString(R.string.processing) }
-            withContext(Dispatchers.Main) {
-                callback.onProgress(progressMessage())
-            }
-            val result =
-                processChunk(session, bitmapToProcess, processingConfig, hasTransparency, info)
-            result
-        }
-        return processedBitmap
     }
 
     private fun computeEvenTileBoundaries(

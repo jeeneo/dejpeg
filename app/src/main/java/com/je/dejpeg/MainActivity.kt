@@ -172,6 +172,11 @@ fun ScreenController() {
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, snackbarController) {
         val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> viewModel.isAppVisible = true
+                Lifecycle.Event.ON_STOP -> viewModel.isAppVisible = false
+                else -> {}
+            }
             if (event == Lifecycle.Event.ON_RESUME) {
                 SnackbarController.bind(snackbarController)
             }

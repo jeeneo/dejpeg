@@ -142,6 +142,13 @@ open class ModelManager(
             "1xBook-Compact-fp16"
         )
 
+        const val MODEL_PAD_FACTOR = 8
+
+        private val SEQUENTIAL_ONLY_MODELS = setOf(
+            "rmbg",
+            "u2net"
+        )
+
         fun gpuCacheToken(modelName: String): String =
             modelName.replace("[^a-zA-Z0-9_-]".toRegex(), "_").trimEnd('_')
 
@@ -192,6 +199,11 @@ open class ModelManager(
     fun forcesGrayscale(modelName: String?): Boolean {
         val normalized = modelName?.lowercase() ?: return false
         return FORCE_GRAYSCALE_BY_NAME.any { normalized.contains(it.lowercase()) }
+    }
+    
+    fun isSequentialOnly(modelName: String?): Boolean {
+        val normalized = modelName?.lowercase() ?: return false
+        return SEQUENTIAL_ONLY_MODELS.any { normalized.contains(it) }
     }
 
     fun hasActiveModel(type: ModelType = ModelType.ONNX): Boolean {

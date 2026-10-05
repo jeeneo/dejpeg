@@ -158,6 +158,7 @@ import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SaveState
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
 import com.je.dejpeg.utils.ModelType
+import com.je.dejpeg.utils.ProcessingQueueManager
 import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -836,7 +837,7 @@ fun LazyItemScope.ImageCard(
     val negativeAction: () -> (() -> Unit)? = {
         HapticPatterns.tap()
         when {
-            isProcessing && viewModel.isCurrent(image.id) -> {
+            isProcessing && ProcessingQueueManager().isActive(image.id) -> {
                 onCancelProcessing(image.id)
                 null
             }
@@ -965,7 +966,7 @@ fun LazyItemScope.ImageCard(
                             Spacer(Modifier.weight(1f))
                             ImageCardSplitButton(
                                 image = image,
-                                isProcessing = isProcessing,
+                                cardState = cardState,
                                 onProcess = { id ->
                                     tryProcess {
                                         takeProcess(id)
@@ -1147,7 +1148,7 @@ fun SaveProgressDialog(saveState: SaveState.Saving) {
 private fun ImageCardSplitButton(
     modifier: Modifier = Modifier,
     image: ImageItem,
-    isProcessing: Boolean,
+    cardState: CardState,
     chunkProgress: Float = -1f,
     onProcess: (String?) -> Unit,
     onRemove: () -> Unit,
@@ -1163,12 +1164,6 @@ private fun ImageCardSplitButton(
     val fastSpatialSpec = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
     val fastOffsetSpec = MaterialTheme.motionScheme.fastSpatialSpec<IntOffset>()
 
-    val cardState = when {
-        isProcessing -> CardState.Processing
-        image.outputBitmap != null && image.isOutputStale -> CardState.Stale
-        image.outputBitmap != null -> CardState.Complete
-        else -> CardState.Idle
-    }
     val transition = updateTransition(targetState = cardState, label = "card_morph")
     val containerColor by transition.animateColor(
         label = "container_color"

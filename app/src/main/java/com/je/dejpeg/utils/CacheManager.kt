@@ -43,22 +43,6 @@ object CacheManager {
         }
     }
 
-    suspend fun saveProcessedImage(
-        context: Context, imageId: String, bitmap: android.graphics.Bitmap
-    ) = withContext(Dispatchers.IO) {
-        val file = File(context.cacheDir, "${imageId}_processed.png")
-        try {
-            FileOutputStream(file).use {
-                bitmap.compress(
-                    android.graphics.Bitmap.CompressFormat.PNG, 100, it
-                )
-            }
-            Log.d(TAG, "Saved processed image: ${file.name}")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to save processed image: ${e.message}")
-        }
-    }
-
     suspend fun saveUnprocessedImage(context: Context, imageId: String, uri: Uri) =
         withContext(Dispatchers.IO) {
             try {

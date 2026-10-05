@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: 2025 - 2026 dryerlint <https://codeberg.org/dryerlint>
+ * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
+ */
+ 
 package com.je.dejpeg.processing
 
 import android.app.Notification
@@ -42,6 +47,8 @@ class ProcessingService : Service() {
     companion object {
         const val ACTION_PROCESS = "com.je.dejpeg.action.PROCESS"
         const val ACTION_CANCEL = "com.je.dejpeg.action.CANCEL"
+        const val ACTION_UI_APPLIED = "com.je.dejpeg.action.UI_APPLIED"
+        const val EXTRA_UI_VISIBLE = "extra_ui_visible"
         const val EXTRA_URI = "extra_uri"
         const val EXTRA_FILENAME = "extra_filename"
         const val EXTRA_IMAGE_ID = "extra_image_id"
@@ -70,6 +77,9 @@ class ProcessingService : Service() {
         const val ERROR_EXTRA_MESSAGE = "extra_message"
         const val PID_ACTION = "com.je.dejpeg.action.PID"
         const val PID_EXTRA_VALUE = "extra_pid"
+
+        /** How long a completion notice stays up when the app is not on screen to show it. */
+        private const val COMPLETION_NOTICE_MS = 3000L
     }
 
     class LocalBinder : Binder()
@@ -162,10 +172,15 @@ class ProcessingService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        startForegroundCompat("Processing...")
+        val action = intent?.action
+        if (action == ACTION_UI_APPLIED) {
+            onUiApplied(intent.getBooleanExtra(EXTRA_UI_VISIBLE, false))
+            return START_NOT_STICKY
+        }
+        startForegroundCompat(getString(R.string.processing))
         if (intent == null) return START_NOT_STICKY
-        Log.d("ProcessingService", "onStartCommand action=${intent.action}")
-        when (intent.action) {
+        Log.d("ProcessingService", "onStartCommand action=$action")
+        when (action) {
             ACTION_PROCESS -> {
                 stopHandler.removeCallbacks(autoStopRunnable)
                 val uriString = intent.getStringExtra(EXTRA_URI)
@@ -268,151 +283,82 @@ class ProcessingService : Service() {
                             ImageLoadingHelper.loadBitmap(ImageSource.FromFile(unprocessedFile))
                                 ?: throw Exception("Failed to decode bitmap")
 
-                        // Create the appropriate callback based on processor type
-                        val callback = when (processingMode) {
-                            ModelType.ONNX, ModelType.LITERT -> object :
-                                Processor.OnnxProcessCallback {
-                                override fun onComplete(result: Bitmap) {
-                                    try {
-                                        if (cancelBroadcastSent) {
-                                            scheduleAutoStop()
-                                            return
-                                        }
-                                        val safeName =
-                                            if (!imageId.isNullOrEmpty()) imageId else filename
-                                        val outFile = File(cacheDir, "${safeName}_processed.png")
-                                        FileOutputStream(outFile).use {
-                                            result.compress(
-                                                Bitmap.CompressFormat.PNG, 100, it
-                                            )
-                                        }
-                                        broadcast(
-                                            COMPLETE_ACTION,
-                                            COMPLETE_EXTRA_PATH to outFile.absolutePath,
-                                            imageId = imageId
-                                        )
-                                        NotificationService.show(
-                                            this@ProcessingService,
-                                            getString(R.string.processing_complete_notification)
-                                        )
-                                    } catch (e: Exception) {
-                                        if (!cancelBroadcastSent) {
-                                            broadcast(
-                                                ERROR_ACTION,
-                                                ERROR_EXTRA_MESSAGE to "Save error: ${e.message}",
-                                                imageId = imageId
-                                            )
-                                        }
-                                    } finally {
-                                        scheduleAutoStop()
-                                    }
+                        val callback = object : Processor.OnnxProcessCallback {
+                            override fun onComplete(result: Bitmap) {
+                                if (cancelBroadcastSent) {
+                                    scheduleAutoStop()
+                                    return
                                 }
-
-                                override fun onError(error: String) {
+                                val safeName =
+                                    if (!imageId.isNullOrEmpty()) imageId else filename
+                                val outFile = File(cacheDir, "${safeName}_processed.png")
+                                try {
+                                    // Kept for RecoveryDialog, sharing and "import output".
+                                    FileOutputStream(outFile).use {
+                                        result.compress(Bitmap.CompressFormat.PNG, 100, it)
+                                    }
+                                } catch (e: Exception) {
                                     if (!cancelBroadcastSent) {
                                         broadcast(
                                             ERROR_ACTION,
-                                            ERROR_EXTRA_MESSAGE to error,
+                                            ERROR_EXTRA_MESSAGE to "Save error: ${e.message}",
                                             imageId = imageId
                                         )
                                     }
                                     scheduleAutoStop()
+                                    return
                                 }
-
-                                override fun onProgress(message: String) {
-                                    currentProgressMessage = message
-                                    chunkProgressTotal = 0
-                                    chunkProgressCompleted = 0
-                                    broadcast(
-                                        PROGRESS_ACTION,
-                                        PROGRESS_EXTRA_MESSAGE to message,
-                                        imageId = imageId
-                                    )
-                                    notifyProgressChange()
-                                }
-
-                                override fun onChunkProgress(
-                                    currentChunkIndex: Int, totalChunks: Int, parallelWorkers: Int
-                                ) {
-                                    chunkProgressCompleted = currentChunkIndex
-                                    chunkProgressTotal = totalChunks
-                                    chunkProgressParallelWorkers = parallelWorkers
-                                    currentProgressMessage = formatChunkProgressMessage(
-                                        completedChunks = currentChunkIndex,
-                                        totalChunks = totalChunks,
-                                        parallelWorkers = parallelWorkers
-                                    )
-                                    broadcast(
-                                        PROGRESS_ACTION,
-                                        PROGRESS_EXTRA_MESSAGE to currentProgressMessage,
-                                        PROGRESS_EXTRA_COMPLETED_CHUNKS to currentChunkIndex,
-                                        PROGRESS_EXTRA_TOTAL_CHUNKS to totalChunks,
-                                        PROGRESS_EXTRA_PARALLEL_CHUNKS to parallelWorkers,
-                                        imageId = imageId
-                                    )
-                                    notifyProgressChange()
-                                }
+                                broadcast(
+                                    COMPLETE_ACTION,
+                                    COMPLETE_EXTRA_PATH to outFile.absolutePath,
+                                    imageId = imageId
+                                )
+                                scheduleAutoStop()
                             }
 
-                            ModelType.OIDN -> object : Processor.ProcessCallback {
-                                override fun onComplete(result: Bitmap) {
-                                    try {
-                                        if (cancelBroadcastSent) {
-                                            scheduleAutoStop()
-                                            return
-                                        }
-                                        val safeName =
-                                            if (!imageId.isNullOrEmpty()) imageId else filename
-                                        val outFile = File(cacheDir, "${safeName}_processed.png")
-                                        FileOutputStream(outFile).use {
-                                            result.compress(
-                                                Bitmap.CompressFormat.PNG, 100, it
-                                            )
-                                        }
-                                        broadcast(
-                                            COMPLETE_ACTION,
-                                            COMPLETE_EXTRA_PATH to outFile.absolutePath,
-                                            imageId = imageId
-                                        )
-                                        NotificationService.show(
-                                            this@ProcessingService,
-                                            getString(R.string.processing_complete_notification)
-                                        )
-                                    } catch (e: Exception) {
-                                        if (!cancelBroadcastSent) {
-                                            broadcast(
-                                                ERROR_ACTION,
-                                                ERROR_EXTRA_MESSAGE to "Save error: ${e.message}",
-                                                imageId = imageId
-                                            )
-                                        }
-                                    } finally {
-                                        scheduleAutoStop()
-                                    }
-                                }
-
-                                override fun onError(error: String) {
-                                    if (!cancelBroadcastSent) {
-                                        broadcast(
-                                            ERROR_ACTION,
-                                            ERROR_EXTRA_MESSAGE to error,
-                                            imageId = imageId
-                                        )
-                                    }
-                                    scheduleAutoStop()
-                                }
-
-                                override fun onProgress(message: String) {
-                                    currentProgressMessage = message
-                                    chunkProgressTotal = 0
-                                    chunkProgressCompleted = 0
+                            override fun onError(error: String) {
+                                if (!cancelBroadcastSent) {
                                     broadcast(
-                                        PROGRESS_ACTION,
-                                        PROGRESS_EXTRA_MESSAGE to message,
+                                        ERROR_ACTION,
+                                        ERROR_EXTRA_MESSAGE to error,
                                         imageId = imageId
                                     )
-                                    notifyProgressChange()
                                 }
+                                scheduleAutoStop()
+                            }
+
+                            override fun onProgress(message: String) {
+                                currentProgressMessage = message
+                                chunkProgressTotal = 0
+                                chunkProgressCompleted = 0
+                                broadcast(
+                                    PROGRESS_ACTION,
+                                    PROGRESS_EXTRA_MESSAGE to message,
+                                    imageId = imageId
+                                )
+                                notifyProgressChange()
+                            }
+
+                            override fun onChunkProgress(
+                                currentChunkIndex: Int, totalChunks: Int, parallelWorkers: Int
+                            ) {
+                                chunkProgressCompleted = currentChunkIndex
+                                chunkProgressTotal = totalChunks
+                                chunkProgressParallelWorkers = parallelWorkers
+                                currentProgressMessage = formatChunkProgressMessage(
+                                    completedChunks = currentChunkIndex,
+                                    totalChunks = totalChunks,
+                                    parallelWorkers = parallelWorkers
+                                )
+                                broadcast(
+                                    PROGRESS_ACTION,
+                                    PROGRESS_EXTRA_MESSAGE to currentProgressMessage,
+                                    PROGRESS_EXTRA_COMPLETED_CHUNKS to currentChunkIndex,
+                                    PROGRESS_EXTRA_TOTAL_CHUNKS to totalChunks,
+                                    PROGRESS_EXTRA_PARALLEL_CHUNKS to parallelWorkers,
+                                    imageId = imageId
+                                )
+                                notifyProgressChange()
                             }
                         }
                         processor.processImage(bitmap, params, callback)
@@ -451,6 +397,24 @@ class ProcessingService : Service() {
 
     private fun scheduleAutoStop() {
         stopHandler.postDelayed(autoStopRunnable, 3000)
+    }
+
+    /**
+     * The app process just flipped the card to Complete, so the service no longer gets to decide
+     * when processing is over - it only has to decide what the notification should say.
+     *
+     * [uiVisible] is the part that matters: if someone is looking at the app, the card is the
+     * signal and the foreground notification can go. If they are not, the notification is the
+     * only way they will learn it finished, so show it and leave it up.
+     */
+    private fun onUiApplied(uiVisible: Boolean) {
+        if (uiVisible) {
+            cleanup("uiApplied")
+            return
+        }
+        NotificationService.show(this, getString(R.string.processing_complete_notification))
+        stopHandler.removeCallbacks(autoStopRunnable)
+        stopHandler.postDelayed(autoStopRunnable, COMPLETION_NOTICE_MS)
     }
 
     override fun onTimeout(startId: Int) {
@@ -505,20 +469,17 @@ class ProcessingService : Service() {
     }
 
     private fun broadcast(
-        action: String, vararg extras: Pair<String, Any?>, imageId: String? = currentImageId
+        action: String, vararg extras: Pair<String, Any>, imageId: String? = currentImageId
     ) {
         sendBroadcast(Intent(action).apply {
             setPackage(packageName)
             imageId?.let { putExtra(EXTRA_IMAGE_ID, it) }
             extras.forEach { (key, value) ->
                 when (value) {
-                    is String -> putExtra(key, value)
                     is Int -> putExtra(key, value)
                     is Long -> putExtra(key, value)
                     is Boolean -> putExtra(key, value)
-                    is Any -> putExtra(key, value.toString())
-                    else -> { /* null - skip */
-                    }
+                    else -> putExtra(key, value.toString())
                 }
             }
         })
@@ -731,11 +692,13 @@ class ServiceCommunicationHelper(
                 }
 
                 ProcessingService.COMPLETE_ACTION -> {
-                    unbindFromService()
                     val path = intent.getStringExtra(ProcessingService.COMPLETE_EXTRA_PATH)
                     if (path != null && !imageId.isNullOrEmpty()) {
+                        // Hand off before tearing the binding down: unbinding is main-thread
+                        // work and must not sit between the result and the UI that shows it.
                         callbacks.onComplete(imageId, path)
                     }
+                    unbindFromService()
                 }
 
                 ProcessingService.ERROR_ACTION -> {
@@ -832,6 +795,17 @@ class ServiceCommunicationHelper(
             pendingStart = doStart
         } else {
             doStart()
+        }
+    }
+
+    /**
+     * Tells the service that the UI now reflects the finished image, so it no longer decides on
+     * its own when processing is over. [uiVisible] says whether anyone is actually looking at
+* it, which is what decides between the card and the notification as the completion signal.
+     */
+    fun confirmUiApplied(uiVisible: Boolean) {
+        startService(ProcessingService.ACTION_UI_APPLIED) {
+            putExtra(ProcessingService.EXTRA_UI_VISIBLE, uiVisible)
         }
     }
 
