@@ -319,10 +319,11 @@ private fun SingleImageView(bitmap: Bitmap, needsChecker: Boolean) {
     val appPreferences = remember { AppPreferences() }
     val isHapticEnabled = remember { appPreferences.loadHapticFeedbackEnabled() }
     val checkerShader = if (needsChecker) rememberCheckerShader() else null
+    val maxZoomFactor = Int.MAX_VALUE.toFloat()
     val zoomableState = rememberZoomableState(
         ZoomSpec(
             maximum = ZoomLimit(
-                factor = 20f,
+                factor = maxZoomFactor,
                 overzoomEffect = if (isHapticEnabled) OverzoomEffect.RubberBanding else OverzoomEffect.Disabled
             ), minimum = ZoomLimit(
                 factor = 1f,

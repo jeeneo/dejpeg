@@ -1161,6 +1161,8 @@ private fun ImageCardSplitButton(
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     val fastSpatialSpec = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
+    val fastOffsetSpec = MaterialTheme.motionScheme.fastSpatialSpec<IntOffset>()
+
     val cardState = when {
         isProcessing -> CardState.Processing
         image.outputBitmap != null && image.isOutputStale -> CardState.Stale
@@ -1188,17 +1190,6 @@ private fun ImageCardSplitButton(
             CardState.Idle -> MaterialTheme.colorScheme.onSecondaryContainer
         }
     }
-    val leadingLabel = when (cardState) {
-        CardState.Processing -> stringResource(R.string.cancel)
-        CardState.Stale -> stringResource(R.string.reprocess)
-        CardState.Complete -> stringResource(R.string.save_image)
-        CardState.Idle -> stringResource(R.string.process)
-    }
-    val leadingIcon = when (cardState) {
-        CardState.Processing -> Icons.Rounded.Close
-        CardState.Stale, CardState.Idle -> Icons.Rounded.PlayArrow
-        CardState.Complete -> Icons.Rounded.Save
-    }
 
     val saveLabel = stringResource(R.string.save).let { label ->
         if (selectedCount > 0) "$label ($selectedCount)" else label
@@ -1217,10 +1208,7 @@ private fun ImageCardSplitButton(
                 HapticPatterns.tap()
                 when (cardState) {
                     CardState.Processing -> {}
-                    CardState.Complete -> {
-                        onSave()
-                    }
-
+                    CardState.Complete -> onSave()
                     CardState.Idle, CardState.Stale -> {
                         if (selectedCount > 1) onProcess(null)
                         else onProcess(image.id)
@@ -1235,33 +1223,54 @@ private fun ImageCardSplitButton(
                 .weight(1f)
                 .height(36.dp),
         ) {
-            when (cardState) {
-                CardState.Processing -> {
-                    if (chunkProgress > 0f) {
-                        val anmProgress by animateFloatAsState(
-                            targetValue = chunkProgress.coerceIn(0f, 1f),
-                            animationSpec = WavyProgressIndicatorDefaults.ProgressAnimationSpec,
-                            label = "chunk_progress"
-                        )
-                        LinearWavyProgressIndicator(
-                            progress = { anmProgress },
-                            color = contentColor,
-                            trackColor = contentColor.copy(alpha = 0.3f),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    } else {
-                        LinearWavyProgressIndicator(
-                            color = contentColor,
-                            trackColor = contentColor.copy(alpha = 0.3f),
-                            modifier = Modifier.fillMaxWidth()
-                        )
+            AnimatedContent(
+                targetState = cardState,
+                transitionSpec = {
+                    fadeIn(fastSpatialSpec) + slideInVertically(fastOffsetSpec) { it / 2 } togetherWith fadeOut(
+                        fastSpatialSpec
+                    ) + slideOutVertically(fastOffsetSpec) { -it / 2 }
+                },
+                label = "leading_button_content",
+            ) { state ->
+                when (state) {
+                    CardState.Processing -> {
+                        if (chunkProgress > 0f && chunkProgress < 1f) {
+                            val anmProgress by animateFloatAsState(
+                                targetValue = chunkProgress.coerceIn(0f, 1f),
+                                animationSpec = WavyProgressIndicatorDefaults.ProgressAnimationSpec,
+                                label = "chunk_progress"
+                            )
+                            LinearWavyProgressIndicator(
+                                progress = { anmProgress },
+                                color = contentColor,
+                                trackColor = contentColor.copy(alpha = 0.3f),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        } else {
+                            LinearWavyProgressIndicator(
+                                color = contentColor,
+                                trackColor = contentColor.copy(alpha = 0.3f),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                     }
-                }
 
-                CardState.Complete, CardState.Idle, CardState.Stale -> {
-                    Icon(leadingIcon, contentDescription = null)
-                    Spacer(Modifier.width(4.dp))
-                    Text(leadingLabel, style = MaterialTheme.typography.labelMedium)
+                    CardState.Complete, CardState.Idle, CardState.Stale -> {
+                        val icon = when (state) {
+                            CardState.Stale, CardState.Idle -> Icons.Rounded.PlayArrow
+                            else -> Icons.Rounded.Save
+                        }
+                        val label = when (state) {
+                            CardState.Stale -> stringResource(R.string.reprocess)
+                            CardState.Complete -> stringResource(R.string.save_image)
+                            else -> stringResource(R.string.process)
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(icon, contentDescription = null)
+                            Spacer(Modifier.width(4.dp))
+                            Text(label, style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
                 }
             }
         }

@@ -8,14 +8,22 @@ package com.je.dejpeg.ui.components
 import android.graphics.Bitmap
 import android.graphics.Color.blue
 import android.graphics.Color.red
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculateCentroid
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
@@ -24,17 +32,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.SwapHoriz
+import androidx.compose.material.icons.rounded.ChevronLeft
+import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,6 +61,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -69,24 +79,68 @@ import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.lens
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.pow
 import kotlin.math.roundToInt
 
-@Stable
-private class ComparisonTransform(private val maxZoom: Float) {
+private class ComparisonTransform(val maxZoom: Float) {
     var scale by mutableFloatStateOf(1f)
     var offset by mutableStateOf(Offset.Zero)
-
+    private val minRubberScale = Float.MIN_VALUE
+    private val maxOverscrollPx = Float.MAX_VALUE
     fun applyGesture(centroid: Offset, pan: Offset, zoom: Float, container: Size, content: Size) {
-        val newScale = (scale * zoom).coerceIn(1f, maxZoom)
+        val dampedZoom = if (zoom < 1f && scale <= 1f) zoom.toDouble().pow(0.4).toFloat() else zoom
+        val newScale = (scale * dampedZoom).coerceIn(minRubberScale, maxZoom)
         val effectiveZoom = newScale / scale
         val center = Offset(container.width / 2f, container.height / 2f)
-        offset = (offset + center - centroid) * effectiveZoom + centroid - center + pan
+        val base = (offset + center - centroid) * effectiveZoom + centroid - center
         scale = newScale
-        offset = clampOffset(offset, newScale, container, content)
+        val max = maxOffset(newScale, container, content)
+        offset = Offset(
+            resistedAxis(base.x, pan.x, max.x), resistedAxis(base.y, pan.y, max.y)
+        )
+    }
+
+    private fun resistedAxis(base: Float, pan: Float, max: Float): Float {
+        val clamped = base.coerceIn(-max, max)
+        val over = base - clamped
+        val movingOutward = over != 0f && (over > 0f) == (pan > 0f)
+        val movingOut = over == 0f && ((base >= max && pan > 0f) || (base <= -max && pan < 0f))
+        val factor = when {
+            movingOutward -> (1f - abs(over) / maxOverscrollPx).coerceIn(0f, 1f) * 0.5f
+            movingOut -> 0.5f
+            else -> 1f
+        }
+        return (base + pan * factor).coerceIn(-max - maxOverscrollPx, max + maxOverscrollPx)
+    }
+
+    suspend fun settle(container: Size, content: Size) {
+        val startScale = scale
+        val startOffset = offset
+        val targetScale = scale.coerceIn(1f, maxZoom)
+        val max = maxOffset(targetScale, container, content)
+        val targetOffset = Offset(
+            startOffset.x.coerceIn(-max.x, max.x), startOffset.y.coerceIn(-max.y, max.y)
+        )
+        if (startScale == targetScale && startOffset == targetOffset) return
+
+        animate(
+            0f, 1f, animationSpec = spring(
+                dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium
+            )
+        ) { t, _ ->
+            scale = startScale + (targetScale - startScale) * t
+            offset = Offset(
+                startOffset.x + (targetOffset.x - startOffset.x) * t,
+                startOffset.y + (targetOffset.y - startOffset.y) * t
+            )
+        }
     }
 
     fun doubleTap(centroid: Offset, container: Size, content: Size) {
@@ -95,12 +149,16 @@ private class ComparisonTransform(private val maxZoom: Float) {
         } else applyGesture(centroid, Offset.Zero, min(3f, maxZoom), container, content)
     }
 
-    private fun clampOffset(o: Offset, s: Float, container: Size, content: Size): Offset {
-        val w = content.width * s
-        val h = content.height * s
-        val maxX = max(0f, (w - container.width) / 2f)
-        val maxY = max(0f, (h - container.height) / 2f)
-        return Offset(o.x.coerceIn(-maxX, maxX), o.y.coerceIn(-maxY, maxY))
+    private fun maxOffset(s: Float, container: Size, content: Size) = Offset(
+        max(0f, (content.width * s - container.width) / 2f),
+        max(0f, (content.height * s - container.height) / 2f)
+    )
+
+    fun isOutOfBounds(container: Size, content: Size): Boolean {
+        val targetScale = scale.coerceIn(1f, maxZoom)
+        val max = maxOffset(targetScale, container, content)
+        val eps = 0.5f
+        return scale < 1f - 0.001f || abs(offset.x) > max.x + eps || abs(offset.y) > max.y + eps
     }
 }
 
@@ -121,12 +179,9 @@ fun BeforeAfterSlider(
     }
     val hasAlpha = beforeBitmap.hasAlpha() || afterBitmap.hasAlpha()
     val checkerShader = if (hasAlpha) rememberCheckerShader() else null
-    val showLabels = true
-    val enableZoom = true
-    val sliderHandleSize: Dp = if (glassSlider) 48.dp else 48.dp
-    val sliderLineWidth: Dp = if (glassSlider) 12.dp else 3.dp
+    val sliderLineWidth: Dp = if (glassSlider) 12.dp else 6.dp
     val labelPadding: Dp = 24.dp
-    val maxZoomFactor = 20f
+    val maxZoomFactor = Float.MAX_VALUE
     val transform = remember(maxZoomFactor) { ComparisonTransform(maxZoomFactor) }
     var sliderPosition by remember { mutableFloatStateOf(0.5f) }
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
@@ -134,29 +189,49 @@ fun BeforeAfterSlider(
     val (sliderColor, iconColor) = remember(beforeBitmap) { calculateSliderColors(beforeBitmap) }
     val beforeLabel = stringResource(R.string.before)
     val afterLabel = stringResource(R.string.after)
-    val zoomModifier = if (enableZoom) {
-        Modifier
-            .pointerInput(beforeImage) {
-                detectTransformGestures { centroid, pan, zoom, _ ->
-                    transform.applyGesture(
-                        centroid,
-                        pan,
-                        zoom,
-                        Size(size.width.toFloat(), size.height.toFloat()),
-                        fittedContentSize(beforeImage, size)
-                    )
+    val scope = rememberCoroutineScope()
+    val zoomModifier = Modifier
+        .pointerInput(beforeImage) {
+            var settleJob: Job? = null
+            awaitEachGesture {
+                awaitFirstDown(requireUnconsumed = false)
+                settleJob?.cancel()
+                do {
+                    val event = awaitPointerEvent()
+                    val canceled = event.changes.any { it.isConsumed }
+                    if (!canceled) {
+                        val zoom = event.calculateZoom()
+                        val pan = event.calculatePan()
+                        val centroid = event.calculateCentroid(useCurrent = false)
+                        if (zoom != 1f || pan != Offset.Zero) {
+                            transform.applyGesture(
+                                centroid,
+                                pan,
+                                zoom,
+                                Size(size.width.toFloat(), size.height.toFloat()),
+                                fittedContentSize(beforeImage, size)
+                            )
+                        }
+                        event.changes.forEach { if (it.positionChanged()) it.consume() }
+                    }
+                } while (!canceled && event.changes.any { it.pressed })
+                val container = Size(size.width.toFloat(), size.height.toFloat())
+                val content = fittedContentSize(beforeImage, size)
+                if (transform.isOutOfBounds(container, content)) HapticPatterns.tap()
+                settleJob = scope.launch {
+                    transform.settle(container, content)
                 }
             }
-            .pointerInput(beforeImage) {
-                detectTapGestures(onDoubleTap = { tap ->
-                    transform.doubleTap(
-                        tap,
-                        Size(size.width.toFloat(), size.height.toFloat()),
-                        fittedContentSize(beforeImage, size)
-                    )
-                })
-            }
-    } else Modifier
+        }
+        .pointerInput(beforeImage) {
+            detectTapGestures(onDoubleTap = { tap ->
+                transform.doubleTap(
+                    tap,
+                    Size(size.width.toFloat(), size.height.toFloat()),
+                    fittedContentSize(beforeImage, size)
+                )
+            })
+        }
 
     Box(modifier, Alignment.Center) {
         val backdrop = rememberLayerBackdrop {
@@ -179,31 +254,30 @@ fun BeforeAfterSlider(
                     afterImage, split, size.width, transform.scale, transform.offset, checkerShader
                 )
             }
-            if (showLabels) {
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .drawWithContent {
-                            clipRect(0f, 0f, size.width * sliderPosition, size.height) {
-                                this@drawWithContent.drawContent()
-                            }
-                        }) {
-                    ComparisonLabel(beforeLabel, Alignment.TopStart, labelPadding)
-                }
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .drawWithContent {
-                            clipRect(size.width * sliderPosition, 0f, size.width, size.height) {
-                                this@drawWithContent.drawContent()
-                            }
-                        }) {
-                    ComparisonLabel(afterLabel, Alignment.TopEnd, labelPadding)
-                }
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .drawWithContent {
+                        clipRect(0f, 0f, size.width * sliderPosition, size.height) {
+                            this@drawWithContent.drawContent()
+                        }
+                    }) {
+                ComparisonLabel(beforeLabel, Alignment.TopStart, labelPadding)
+            }
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .drawWithContent {
+                        clipRect(size.width * sliderPosition, 0f, size.width, size.height) {
+                            this@drawWithContent.drawContent()
+                        }
+                    }) {
+                ComparisonLabel(afterLabel, Alignment.TopEnd, labelPadding)
             }
         }
         if (containerSize.width > 0) {
             val sliderX = containerSize.width * sliderPosition
+            val handleShape = RoundedCornerShape(50)
 
             // trackbar
             Box(
@@ -221,12 +295,8 @@ fun BeforeAfterSlider(
                                 backdrop = backdrop,
                                 shape = { RoundedCornerShape(50) },
                                 effects = {
-                                    blur(radius = 6.dp.toPx())
-                                    lens(
-                                        refractionHeight = 4.dp.toPx(),
-                                        refractionAmount = 8.dp.toPx(),
-                                        chromaticAberration = true
-                                    )
+                                    blur(8f.dp.toPx())
+                                    lens(4f.dp.toPx(), 8f.dp.toPx(), true)
                                 })
                     )
                 } else {
@@ -263,29 +333,32 @@ fun BeforeAfterSlider(
                                 if (glassSlider) {
                                     Modifier.drawBackdrop(
                                         backdrop = backdrop,
-                                        shape = { CircleShape },
+                                        shape = { handleShape },
                                         effects = {
-                                            lens(
-                                                refractionHeight = 12.dp.toPx(),
-                                                refractionAmount = ScreenHorizontalPadding.toPx(),
-                                                chromaticAberration = true
-                                            )
+                                            blur(4f.dp.toPx())
+                                            lens(16f.dp.toPx(), 24f.dp.toPx(), true)
                                         })
                                 } else {
-                                    Modifier
-                                        .shadow(8.dp, CircleShape)
-                                        .clip(CircleShape)
-                                        .background(sliderColor)
+                                    Modifier.clip(CircleShape).background(sliderColor)
                                 }
                             )
-                            .size(sliderHandleSize), contentAlignment = Alignment.Center
+                            .size(
+                                width = if (glassSlider) 64.dp else 48.dp,
+                                height = if (glassSlider) 44.dp else 48.dp
+                            ), contentAlignment = Alignment.Center
                     ) {
-                        if (!glassSlider) {
+                        Box(modifier = Modifier.fillMaxWidth()) {
                             Icon(
-                                Icons.Rounded.SwapHoriz,
+                                Icons.Rounded.ChevronLeft,
                                 contentDescription = stringResource(R.string.drag_to_compare),
                                 tint = iconColor,
-                                modifier = Modifier.size(sliderHandleSize * 0.5f)
+                                modifier = Modifier.align(Alignment.CenterStart)
+                            )
+                            Icon(
+                                Icons.Rounded.ChevronRight,
+                                contentDescription = stringResource(R.string.drag_to_compare),
+                                tint = iconColor,
+                                modifier = Modifier.align(Alignment.CenterEnd)
                             )
                         }
                     }
@@ -315,13 +388,11 @@ private fun DrawScope.drawHalf(
     val imgW = image.width * total
     val imgH = image.height * total
     val topLeft = Offset((size.width - imgW) / 2f, (size.height - imgH) / 2f) + offset
-
     val dstL = max(clipLeft, topLeft.x)
     val dstR = min(clipRight, topLeft.x + imgW)
     val dstT = max(0f, topLeft.y)
     val dstB = min(size.height, topLeft.y + imgH)
     if (dstR <= dstL || dstB <= dstT) return
-
     val srcL = floor((dstL - topLeft.x) / total).toInt().coerceIn(0, image.width - 1)
     val srcT = floor((dstT - topLeft.y) / total).toInt().coerceIn(0, image.height - 1)
     val srcR = ceil((dstR - topLeft.x) / total).toInt().coerceIn(srcL + 1, image.width)
@@ -390,7 +461,7 @@ private fun calculateSliderColors(bitmap: Bitmap): Pair<Color, Color> {
     }
     val median = luminances.sorted()[luminances.size / 2]
     val inverted = 255 - median
-    val sliderColor = if (kotlin.math.abs(inverted - median) < 30) {
+    val sliderColor = if (abs(inverted - median) < 30) {
         if (median > 127) Color.Black else Color.White
     } else {
         Color(inverted, inverted, inverted)
