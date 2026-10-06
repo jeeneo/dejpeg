@@ -158,7 +158,6 @@ import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SaveState
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
 import com.je.dejpeg.utils.ModelType
-import com.je.dejpeg.utils.ProcessingQueueManager
 import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -837,7 +836,7 @@ fun LazyItemScope.ImageCard(
     val negativeAction: () -> (() -> Unit)? = {
         HapticPatterns.tap()
         when {
-            isProcessing && ProcessingQueueManager().isActive(image.id) -> {
+            isProcessing && viewModel.isCurrent(image.id) -> {
                 onCancelProcessing(image.id)
                 null
             }
@@ -880,9 +879,7 @@ fun LazyItemScope.ImageCard(
             ), placementSpec = spring(
                 dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium
             )
-        ),
-        config = config,
-        rightSwipeEnabled = !isSelectionMode && !isProcessing,
+        ), config = config
     ) {
         val progress = if (image.totalChunks > 1) {
             image.completedChunks.toFloat() / image.totalChunks.coerceAtLeast(1)

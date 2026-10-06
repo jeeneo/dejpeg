@@ -195,7 +195,6 @@ fun SwipeBox(
 fun CardWrapper(
     modifier: Modifier = Modifier,
     config: SwipeConfig,
-    rightSwipeEnabled: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val leftAction = config.resolvedRight.action
@@ -218,7 +217,7 @@ fun CardWrapper(
         onQualifiedStartToEnd = { currentOnSwipeRight() },
         onQualifiedEndToStart = { currentOnSwipeLeft() },
         enableDismissFromStartToEnd = true,
-        enableDismissFromEndToStart = rightSwipeEnabled,
+        enableDismissFromEndToStart = true,
         positionalThreshold = { totalWidth -> totalWidth * thresholdFrac },
         backgroundContent = { offsetPx, maxWidthPx ->
             Box(Modifier.fillMaxSize()) {

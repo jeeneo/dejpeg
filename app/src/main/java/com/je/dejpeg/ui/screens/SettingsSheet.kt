@@ -83,6 +83,7 @@ import com.je.dejpeg.ui.components.SwipeSide
 import com.je.dejpeg.ui.components.rememberMaterialPressState
 import com.je.dejpeg.ui.components.segmentedListShapes
 import com.je.dejpeg.ui.components.toListItemShapes
+import com.je.dejpeg.ui.viewmodel.ProcessingUiState
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SettingsViewModel
 import com.je.dejpeg.utils.ModelManager
@@ -234,6 +235,9 @@ fun SettingsSheetContent(
                 })
             }
 
+            val uiState by processingViewModel.uiState.collectAsState()
+            val isProcessing = uiState is ProcessingUiState.Processing
+
             allModels.forEachIndexed { index, (modelName, modelType) ->
                 key(modelName, modelType) {
                     val isActive =
@@ -243,7 +247,6 @@ fun SettingsSheetContent(
                     val cantDeleteModel = stringResource(R.string.cant_delete_model)
 
                     Spacer(modifier = Modifier.height(GroupedListSpacing))
-                    val isProcessing = processingViewModel.isProcessingOrQueueActive()
                     val deleteAction: () -> (() -> Unit)? = {
                         if (isProcessing) {
                             scope.launch {
@@ -273,10 +276,8 @@ fun SettingsSheetContent(
                         }
                     }
                     val infoAction: () -> (() -> Unit)? = {
-                        if (!isProcessing) {
-                            modelManager.getModelInfo(modelName)?.let {
-                                modelInfoDialog.value = modelName to it
-                            }
+                        modelManager.getModelInfo(modelName)?.let {
+                            modelInfoDialog.value = modelName to it
                         }
                         null
                     }
@@ -294,8 +295,7 @@ fun SettingsSheetContent(
                         swap = swapSwipeActions,
                     )
                     CardWrapper(
-                        config = config,
-                        rightSwipeEnabled = !isProcessing,
+                        config = config
                     ) {
                         SegmentedListItem(
                             colors = colors, selected = isActive, onClick = {

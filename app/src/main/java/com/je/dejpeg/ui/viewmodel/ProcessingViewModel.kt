@@ -306,7 +306,7 @@ class ProcessingViewModel : ViewModel() {
             if (image.uri == null) return@launch
             if (queue.cancelInProgress || queue.currentProcessingId != null || !queue.isEmpty) {
                 if (queue.isActive(id) || queue.contains(id)) return@launch
-                queue.enqueueSingle(id)
+                queue.enqueue(id)
                 queue.setActiveTotal(
                     maxOf(
                         queue.activeProcessingTotal,
@@ -578,6 +578,7 @@ class ProcessingViewModel : ViewModel() {
         }
     }
 
+    fun isCurrent(imageId: String) = queue.isActive(imageId)
 
     fun isProcessingOrQueueActive(): Boolean {
         return queue.cancelInProgress || queue.currentProcessingId != null || !queue.isEmpty

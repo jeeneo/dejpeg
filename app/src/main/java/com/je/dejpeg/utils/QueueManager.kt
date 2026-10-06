@@ -18,15 +18,8 @@ class ProcessingQueueManager {
     var singleImageCancelId: String? = null
     val queueSize: Int get() = processingQueue.size
     val isEmpty: Boolean get() = processingQueue.isEmpty()
-
-    fun enqueue(ids: List<String>) {
-        processingQueue.clear()
-        processingQueue.addAll(ids)
-        activeProcessingTotal = processingQueue.size
-        isProcessingQueue = true
-    }
-
-    fun enqueueSingle(id: String) {
+    
+    fun enqueue(id: String) {
         processingQueue.add(id)
         isProcessingQueue = true
     }
