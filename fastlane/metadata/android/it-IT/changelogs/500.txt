@@ -1,0 +1,8 @@
+Modifiche/correzioni alle funzionalità:
+- Schermata delle impostazioni convertita in bottom sheet
+- Migliorata l'esperienza utente expressive
+- Corretti alcuni bug di instabilità
+- Deprecati 1x_JPEG_*.ort e 1x_artifacts_jpg_*.onnx perché troppo lenti
+
+Modifiche incompatibili:
+- Le chiavi delle preferenze sono state reimpostate/ruotate
