@@ -33,7 +33,6 @@
     <string name="media_picker">Selettore foto</string>
     <string name="documents">Documenti</string>
     <string name="camera">Fotocamera</string>
-
     <string name="set_as_default">Imposta come predefinito</string>
     <string name="info">Informazioni</string>
     <string name="ok">OK</string>
@@ -235,7 +234,7 @@
     <string name="brisque_phase_fine_scan">Scansione fine</string>
     <string name="brisque_phase_fine_done">Scansione fine completata</string>
     <string name="brisque_phase_finalizing">Finalizzazione</string>
-    <string name="oidn_settings">Elaborazione Oidn</string>
+    <string name="oidn_settings">OIDN</string>
     <string name="oidn_hdr">Input HDR</string>
     <string name="oidn_hdr_desc">Abilita se l\'immagine di input è HDR</string>
     <string name="oidn_srgb">Input sRGB</string>
@@ -249,7 +248,7 @@
     <string name="oidn_settings_desc">HDR, sRGB, qualità, thread</string>
     <string name="cant_switch_model">Non puoi cambiare modello durante l\'elaborazione</string>
     <string name="settings_title_models">Modelli</string>
-    <string name="settings_item_title_options">Opzioni</string>
+    <string name="settings_item_title_options">Impostazioni</string>
     <string name="settings_item_onnx_processing">ONNX Elaborazione</string>
     <string name="theme_dynamic">Dinamico</string>
     <string name="theme_light">Chiaro</string>
