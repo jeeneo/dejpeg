@@ -5,7 +5,6 @@
 
 package com.je.dejpeg.ui.screens
 
-import android.graphics.Bitmap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -13,13 +12,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Save
@@ -46,9 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ShaderBrush
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -217,72 +212,67 @@ fun ImageScreen(
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
         )
         Box {
-            val needsChecker = beforeBitmap.hasAlpha() || afterBitmap?.hasAlpha() == true
-            if (afterBitmap != null) {
-                BeforeAfterSlider(
-                    beforeBitmap = beforeBitmap,
-                    afterBitmap = afterBitmap,
-                    glassSlider = glassSlider,
-                    modifier = Modifier.fillMaxSize()
-                )
-                if (!isCompareMode) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(GroupedListSpacing),
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .navigationBarsPadding()
-                            .padding(bottom = 28.dp)
-                            .zIndex(1f)
-                            .width(IntrinsicSize.Min)
-                    ) {
-                        SegmentedListItem(
-                            modifier = Modifier.weight(1f),
-                            shapes = horizontalSegmentedShapes(1, 2),
-                            colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-                            leadingContent = {
-                                Icon(
-                                    Icons.Rounded.Share, contentDescription = "Share image"
-                                )
-                            },
-                            content = {
-                                Text(
-                                    stringResource(id = R.string.share_image),
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            },
-                            onClick = {
-                                HapticPatterns.tap()
-                                isPreparingShare = true
-                                ImageActions.shareImage(
-                                    context = context,
-                                    bitmap = afterBitmap,
-                                    onReady = { isPreparingShare = false },
-                                    onError = { isPreparingShare = false })
-                            })
-                        SegmentedListItem(
-                            modifier = Modifier.weight(1f),
-                            shapes = horizontalSegmentedShapes(2, 2),
-                            colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-                            leadingContent = {
-                                Icon(
-                                    Icons.Rounded.Save, contentDescription = "Save image"
-                                )
-                            },
-                            content = {
-                                Text(
-                                    stringResource(id = R.string.save),
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            },
-                            onClick = {
-                                HapticPatterns.tap()
-                                flows.requestSave(listOf(imageId), false)
-                            })
-                    }
+            BeforeAfterSlider(
+                beforeBitmap = beforeBitmap,
+                afterBitmap = afterBitmap,
+                glassSlider = glassSlider,
+                modifier = Modifier.fillMaxSize()
+            )
+            if (afterBitmap != null && !isCompareMode) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(GroupedListSpacing),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .navigationBarsPadding()
+                        .padding(bottom = 28.dp)
+                        .zIndex(1f)
+                        .width(IntrinsicSize.Min)
+                ) {
+                    SegmentedListItem(
+                        modifier = Modifier.weight(1f),
+                        shapes = horizontalSegmentedShapes(1, 2),
+                        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                        leadingContent = {
+                            Icon(
+                                Icons.Rounded.Share, contentDescription = "Share image"
+                            )
+                        },
+                        content = {
+                            Text(
+                                stringResource(id = R.string.share_image),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        },
+                        onClick = {
+                            HapticPatterns.tap()
+                            isPreparingShare = true
+                            ImageActions.shareImage(
+                                context = context,
+                                bitmap = afterBitmap,
+                                onReady = { isPreparingShare = false },
+                                onError = { isPreparingShare = false })
+                        })
+                    SegmentedListItem(
+                        modifier = Modifier.weight(1f),
+                        shapes = horizontalSegmentedShapes(2, 2),
+                        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                        leadingContent = {
+                            Icon(
+                                Icons.Rounded.Save, contentDescription = "Save image"
+                            )
+                        },
+                        content = {
+                            Text(
+                                stringResource(id = R.string.save),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        },
+                        onClick = {
+                            HapticPatterns.tap()
+                            flows.requestSave(listOf(imageId), false)
+                        })
                 }
-            } else {
-//                SingleImageView(beforeBitmap, needsChecker)
             }
         }
         if (isPreparingShare) PreparingShareDialog()
@@ -305,59 +295,6 @@ fun ImageScreen(
         }
     }
 }
-
-//@Composable
-//private fun SingleImageView(bitmap: Bitmap, needsChecker: Boolean) {
-//    val appPreferences = remember { AppPreferences() }
-//    val isHapticEnabled = remember { appPreferences.loadHapticFeedbackEnabled() }
-//    val checkerShader = if (needsChecker) rememberCheckerShader() else null
-//    val maxZoomFactor = Int.MAX_VALUE.toFloat()
-//    val zoomableState = rememberZoomableState(
-//        ZoomSpec(
-//            maximum = ZoomLimit(
-//                factor = maxZoomFactor,
-//                overzoomEffect = if (isHapticEnabled) OverzoomEffect.RubberBanding else OverzoomEffect.Disabled
-//            ), minimum = ZoomLimit(
-//                factor = 1f,
-//                overzoomEffect = if (isHapticEnabled) OverzoomEffect.RubberBanding else OverzoomEffect.Disabled
-//            )
-//        )
-//    )
-//    Box(
-//        Modifier
-//            .fillMaxSize()
-//            .zoomable(zoomableState), Alignment.Center
-//    ) {
-//        CheckeredImage(
-//            bitmap = bitmap,
-//            modifier = Modifier
-//                .fillMaxSize()
-//                .wrapContentSize(Alignment.Center)
-//                .aspectRatio(bitmap.width.toFloat() / bitmap.height.toFloat()),
-//            checkerShader = checkerShader
-//        )
-//    }
-//}
-
-//@Composable
-//fun CheckeredImage(
-//    bitmap: Bitmap,
-//    modifier: Modifier = Modifier,
-//    checkerShader: ShaderBrush? = null,
-//    filterQuality: FilterQuality = FilterQuality.None
-//) {
-//    val imageBitmap = remember(bitmap) { bitmap.asImageBitmap() }
-//    androidx.compose.foundation.Canvas(modifier) {
-//        if (checkerShader != null) {
-//            drawRect(brush = checkerShader)
-//        }
-//        drawImage(
-//            image = imageBitmap,
-//            dstSize = androidx.compose.ui.unit.IntSize(size.width.toInt(), size.height.toInt()),
-//            filterQuality = filterQuality
-//        )
-//    }
-//}
 
 @Composable
 fun rememberCheckerShader(cellSize: Dp = 8.dp): ShaderBrush {

@@ -44,6 +44,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -74,6 +75,7 @@ import androidx.core.graphics.get
 import com.je.dejpeg.R
 import com.je.dejpeg.data.HapticPatterns
 import com.je.dejpeg.ui.screens.rememberCheckerShader
+import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.drawBackdrop
@@ -165,28 +167,22 @@ private class ComparisonTransform(val maxZoom: Float) {
 @Composable
 fun BeforeAfterSlider(
     beforeBitmap: Bitmap,
-    afterBitmap: Bitmap,
+    afterBitmap: Bitmap?,
     modifier: Modifier = Modifier,
-    glassSlider: Boolean,
+    glassSlider: Boolean = false,
 ) {
-    val beforeImage = remember(beforeBitmap) {
-        val hw = beforeBitmap.copy(Bitmap.Config.HARDWARE, false) ?: beforeBitmap
-        hw.asImageBitmap()
-    }
-    val afterImage = remember(afterBitmap) {
-        val hw = afterBitmap.copy(Bitmap.Config.HARDWARE, false) ?: afterBitmap
-        hw.asImageBitmap()
-    }
-    val hasAlpha = beforeBitmap.hasAlpha() || afterBitmap.hasAlpha()
+    val beforeImage = remember(beforeBitmap) { beforeBitmap.toHardwareImage() }
+    val afterImage = remember(afterBitmap) { afterBitmap?.toHardwareImage() }
+    val hasAlpha = beforeBitmap.hasAlpha() || afterBitmap?.hasAlpha() == true
     val checkerShader = if (hasAlpha) rememberCheckerShader() else null
-    val sliderLineWidth: Dp = if (glassSlider) 12.dp else 6.dp
-    val labelPadding: Dp = 24.dp
+    val sliderColors = remember(beforeBitmap, afterBitmap) {
+        if (afterBitmap == null) null else calculateSliderColors(beforeBitmap)
+    }
     val maxZoomFactor = Float.MAX_VALUE
     val transform = remember(maxZoomFactor) { ComparisonTransform(maxZoomFactor) }
     var sliderPosition by remember { mutableFloatStateOf(0.5f) }
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
-    val density = LocalDensity.current
-    val (sliderColor, iconColor) = remember(beforeBitmap) { calculateSliderColors(beforeBitmap) }
+    val labelPadding = 24.dp
     val beforeLabel = stringResource(R.string.before)
     val afterLabel = stringResource(R.string.after)
     val scope = rememberCoroutineScope()
@@ -248,120 +244,156 @@ fun BeforeAfterSlider(
                     .then(zoomModifier)
             ) {
                 containerSize = IntSize(size.width.roundToInt(), size.height.roundToInt())
-                val split = size.width * sliderPosition
-                drawHalf(beforeImage, 0f, split, transform.scale, transform.offset, checkerShader)
-                drawHalf(
-                    afterImage, split, size.width, transform.scale, transform.offset, checkerShader
-                )
-            }
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .drawWithContent {
-                        clipRect(0f, 0f, size.width * sliderPosition, size.height) {
-                            this@drawWithContent.drawContent()
-                        }
-                    }) {
-                ComparisonLabel(beforeLabel, Alignment.TopStart, labelPadding)
-            }
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .drawWithContent {
-                        clipRect(size.width * sliderPosition, 0f, size.width, size.height) {
-                            this@drawWithContent.drawContent()
-                        }
-                    }) {
-                ComparisonLabel(afterLabel, Alignment.TopEnd, labelPadding)
-            }
-        }
-        if (containerSize.width > 0) {
-            val sliderX = containerSize.width * sliderPosition
-            val handleShape = RoundedCornerShape(50)
-
-            // trackbar
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .clip(RectangleShape)
-            ) {
-                if (glassSlider) {
-                    Box(
-                        Modifier
-                            .requiredHeight(with(density) { containerSize.height.toDp() + 32.dp })
-                            .width(sliderLineWidth)
-                            .offset(x = with(density) { sliderX.toDp() - sliderLineWidth / 2 })
-                            .drawBackdrop(
-                                backdrop = backdrop,
-                                shape = { RoundedCornerShape(50) },
-                                effects = {
-                                    blur(8f.dp.toPx())
-                                    lens(4f.dp.toPx(), 8f.dp.toPx(), true)
-                                })
+                if (afterImage == null) {
+                    drawHalf(
+                        beforeImage,
+                        0f,
+                        size.width,
+                        transform.scale,
+                        transform.offset,
+                        checkerShader
                     )
                 } else {
-                    Box(
-                        Modifier
-                            .fillMaxHeight()
-                            .width(sliderLineWidth)
-                            .offset(x = with(density) { sliderX.toDp() - sliderLineWidth / 2 })
-                            .background(sliderColor)
+                    val split = size.width * sliderPosition
+                    drawHalf(
+                        beforeImage, 0f, split, transform.scale, transform.offset, checkerShader
+                    )
+                    drawHalf(
+                        afterImage,
+                        split,
+                        size.width,
+                        transform.scale,
+                        transform.offset,
+                        checkerShader
                     )
                 }
+            }
+            if (afterImage != null) {
+                ComparisonLabel(
+                    text = beforeLabel,
+                    alignment = Alignment.TopStart,
+                    padding = labelPadding,
+                    clipStart = 0f,
+                    clipEnd = sliderPosition
+                )
+                ComparisonLabel(
+                    text = afterLabel,
+                    alignment = Alignment.TopEnd,
+                    padding = labelPadding,
+                    clipStart = sliderPosition,
+                    clipEnd = 1f
+                )
+            }
+        }
+        if (afterImage != null && sliderColors != null && containerSize.width > 0) {
+            ComparisonSlider(
+                sliderPosition = sliderPosition,
+                containerWidth = containerSize.width,
+                containerHeight = containerSize.height,
+                glassSlider = glassSlider,
+                sliderColor = sliderColors.first,
+                iconColor = sliderColors.second,
+                backdrop = backdrop,
+                onPositionChange = { sliderPosition = it })
+        }
+    }
+}
 
-                // round center handles
-                Box(
-                    Modifier
-                        .fillMaxHeight()
-                        .width(64.dp)
-                        .offset(x = with(density) { sliderX.toDp() - 32.dp })
-                        .pointerInput(Unit) {
-                            detectDragGestures(
-                                onDragStart = { HapticPatterns.tap() },
-                                onDrag = { change, dragAmount ->
-                                    change.consume()
-                                    sliderPosition =
-                                        (sliderPosition + dragAmount.x / containerSize.width).coerceIn(
-                                            0f, 1f
-                                        )
+@Composable
+private fun ComparisonSlider(
+    sliderPosition: Float,
+    containerWidth: Int,
+    containerHeight: Int,
+    glassSlider: Boolean,
+    sliderColor: Color,
+    iconColor: Color,
+    backdrop: Backdrop,
+    onPositionChange: (Float) -> Unit,
+) {
+    val density = LocalDensity.current
+    val lineWidth = if (glassSlider) 12.dp else 6.dp
+    val sliderX = containerWidth * sliderPosition
+    val handleShape = RoundedCornerShape(50)
+    val currentPosition by rememberUpdatedState(sliderPosition)
+
+    Box(
+        Modifier
+            .fillMaxSize()
+            .clip(RectangleShape)
+    ) {
+        if (glassSlider) {
+            Box(
+                Modifier
+                    .requiredHeight(with(density) { containerHeight.toDp() + 32.dp })
+                    .width(lineWidth)
+                    .offset(x = with(density) { sliderX.toDp() - lineWidth / 2 })
+                    .drawBackdrop(
+                        backdrop = backdrop,
+                        shape = { RoundedCornerShape(50) },
+                        effects = {
+                            blur(8f.dp.toPx())
+                            lens(4f.dp.toPx(), 8f.dp.toPx(), true)
+                        })
+            )
+        } else {
+            Box(
+                Modifier
+                    .fillMaxHeight()
+                    .width(lineWidth)
+                    .offset(x = with(density) { sliderX.toDp() - lineWidth / 2 })
+                    .background(sliderColor)
+            )
+        }
+
+        Box(
+            Modifier
+                .fillMaxHeight()
+                .width(64.dp)
+                .offset(x = with(density) { sliderX.toDp() - 32.dp })
+                .pointerInput(containerWidth) {
+                    detectDragGestures(
+                        onDragStart = { HapticPatterns.tap() },
+                        onDrag = { change, dragAmount ->
+                            change.consume()
+                            onPositionChange(
+                                (currentPosition + dragAmount.x / containerWidth).coerceIn(0f, 1f)
+                            )
+                        })
+                }) {
+            Box(
+                Modifier
+                    .align(Alignment.Center)
+                    .then(
+                        if (glassSlider) {
+                            Modifier.drawBackdrop(
+                                backdrop = backdrop,
+                                shape = { handleShape },
+                                effects = {
+                                    blur(4f.dp.toPx())
+                                    lens(16f.dp.toPx(), 24f.dp.toPx(), true)
                                 })
-                        }) {
-                    Box(
-                        Modifier
-                            .align(Alignment.Center)
-                            .then(
-                                if (glassSlider) {
-                                    Modifier.drawBackdrop(
-                                        backdrop = backdrop,
-                                        shape = { handleShape },
-                                        effects = {
-                                            blur(4f.dp.toPx())
-                                            lens(16f.dp.toPx(), 24f.dp.toPx(), true)
-                                        })
-                                } else {
-                                    Modifier.clip(CircleShape).background(sliderColor)
-                                }
-                            )
-                            .size(
-                                width = if (glassSlider) 64.dp else 48.dp,
-                                height = if (glassSlider) 44.dp else 48.dp
-                            ), contentAlignment = Alignment.Center
-                    ) {
-                        Box(modifier = Modifier.fillMaxWidth()) {
-                            Icon(
-                                Icons.Rounded.ChevronLeft,
-                                contentDescription = stringResource(R.string.drag_to_compare),
-                                tint = iconColor,
-                                modifier = Modifier.align(Alignment.CenterStart)
-                            )
-                            Icon(
-                                Icons.Rounded.ChevronRight,
-                                contentDescription = stringResource(R.string.drag_to_compare),
-                                tint = iconColor,
-                                modifier = Modifier.align(Alignment.CenterEnd)
-                            )
+                        } else {
+                            Modifier.clip(CircleShape).background(sliderColor)
                         }
-                    }
+                    )
+                    .size(
+                        width = if (glassSlider) 64.dp else 48.dp,
+                        height = if (glassSlider) 44.dp else 48.dp
+                    ), contentAlignment = Alignment.Center
+            ) {
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Icon(
+                        Icons.Rounded.ChevronLeft,
+                        contentDescription = stringResource(R.string.drag_to_compare),
+                        tint = iconColor,
+                        modifier = Modifier.align(Alignment.CenterStart)
+                    )
+                    Icon(
+                        Icons.Rounded.ChevronRight,
+                        contentDescription = stringResource(R.string.drag_to_compare),
+                        tint = iconColor,
+                        modifier = Modifier.align(Alignment.CenterEnd)
+                    )
                 }
             }
         }
@@ -372,6 +404,11 @@ private fun fittedContentSize(image: ImageBitmap, container: IntSize): Size {
     val fit =
         min(container.width / image.width.toFloat(), container.height / image.height.toFloat())
     return Size(image.width * fit, image.height * fit)
+}
+
+private fun Bitmap.toHardwareImage(): ImageBitmap {
+    val hardware = copy(Bitmap.Config.HARDWARE, false) ?: this
+    return hardware.asImageBitmap()
 }
 
 private fun DrawScope.drawHalf(
@@ -419,26 +456,45 @@ private fun DrawScope.drawHalf(
 
 @Composable
 private fun ComparisonLabel(
-    text: String, alignment: Alignment, padding: Dp, modifier: Modifier = Modifier
+    text: String,
+    alignment: Alignment,
+    padding: Dp,
+    clipStart: Float,
+    clipEnd: Float,
+    modifier: Modifier = Modifier,
 ) {
     Box(
         modifier
             .fillMaxSize()
-            .padding(padding), contentAlignment = alignment
-    ) {
-        Surface(
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-            shape = RoundedCornerShape(8.dp),
-            modifier = Modifier.shadow(4.dp, RoundedCornerShape(8.dp))
+            .drawWithContent {
+                clipRect(
+                    left = size.width * clipStart,
+                    top = 0f,
+                    right = size.width * clipEnd,
+                    bottom = size.height
+                ) {
+                    this@drawWithContent.drawContent()
+                }
+            }) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .padding(padding), contentAlignment = alignment
         ) {
-            Text(
-                text,
-                Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontWeight = FontWeight.SemiBold, letterSpacing = 0.5.sp
-                ),
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Surface(
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.shadow(4.dp, RoundedCornerShape(8.dp))
+            ) {
+                Text(
+                    text,
+                    Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = FontWeight.SemiBold, letterSpacing = 0.5.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
         }
     }
 }
