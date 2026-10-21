@@ -19,7 +19,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.animateColor
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
@@ -33,7 +32,6 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -77,7 +75,6 @@ import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
@@ -160,7 +157,6 @@ import com.je.dejpeg.ui.viewmodel.SettingsViewModel
 import com.je.dejpeg.utils.ModelType
 import kotlinx.coroutines.launch
 import java.util.Locale
-import kotlin.math.roundToInt
 
 private enum class CardState { Idle, Processing, Complete, Stale }
 
@@ -171,11 +167,6 @@ private fun cardStateOf(image: ImageItem): CardState = when {
     else -> CardState.Idle
 }
 
-@OptIn(
-    ExperimentalMaterial3Api::class,
-    ExperimentalFoundationApi::class,
-    ExperimentalAnimationApi::class
-)
 @Composable
 fun ProcessingScreen(
     processingViewModel: ProcessingViewModel,
@@ -207,9 +198,6 @@ fun ProcessingScreen(
     val activeSelection by settingsViewModel.activeSelection.collectAsState()
     val processingMode = activeSelection.type
     val oidnInputScale by settingsViewModel.oidnInputScale.collectAsState()
-    val isOidnMode = processingMode == ModelType.OIDN
-    val activeModelName = activeSelection.modelName
-    val supportsStrength = activeModelName?.contains("fbcnn", ignoreCase = true) == true
     val noModelMessage = stringResource(R.string.no_model_installed_title)
     val scope = rememberCoroutineScope()
     val isLoadingImages by imageRepository.isLoadingImages.collectAsState()
@@ -498,7 +486,8 @@ fun ProcessingScreen(
                 }
             }
         }
-        val strengthVisible = images.isNotEmpty() && (supportsStrength || isOidnMode)
+        val isFBCNN = activeSelection.modelName?.contains("fbcnn", ignoreCase = true) == true
+        val strengthVisible = images.isNotEmpty() && (isFBCNN || processingMode == ModelType.OIDN)
         Row(
             Modifier
                 .fillMaxWidth()
@@ -517,14 +506,16 @@ fun ProcessingScreen(
                             start = ScreenHorizontalPadding,
                             end = ScreenHorizontalPadding
                         ),
-                    colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceContainerHigh),
+                    colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceContainer),
                     shape = CornerRole.forPosition(1, images.count() + 1).toShape(),
                 ) {
                     Column(Modifier.padding(ScreenHorizontalPadding)) {
-                        if (isOidnMode) {
+                        if (processingMode == ModelType.OIDN) {
                             val displayValue =
                                 if (oidnInputScale == 0f) stringResource(R.string.text_auto) else String.format(
-                                    Locale.ROOT, "%.1f", oidnInputScale
+                                    Locale.ROOT,
+                                    "%.1f",
+                                    oidnInputScale
                                 )
                             Text(
                                 stringResource(R.string.input_scale, displayValue),
@@ -532,7 +523,6 @@ fun ProcessingScreen(
                                 fontWeight = FontWeight.Medium
                             )
                             Spacer(Modifier.height(8.dp))
-                            var prevScale by remember { mutableFloatStateOf(oidnInputScale) }
                             val oidnSliderState = rememberSliderState(
                                 value = oidnInputScale,
                                 steps = 19,
@@ -542,12 +532,14 @@ fun ProcessingScreen(
                                 oidnSliderState.value = oidnInputScale
                             }
                             Slider(
-                                state = oidnSliderState, onValueChange = {
-                                    HapticPatterns.tap()
-                                    val v = (it * 2).roundToInt() / 2f; if (v != prevScale) {
-                                    prevScale = v
-                                }; settingsViewModel.setOidnInputScale(v)
-                                }, modifier = Modifier
+                                state = oidnSliderState,
+                                onValueChange = {
+                                    if (it != oidnInputScale) {
+                                        HapticPatterns.tap()
+                                        settingsViewModel.setOidnInputScale(it)
+                                    }
+                                },
+                                modifier = Modifier
                                     .fillMaxWidth()
                                     .height(24.dp)
                             )
@@ -558,7 +550,6 @@ fun ProcessingScreen(
                                 fontWeight = FontWeight.Medium
                             )
                             Spacer(Modifier.height(8.dp))
-                            var prevStrength by remember { mutableFloatStateOf(globalStrength) }
                             val strengthSliderState = rememberSliderState(
                                 value = globalStrength,
                                 steps = 19,
@@ -568,12 +559,14 @@ fun ProcessingScreen(
                                 strengthSliderState.value = globalStrength
                             }
                             Slider(
-                                state = strengthSliderState, onValueChange = {
-                                    HapticPatterns.tap()
-                                    val v = (it / 5).roundToInt() * 5f; if (v != prevStrength) {
-                                    prevStrength = v
-                                }; settingsViewModel.setGlobalStrength(v)
-                                }, modifier = Modifier
+                                state = strengthSliderState,
+                                onValueChange = {
+                                    if (it != globalStrength) {
+                                        HapticPatterns.tap()
+                                        settingsViewModel.setGlobalStrength(it)
+                                    }
+                                },
+                                modifier = Modifier
                                     .fillMaxWidth()
                                     .height(24.dp)
                             )
@@ -817,11 +810,9 @@ fun LazyItemScope.ImageCard(
 ) {
     val realIndex = if (strengthVisible) index + 2 else index + 1
     val imagesCount = if (strengthVisible) images.count() + 1 else images.count()
-
     val isSelected = selectedImageIds.contains(image.id)
     val isProcessing = image.isProcessing
     val cardState = cardStateOf(image)
-
     val positiveAction: () -> (() -> Unit)? = {
         HapticPatterns.tap()
         if (image.outputBitmap != null) {
@@ -887,8 +878,8 @@ fun LazyItemScope.ImageCard(
         SegmentedListItem(
             selected = isSelected,
             colors = ListItemDefaults.segmentedColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                selectedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest
             ),
             shapes = CornerRole.forPosition(realIndex, imagesCount).toListItemShapes(),
             contentPadding = PaddingValues(0.dp),
@@ -1053,7 +1044,7 @@ private fun releaseUri(uri: Uri, context: Context, onRemoveSharedUri: (Uri) -> U
     runCatching { onRemoveSharedUri(uri) }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SaveProgressDialog(saveState: SaveState.Saving) {
     val progress = if (saveState.total > 0) saveState.current.toFloat() / saveState.total.toFloat()
@@ -1140,7 +1131,6 @@ fun SaveProgressDialog(saveState: SaveState.Saving) {
         })
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ImageCardSplitButton(
     modifier: Modifier = Modifier,

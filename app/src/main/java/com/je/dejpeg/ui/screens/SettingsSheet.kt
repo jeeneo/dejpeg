@@ -36,7 +36,6 @@ import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -859,8 +858,8 @@ fun <T> SegmentedOptionGrid(
                     colors = colors,
                     modifier = Modifier.weight(1f),
                     shapes = CornerRole(
-                        topStart = if (dontRound) false else isTopRow && isFirstCol,
-                        topEnd = if (dontRound) false else isTopRow && isLastCol,
+                        topStart = !dontRound && isTopRow && isFirstCol,
+                        topEnd = !dontRound && isTopRow && isLastCol,
                         bottomStart = isBottomRow && isFirstCol,
                         bottomEnd = isBottomRow && isLastCol
                     ).toListItemShapes(),

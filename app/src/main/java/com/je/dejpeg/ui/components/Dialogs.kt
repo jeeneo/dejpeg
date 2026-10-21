@@ -13,7 +13,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalGridApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -228,7 +227,7 @@ fun SaveImageDialog(
     )
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun PreparingShareDialog(
     progressText: String? = null,
@@ -322,7 +321,6 @@ fun RemoveImageDialog(
     )
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun CancelProcessingDialog(
     imageFilename: String? = null, dismiss: () -> Unit, onConfirm: () -> Unit
@@ -348,9 +346,7 @@ fun CancelProcessingDialog(
 }
 
 @OptIn(
-    ExperimentalMaterial3Api::class,
-    ExperimentalMaterial3ExpressiveApi::class,
-    ExperimentalGridApi::class
+    ExperimentalMaterial3Api::class
 )
 @Composable
 fun ImageSourceDialog(

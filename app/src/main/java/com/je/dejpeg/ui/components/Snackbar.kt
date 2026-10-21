@@ -76,8 +76,9 @@ fun SnackBarBox(
         content()
 
         LaunchedEffect(controller) {
+            val scope = this
             controller.events.collect { event ->
-                launch { snackbarHostState.show(event) }
+                scope.launch { snackbarHostState.show(event) }
             }
         }
 
@@ -175,7 +176,6 @@ class SnackySnackbarHostState {
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun SnackbarContent(
     snackbarData: SnackySnackbarData, onDismiss: () -> Unit
