@@ -1,20 +1,19 @@
 [versions]
-agp = "9.3.2"
+agp = "9.3.3"
 backdrop = "2.0.1"
 coreSplashscreen = "1.2.0"
 foundation = "1.12.1"
-kotlin = "2.4.20"
+kotlin = "2.4.21"
 coreKtx = "1.19.1"
 lifecycleRuntimeKtx = "2.11.0"
 activityCompose = "1.13.0"
-material3 = "1.5.0-alpha29"
+material3 = "1.5.0-beta01"
 materialIconsExtended = "1.7.8"
 
 # size is too large to package for IOD
 #noinspection NewerVersionAvailable
 onnxruntimeAndroid = "1.23.2"
 
-zoomable = "0.19.0"
 datastore = "1.2.1"
 animationCore = "1.12.1"
 junit = "4.13.2"
@@ -33,7 +32,6 @@ androidx-activity-compose = { group = "androidx.activity", name = "activity-comp
 androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
 onnxruntime-android = { module = "com.microsoft.onnxruntime:onnxruntime-android", version.ref = "onnxruntimeAndroid" }
-zoomable = { module = "me.saket.telephoto:zoomable", version.ref = "zoomable" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 androidx-compose-animation-core = { group = "androidx.compose.animation", name = "animation-core", version.ref = "animationCore" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }

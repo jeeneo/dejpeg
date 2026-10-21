@@ -27,8 +27,6 @@ import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItemDefaults
@@ -72,15 +70,9 @@ import com.je.dejpeg.ui.components.horizontalSegmentedShapes
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SaveState
 import com.je.dejpeg.utils.ImageActions
-import me.saket.telephoto.zoomable.OverzoomEffect
-import me.saket.telephoto.zoomable.ZoomLimit
-import me.saket.telephoto.zoomable.ZoomSpec
-import me.saket.telephoto.zoomable.rememberZoomableState
-import me.saket.telephoto.zoomable.zoomable
 
 private enum class BitmapSource { Input, Output }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ImageScreen(
     viewModel: ProcessingViewModel,
@@ -290,7 +282,7 @@ fun ImageScreen(
                     }
                 }
             } else {
-                SingleImageView(beforeBitmap, needsChecker)
+//                SingleImageView(beforeBitmap, needsChecker)
             }
         }
         if (isPreparingShare) PreparingShareDialog()
@@ -314,58 +306,58 @@ fun ImageScreen(
     }
 }
 
-@Composable
-private fun SingleImageView(bitmap: Bitmap, needsChecker: Boolean) {
-    val appPreferences = remember { AppPreferences() }
-    val isHapticEnabled = remember { appPreferences.loadHapticFeedbackEnabled() }
-    val checkerShader = if (needsChecker) rememberCheckerShader() else null
-    val maxZoomFactor = Int.MAX_VALUE.toFloat()
-    val zoomableState = rememberZoomableState(
-        ZoomSpec(
-            maximum = ZoomLimit(
-                factor = maxZoomFactor,
-                overzoomEffect = if (isHapticEnabled) OverzoomEffect.RubberBanding else OverzoomEffect.Disabled
-            ), minimum = ZoomLimit(
-                factor = 1f,
-                overzoomEffect = if (isHapticEnabled) OverzoomEffect.RubberBanding else OverzoomEffect.Disabled
-            )
-        )
-    )
-    Box(
-        Modifier
-            .fillMaxSize()
-            .zoomable(zoomableState), Alignment.Center
-    ) {
-        CheckeredImage(
-            bitmap = bitmap,
-            modifier = Modifier
-                .fillMaxSize()
-                .wrapContentSize(Alignment.Center)
-                .aspectRatio(bitmap.width.toFloat() / bitmap.height.toFloat()),
-            checkerShader = checkerShader
-        )
-    }
-}
+//@Composable
+//private fun SingleImageView(bitmap: Bitmap, needsChecker: Boolean) {
+//    val appPreferences = remember { AppPreferences() }
+//    val isHapticEnabled = remember { appPreferences.loadHapticFeedbackEnabled() }
+//    val checkerShader = if (needsChecker) rememberCheckerShader() else null
+//    val maxZoomFactor = Int.MAX_VALUE.toFloat()
+//    val zoomableState = rememberZoomableState(
+//        ZoomSpec(
+//            maximum = ZoomLimit(
+//                factor = maxZoomFactor,
+//                overzoomEffect = if (isHapticEnabled) OverzoomEffect.RubberBanding else OverzoomEffect.Disabled
+//            ), minimum = ZoomLimit(
+//                factor = 1f,
+//                overzoomEffect = if (isHapticEnabled) OverzoomEffect.RubberBanding else OverzoomEffect.Disabled
+//            )
+//        )
+//    )
+//    Box(
+//        Modifier
+//            .fillMaxSize()
+//            .zoomable(zoomableState), Alignment.Center
+//    ) {
+//        CheckeredImage(
+//            bitmap = bitmap,
+//            modifier = Modifier
+//                .fillMaxSize()
+//                .wrapContentSize(Alignment.Center)
+//                .aspectRatio(bitmap.width.toFloat() / bitmap.height.toFloat()),
+//            checkerShader = checkerShader
+//        )
+//    }
+//}
 
-@Composable
-fun CheckeredImage(
-    bitmap: Bitmap,
-    modifier: Modifier = Modifier,
-    checkerShader: ShaderBrush? = null,
-    filterQuality: FilterQuality = FilterQuality.None
-) {
-    val imageBitmap = remember(bitmap) { bitmap.asImageBitmap() }
-    androidx.compose.foundation.Canvas(modifier) {
-        if (checkerShader != null) {
-            drawRect(brush = checkerShader)
-        }
-        drawImage(
-            image = imageBitmap,
-            dstSize = androidx.compose.ui.unit.IntSize(size.width.toInt(), size.height.toInt()),
-            filterQuality = filterQuality
-        )
-    }
-}
+//@Composable
+//fun CheckeredImage(
+//    bitmap: Bitmap,
+//    modifier: Modifier = Modifier,
+//    checkerShader: ShaderBrush? = null,
+//    filterQuality: FilterQuality = FilterQuality.None
+//) {
+//    val imageBitmap = remember(bitmap) { bitmap.asImageBitmap() }
+//    androidx.compose.foundation.Canvas(modifier) {
+//        if (checkerShader != null) {
+//            drawRect(brush = checkerShader)
+//        }
+//        drawImage(
+//            image = imageBitmap,
+//            dstSize = androidx.compose.ui.unit.IntSize(size.width.toInt(), size.height.toInt()),
+//            filterQuality = filterQuality
+//        )
+//    }
+//}
 
 @Composable
 fun rememberCheckerShader(cellSize: Dp = 8.dp): ShaderBrush {
