@@ -44,7 +44,6 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -294,7 +293,9 @@ fun BeforeAfterSlider(
                 sliderColor = sliderColors.first,
                 iconColor = sliderColors.second,
                 backdrop = backdrop,
-                onPositionChange = { sliderPosition = it })
+                onDrag = { delta ->
+                    sliderPosition = (sliderPosition + delta).coerceIn(0f, 1f)
+                })
         }
     }
 }
@@ -308,13 +309,12 @@ private fun ComparisonSlider(
     sliderColor: Color,
     iconColor: Color,
     backdrop: Backdrop,
-    onPositionChange: (Float) -> Unit,
+    onDrag: (Float) -> Unit,
 ) {
     val density = LocalDensity.current
     val lineWidth = if (glassSlider) 12.dp else 6.dp
     val sliderX = containerWidth * sliderPosition
     val handleShape = RoundedCornerShape(50)
-    val currentPosition by rememberUpdatedState(sliderPosition)
 
     Box(
         Modifier
@@ -355,9 +355,7 @@ private fun ComparisonSlider(
                         onDragStart = { HapticPatterns.tap() },
                         onDrag = { change, dragAmount ->
                             change.consume()
-                            onPositionChange(
-                                (currentPosition + dragAmount.x / containerWidth).coerceIn(0f, 1f)
-                            )
+                            onDrag(dragAmount.x / containerWidth)
                         })
                 }) {
             Box(
