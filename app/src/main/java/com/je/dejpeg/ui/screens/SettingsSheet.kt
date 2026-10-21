@@ -61,8 +61,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import com.je.dejpeg.App
@@ -771,7 +778,7 @@ fun SettingsSheetContent(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    infoText,
+                    makeAsLink(infoText),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -780,6 +787,34 @@ fun SettingsSheetContent(
         }
     }
 }
+
+private val urlRegex = Regex("""https?://[^\s<>"]+""")
+@Composable
+fun makeAsLink(text: String): AnnotatedString {
+    val linkStyles = TextLinkStyles(
+        style = SpanStyle(
+            color = MaterialTheme.colorScheme.primary,
+            textDecoration = TextDecoration.Underline
+        )
+    )
+    return remember(text, linkStyles) {
+        buildAnnotatedString {
+            var last = 0
+            for (match in urlRegex.findAll(text)) {
+                val url = match.value.trimEnd('.', ',', ';', ':', '!', '?', ')')
+                val start = match.range.first
+                val end = start + url.length
+                append(text.substring(last, start))
+                withLink(LinkAnnotation.Url(url, linkStyles)) {
+                    append(url)
+                }
+                last = end
+            }
+            append(text.substring(last))
+        }
+    }
+}
+
 @Composable
 private fun ExpandableSection(
     title: String,

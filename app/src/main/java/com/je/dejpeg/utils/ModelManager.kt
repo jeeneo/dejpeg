@@ -85,6 +85,7 @@ open class ModelManager(
             "1xOverExposureCorrection_compact-fp16" to R.string.model_info_1x_over_exposure_correction_compact,
             "1x-RGB-max-Denoise-fp16" to R.string.model_info_1x_rgb_max_denoise,
             "1x-span-anime-pretrain-fp16" to R.string.model_info_1x_span_anime_pretrain,
+            "1x_StarSample_V2.0_Lite_NS" to R.string.model_info_1x_starsample,
 
             // other compression
             "1x_JPEGDestroyerV2_96000G-fp16" to R.string.model_info_1x_jpeg_destroyer_v2_96000g,

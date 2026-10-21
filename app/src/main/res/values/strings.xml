@@ -270,4 +270,5 @@
     <string name="model_info_background_removal_bria_rmbg">Background removal using BriaAI RMBG</string>
     <string name="model_info_background_removal_u2net">Background removal using u2net</string>
     <string name="cant_delete_model">You can\'t delete models while processing</string>
+    <string name="model_info_1x_starsample">A kind of cartoon cleanup, see https://github.com/Derpiesaurus/models (can also cartoonize)</string>
 </resources>
