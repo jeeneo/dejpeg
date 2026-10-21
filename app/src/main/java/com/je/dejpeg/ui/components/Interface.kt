@@ -13,6 +13,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonShapes
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.ListItemShapes
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -29,10 +30,6 @@ val ScreenHorizontalPadding: Dp = 16.dp
 
 @Composable
 fun segmentedListShapes(index: Int, count: Int) = ListItemDefaults.segmentedShapes(index - 1, count)
-
-//@Composable
-//fun segmentedShape(index: Int, count: Int): Shape =
-//    ListItemDefaults.segmentedShapes(index - 1, count).shape
 
 data class CornerRole(
     val topStart: Boolean = false,
@@ -52,29 +49,29 @@ data class CornerRole(
     }
 }
 
-fun CornerRole.toShape(outer: Dp = ScreenHorizontalPadding, inner: Dp = 6.dp): RoundedCornerShape =
+@Composable
+fun CornerRole.toShape(
+    outer: CornerBasedShape = MaterialTheme.shapes.large,
+    inner: CornerBasedShape = MaterialTheme.shapes.extraSmall,
+): RoundedCornerShape = remember(this, outer, inner) {
     RoundedCornerShape(
-        topStart = if (topStart) outer else inner,
-        topEnd = if (topEnd) outer else inner,
-        bottomStart = if (bottomStart) outer else inner,
-        bottomEnd = if (bottomEnd) outer else inner,
+        topStart = if (topStart) outer.topStart else inner.topStart,
+        topEnd = if (topEnd) outer.topEnd else inner.topEnd,
+        bottomStart = if (bottomStart) outer.bottomStart else inner.bottomStart,
+        bottomEnd = if (bottomEnd) outer.bottomEnd else inner.bottomEnd,
     )
-
+}
 
 @Composable
 fun CornerRole.toListItemShapes(
-    outer: Dp = ScreenHorizontalPadding,
-    inner: Dp = 6.dp,
-): ListItemShapes = remember(this, outer, inner) {
+    outer: CornerBasedShape = MaterialTheme.shapes.large,
+    inner: CornerBasedShape = MaterialTheme.shapes.extraSmall,
+): ListItemShapes {
+    val defaults = ListItemDefaults.shapes()
     val idle = toShape(outer, inner)
-    ListItemShapes(
-        shape = idle,
-        selectedShape = idle,
-        pressedShape = RoundedCornerShape(outer),
-        focusedShape = idle,
-        hoveredShape = idle,
-        draggedShape = idle,
-    )
+    return remember(this, idle, defaults) {
+        defaults.copy(shape = idle)
+    }
 }
 
 @Composable
@@ -82,7 +79,7 @@ fun horizontalSegmentedShapes(
     index: Int,
     count: Int,
     defaultShapes: ListItemShapes = ListItemDefaults.shapes(),
-    roundedShape: CornerBasedShape = RoundedCornerShape(percent = 50),
+    roundedShape: CornerBasedShape = MaterialTheme.shapes.large,
 ): ListItemShapes {
     val normalizedIndex = index - 1
     return remember(normalizedIndex, count, defaultShapes, roundedShape) {
