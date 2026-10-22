@@ -29,7 +29,13 @@ val GroupedListSpacing: Dp = 2.dp
 val ScreenHorizontalPadding: Dp = 16.dp
 
 @Composable
-fun segmentedListShapes(index: Int, count: Int) = ListItemDefaults.segmentedShapes(index - 1, count)
+fun segmentedListShapes(
+    index: Int,
+    count: Int,
+    outer: CornerBasedShape = MaterialTheme.shapes.medium,
+    inner: CornerBasedShape = MaterialTheme.shapes.small,
+): ListItemShapes =
+    CornerRole.forPosition(index, count).toListItemShapes(outer, inner)
 
 data class CornerRole(
     val topStart: Boolean = false,
@@ -51,8 +57,8 @@ data class CornerRole(
 
 @Composable
 fun CornerRole.toShape(
-    outer: CornerBasedShape = MaterialTheme.shapes.large,
-    inner: CornerBasedShape = MaterialTheme.shapes.extraSmall,
+    outer: CornerBasedShape = MaterialTheme.shapes.medium,
+    inner: CornerBasedShape = MaterialTheme.shapes.small,
 ): RoundedCornerShape = remember(this, outer, inner) {
     RoundedCornerShape(
         topStart = if (topStart) outer.topStart else inner.topStart,
@@ -64,8 +70,8 @@ fun CornerRole.toShape(
 
 @Composable
 fun CornerRole.toListItemShapes(
-    outer: CornerBasedShape = MaterialTheme.shapes.large,
-    inner: CornerBasedShape = MaterialTheme.shapes.extraSmall,
+    outer: CornerBasedShape = MaterialTheme.shapes.medium,
+    inner: CornerBasedShape = MaterialTheme.shapes.small,
 ): ListItemShapes {
     val defaults = ListItemDefaults.shapes()
     val idle = toShape(outer, inner)
@@ -79,7 +85,7 @@ fun horizontalSegmentedShapes(
     index: Int,
     count: Int,
     defaultShapes: ListItemShapes = ListItemDefaults.shapes(),
-    roundedShape: CornerBasedShape = MaterialTheme.shapes.large,
+    roundedShape: CornerBasedShape = MaterialTheme.shapes.medium,
 ): ListItemShapes {
     val normalizedIndex = index - 1
     return remember(normalizedIndex, count, defaultShapes, roundedShape) {

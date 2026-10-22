@@ -860,7 +860,8 @@ fun LazyItemScope.ImageCard(
         ),
         swap = swapSwipeActions,
     )
-
+    val imageCorner = if (isSelected) 24.dp else 12.dp
+    
     CardWrapper(
         modifier = modifier.animateItem(
             fadeInSpec = spring(
@@ -912,7 +913,7 @@ fun LazyItemScope.ImageCard(
                             Surface(
                                 Modifier
                                     .size(84.dp)
-                                    .clip(RoundedCornerShape(12.dp)),
+                                    .clip(RoundedCornerShape(imageCorner)),
                                 color = MaterialTheme.colorScheme.surfaceVariant
                             ) {
                                 Image(
@@ -1179,6 +1180,9 @@ private fun ImageCardSplitButton(
     val removeLabel = stringResource(R.string.remove).let { label ->
         if (selectedCount > 0) "$label ($selectedCount)" else label
     }
+    val reprocessLabel = stringResource(R.string.reprocess).let { label ->
+        if (selectedCount > 0) "$label ($selectedCount)" else label
+    }
 
     Row(
         modifier = modifier,
@@ -1324,20 +1328,9 @@ private fun ImageCardSplitButton(
                         clearSelection()
                     })
                 }
-                if (isCompareReady) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.compare)) },
-                        leadingIcon = { Icon(Icons.Rounded.SwapHoriz, null) },
-                        onClick = {
-                            HapticPatterns.tap()
-                            menuExpanded = false
-                            onCompare()
-                            clearSelection()
-                        })
-                }
                 if (cardState == CardState.Complete) {
                     DropdownMenuItem(
-                        text = { Text(stringResource(R.string.reprocess)) },
+                        text = { Text(reprocessLabel) },
                         leadingIcon = {
                             Icon(Icons.Rounded.Refresh, null, modifier = Modifier.size(26.dp))
                         },
@@ -1349,7 +1342,18 @@ private fun ImageCardSplitButton(
                             clearSelection()
                         })
                 }
-                if (cardState == CardState.Complete) {
+                if (isCompareReady) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.compare)) },
+                        leadingIcon = { Icon(Icons.Rounded.SwapHoriz, null) },
+                        onClick = {
+                            HapticPatterns.tap()
+                            menuExpanded = false
+                            onCompare()
+                            clearSelection()
+                        })
+                }
+                if (cardState == CardState.Complete && selectedCount == 1) {
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.import_output)) },
                         leadingIcon = { Icon(Icons.Rounded.AddPhotoAlternate, null) },
@@ -1360,27 +1364,29 @@ private fun ImageCardSplitButton(
                             clearSelection()
                         })
                 }
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.brisque_analysis)) },
-                    leadingIcon = {
-                        Box(
-                            modifier = Modifier.size(24.dp), contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                "B",
-                                fontStyle = FontStyle.Italic,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 21.sp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    },
-                    onClick = {
-                        HapticPatterns.tap()
-                        menuExpanded = false
-                        onBrisque()
-                        clearSelection()
-                    })
+                if (selectedCount == 1){
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.brisque_analysis)) },
+                        leadingIcon = {
+                            Box(
+                                modifier = Modifier.size(24.dp), contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    "B",
+                                    fontStyle = FontStyle.Italic,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 21.sp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        },
+                        onClick = {
+                            HapticPatterns.tap()
+                            menuExpanded = false
+                            onBrisque()
+                            clearSelection()
+                        })
+                }
             }
         }
     }
