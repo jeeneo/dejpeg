@@ -48,6 +48,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -62,11 +63,12 @@ import com.je.dejpeg.ui.components.BeforeAfterSlider
 import com.je.dejpeg.ui.components.GroupedListSpacing
 import com.je.dejpeg.ui.components.PreparingShareDialog
 import com.je.dejpeg.ui.components.horizontalSegmentedShapes
+import com.je.dejpeg.ui.viewmodel.ImageItem
 import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
 import com.je.dejpeg.ui.viewmodel.SaveState
 import com.je.dejpeg.utils.ImageActions
 
-private enum class BitmapSource { Input, Output }
+enum class BitmapSource { Input, Output }
 
 @Composable
 fun ImageScreen(
@@ -113,9 +115,16 @@ fun ImageScreen(
         }
     } else image.inputBitmap
     val afterBitmap = when {
-        isCompareMode -> when (rightSource) {
-            BitmapSource.Input -> compareImage!!.inputBitmap
-            BitmapSource.Output -> compareImage!!.outputBitmap
+        isCompareMode -> {
+            when (rightSource) {
+                BitmapSource.Input -> {
+                    compareImage!!.inputBitmap
+                }
+
+                BitmapSource.Output -> {
+                    compareImage!!.outputBitmap
+                }
+            }
         }
 
         showAfter -> image.outputBitmap
@@ -139,67 +148,14 @@ fun ImageScreen(
         TopAppBar(
             title = {
                 if (isCompareMode) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        var leftMenuExpanded by remember { mutableStateOf(false) }
-                        Box {
-                            TextButton(onClick = {
-                                HapticPatterns.tap(); leftMenuExpanded = true
-                            }) {
-                                Text(
-                                    if (leftSource == BitmapSource.Output) image.filename + " (output)" else image.filename,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                            }
-                            DropdownMenu(
-                                expanded = leftMenuExpanded,
-                                onDismissRequest = { leftMenuExpanded = false }) {
-                                DropdownMenuItem(text = { Text("Input") }, onClick = {
-                                    HapticPatterns.tap()
-                                    leftSource = BitmapSource.Input
-                                    leftMenuExpanded = false
-                                })
-                                if (image.outputBitmap != null) {
-                                    DropdownMenuItem(text = { Text("Output") }, onClick = {
-                                        HapticPatterns.tap()
-                                        leftSource = BitmapSource.Output
-                                        leftMenuExpanded = false
-                                    })
-                                }
-                            }
-                        }
-                        var rightMenuExpanded by remember { mutableStateOf(false) }
-                        Box {
-                            val ci = compareImage!!
-                            TextButton(onClick = {
-                                HapticPatterns.tap(); rightMenuExpanded = true
-                            }) {
-                                Text(
-                                    if (rightSource == BitmapSource.Output) ci.filename + " (output)" else ci.filename,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                            }
-                            DropdownMenu(
-                                expanded = rightMenuExpanded,
-                                onDismissRequest = { rightMenuExpanded = false }) {
-                                DropdownMenuItem(text = { Text("Input") }, onClick = {
-                                    HapticPatterns.tap()
-                                    rightSource = BitmapSource.Input
-                                    rightMenuExpanded = false
-                                })
-                                if (ci.outputBitmap != null) {
-                                    DropdownMenuItem(text = { Text("Output") }, onClick = {
-                                        HapticPatterns.tap()
-                                        rightSource = BitmapSource.Output
-                                        rightMenuExpanded = false
-                                    })
-                                }
-                            }
-                        }
-                    }
+                    TopBarItems(
+                        image = image,
+                        compareImage = compareImage,
+                        leftSource = leftSource,
+                        rightSource = rightSource,
+                        onLeftSourceChange = { leftSource = it },
+                        onRightSourceChange = { rightSource = it },
+                    )
                 } else {
                     Text(filename, style = MaterialTheme.typography.titleMedium)
                 }
@@ -291,6 +247,81 @@ fun ImageScreen(
             }
             (saveState as? SaveState.Saving)?.let { state ->
                 SaveProgressDialog(state)
+            }
+        }
+    }
+}
+
+@Composable
+fun TopBarItems(
+    image: ImageItem,
+    compareImage: ImageItem?,
+    leftSource: BitmapSource,
+    rightSource: BitmapSource,
+    onLeftSourceChange: (BitmapSource) -> Unit,
+    onRightSourceChange: (BitmapSource) -> Unit,
+) {
+    val leftName = image.filename
+    val rightName = compareImage?.filename ?: ""
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier.weight(1f),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            SourceDropdown(
+                title = if (leftSource == BitmapSource.Output) "$leftName (output)" else leftName,
+                hasOutput = image.outputBitmap != null,
+                onSelect = onLeftSourceChange
+            )
+        }
+        Box(
+            modifier = Modifier.weight(1f),
+            contentAlignment = Alignment.CenterEnd
+        ) {
+            SourceDropdown(
+                title = if (rightSource == BitmapSource.Output) "$rightName (output)" else rightName,
+                hasOutput = compareImage?.outputBitmap != null,
+                onSelect = onRightSourceChange
+            )
+        }
+    }
+}
+
+@Composable
+private fun SourceDropdown(
+    title: String,
+    hasOutput: Boolean,
+    onSelect: (BitmapSource) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        TextButton(onClick = {
+            HapticPatterns.tap()
+            expanded = true
+        }) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(text = { Text("Input") }, onClick = {
+                HapticPatterns.tap()
+                onSelect(BitmapSource.Input)
+                expanded = false
+            })
+            if (hasOutput) {
+                DropdownMenuItem(text = { Text("Output") }, onClick = {
+                    HapticPatterns.tap()
+                    onSelect(BitmapSource.Output)
+                    expanded = false
+                })
             }
         }
     }

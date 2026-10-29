@@ -34,8 +34,7 @@ fun segmentedListShapes(
     count: Int,
     outer: CornerBasedShape = MaterialTheme.shapes.medium,
     inner: CornerBasedShape = MaterialTheme.shapes.small,
-): ListItemShapes =
-    CornerRole.forPosition(index, count).toListItemShapes(outer, inner)
+): ListItemShapes = CornerRole.forPosition(index, count).toListItemShapes(outer, inner)
 
 data class CornerRole(
     val topStart: Boolean = false,
@@ -85,7 +84,7 @@ fun horizontalSegmentedShapes(
     index: Int,
     count: Int,
     defaultShapes: ListItemShapes = ListItemDefaults.shapes(),
-    roundedShape: CornerBasedShape = MaterialTheme.shapes.medium,
+    roundedShape: CornerBasedShape = MaterialTheme.shapes.large,
 ): ListItemShapes {
     val normalizedIndex = index - 1
     return remember(normalizedIndex, count, defaultShapes, roundedShape) {
