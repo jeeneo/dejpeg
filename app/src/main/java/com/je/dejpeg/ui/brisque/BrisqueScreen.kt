@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -31,11 +32,13 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -43,6 +46,7 @@ import androidx.compose.material3.SliderState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -63,12 +67,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.je.dejpeg.R
 import com.je.dejpeg.data.BrisqueSettings
+import com.je.dejpeg.data.HapticPatterns
 import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.ui.components.CornerRole
 import com.je.dejpeg.ui.components.GroupedListSpacing
@@ -78,17 +84,16 @@ import com.je.dejpeg.ui.components.StyledAlertDialog
 import com.je.dejpeg.ui.components.toListItemShapes
 import com.je.dejpeg.ui.components.toShape
 import com.je.dejpeg.ui.processing.SaveProgressDialog
-import com.je.dejpeg.ui.view.ImageMode
-import com.je.dejpeg.ui.view.viewerMode
+import com.je.dejpeg.ui.view.BeforeAfterSlider
 import java.util.Locale
 import kotlin.math.roundToInt
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BRISQUEScreen(
     imageRepository: ImageRepository,
     imageId: String,
     onBack: () -> Unit = {},
-    onImageClick: (ImageMode) -> Unit,
 ) {
     val context = LocalContext.current
     val images by imageRepository.images.collectAsState()
@@ -102,15 +107,16 @@ fun BRISQUEScreen(
     val state by viewModel.imageState.collectAsState()
     val saveState by viewModel.saveState.collectAsState()
     val settings by viewModel.settings.collectAsState()
-
     var showSettings by remember { mutableStateOf(false) }
     var showConfirm by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
     var showSizeWarning by remember { mutableStateOf(false) }
+    var showViewer by remember { mutableStateOf(false) }
 
     LaunchedEffect(image.id) {
         viewModel.initialize(context)
     }
+
     Column(
         Modifier
             .fillMaxSize()
@@ -123,18 +129,19 @@ fun BRISQUEScreen(
                 style = MaterialTheme.typography.titleMedium
             )
         }, navigationIcon = {
-            IconButton(onClick = onBack) {
+            IconButton(onClick = { HapticPatterns.tap(); onBack() }) {
                 Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back_desc))
             }
         }, actions = {
             IconButton(onClick = {
+                HapticPatterns.tap()
                 showInfo = true
             }) { Icon(Icons.Rounded.Info, stringResource(R.string.info_desc)) }
-            IconButton(onClick = { showSettings = true }) {
+            IconButton(onClick = { HapticPatterns.tap(); showSettings = true }) {
                 Icon(Icons.Rounded.Settings, stringResource(R.string.settings_desc))
             }
             IconButton(
-                onClick = { viewModel.saveCurrentImage(context) }) {
+                onClick = { HapticPatterns.tap(); viewModel.saveCurrentImage(context) }) {
                 Icon(Icons.Rounded.Save, stringResource(R.string.brisque_save_image_desc))
             }
         })
@@ -155,7 +162,7 @@ fun BRISQUEScreen(
                     .padding(horizontal = ScreenHorizontalPadding, vertical = 8.dp)
                     .heightIn(max = 360.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .clickable { onImageClick(image.viewerMode()) },
+                    .clickable { HapticPatterns.tap(); showViewer = true },
                 contentScale = ContentScale.Fit,
                 filterQuality = FilterQuality.Low
             )
@@ -172,7 +179,6 @@ fun BRISQUEScreen(
                 .verticalScroll(scrollState),
             verticalArrangement = Arrangement.spacedBy(GroupedListSpacing)
         ) {
-
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(GroupedListSpacing)
@@ -214,12 +220,12 @@ fun BRISQUEScreen(
                             ?: NOT_ASSESSED)
                 }
             }
+
             val enabled = !state.isBusy
             val colors = ListItemDefaults.segmentedColors(
                 containerColor = MaterialTheme.colorScheme.onSecondary,
                 disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
             )
-
             Row(
                 horizontalArrangement = Arrangement.spacedBy(GroupedListSpacing)
             ) {
@@ -228,7 +234,7 @@ fun BRISQUEScreen(
                     modifier = Modifier.weight(1f),
                     enabled = enabled,
                     shapes = CornerRole(bottomStart = true).toListItemShapes(),
-                    onClick = { viewModel.assessQuality(context) },
+                    onClick = { HapticPatterns.tap(); viewModel.assessQuality(context) },
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -249,6 +255,7 @@ fun BRISQUEScreen(
                     enabled = enabled,
                     shapes = CornerRole(bottomEnd = true).toListItemShapes(),
                     onClick = {
+                        HapticPatterns.tap()
                         if (state.descaledBitmap != null) showConfirm = true
                         else viewModel.descaleImage()
                     }) {
@@ -294,7 +301,7 @@ fun BRISQUEScreen(
                 if (state.isBusy) {
                     MorphButton(
                         modifier = Modifier.fillMaxWidth(),
-                        onClick = { viewModel.cancelWork(context) },
+                        onClick = { HapticPatterns.tap(); viewModel.cancelWork(context) },
                         label = stringResource(R.string.cancel)
                     )
                 }
@@ -349,6 +356,27 @@ fun BRISQUEScreen(
     }
 
     (saveState as? SaveState.Saving)?.let { SaveProgressDialog(it) }
+
+    if (showViewer) {
+        @Suppress("DEPRECATION") val sheetState =
+            rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ModalBottomSheet(
+            onDismissRequest = { showViewer = false },
+            sheetState = sheetState,
+            sheetMaxWidth = Dp.Unspecified,
+            sheetGesturesEnabled = false,
+            dragHandle = null,
+            containerColor = MaterialTheme.colorScheme.background,
+        ) {
+            BeforeAfterSlider(
+                beforeBitmap = state.originalBitmap,
+                afterBitmap = state.descaledBitmap,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight()
+            )
+        }
+    }
 
     (saveState as? SaveState.Error)?.let { err ->
         StyledAlertDialog(
@@ -530,6 +558,7 @@ private fun BrisqueSettingsDialog(
         },
         confirmButton = {
             MorphButton(onClick = {
+                HapticPatterns.tap()
                 onSave(
                     BrisqueSettings(
                         coarseStep.roundToInt(),
@@ -545,6 +574,7 @@ private fun BrisqueSettingsDialog(
         dismissButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(onClick = {
+                    HapticPatterns.tap()
                     coarseStep = 20f
                     fineStep = 5f
                     fineRange = 30f

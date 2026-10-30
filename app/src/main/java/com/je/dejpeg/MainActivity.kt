@@ -272,10 +272,7 @@ class BrisqueActivity : ComponentActivity() {
                 BRISQUEScreen(
                     imageRepository = imageRepository,
                     imageId = imageId,
-                    onBack = { finish() },
-                    onImageClick = { mode ->
-                        startActivity(imageIntent(this@BrisqueActivity, mode))
-                    })
+                    onBack = { finish() })
             }
         }
     }
