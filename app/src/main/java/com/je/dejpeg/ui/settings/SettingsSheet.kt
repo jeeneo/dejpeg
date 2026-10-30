@@ -1,4 +1,4 @@
-package com.je.dejpeg.ui.screens
+package com.je.dejpeg.ui.settings
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -93,9 +93,8 @@ import com.je.dejpeg.ui.components.SwipeSide
 import com.je.dejpeg.ui.components.rememberMaterialPressState
 import com.je.dejpeg.ui.components.segmentedListShapes
 import com.je.dejpeg.ui.components.toListItemShapes
-import com.je.dejpeg.ui.viewmodel.ProcessingUiState
-import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
-import com.je.dejpeg.ui.viewmodel.SettingsViewModel
+import com.je.dejpeg.ui.processing.ProcessingUiState
+import com.je.dejpeg.ui.processing.ProcessingViewModel
 import com.je.dejpeg.utils.ModelManager
 import com.je.dejpeg.utils.ModelType
 import kotlinx.coroutines.Dispatchers

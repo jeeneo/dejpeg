@@ -44,16 +44,17 @@ import com.je.dejpeg.data.AppState
 import com.je.dejpeg.data.AppTheme
 import com.je.dejpeg.data.HapticPatterns
 import com.je.dejpeg.data.ImageRepository
+import com.je.dejpeg.ui.brisque.BRISQUEScreen
 import com.je.dejpeg.ui.components.ActivitySnackySnackbarController
 import com.je.dejpeg.ui.components.RecoveryDialog
 import com.je.dejpeg.ui.components.SnackBarBox
 import com.je.dejpeg.ui.components.SnackbarController
 import com.je.dejpeg.ui.components.SnackySnackbarHostState
-import com.je.dejpeg.ui.screens.BRISQUEScreen
-import com.je.dejpeg.ui.screens.ImageScreen
-import com.je.dejpeg.ui.screens.ProcessingScreen
-import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
-import com.je.dejpeg.ui.viewmodel.SettingsViewModel
+import com.je.dejpeg.ui.processing.ProcessingScreen
+import com.je.dejpeg.ui.processing.ProcessingViewModel
+import com.je.dejpeg.ui.settings.SettingsViewModel
+import com.je.dejpeg.ui.view.ImageMode
+import com.je.dejpeg.ui.view.ImageScreen
 import com.je.dejpeg.utils.ModelManager
 
 class App : Application() {
@@ -208,24 +209,15 @@ fun ScreenController() {
                     processingViewModel = viewModel,
                     settingsViewModel = settingsViewModel,
                     imageRepository = imageRepository,
-                    onNavigateToBeforeAfter = { id ->
+                    onOpenImage = { mode ->
                         context.startActivity(
-                            Intent(context, BeforeAfterActivity::class.java).putExtra(
-                                "imageId", id
-                            ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            imageIntent(context, mode).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         )
                     },
                     onNavigateToBrisque = { id ->
                         context.startActivity(
                             Intent(context, BrisqueActivity::class.java).putExtra("imageId", id)
                                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        )
-                    },
-                    onNavigateToCompare = { idA, idB ->
-                        context.startActivity(
-                            Intent(context, CompareActivity::class.java).putExtra(
-                                "imageIdA", idA
-                            ).putExtra("imageIdB", idB).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         )
                     },
                     isActive = true,
@@ -237,6 +229,15 @@ fun ScreenController() {
 }
 
 private const val IMAGE_ID = "imageId"
+private const val COMPARE_IMAGE_ID = "compareImageId"
+private fun imageIntent(context: Context, mode: ImageMode): Intent =
+    Intent(context, ImageActivity::class.java).apply {
+        putExtra(IMAGE_ID, mode.imageId)
+        when (mode) {
+            is ImageMode.Single -> Unit
+            is ImageMode.Compare -> putExtra(COMPARE_IMAGE_ID, mode.compareImageId)
+        }
+    }
 
 @Composable
 private fun ActivityContent(
@@ -269,52 +270,41 @@ class BrisqueActivity : ComponentActivity() {
         setContent {
             ActivityContent { imageRepository ->
                 BRISQUEScreen(
-                    imageRepository = imageRepository, imageId = imageId, onBack = { finish() })
-            }
-        }
-    }
-}
-
-class BeforeAfterActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        val imageId = intent.getStringExtra(IMAGE_ID) ?: return finish()
-        setContent {
-            ActivityContent { imageRepository ->
-                val viewModel: ProcessingViewModel = viewModel()
-                LaunchedEffect(Unit) {
-                    viewModel.imageRepository = imageRepository
-                    viewModel.initialize(this@BeforeAfterActivity)
-                }
-                ImageScreen(
-                    viewModel = viewModel,
                     imageRepository = imageRepository,
                     imageId = imageId,
-                    onBack = { finish() })
+                    onBack = { finish() },
+                    onImageClick = { mode ->
+                        startActivity(imageIntent(this@BrisqueActivity, mode))
+                    })
             }
         }
     }
 }
 
-class CompareActivity : ComponentActivity() {
+class ImageActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val imageIdA = intent.getStringExtra("imageIdA") ?: return finish()
-        val imageIdB = intent.getStringExtra("imageIdB") ?: return finish()
+        val mode = intentMode(intent) ?: return finish()
         setContent {
             ActivityContent { imageRepository ->
                 val viewModel: ProcessingViewModel = viewModel()
                 LaunchedEffect(Unit) {
                     viewModel.imageRepository = imageRepository
-                    viewModel.initialize(this@CompareActivity)
+                    viewModel.initialize(this@ImageActivity)
                 }
                 ImageScreen(
                     viewModel = viewModel,
                     imageRepository = imageRepository,
-                    imageId = imageIdA,
-                    compareImageId = imageIdB,
+                    mode = mode,
                     onBack = { finish() })
             }
         }
+    }
+
+    private fun intentMode(intent: Intent): ImageMode? {
+        val imageId = intent.getStringExtra(IMAGE_ID) ?: return null
+        val compareImageId = intent.getStringExtra(COMPARE_IMAGE_ID)
+        return if (compareImageId == null) ImageMode.Single(imageId)
+        else ImageMode.Compare(imageId, compareImageId)
     }
 }

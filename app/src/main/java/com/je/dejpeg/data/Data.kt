@@ -22,7 +22,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import com.je.dejpeg.App
-import com.je.dejpeg.ui.viewmodel.ImageItem
+import com.je.dejpeg.ui.processing.ImageItem
 import com.je.dejpeg.utils.ImageLoadingHelper
 import com.je.dejpeg.utils.ImageSource
 import com.je.dejpeg.utils.ModelType

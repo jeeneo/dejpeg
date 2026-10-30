@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
-package com.je.dejpeg.ui.viewmodel
+package com.je.dejpeg.ui.processing
 
 import android.content.Context
 import android.content.Intent
@@ -19,9 +19,11 @@ import com.je.dejpeg.R
 import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.processing.ProcessingService
 import com.je.dejpeg.processing.ServiceCommunicationHelper
+import com.je.dejpeg.ui.brisque.SaveState
 import com.je.dejpeg.ui.components.SnackbarController
 import com.je.dejpeg.ui.components.SnackbarDuration
 import com.je.dejpeg.ui.components.SnackbarEvents
+import com.je.dejpeg.ui.settings.SettingsViewModel
 import com.je.dejpeg.utils.CacheManager
 import com.je.dejpeg.utils.ImageActions
 import com.je.dejpeg.utils.ImagePickerHelper

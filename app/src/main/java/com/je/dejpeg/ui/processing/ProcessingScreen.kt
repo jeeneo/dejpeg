@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
-package com.je.dejpeg.ui.screens
+package com.je.dejpeg.ui.processing
 
 import android.app.Activity
 import android.content.Context
@@ -131,7 +131,7 @@ import com.je.dejpeg.data.HapticPatterns
 import com.je.dejpeg.data.ImageFlowDialogs
 import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.data.rememberImageFlows
-import com.je.dejpeg.ui.components.BottomSheet
+import com.je.dejpeg.ui.brisque.SaveState
 import com.je.dejpeg.ui.components.CancelProcessingDialog
 import com.je.dejpeg.ui.components.CardWrapper
 import com.je.dejpeg.ui.components.CornerRole
@@ -149,11 +149,11 @@ import com.je.dejpeg.ui.components.SwipeSide
 import com.je.dejpeg.ui.components.rememberMaterialPressState
 import com.je.dejpeg.ui.components.toListItemShapes
 import com.je.dejpeg.ui.components.toShape
-import com.je.dejpeg.ui.viewmodel.ImageItem
-import com.je.dejpeg.ui.viewmodel.ProcessingUiState
-import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
-import com.je.dejpeg.ui.viewmodel.SaveState
-import com.je.dejpeg.ui.viewmodel.SettingsViewModel
+import com.je.dejpeg.ui.settings.BottomSheet
+import com.je.dejpeg.ui.settings.SettingsSheetContent
+import com.je.dejpeg.ui.settings.SettingsViewModel
+import com.je.dejpeg.ui.view.ImageMode
+import com.je.dejpeg.ui.view.viewerMode
 import com.je.dejpeg.utils.ModelType
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -172,9 +172,8 @@ fun ProcessingScreen(
     processingViewModel: ProcessingViewModel,
     settingsViewModel: SettingsViewModel,
     imageRepository: ImageRepository,
-    onNavigateToBeforeAfter: (String) -> Unit = {},
+    onOpenImage: (ImageMode) -> Unit = {},
     onNavigateToBrisque: (String) -> Unit = {},
-    onNavigateToCompare: (String, String) -> Unit = { _, _ -> },
     isActive: Boolean = true,
     initialSharedUris: List<Uri> = emptyList(),
     onRemoveSharedUri: (Uri) -> Unit = {},
@@ -513,9 +512,7 @@ fun ProcessingScreen(
                         if (processingMode == ModelType.OIDN) {
                             val displayValue =
                                 if (oidnInputScale == 0f) stringResource(R.string.text_auto) else String.format(
-                                    Locale.ROOT,
-                                    "%.1f",
-                                    oidnInputScale
+                                    Locale.ROOT, "%.1f", oidnInputScale
                                 )
                             Text(
                                 stringResource(R.string.input_scale, displayValue),
@@ -532,14 +529,12 @@ fun ProcessingScreen(
                                 oidnSliderState.value = oidnInputScale
                             }
                             Slider(
-                                state = oidnSliderState,
-                                onValueChange = {
+                                state = oidnSliderState, onValueChange = {
                                     if (it != oidnInputScale) {
                                         HapticPatterns.tap()
                                         settingsViewModel.setOidnInputScale(it)
                                     }
-                                },
-                                modifier = Modifier
+                                }, modifier = Modifier
                                     .fillMaxWidth()
                                     .height(24.dp)
                             )
@@ -559,14 +554,12 @@ fun ProcessingScreen(
                                 strengthSliderState.value = globalStrength
                             }
                             Slider(
-                                state = strengthSliderState,
-                                onValueChange = {
+                                state = strengthSliderState, onValueChange = {
                                     if (it != globalStrength) {
                                         HapticPatterns.tap()
                                         settingsViewModel.setGlobalStrength(it)
                                     }
-                                },
-                                modifier = Modifier
+                                }, modifier = Modifier
                                     .fillMaxWidth()
                                     .height(24.dp)
                             )
@@ -674,9 +667,8 @@ fun ProcessingScreen(
                                 takeProcess = { id -> takeProcess(id) },
                                 onCancelProcessing = { imageIdToCancel = it },
                                 onRequestRemoval = flows::requestRemoval,
-                                onNavigateToBeforeAfter = onNavigateToBeforeAfter,
+                                onOpenImage = onOpenImage,
                                 onNavigateToBrisque = onNavigateToBrisque,
-                                onNavigateToCompare = onNavigateToCompare,
                                 onClearSelection = clearSelection,
                                 strengthVisible = strengthVisible
                             )
@@ -802,9 +794,8 @@ fun LazyItemScope.ImageCard(
     takeProcess: (String?) -> Unit,
     onCancelProcessing: (String) -> Unit,
     onRequestRemoval: (List<String>) -> Unit,
-    onNavigateToBeforeAfter: (String) -> Unit,
+    onOpenImage: (ImageMode) -> Unit,
     onNavigateToBrisque: (String) -> Unit,
-    onNavigateToCompare: (String, String) -> Unit,
     onClearSelection: () -> Unit,
     strengthVisible: Boolean,
 ) {
@@ -861,7 +852,7 @@ fun LazyItemScope.ImageCard(
         swap = swapSwipeActions,
     )
     val imageCorner = if (isSelected) 24.dp else 12.dp
-    
+
     CardWrapper(
         modifier = modifier.animateItem(
             fadeInSpec = spring(
@@ -887,11 +878,17 @@ fun LazyItemScope.ImageCard(
             modifier = modifier,
             onClick = {
                 HapticPatterns.tap()
-                if (isProcessing) return@SegmentedListItem
-                if (isSelectionMode) onToggleSelection(image.id)
-                else onNavigateToBeforeAfter(image.id)
+                when {
+                    isProcessing -> Unit
+                    isSelectionMode -> onToggleSelection(image.id)
+                    else -> onOpenImage(image.viewerMode())
+                }
             },
-            onLongClick = if (isProcessing) null else { -> run { onToggleSelection(image.id) } },
+            onLongClick = {
+                if (!isProcessing) {
+                    onToggleSelection(image.id)
+                }
+            },
             content = {
                 Box(
                     Modifier.fillMaxSize()
@@ -987,7 +984,7 @@ fun LazyItemScope.ImageCard(
                                 selectedCount = if (isSelected) selectedImageIds.size else 0,
                                 onCompare = {
                                     val (idA, idB) = selectedImageIds
-                                    onNavigateToCompare(idA, idB)
+                                    onOpenImage(ImageMode.Compare(idA, idB))
                                 },
                                 clearSelection = onClearSelection
                             )
@@ -1329,18 +1326,15 @@ private fun ImageCardSplitButton(
                     })
                 }
                 if (cardState == CardState.Complete) {
-                    DropdownMenuItem(
-                        text = { Text(reprocessLabel) },
-                        leadingIcon = {
-                            Icon(Icons.Rounded.Refresh, null, modifier = Modifier.size(26.dp))
-                        },
-                        onClick = {
-                            HapticPatterns.tap()
-                            menuExpanded = false
-                            if (selectedCount > 1) onProcess(null)
-                            else onProcess(image.id)
-                            clearSelection()
-                        })
+                    DropdownMenuItem(text = { Text(reprocessLabel) }, leadingIcon = {
+                        Icon(Icons.Rounded.Refresh, null, modifier = Modifier.size(26.dp))
+                    }, onClick = {
+                        HapticPatterns.tap()
+                        menuExpanded = false
+                        if (selectedCount > 1) onProcess(null)
+                        else onProcess(image.id)
+                        clearSelection()
+                    })
                 }
                 if (isCompareReady) {
                     DropdownMenuItem(
@@ -1353,7 +1347,7 @@ private fun ImageCardSplitButton(
                             clearSelection()
                         })
                 }
-                if (cardState == CardState.Complete && selectedCount == 1) {
+                if (cardState == CardState.Complete && selectedCount <= 1) {
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.import_output)) },
                         leadingIcon = { Icon(Icons.Rounded.AddPhotoAlternate, null) },
@@ -1364,7 +1358,7 @@ private fun ImageCardSplitButton(
                             clearSelection()
                         })
                 }
-                if (selectedCount == 1){
+                if (selectedCount <= 1) {
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.brisque_analysis)) },
                         leadingIcon = {

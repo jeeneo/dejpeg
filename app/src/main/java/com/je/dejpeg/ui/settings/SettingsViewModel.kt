@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
-package com.je.dejpeg.ui.viewmodel
+package com.je.dejpeg.ui.settings
 
 import android.net.Uri
 import androidx.lifecycle.ViewModel

@@ -44,15 +44,11 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".BeforeAfterActivity"
-            android:exported="false"
-            android:theme="@style/Theme.DeJPEG" />
-        <activity
             android:name=".BrisqueActivity"
             android:exported="false"
             android:theme="@style/Theme.DeJPEG" />
         <activity
-            android:name=".CompareActivity"
+            android:name=".ImageActivity"
             android:exported="false"
             android:theme="@style/Theme.DeJPEG" />
 

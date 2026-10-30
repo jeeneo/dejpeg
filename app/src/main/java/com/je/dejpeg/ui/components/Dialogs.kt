@@ -86,8 +86,8 @@ import com.je.dejpeg.R
 import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.data.HapticPatterns
 import com.je.dejpeg.data.ImageRepository
-import com.je.dejpeg.ui.viewmodel.ImageItem
-import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
+import com.je.dejpeg.ui.processing.ImageItem
+import com.je.dejpeg.ui.processing.ProcessingViewModel
 import com.je.dejpeg.utils.CacheManager
 import com.je.dejpeg.utils.ImageLoadingHelper
 import com.je.dejpeg.utils.ImageSource

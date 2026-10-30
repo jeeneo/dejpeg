@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
-package com.je.dejpeg.ui.components
+package com.je.dejpeg.ui.view
 
 import android.graphics.Bitmap
 import android.graphics.Color.blue
@@ -73,7 +73,6 @@ import androidx.compose.ui.unit.sp
 import androidx.core.graphics.get
 import com.je.dejpeg.R
 import com.je.dejpeg.data.HapticPatterns
-import com.je.dejpeg.ui.screens.rememberCheckerShader
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
@@ -165,9 +164,9 @@ private class ComparisonTransform(val maxZoom: Float) {
 
 @Composable
 fun BeforeAfterSlider(
-    beforeBitmap: Bitmap,
-    afterBitmap: Bitmap?,
     modifier: Modifier = Modifier,
+    beforeBitmap: Bitmap,
+    afterBitmap: Bitmap? = null,
     glassSlider: Boolean = false,
 ) {
     val beforeImage = remember(beforeBitmap) { beforeBitmap.toHardwareImage() }
@@ -175,7 +174,7 @@ fun BeforeAfterSlider(
     val hasAlpha = beforeBitmap.hasAlpha() || afterBitmap?.hasAlpha() == true
     val checkerShader = if (hasAlpha) rememberCheckerShader() else null
     val sliderColors = remember(beforeBitmap, afterBitmap) {
-        if (afterBitmap == null) null else calculateSliderColors(beforeBitmap)
+        calculateSliderColors(beforeBitmap)
     }
     val maxZoomFactor = Float.MAX_VALUE
     val transform = remember(maxZoomFactor) { ComparisonTransform(maxZoomFactor) }
@@ -284,7 +283,7 @@ fun BeforeAfterSlider(
                 )
             }
         }
-        if (afterImage != null && sliderColors != null && containerSize.width > 0) {
+        if (afterImage != null && containerSize.width > 0) {
             ComparisonSlider(
                 sliderPosition = sliderPosition,
                 containerWidth = containerSize.width,
@@ -371,7 +370,9 @@ private fun ComparisonSlider(
                                     lens(16f.dp.toPx(), 24f.dp.toPx(), true)
                                 })
                         } else {
-                            Modifier.clip(CircleShape).background(sliderColor)
+                            Modifier
+                                .clip(CircleShape)
+                                .background(sliderColor)
                         }
                     )
                     .size(

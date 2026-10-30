@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
-package com.je.dejpeg.ui.screens
+package com.je.dejpeg.ui.brisque
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -30,7 +31,6 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearWavyProgressIndicator
@@ -77,17 +77,18 @@ import com.je.dejpeg.ui.components.ScreenHorizontalPadding
 import com.je.dejpeg.ui.components.StyledAlertDialog
 import com.je.dejpeg.ui.components.toListItemShapes
 import com.je.dejpeg.ui.components.toShape
-import com.je.dejpeg.ui.viewmodel.BrisqueViewModel
-import com.je.dejpeg.ui.viewmodel.SaveState
+import com.je.dejpeg.ui.processing.SaveProgressDialog
+import com.je.dejpeg.ui.view.ImageMode
+import com.je.dejpeg.ui.view.viewerMode
 import java.util.Locale
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BRISQUEScreen(
     imageRepository: ImageRepository,
     imageId: String,
     onBack: () -> Unit = {},
+    onImageClick: (ImageMode) -> Unit,
 ) {
     val context = LocalContext.current
     val images by imageRepository.images.collectAsState()
@@ -144,17 +145,21 @@ fun BRISQUEScreen(
             }
         }
 
-        Image(
-            bitmap = (state.descaledBitmap ?: state.originalBitmap).asImageBitmap(),
-            contentDescription = image.filename,
-            modifier = Modifier
-                .padding(horizontal = ScreenHorizontalPadding, vertical = 8.dp)
-                .fillMaxWidth()
-                .heightIn(max = 360.dp)
-                .clip(RoundedCornerShape(16.dp)),
-            contentScale = ContentScale.Fit,
-            filterQuality = FilterQuality.Low
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center
+        ) {
+            Image(
+                bitmap = (state.descaledBitmap ?: state.originalBitmap).asImageBitmap(),
+                contentDescription = image.filename,
+                modifier = Modifier
+                    .padding(horizontal = ScreenHorizontalPadding, vertical = 8.dp)
+                    .heightIn(max = 360.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable { onImageClick(image.viewerMode()) },
+                contentScale = ContentScale.Fit,
+                filterQuality = FilterQuality.Low
+            )
+        }
 
         val scrollState = rememberScrollState()
         val info = state.descaleInfo

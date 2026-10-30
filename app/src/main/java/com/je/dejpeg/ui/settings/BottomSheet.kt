@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
-package com.je.dejpeg.ui.components
+package com.je.dejpeg.ui.settings
 
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animate
@@ -39,6 +39,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.je.dejpeg.data.HapticPatterns
+import com.je.dejpeg.ui.components.ScreenHorizontalPadding
 import kotlinx.coroutines.launch
 
 @Composable

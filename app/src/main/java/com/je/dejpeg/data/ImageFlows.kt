@@ -13,8 +13,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import com.je.dejpeg.ui.components.RemoveImageDialog
 import com.je.dejpeg.ui.components.SaveImageDialog
-import com.je.dejpeg.ui.viewmodel.ImageItem
-import com.je.dejpeg.ui.viewmodel.ProcessingViewModel
+import com.je.dejpeg.ui.processing.ImageItem
+import com.je.dejpeg.ui.processing.ProcessingViewModel
 import com.je.dejpeg.utils.ImageActions
 
 data class SaveRequest(
