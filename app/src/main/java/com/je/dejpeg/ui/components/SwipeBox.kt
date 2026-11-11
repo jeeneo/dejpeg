@@ -49,7 +49,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import com.je.dejpeg.data.HapticPatterns
@@ -94,6 +96,7 @@ fun SwipeBox(
     val currentEnableEndToStart by rememberUpdatedState(enableDismissFromEndToStart)
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
+    val directionMultiplier = if (LocalLayoutDirection.current == LayoutDirection.Rtl) -1f else 1f
     val velocityTracker = remember { VelocityTracker() }
     var dragOffset by remember { mutableFloatStateOf(0f) }
     var maxWidthPx by remember { mutableFloatStateOf(0f) }
@@ -111,13 +114,15 @@ fun SwipeBox(
             }
             .then(
                 if (collapseFraction.value < 1f) {
-                    Modifier.height(with(density) {
+                    Modifier
+                        .height(with(density) {
                             (measuredHeightPx * collapseFraction.value).toInt().coerceAtLeast(0)
                                 .toDp()
-                        }).clipToBounds()
+                        })
+                        .clipToBounds()
                 } else Modifier
             )
-            .pointerInput(canInteract) {
+            .pointerInput(canInteract, directionMultiplier) {
                 if (!canInteract) return@pointerInput
                 detectHorizontalDragGestures(onDragStart = {
                     settleJob?.cancel()
@@ -127,9 +132,11 @@ fun SwipeBox(
                     velocityTracker.addPosition(change.uptimeMillis, change.position)
                     val lowerBound = if (currentEnableEndToStart) -maxWidthPx else 0f
                     val upperBound = if (currentEnableStartToEnd) maxWidthPx else 0f
-                    dragOffset = (dragOffset + dragAmount).coerceIn(lowerBound, upperBound)
+                    dragOffset = (dragOffset + dragAmount * directionMultiplier).coerceIn(
+                        lowerBound, upperBound
+                    )
                 }, onDragEnd = {
-                    val endVelocity = velocityTracker.calculateVelocity().x
+                    val endVelocity = velocityTracker.calculateVelocity().x * directionMultiplier
                     val thresholdPx = currentThreshold(maxWidthPx)
                     val velocityThresholdPx = 125.dp.toPx()
                     val startToEndQualified =
@@ -193,9 +200,7 @@ fun SwipeBox(
 
 @Composable
 fun CardWrapper(
-    modifier: Modifier = Modifier,
-    config: SwipeConfig,
-    content: @Composable () -> Unit
+    modifier: Modifier = Modifier, config: SwipeConfig, content: @Composable () -> Unit
 ) {
     val leftAction = config.resolvedRight.action
     val rightAction = config.resolvedLeft.action

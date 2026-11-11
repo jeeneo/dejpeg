@@ -21,7 +21,6 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -45,12 +44,21 @@ data class CornerRole(
     companion object {
         val None = CornerRole()
         val All = CornerRole(topStart = true, topEnd = true, bottomStart = true, bottomEnd = true)
-        fun forPosition(index: Int, count: Int): CornerRole = when {
+        fun vertical(index: Int, count: Int): CornerRole = when {
             count <= 1 -> All
             index == 1 -> CornerRole(topStart = true, topEnd = true) // leading
             index == count -> CornerRole(bottomStart = true, bottomEnd = true) // trailing
             else -> None // center
         }
+
+        fun horizontal(index: Int, count: Int): CornerRole = when {
+            count <= 1 -> All
+            index == 1 -> CornerRole(topStart = true, bottomStart = true) // start
+            index == count -> CornerRole(topEnd = true, bottomEnd = true) // end
+            else -> None // middle
+        }
+
+        fun forPosition(index: Int, count: Int): CornerRole = vertical(index, count)
     }
 }
 
@@ -71,11 +79,14 @@ fun CornerRole.toShape(
 fun CornerRole.toListItemShapes(
     outer: CornerBasedShape = MaterialTheme.shapes.medium,
     inner: CornerBasedShape = MaterialTheme.shapes.small,
+    pressedOuter: CornerBasedShape = MaterialTheme.shapes.large,
+    pressedInner: CornerBasedShape = MaterialTheme.shapes.medium,
 ): ListItemShapes {
     val defaults = ListItemDefaults.shapes()
     val idle = toShape(outer, inner)
-    return remember(this, idle, defaults) {
-        defaults.copy(shape = idle)
+    val pressed = toShape(pressedOuter, pressedInner)
+    return remember(this, idle, pressed, defaults) {
+        defaults.copy(shape = idle, pressedShape = pressed)
     }
 }
 
@@ -83,45 +94,9 @@ fun CornerRole.toListItemShapes(
 fun horizontalSegmentedShapes(
     index: Int,
     count: Int,
-    defaultShapes: ListItemShapes = ListItemDefaults.shapes(),
-    roundedShape: CornerBasedShape = MaterialTheme.shapes.large,
-): ListItemShapes {
-    val normalizedIndex = index - 1
-    return remember(normalizedIndex, count, defaultShapes, roundedShape) {
-        fun Shape.correctedOrSelf(): Shape {
-            if (this !is CornerBasedShape) return this
-            return when {
-                count == 1 -> copy(
-                    topStart = roundedShape.topStart,
-                    topEnd = roundedShape.topEnd,
-                    bottomStart = roundedShape.bottomStart,
-                    bottomEnd = roundedShape.bottomEnd,
-                )
-
-                normalizedIndex == 0 -> copy(
-                    topStart = roundedShape.topStart,
-                    bottomStart = roundedShape.bottomStart,
-                )
-
-                normalizedIndex == count - 1 -> copy(
-                    topEnd = roundedShape.topEnd,
-                    bottomEnd = roundedShape.bottomEnd,
-                )
-
-                else -> this
-            }
-        }
-
-        defaultShapes.copy(
-            shape = defaultShapes.shape.correctedOrSelf(),
-            selectedShape = defaultShapes.selectedShape.correctedOrSelf(),
-            pressedShape = defaultShapes.pressedShape.correctedOrSelf(),
-            focusedShape = defaultShapes.focusedShape.correctedOrSelf(),
-            hoveredShape = defaultShapes.hoveredShape.correctedOrSelf(),
-            draggedShape = defaultShapes.draggedShape.correctedOrSelf(),
-        )
-    }
-}
+    outer: CornerBasedShape = MaterialTheme.shapes.medium,
+    inner: CornerBasedShape = MaterialTheme.shapes.small,
+): ListItemShapes = CornerRole.horizontal(index, count).toListItemShapes(outer, inner)
 
 @SuppressLint("MissingHapticFeedback")
 @Composable
@@ -140,7 +115,6 @@ fun MorphButton(
         ), interactionSource = interactionSource, colors = colors
     ) { Text(label) }
 }
-
 
 @Composable
 fun rememberMaterialPressState(

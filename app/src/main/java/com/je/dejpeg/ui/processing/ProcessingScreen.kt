@@ -9,6 +9,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.res.Configuration
 import android.net.Uri
 import android.view.animation.PathInterpolator
 import androidx.activity.BackEventCompat
@@ -18,9 +19,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColor
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -39,6 +38,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -47,16 +47,19 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AddPhotoAlternate
 import androidx.compose.material.icons.rounded.Cancel
 import androidx.compose.material.icons.rounded.Close
@@ -65,7 +68,6 @@ import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Save
-import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -76,8 +78,6 @@ import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.ListItemDefaults
@@ -90,6 +90,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.WavyProgressIndicatorDefaults
 import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -101,6 +102,7 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -110,23 +112,26 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.util.lerp
 import androidx.compose.ui.window.DialogProperties
+import androidx.core.graphics.createBitmap
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.je.dejpeg.App
 import com.je.dejpeg.R
 import com.je.dejpeg.data.AppPreferences
+import com.je.dejpeg.data.AppTheme
 import com.je.dejpeg.data.HapticPatterns
 import com.je.dejpeg.data.ImageFlowDialogs
 import com.je.dejpeg.data.ImageRepository
@@ -146,26 +151,19 @@ import com.je.dejpeg.ui.components.SnackbarEvents
 import com.je.dejpeg.ui.components.StyledAlertDialog
 import com.je.dejpeg.ui.components.SwipeConfig
 import com.je.dejpeg.ui.components.SwipeSide
-import com.je.dejpeg.ui.components.rememberMaterialPressState
 import com.je.dejpeg.ui.components.toListItemShapes
 import com.je.dejpeg.ui.components.toShape
-import com.je.dejpeg.ui.settings.BottomSheet
+import com.je.dejpeg.ui.settings.EdgeSheet
 import com.je.dejpeg.ui.settings.SettingsSheetContent
 import com.je.dejpeg.ui.settings.SettingsViewModel
+import com.je.dejpeg.ui.settings.SheetEdge
+import com.je.dejpeg.ui.settings.rememberEdgeSheetState
+import com.je.dejpeg.ui.settings.reserveSheetSpace
 import com.je.dejpeg.ui.view.ImageMode
 import com.je.dejpeg.ui.view.viewerMode
 import com.je.dejpeg.utils.ModelType
 import kotlinx.coroutines.launch
 import java.util.Locale
-
-private enum class CardState { Idle, Processing, Complete, Stale }
-
-private fun cardStateOf(image: ImageItem): CardState = when {
-    image.isProcessing -> CardState.Processing
-    image.outputBitmap != null && image.isOutputStale -> CardState.Stale
-    image.outputBitmap != null -> CardState.Complete
-    else -> CardState.Idle
-}
 
 @Composable
 fun ProcessingScreen(
@@ -177,8 +175,10 @@ fun ProcessingScreen(
     isActive: Boolean = true,
     initialSharedUris: List<Uri> = emptyList(),
     onRemoveSharedUri: (Uri) -> Unit = {},
+    initiallySettingsExpanded: Boolean = false,
 ) {
     val context = App.ctx
+    val inPreview = LocalInspectionMode.current
     val appPreferences = remember { AppPreferences() }
     val defaultImageSource = remember { appPreferences.loadDefaultImageSource() }
     val swapSwipeActions by produceState(initialValue = appPreferences.loadSwapSwipeActions()) {
@@ -205,7 +205,7 @@ fun ProcessingScreen(
     val gpuCacheCreatingDialog by processingViewModel.gpuCacheCreatingDialog.collectAsState()
     var imageIdToCancel by remember { mutableStateOf<String?>(null) }
     var showImageSourceDialog by remember { mutableStateOf(false) }
-    var settingsExpanded by remember { mutableStateOf(false) }
+    var settingsExpanded by rememberSaveable { mutableStateOf(initiallySettingsExpanded) }
     var settingsBackProgress by remember { mutableFloatStateOf(0f) }
     var showCancelAllDialog by remember { mutableStateOf(false) }
     val showSaveDialog = remember { appPreferences.loadShowSaveDialog() }
@@ -298,8 +298,10 @@ fun ProcessingScreen(
     }
 
     LaunchedEffect(Unit) {
-        processingViewModel.initialize(context)
-        processingViewModel.serviceHelperRegister()
+        if (!inPreview) {
+            processingViewModel.initialize(context)
+            processingViewModel.serviceHelperRegister()
+        }
     }
 
     LaunchedEffect(initialSharedUris) {
@@ -313,7 +315,9 @@ fun ProcessingScreen(
         }
     }
 
-    val imagePickerLauncher =
+    val imagePickerLauncher = if (inPreview) {
+        null
+    } else {
         rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == Activity.RESULT_OK) {
                 val uris = mutableListOf<Uri>()
@@ -334,7 +338,12 @@ fun ProcessingScreen(
                 }
             }
         }
-    LaunchedEffect(Unit) { processingViewModel.setImagePickerLauncher(imagePickerLauncher) }
+    }
+    LaunchedEffect(imagePickerLauncher) {
+        if (imagePickerLauncher != null) {
+            processingViewModel.setImagePickerLauncher(imagePickerLauncher)
+        }
+    }
 
     fun launchImportIntent() {
         when (defaultImageSource) {
@@ -346,145 +355,41 @@ fun ProcessingScreen(
         }
     }
 
-    @Composable
-    fun rememberMorphingFabCorner(
-        baseCorner: Float, targetCorner: Float = 28f
-    ): Pair<MutableInteractionSource, Dp> {
-        val interaction = remember { MutableInteractionSource() }
-        val press by rememberMaterialPressState(interaction)
-        val corner = lerp(baseCorner, targetCorner, press)
-        return interaction to corner.dp
+    val density = LocalDensity.current
+    val containerSize = LocalWindowInfo.current.containerSize
+    val containerWidthDp = with(density) { containerSize.width.toDp() }
+    val containerHeightDp = with(density) { containerSize.height.toDp() }
+    val isLandscape = containerWidthDp > containerHeightDp
+    val edge = if (isLandscape) SheetEdge.End else SheetEdge.Bottom
+    val expandedSizePx =
+        (if (isLandscape) containerSize.width else containerSize.height) / 2f
+    val sheetState = rememberEdgeSheetState(settingsExpanded, expandedSizePx)
+    val sheetColor = MaterialTheme.colorScheme.surface
+    val shape = if (isLandscape) {
+        RoundedCornerShape(bottomEnd = ScreenHorizontalPadding)
+    } else {
+        RoundedCornerShape(
+            bottomStart = ScreenHorizontalPadding, bottomEnd = ScreenHorizontalPadding
+        )
     }
 
-    val displayCount = if (isSelectionMode) selectedImageIds.size else images.size
-    Column(
-        Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surfaceContainerLow)
-    ) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.background)
-                .padding(
-                    bottom = 8.dp, start = ScreenHorizontalPadding, end = ScreenHorizontalPadding
-                ), Arrangement.SpaceBetween, Alignment.CenterVertically
-        ) {
-            AnimatedContent(
-                modifier = Modifier
-                    .weight(1f, fill = false)
-                    .padding(end = 8.dp),
-                targetState = isSelectionMode,
-                label = "header_text",
-                transitionSpec = {
-                    fadeIn(spring(stiffness = Spring.StiffnessMedium)) + slideInVertically(
-                        spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                        initialOffsetY = { if (targetState) it else -it }) togetherWith fadeOut(
-                        spring(stiffness = Spring.StiffnessMedium)
-                    ) + slideOutVertically(
-                        spring(dampingRatio = Spring.DampingRatioNoBouncy),
-                        targetOffsetY = { if (targetState) -it else it })
-                }) { selecting ->
-                Text(
-                    if (selecting) context.resources.getQuantityString(
-                        R.plurals.selected_count, displayCount, displayCount
-                    )
-                    else stringResource(R.string.images, images.size),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    overflow = TextOverflow.Ellipsis,
-                    maxLines = 1
-                )
-            }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val uiState by processingViewModel.uiState.collectAsState()
-                val isProcessing = uiState is ProcessingUiState.Processing
-                val allComplete =
-                    images.isNotEmpty() && images.all { it.outputBitmap != null && !it.isOutputStale && !it.isProcessing }
-                val baseCorner = if (allComplete) 16f else 18f
-                val (settingsInteraction, settingsCorner) = rememberMorphingFabCorner(baseCorner)
-                FloatingActionButton(
-                    shape = RoundedCornerShape(settingsCorner),
-                    interactionSource = settingsInteraction,
-                    onClick = {
-                        HapticPatterns.tap()
-                        if (!settingsExpanded) clearSelection()
-                        settingsExpanded = !settingsExpanded
-                    },
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                ) {
-                    Icon(
-                        if (settingsExpanded) Icons.Rounded.KeyboardArrowDown else Icons.Rounded.Settings,
-                        contentDescription = stringResource(R.string.settings)
-                    )
-                }
-                val (otherInteraction, otherCorner) = rememberMorphingFabCorner(baseCorner)
-                if (images.isNotEmpty()) {
-                    val containerColor by animateColorAsState(
-                        if (isProcessing) MaterialTheme.colorScheme.errorContainer
-                        else MaterialTheme.colorScheme.secondaryContainer, label = "fab_container"
-                    )
-                    val contentColor by animateColorAsState(
-                        if (isProcessing) MaterialTheme.colorScheme.onErrorContainer
-                        else MaterialTheme.colorScheme.onSecondaryContainer, label = "fab_content"
-                    )
-                    val (icon, labelRes) = when {
-                        isProcessing -> Icons.Rounded.Close to R.string.cancel
-                        allComplete -> Icons.Rounded.Save to R.string.save_all
-                        else -> Icons.Rounded.PlayArrow to R.string.process
-                    }
-                    val contentDescription = stringResource(labelRes)
-                    ExtendedFloatingActionButton(
-                        shape = RoundedCornerShape(otherCorner),
-                        interactionSource = otherInteraction,
-                        expanded = allComplete,
-                        icon = {
-                            Crossfade(targetState = icon, label = "fab_icon") { animatedIcon ->
-                                Icon(
-                                    animatedIcon,
-                                    contentDescription = if (allComplete) null else contentDescription
-                                )
-                            }
-                        },
-                        text = {
-                            Crossfade(targetState = labelRes, label = "fab_text") { animatedLabel ->
-                                Text(
-                                    stringResource(animatedLabel),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        },
-                        onClick = {
-                            HapticPatterns.tap()
-                            when {
-                                isProcessing -> showCancelAllDialog = true
-                                allComplete -> flows.saveAllNow()
-                                else -> tryProcess { takeProcess() }
-                            }
-                        },
-                        containerColor = containerColor,
-                        contentColor = contentColor
-                    )
-                }
-                val (addInteraction, addCorner) = rememberMorphingFabCorner(baseCorner)
-                FloatingActionButton(
-                    shape = RoundedCornerShape(addCorner),
-                    interactionSource = addInteraction,
-                    onClick = { HapticPatterns.tap(); launchImportIntent() },
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                ) {
-                    Icon(
-                        Icons.Rounded.Add, contentDescription = stringResource(R.string.add_images)
-                    )
-                }
-            }
-        }
+    val processingContent: @Composable ColumnScope.() -> Unit = {
+        TopBar(
+            isLandscape = isLandscape,
+            isSelectionMode = isSelectionMode,
+            settingsExpanded = settingsExpanded,
+            onSettingsExpandedChange = { settingsExpanded = it },
+            onShowCancelAllDialogChange = { showCancelAllDialog = it },
+            selectedImageIds = selectedImageIds,
+            images = images,
+            processingViewModel = processingViewModel,
+            flows = flows,
+            clearSelection = clearSelection,
+            tryProcess = { block -> tryProcess(block) },
+            takeProcess = { takeProcess() },
+            launchImportIntent = { launchImportIntent() }
+        )
+
         val isFBCNN = activeSelection.modelName?.contains("fbcnn", ignoreCase = true) == true
         val strengthVisible = images.isNotEmpty() && (isFBCNN || processingMode == ModelType.OIDN)
         Row(
@@ -568,133 +473,129 @@ fun ProcessingScreen(
                 }
             }
         }
-
-        Column(Modifier.fillMaxSize()) {
-            if (images.isEmpty()) {
+        val buttonInteractionSource = remember { MutableInteractionSource() }
+        val noImages = images.isEmpty()
+        if (noImages) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(shape)
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.background)
+                    .verticalScroll(rememberScrollState())
+            ) {
                 Box(
                     Modifier
-                        .weight(1f)
-                        .clip(
-                            RoundedCornerShape(
-                                bottomStart = 16.dp,
-                                bottomEnd = 16.dp,
-                            )
+                        .widthIn(min = 280.dp, max = 360.dp)
+                        .heightIn(min = 240.dp)
+                        .clickable(
+                            interactionSource = buttonInteractionSource, indication = null
+                        ) { HapticPatterns.tap(); launchImportIntent() }
+                        .padding(20.dp),
+                    contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Rounded.AddPhotoAlternate,
+                            stringResource(R.string.add_images),
+                            modifier = Modifier.size(82.dp),
+                            tint = MaterialTheme.colorScheme.primary
                         )
-                        .background(MaterialTheme.colorScheme.background)
-                        .fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        val buttonInteractionSource = remember { MutableInteractionSource() }
-                        Box(
-                            Modifier
-                                .width(280.dp)
-                                .height(240.dp)
-                                .clip(RoundedCornerShape(28.dp))
-                                .clickable(
-                                    interactionSource = buttonInteractionSource, indication = null
-                                ) { HapticPatterns.tap(); launchImportIntent() }
-                                .padding(20.dp),
-                            contentAlignment = Alignment.Center) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(
-                                    Icons.Rounded.AddPhotoAlternate,
-                                    stringResource(R.string.add_images),
-                                    modifier = Modifier.size(82.dp),
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(Modifier.height(8.dp))
-                                Text(
-                                    stringResource(R.string.no_images_yet),
-                                    style = MaterialTheme.typography.titleLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(Modifier.height(8.dp))
-                                Text(
-                                    stringResource(R.string.tap_to_add_images),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(Modifier.height(8.dp))
-                                //noinspection MissingHapticFeedback
-                                MorphButton(
-                                    interactionSource = buttonInteractionSource,
-                                    onClick = { HapticPatterns.tap(); launchImportIntent() },
-                                    label = stringResource(R.string.add_images),
-                                )
-                            }
-                        }
-                    }
-                }
-            } else {
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .clip(
-                            RoundedCornerShape(
-                                bottomStart = 16.dp, bottomEnd = 16.dp
-                            )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            stringResource(R.string.no_images_yet),
+                            style = MaterialTheme.typography.titleLarge,
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        .background(MaterialTheme.colorScheme.background)
-                        .padding(start = ScreenHorizontalPadding, end = ScreenHorizontalPadding),
-                    Arrangement.SpaceBetween
-                ) {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(GroupedListSpacing),
-                        contentPadding = PaddingValues(
-                            bottom = WindowInsets.navigationBars.asPaddingValues()
-                                .calculateBottomPadding() + 8.dp
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            stringResource(R.string.tap_to_add_images),
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                    ) {
-                        itemsIndexed(
-                            items = images, key = { _, image -> image.id }) { index, image ->
-                            ImageCard(
-                                index = index,
-                                image = image,
-                                images = images,
-                                isSelectionMode = isSelectionMode,
-                                selectedImageIds = selectedImageIds,
-                                viewModel = processingViewModel,
-                                onToggleSelection = toggleSelection,
-                                swapSwipeActions = swapSwipeActions,
-                                onRequestSave = flows::requestSave,
-                                tryProcess = { block -> tryProcess(block) },
-                                takeProcess = { id -> takeProcess(id) },
-                                onCancelProcessing = { imageIdToCancel = it },
-                                onRequestRemoval = flows::requestRemoval,
-                                onOpenImage = onOpenImage,
-                                onNavigateToBrisque = onNavigateToBrisque,
-                                onClearSelection = clearSelection,
-                                strengthVisible = strengthVisible
-                            )
-                        }
+                        Spacer(Modifier.height(8.dp))
+                        MorphButton(
+                            interactionSource = buttonInteractionSource,
+                            onClick = { HapticPatterns.tap(); launchImportIntent() },
+                            label = stringResource(R.string.add_images),
+                        )
                     }
                 }
             }
-
-            val density = LocalDensity.current
-            val containerHeightDp = with(density) {
-                LocalWindowInfo.current.containerSize.height.toDp()
-            }
-            val sheetHeight = containerHeightDp / 2
-            val sheetColor = MaterialTheme.colorScheme.surface
-            BottomSheet(
-                expanded = settingsExpanded,
-                onExpandedChange = { settingsExpanded = it },
-                expandedHeight = sheetHeight,
-                modifier = Modifier.fillMaxWidth(),
-                backProgress = settingsBackProgress,
-                background = sheetColor
+        } else {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .clip(shape)
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(start = ScreenHorizontalPadding, end = ScreenHorizontalPadding),
+                Arrangement.SpaceBetween
             ) {
-                SettingsSheetContent(
-                    settingsViewModel = settingsViewModel, processingViewModel = processingViewModel
-                )
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(GroupedListSpacing),
+                    contentPadding = PaddingValues(
+                        bottom = WindowInsets.navigationBars.asPaddingValues()
+                            .calculateBottomPadding() + 8.dp
+                    )
+                ) {
+                    itemsIndexed(
+                        items = images, key = { _, image -> image.id }) { index, image ->
+                        ImageCard(
+                            index = index,
+                            image = image,
+                            images = images,
+                            isSelectionMode = isSelectionMode,
+                            selectedImageIds = selectedImageIds,
+                            viewModel = processingViewModel,
+                            onToggleSelection = toggleSelection,
+                            swapSwipeActions = swapSwipeActions,
+                            onRequestSave = flows::requestSave,
+                            tryProcess = { block -> tryProcess(block) },
+                            takeProcess = { id -> takeProcess(id) },
+                            onCancelProcessing = { imageIdToCancel = it },
+                            onRequestRemoval = flows::requestRemoval,
+                            onOpenImage = onOpenImage,
+                            onNavigateToBrisque = onNavigateToBrisque,
+                            onClearSelection = clearSelection,
+                            strengthVisible = strengthVisible
+                        )
+                    }
+                }
             }
+        }
+    }
+
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .reserveSheetSpace(sheetState, edge),
+            content = processingContent
+        )
+        EdgeSheet(
+            modifier = Modifier.align(
+                if (isLandscape) Alignment.CenterEnd else Alignment.BottomCenter
+            ),
+            state = sheetState,
+            edge = edge,
+            expanded = settingsExpanded,
+            onExpandedChange = { settingsExpanded = it },
+            expandedSizePx = expandedSizePx,
+            backProgress = settingsBackProgress,
+            background = sheetColor,
+        ) {
+            SettingsSheetContent(
+                settingsViewModel = settingsViewModel, processingViewModel = processingViewModel
+            )
         }
     }
 
@@ -776,6 +677,15 @@ fun ProcessingScreen(
                 )
             })
     }
+}
+
+private enum class CardState { Idle, Processing, Complete, Stale }
+
+private fun cardStateOf(image: ImageItem): CardState = when {
+    image.isProcessing -> CardState.Processing
+    image.outputBitmap != null && image.isOutputStale -> CardState.Stale
+    image.outputBitmap != null -> CardState.Complete
+    else -> CardState.Idle
 }
 
 @Composable
@@ -1384,4 +1294,106 @@ private fun ImageCardSplitButton(
             }
         }
     }
+}
+
+@Preview(
+    name = "Processing settings expanded (portrait)",
+    showBackground = true,
+    widthDp = 412,
+    heightDp = 915,
+//    uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL
+)
+@Preview(
+    name = "Processing settings expanded (landscape)",
+    showBackground = true,
+    widthDp = 915,
+    heightDp = 412,
+    uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL
+)
+@Composable
+private fun ProcessingScreenSettingsExpandedPreview() {
+    val context = LocalContext.current
+    val previewContext = remember(context) {
+        App.initializeForPreview(context)
+        context.applicationContext
+    }
+
+    val repository = remember {
+        ImageRepository().apply {
+            images.value = listOf(
+                previewImageItem(
+                    id = "preview-1",
+                    filename = "photo.jpg",
+                    size = "2x2",
+                    color = android.graphics.Color.rgb(56, 92, 128),
+                    outputColor = android.graphics.Color.rgb(78, 124, 168),
+                ),
+                previewImageItem(
+                    id = "preview-2",
+                    filename = "pixel.jpg",
+                    size = "1x1",
+                    color = android.graphics.Color.rgb(112, 82, 60),
+                    processing = true,
+                    progress = "Processing 45%",
+                    completedChunks = 3,
+                    totalChunks = 8,
+                ),
+                previewImageItem(
+                    id = "preview-3",
+                    filename = "image.jpg",
+                    size = "3x2",
+                    color = android.graphics.Color.rgb(64, 104, 72),
+                ),
+            )
+        }
+    }
+    val processingViewModel = remember(repository) {
+        ProcessingViewModel().apply { imageRepository = repository }
+    }
+    val settingsViewModel = remember { SettingsViewModel() }
+
+    AppTheme {
+        CompositionLocalProvider(LocalContext provides previewContext) {
+            ProcessingScreen(
+                processingViewModel = processingViewModel,
+                settingsViewModel = settingsViewModel,
+                imageRepository = repository,
+                initiallySettingsExpanded = true,
+            )
+        }
+    }
+}
+
+private fun previewImageItem(
+    id: String,
+    filename: String,
+    size: String,
+    color: Int,
+    outputColor: Int? = null,
+    processing: Boolean = false,
+    progress: String = "",
+    completedChunks: Int = 0,
+    totalChunks: Int = 0,
+): ImageItem {
+    val input = createBitmap(160, 120).apply {
+        eraseColor(color)
+    }
+    val output = outputColor?.let { outputTint ->
+        createBitmap(160, 120).apply {
+            eraseColor(outputTint)
+        }
+    }
+    return ImageItem(
+        id = id,
+        uri = null,
+        filename = filename,
+        inputBitmap = input,
+        outputBitmap = output,
+        thumbnailBitmap = input,
+        size = size,
+        isProcessing = processing,
+        progress = progress,
+        completedChunks = completedChunks,
+        totalChunks = totalChunks,
+    )
 }

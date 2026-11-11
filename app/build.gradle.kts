@@ -147,4 +147,6 @@ dependencies {
         implementation("com.google.ai.edge.litert:litert:1.4.2")
         implementation("com.google.ai.edge.litert:litert-gpu:1.4.2")
     }
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    debugImplementation(libs.androidx.compose.ui.tooling)
 }

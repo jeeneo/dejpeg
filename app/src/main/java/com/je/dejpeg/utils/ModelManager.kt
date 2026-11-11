@@ -201,7 +201,7 @@ open class ModelManager(
         val normalized = modelName?.lowercase() ?: return false
         return FORCE_GRAYSCALE_BY_NAME.any { normalized.contains(it.lowercase()) }
     }
-    
+
     fun isSequentialOnly(modelName: String?): Boolean {
         val normalized = modelName?.lowercase() ?: return false
         return SEQUENTIAL_ONLY_MODELS.any { normalized.contains(it) }
