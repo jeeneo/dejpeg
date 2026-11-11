@@ -2,7 +2,7 @@
  * SPDX-FileCopyrightText: 2025 - 2026 dryerlint <https://codeberg.org/dryerlint>
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
- 
+
 package com.je.dejpeg.processing
 
 import android.app.Notification
@@ -801,7 +801,7 @@ class ServiceCommunicationHelper(
     /**
      * Tells the service that the UI now reflects the finished image, so it no longer decides on
      * its own when processing is over. [uiVisible] says whether anyone is actually looking at
-* it, which is what decides between the card and the notification as the completion signal.
+     * it, which is what decides between the card and the notification as the completion signal.
      */
     fun confirmUiApplied(uiVisible: Boolean) {
         startService(ProcessingService.ACTION_UI_APPLIED) {

@@ -187,6 +187,7 @@ class BrisqueViewModel(
                     )
                     descaleJob = null
                 }
+                assessQuality(context)
             } catch (e: CancellationException) {
                 Log.d(TAG, "Descaling cancelled")
                 withContext(Dispatchers.Main) {

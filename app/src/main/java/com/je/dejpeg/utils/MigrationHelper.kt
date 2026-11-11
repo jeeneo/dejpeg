@@ -57,8 +57,7 @@ object ModelMigrationHelper {
         done: suspend () -> Boolean,
         mark: suspend () -> Unit
     ): Boolean {
-        if (done()) return true
-        return try {
+        return done() || try {
             val files = src.listFiles(filter) ?: emptyArray()
             if (files.isEmpty()) {
                 mark(); return true

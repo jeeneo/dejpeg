@@ -19,7 +19,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
@@ -163,9 +163,7 @@ fun SettingsSheetContent(
     var appSettingsExpanded by remember { mutableStateOf(false) }
 
     Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .fillMaxHeight()
+        modifier = modifier.fillMaxSize()
     ) {
         Column(
             modifier = Modifier
@@ -191,59 +189,59 @@ fun SettingsSheetContent(
             ) {
                 SegmentedListItem(
                     modifier = Modifier.weight(1f), colors = colors, onClick = {
-                    HapticPatterns.tap()
-                    modelPickerLauncher.launch(arrayOf("*/*"))
-                }, onLongClick = {
-                    scope.launch {
-                        val extracted = withContext(Dispatchers.IO) {
-                            modelManager.extractStarterModel()
-                        }
-                        if (extracted.isNotEmpty()) {
-                            if (allModels.isEmpty() && !processingViewModel.isProcessingOrQueueActive()) {
-                                settingsViewModel.setActiveModel(ModelManager.STARTER_MODEL_NAME)
+                        HapticPatterns.tap()
+                        modelPickerLauncher.launch(arrayOf("*/*"))
+                    }, onLongClick = {
+                        scope.launch {
+                            val extracted = withContext(Dispatchers.IO) {
+                                modelManager.extractStarterModel()
                             }
-                            settingsViewModel.refreshInstalledModels(ModelType.ONNX)
-                            SnackbarController.pushEvent(
-                                SnackbarEvents.MessageEvent(
-                                    message = extractedMsg, duration = SnackbarDuration.Short
+                            if (extracted.isNotEmpty()) {
+                                if (allModels.isEmpty() && !processingViewModel.isProcessingOrQueueActive()) {
+                                    settingsViewModel.setActiveModel(ModelManager.STARTER_MODEL_NAME)
+                                }
+                                settingsViewModel.refreshInstalledModels(ModelType.ONNX)
+                                SnackbarController.pushEvent(
+                                    SnackbarEvents.MessageEvent(
+                                        message = extractedMsg, duration = SnackbarDuration.Short
+                                    )
                                 )
-                            )
+                            }
                         }
-                    }
-                }, shapes = CornerRole(
-                    topStart = true, bottomStart = !hasModels
-                ).toListItemShapes(), leadingContent = {
-                    Icon(
-                        Icons.Rounded.Add, null, modifier = Modifier.size(24.dp)
-                    )
-                }, content = {
-                    Text(
-                        stringResource(R.string.import_model_text),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                })
+                    }, shapes = CornerRole(
+                        topStart = true, bottomStart = !hasModels
+                    ).toListItemShapes(), leadingContent = {
+                        Icon(
+                            Icons.Rounded.Add, null, modifier = Modifier.size(24.dp)
+                        )
+                    }, content = {
+                        Text(
+                            stringResource(R.string.import_model_text),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    })
                 SegmentedListItem(
                     modifier = Modifier.weight(1f), colors = colors, onClick = {
-                    HapticPatterns.tap()
-                    uriHandler.openUri("https://codeberg.org/dryerlint/dejpeg/src/branch/main/models")
-                }, shapes = CornerRole(
-                    topEnd = true, bottomEnd = !hasModels
-                ).toListItemShapes(), leadingContent = {
-                    Icon(
-                        Icons.Rounded.Download, null, modifier = Modifier.size(24.dp)
-                    )
-                }, content = {
-                    Text(
-                        stringResource(R.string.download),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                })
+                        HapticPatterns.tap()
+                        uriHandler.openUri("https://codeberg.org/dryerlint/dejpeg/src/branch/main/models")
+                    }, shapes = CornerRole(
+                        topEnd = true, bottomEnd = !hasModels
+                    ).toListItemShapes(), leadingContent = {
+                        Icon(
+                            Icons.Rounded.Download, null, modifier = Modifier.size(24.dp)
+                        )
+                    }, content = {
+                        Text(
+                            stringResource(R.string.download),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    })
             }
 
             val uiState by processingViewModel.uiState.collectAsState()
@@ -259,6 +257,7 @@ fun SettingsSheetContent(
 
                     Spacer(modifier = Modifier.height(GroupedListSpacing))
                     val deleteAction: () -> (() -> Unit)? = {
+                        HapticPatterns.tap()
                         if (isProcessing) {
                             scope.launch {
                                 SnackbarController.pushEvent(
@@ -287,6 +286,7 @@ fun SettingsSheetContent(
                         }
                     }
                     val infoAction: () -> (() -> Unit)? = {
+                        HapticPatterns.tap()
                         modelManager.getModelInfo(modelName)?.let {
                             modelInfoDialog.value = modelName to it
                         }
@@ -310,83 +310,83 @@ fun SettingsSheetContent(
                     ) {
                         SegmentedListItem(
                             colors = colors, selected = isActive, onClick = {
-                            HapticPatterns.tap()
-                            if (isProcessing) {
-                                scope.launch {
-                                    SnackbarController.pushEvent(
-                                        SnackbarEvents.MessageEvent(
-                                            message = cantSwitchModel,
-                                            duration = SnackbarDuration.Short
+                                HapticPatterns.tap()
+                                if (isProcessing) {
+                                    scope.launch {
+                                        SnackbarController.pushEvent(
+                                            SnackbarEvents.MessageEvent(
+                                                message = cantSwitchModel,
+                                                duration = SnackbarDuration.Short
+                                            )
                                         )
-                                    )
+                                    }
+                                } else {
+                                    settingsViewModel.setActiveModel(modelName)
                                 }
-                            } else {
-                                settingsViewModel.setActiveModel(modelName)
-                            }
-                        }, shapes = CornerRole(
-                            bottomStart = last, bottomEnd = last
-                        ).toListItemShapes(), content = {
-                            Text(
-                                modelName,
-                                modifier = Modifier.weight(1f),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }, trailingContent = {
-                            Row {
-                                modelManager.getModelInfo(modelName)?.let {
-                                    IconButton(onClick = {
-                                        HapticPatterns.tap()
-                                        modelInfoDialog.value = modelName to it
-                                    }, modifier = Modifier.size(32.dp)) {
+                            }, shapes = CornerRole(
+                                bottomStart = last, bottomEnd = last
+                            ).toListItemShapes(), content = {
+                                Text(
+                                    modelName,
+                                    modifier = Modifier.weight(1f),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }, trailingContent = {
+                                Row {
+                                    modelManager.getModelInfo(modelName)?.let {
+                                        IconButton(onClick = {
+                                            HapticPatterns.tap()
+                                            modelInfoDialog.value = modelName to it
+                                        }, modifier = Modifier.size(32.dp)) {
+                                            Icon(
+                                                Icons.Rounded.Info,
+                                                contentDescription = stringResource(R.string.info),
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(21.dp)
+                                            )
+                                        }
+                                    }
+                                    IconButton(
+                                        onClick = {
+                                            HapticPatterns.tap()
+                                            if (isProcessing) {
+                                                scope.launch {
+                                                    SnackbarController.pushEvent(
+                                                        SnackbarEvents.MessageEvent(
+                                                            message = cantDeleteModel,
+                                                            duration = SnackbarDuration.Short
+                                                        )
+                                                    )
+                                                }
+                                            } else {
+                                                settingsViewModel.deleteModel(
+                                                    modelName, modelType
+                                                ) {
+                                                    scope.launch {
+                                                        SnackbarController.pushEvent(
+                                                            SnackbarEvents.MessageEvent(
+                                                                message = deletedMsg.format(
+                                                                    it
+                                                                ), duration = SnackbarDuration.Short
+                                                            )
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }, modifier = Modifier.size(32.dp)
+                                    ) {
                                         Icon(
-                                            Icons.Rounded.Info,
-                                            contentDescription = stringResource(R.string.info),
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            Icons.Rounded.Delete,
+                                            contentDescription = stringResource(R.string.delete),
+                                            tint = MaterialTheme.colorScheme.error,
                                             modifier = Modifier.size(21.dp)
                                         )
                                     }
                                 }
-                                IconButton(
-                                    onClick = {
-                                        HapticPatterns.tap()
-                                        if (isProcessing) {
-                                            scope.launch {
-                                                SnackbarController.pushEvent(
-                                                    SnackbarEvents.MessageEvent(
-                                                        message = cantDeleteModel,
-                                                        duration = SnackbarDuration.Short
-                                                    )
-                                                )
-                                            }
-                                        } else {
-                                            settingsViewModel.deleteModel(
-                                                modelName, modelType
-                                            ) {
-                                                scope.launch {
-                                                    SnackbarController.pushEvent(
-                                                        SnackbarEvents.MessageEvent(
-                                                            message = deletedMsg.format(
-                                                                it
-                                                            ), duration = SnackbarDuration.Short
-                                                        )
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }, modifier = Modifier.size(32.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Rounded.Delete,
-                                        contentDescription = stringResource(R.string.delete),
-                                        tint = MaterialTheme.colorScheme.error,
-                                        modifier = Modifier.size(21.dp)
-                                    )
-                                }
-                            }
-                        })
+                            })
                     }
                 }
             }
@@ -604,7 +604,8 @@ fun SettingsSheetContent(
                         checked = glassSlider,
                         onCheckedChange = { new ->
                             run {
-                                HapticPatterns.tap(); glassSlider = new; appPreferences.saveGlassSlider(
+                                HapticPatterns.tap(); glassSlider =
+                                new; appPreferences.saveGlassSlider(
                                 glassSlider
                             )
                             }
@@ -788,12 +789,12 @@ fun SettingsSheetContent(
 }
 
 private val urlRegex = Regex("""https?://[^\s<>"]+""")
+
 @Composable
 fun makeAsLink(text: String): AnnotatedString {
     val linkStyles = TextLinkStyles(
         style = SpanStyle(
-            color = MaterialTheme.colorScheme.primary,
-            textDecoration = TextDecoration.Underline
+            color = MaterialTheme.colorScheme.primary, textDecoration = TextDecoration.Underline
         )
     )
     return remember(text, linkStyles) {
@@ -853,8 +854,7 @@ private fun ExpandableSection(
                         .size(28.dp)
                         .rotate(chevronRotation)
                 )
-            }
-        )
+            })
         AnimatedVisibility(
             visible = expanded,
             enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),

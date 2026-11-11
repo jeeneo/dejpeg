@@ -130,6 +130,7 @@ class SettingsViewModel : ViewModel() {
                     sel.type == type -> sel.copy(modelName = active)
                     sel.modelName != null && sel.modelName !in available ->
                         active?.let { ActiveSelection(type, it) } ?: ActiveSelection()
+
                     else -> sel
                 }
             }

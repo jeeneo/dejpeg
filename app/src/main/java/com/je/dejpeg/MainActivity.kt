@@ -72,6 +72,10 @@ class App : Application() {
         val state: AppState by lazy {
             AppState(prefs)
         }
+
+        internal fun initializeForPreview(context: Context) {
+            ctx = context.applicationContext
+        }
     }
 
     override fun onCreate() {
