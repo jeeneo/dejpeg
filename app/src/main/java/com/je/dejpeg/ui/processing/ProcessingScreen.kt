@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
+@file:Suppress("SpellCheckingInspection")
+
 package com.je.dejpeg.ui.processing
 
 import android.app.Activity
@@ -21,6 +23,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColor
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.updateTransition
@@ -97,6 +100,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -112,6 +116,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
@@ -361,8 +366,7 @@ fun ProcessingScreen(
     val containerHeightDp = with(density) { containerSize.height.toDp() }
     val isLandscape = containerWidthDp > containerHeightDp
     val edge = if (isLandscape) SheetEdge.End else SheetEdge.Bottom
-    val expandedSizePx =
-        (if (isLandscape) containerSize.width else containerSize.height) / 2f
+    val expandedSizePx = (if (isLandscape) containerSize.width else containerSize.height) / 2f
     val sheetState = rememberEdgeSheetState(settingsExpanded, expandedSizePx)
     val sheetColor = MaterialTheme.colorScheme.surface
     val shape = if (isLandscape) {
@@ -374,20 +378,16 @@ fun ProcessingScreen(
     }
 
     val processingContent: @Composable ColumnScope.() -> Unit = {
-        TopBar(
+        ProcessingTopBar(
             isLandscape = isLandscape,
-            isSelectionMode = isSelectionMode,
             settingsExpanded = settingsExpanded,
-            onSettingsExpandedChange = { settingsExpanded = it },
-            onShowCancelAllDialogChange = { showCancelAllDialog = it },
+            isSelectionMode = isSelectionMode,
             selectedImageIds = selectedImageIds,
             images = images,
-            processingViewModel = processingViewModel,
-            flows = flows,
             clearSelection = clearSelection,
             tryProcess = { block -> tryProcess(block) },
             takeProcess = { takeProcess() },
-            launchImportIntent = { launchImportIntent() }
+            flows = flows
         )
 
         val isFBCNN = activeSelection.modelName?.contains("fbcnn", ignoreCase = true) == true
@@ -475,72 +475,81 @@ fun ProcessingScreen(
         }
         val buttonInteractionSource = remember { MutableInteractionSource() }
         val noImages = images.isEmpty()
-        if (noImages) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(shape)
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.background)
-                    .verticalScroll(rememberScrollState())
-            ) {
-                Box(
-                    Modifier
-                        .widthIn(min = 280.dp, max = 360.dp)
-                        .heightIn(min = 240.dp)
-                        .clickable(
-                            interactionSource = buttonInteractionSource, indication = null
-                        ) { HapticPatterns.tap(); launchImportIntent() }
-                        .padding(20.dp),
-                    contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            Icons.Rounded.AddPhotoAlternate,
-                            stringResource(R.string.add_images),
-                            modifier = Modifier.size(82.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            stringResource(R.string.no_images_yet),
-                            style = MaterialTheme.typography.titleLarge,
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            stringResource(R.string.tap_to_add_images),
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        MorphButton(
-                            interactionSource = buttonInteractionSource,
-                            onClick = { HapticPatterns.tap(); launchImportIntent() },
-                            label = stringResource(R.string.add_images),
-                        )
+        val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+
+        val toolbarGap = 10.dp
+        var toolbarWidthPx by remember { mutableIntStateOf(0) }
+        val toolbarReserve by animateDpAsState(
+            targetValue = if (isLandscape && !isSelectionMode && toolbarWidthPx > 0) {
+                with(density) { toolbarWidthPx.toDp() } + toolbarGap
+            } else 0.dp,
+            label = "toolbar_reserve",
+        )
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .clip(shape)
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            if (noImages) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Box(
+                        Modifier
+                            .widthIn(min = 280.dp, max = 360.dp)
+                            .heightIn(min = 240.dp)
+                            .clickable(
+                                interactionSource = buttonInteractionSource, indication = null
+                            ) { HapticPatterns.tap(); launchImportIntent() }
+                            .padding(20.dp),
+                        contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                Icons.Rounded.AddPhotoAlternate,
+                                stringResource(R.string.add_images),
+                                modifier = Modifier.size(82.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                stringResource(R.string.no_images_yet),
+                                style = MaterialTheme.typography.titleLarge,
+                                textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                stringResource(R.string.tap_to_add_images),
+                                style = MaterialTheme.typography.bodyMedium,
+                                textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            MorphButton(
+                                interactionSource = buttonInteractionSource,
+                                onClick = { HapticPatterns.tap(); launchImportIntent() },
+                                label = stringResource(R.string.add_images),
+                            )
+                        }
                     }
                 }
-            }
-        } else {
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .clip(shape)
-                    .background(MaterialTheme.colorScheme.background)
-                    .padding(start = ScreenHorizontalPadding, end = ScreenHorizontalPadding),
-                Arrangement.SpaceBetween
-            ) {
+            } else {
                 LazyColumn(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.padding(
+                            start = ScreenHorizontalPadding,
+                            end = ScreenHorizontalPadding
+                        ),
                     verticalArrangement = Arrangement.spacedBy(GroupedListSpacing),
                     contentPadding = PaddingValues(
-                        bottom = WindowInsets.navigationBars.asPaddingValues()
-                            .calculateBottomPadding() + 8.dp
+                        end = toolbarReserve,
+                        // the 96.dp clearance is only needed when the toolbar sits at the bottom
+                        bottom = if (isLandscape) navBarBottom else navBarBottom + 96.dp
                     )
                 ) {
                     itemsIndexed(
@@ -565,6 +574,42 @@ fun ProcessingScreen(
                             strengthVisible = strengthVisible
                         )
                     }
+                }
+            }
+            val space = if (isLandscape) toolbarGap else 0.dp
+            val align = if (isLandscape) Alignment.CenterEnd else Alignment.BottomCenter
+            Box(
+                Modifier
+                    .align(align)
+                    .padding(bottom = navBarBottom + space, end = space)
+                    .onSizeChanged { toolbarWidthPx = it.width }) {
+                AnimatedContent(
+                    targetState = !isSelectionMode,
+                    label = "toolbar_visibility",
+                    transitionSpec = {
+                        fadeIn(spring(stiffness = Spring.StiffnessMedium)) + slideInVertically(
+                            spring(dampingRatio = Spring.DampingRatioNoBouncy)
+                        ) { it / 2 } togetherWith fadeOut(
+                            spring(stiffness = Spring.StiffnessMedium)
+                        ) + slideOutVertically(
+                            spring(dampingRatio = Spring.DampingRatioNoBouncy)
+                        ) { it / 2 }
+                    },
+                ) { visible ->
+                    if (!visible) return@AnimatedContent
+                    ProcessingFloatingToolbar(
+                        isLandscape = isLandscape,
+                        settingsExpanded = settingsExpanded,
+                        onSettingsExpandedChange = { settingsExpanded = it },
+                        onShowCancelAllDialogChange = { showCancelAllDialog = it },
+                        images = images,
+                        processingViewModel = processingViewModel,
+                        flows = flows,
+                        clearSelection = clearSelection,
+                        tryProcess = { block -> tryProcess(block) },
+                        takeProcess = { takeProcess() },
+                        launchImportIntent = { launchImportIntent() },
+                    )
                 }
             }
         }

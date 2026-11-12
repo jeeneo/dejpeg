@@ -257,8 +257,5 @@
     <string name="gpu_cache_text">モデルのGPUキャッシュを作成中です。数秒かかりますが、一度だけ実行すれば済みます。</string>
     <string name="invalid_file_type">サポートされているモデルファイル形式は以下のみです: %1$s</string>
     <string name="compare">比較</string>
-    <plurals name="selected_count">
-        <item quantity="other">選択中 (%1$d)</item>
-    </plurals>
     <string name="cant_delete_model">処理中はモデルを削除できません</string>
 </resources>

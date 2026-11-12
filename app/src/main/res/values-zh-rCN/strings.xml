@@ -257,8 +257,5 @@
     <string name="gpu_cache_text">正在为模型创建GPU缓存，这可能需要几秒钟，但只需执行一次。</string>
     <string name="invalid_file_type">仅支持以下模型文件类型：%1$s</string>
     <string name="compare">比较</string>
-    <plurals name="selected_count">
-        <item quantity="other">已选%1$d项</item>
-    </plurals>
     <string name="cant_delete_model">处理中无法删除模型</string>
 </resources>

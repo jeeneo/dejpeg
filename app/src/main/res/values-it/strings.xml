@@ -269,10 +269,5 @@
     <string name="gpu_cache_text">Creazione della cache GPU per il modello, potrebbe richiedere qualche secondo ma deve essere eseguita solo una volta.</string>
     <string name="invalid_file_type">Sono supportati solo i seguenti tipi di file modello: %1$s</string>
     <string name="compare">Confronta</string>
-    <plurals name="selected_count">
-        <item quantity="one">Selezionato (%1$d)</item>
-        <item quantity="many">Selezionato (%1$d)</item>
-        <item quantity="other">Selezionato (%1$d)</item>
-    </plurals>
     <string name="cant_delete_model">Non puoi eliminare i modelli durante l\'elaborazione</string>
 </resources>

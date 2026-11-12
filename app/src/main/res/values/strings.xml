@@ -210,10 +210,6 @@
     <string name="glass_slider">Glass slider</string>
     <string name="import_output">Import output image</string>
     <string name="compare">Compare</string>
-    <plurals name="selected_count">
-        <item quantity="one">Selected (%1$d)</item>
-        <item quantity="other">Selected (%1$d)</item>
-    </plurals>
 
     <string name="model_info_1x_rgb_max_denoise">Fast, noise and compression, great for animation. Also turns photos into cartoons.</string>
     <string name="model_info_1x_span_anime_pretrain">Fast, general compression, general noise. Good for animation, comics, anime, and some photos.</string>
