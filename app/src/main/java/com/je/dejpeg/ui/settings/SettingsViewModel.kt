@@ -16,6 +16,10 @@ import com.je.dejpeg.utils.ModelMigrationHelper
 import com.je.dejpeg.utils.ModelType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -23,6 +27,12 @@ import kotlinx.coroutines.withContext
 data class ActiveSelection(
     val type: ModelType? = null, val modelName: String? = null
 )
+
+sealed interface StrengthControl {
+    data object None : StrengthControl
+    data class FBCNNStrength(val value: Float) : StrengthControl
+    data class OidnScale(val value: Float) : StrengthControl
+}
 
 class SettingsViewModel : ViewModel() {
     val activeSelection = MutableStateFlow(ActiveSelection())
@@ -38,6 +48,19 @@ class SettingsViewModel : ViewModel() {
     val oidnMaxMemoryMB = MutableStateFlow(AppPreferences.DEFAULT_OIDN_MAX_MEMORY_MB)
     val oidnNumThreads = MutableStateFlow(AppPreferences.DEFAULT_OIDN_NUM_THREADS)
     val oidnInputScale = MutableStateFlow(AppPreferences.DEFAULT_OIDN_INPUT_SCALE)
+
+    val strengthControl: StateFlow<StrengthControl> = combine(
+        globalStrength, activeSelection, oidnInputScale
+    ) { strength, selection, inputScale ->
+        when {
+            selection.modelName?.contains(
+                "fbcnn", ignoreCase = true
+            ) == true -> StrengthControl.FBCNNStrength(strength)
+
+            selection.type == ModelType.OIDN -> StrengthControl.OidnScale(inputScale)
+            else -> StrengthControl.None
+        }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, StrengthControl.None)
 
     private var appPreferences: AppPreferences? = null
     var modelManager: ModelManager? = null
@@ -128,8 +151,11 @@ class SettingsViewModel : ViewModel() {
             activeSelection.update { sel ->
                 when {
                     sel.type == type -> sel.copy(modelName = active)
-                    sel.modelName != null && sel.modelName !in available ->
-                        active?.let { ActiveSelection(type, it) } ?: ActiveSelection()
+                    sel.modelName != null && sel.modelName !in available -> active?.let {
+                        ActiveSelection(
+                            type, it
+                        )
+                    } ?: ActiveSelection()
 
                     else -> sel
                 }

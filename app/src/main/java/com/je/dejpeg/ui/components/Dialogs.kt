@@ -87,14 +87,14 @@ import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.data.HapticPatterns
 import com.je.dejpeg.data.ImageRepository
 import com.je.dejpeg.ui.processing.ImageItem
-import com.je.dejpeg.ui.processing.ProcessingViewModel
+import com.je.dejpeg.ui.processing.ImageSource
 import com.je.dejpeg.utils.CacheManager
 import com.je.dejpeg.utils.ImageLoadingHelper
-import com.je.dejpeg.utils.ImageSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
+import com.je.dejpeg.utils.ImageSource as ImageLoadSource
 
 @Composable
 fun StyledAlertDialog(
@@ -351,23 +351,17 @@ fun CancelProcessingDialog(
 @Composable
 fun ImageSourceDialog(
     onDismiss: () -> Unit,
-    viewModel: ProcessingViewModel,
+    onPick: (ImageSource) -> Unit,
 ) {
     val appPreferences = remember { AppPreferences() }
     var setAsDefault by remember { mutableStateOf(false) }
-    val handleSelection: suspend (String, () -> Unit) -> Unit = { key, action ->
-        if (setAsDefault) appPreferences.saveDefaultImageSource(key)
-        action()
+    val handleSelection: (ImageSource) -> Unit = { source ->
+        if (setAsDefault) appPreferences.saveDefaultImageSource(source.preferenceValue)
+        onPick(source)
     }
     val sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden)
     val colors =
         ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
-    LaunchedEffect(sheetState) {
-        viewModel.imagePickedEvent.collect {
-            sheetState.hide()
-            onDismiss()
-        }
-    }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -385,7 +379,6 @@ fun ImageSourceDialog(
                 modifier = Modifier.padding(bottom = 4.dp)
             )
             Spacer(modifier = Modifier.height(8.dp))
-            val scope = rememberCoroutineScope()
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 modifier = Modifier.fillMaxWidth(),
@@ -414,7 +407,7 @@ fun ImageSourceDialog(
                         },
                         onClick = {
                             HapticPatterns.tap()
-                            scope.launch { handleSelection("gallery") { viewModel.launchGalleryPicker() } }
+                            handleSelection(ImageSource.Gallery)
                         })
                 }
                 item {
@@ -439,7 +432,7 @@ fun ImageSourceDialog(
                         },
                         onClick = {
                             HapticPatterns.tap()
-                            scope.launch { handleSelection("internal") { viewModel.launchInternalPhotoPicker() } }
+                            handleSelection(ImageSource.Internal)
                         })
                 }
                 item {
@@ -464,7 +457,7 @@ fun ImageSourceDialog(
                         },
                         onClick = {
                             HapticPatterns.tap()
-                            scope.launch { handleSelection("documents") { viewModel.launchDocumentsPicker() } }
+                            handleSelection(ImageSource.Documents)
                         })
 
                 }
@@ -489,7 +482,7 @@ fun ImageSourceDialog(
                         },
                         onClick = {
                             HapticPatterns.tap()
-                            scope.launch { handleSelection("camera") { viewModel.launchCamera() } }
+                            handleSelection(ImageSource.Camera)
                         })
                 }
             }
@@ -545,7 +538,7 @@ fun RecoveryDialog(
                         val unprocessedBitmap = if (unprocessedFile != null) {
                             withContext(Dispatchers.IO) {
                                 ImageLoadingHelper.loadBitmap(
-                                    ImageSource.FromFile(
+                                    ImageLoadSource.FromFile(
                                         unprocessedFile
                                     )
                                 )

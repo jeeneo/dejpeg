@@ -1,5 +1,6 @@
 package com.je.dejpeg.ui.processing
 
+import android.annotation.SuppressLint
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
@@ -41,7 +42,6 @@ import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,28 +57,23 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.je.dejpeg.R
 import com.je.dejpeg.data.HapticPatterns
-import com.je.dejpeg.data.ImageFlows
 import com.je.dejpeg.ui.components.ScreenHorizontalPadding
 
+data class TopBarState(
+    val isLandscape: Boolean,
+    val isSelectionMode: Boolean,
+    val settingsExpanded: Boolean,
+    val images: List<ImageItem>,
+    val selectedImageIds: List<String>,
+    val uiState: ProcessingUiState,
+)
+
+@SuppressLint("MissingHapticFeedback")
 @Composable
-fun TopBar(
-    isLandscape: Boolean,
-    isSelectionMode: Boolean,
-    settingsExpanded: Boolean,
-    onSettingsExpandedChange: (Boolean) -> Unit,
-    onShowCancelAllDialogChange: (Boolean) -> Unit,
-    images: List<ImageItem>,
-    selectedImageIds: List<String>,
-    processingViewModel: ProcessingViewModel,
-    flows: ImageFlows,
-    clearSelection: () -> Unit,
-    tryProcess: (() -> Unit) -> Unit,
-    takeProcess: () -> Unit,
-    launchImportIntent: () -> Unit,
-) {
+fun TopBar(state: TopBarState, actions: ProcessingActions) {
     val colors = MaterialTheme.colorScheme
-    val uiState by processingViewModel.uiState.collectAsState()
-    val isProcessing = uiState is ProcessingUiState.Processing
+    val isProcessing = state.uiState is ProcessingUiState.Processing
+    val images = state.images
     val hasImages = images.isNotEmpty()
     val allComplete =
         hasImages && images.all { it.outputBitmap != null && !it.isOutputStale && !it.isProcessing }
@@ -103,18 +98,18 @@ fun TopBar(
     val onPrimary: () -> Unit = {
         HapticPatterns.tap()
         when {
-            isProcessing -> onShowCancelAllDialogChange(true)
-            allComplete -> flows.saveAllNow()
-            else -> tryProcess { takeProcess() }
+            isProcessing -> actions.onRequestCancelAll()
+            allComplete -> actions.onSaveAll()
+            else -> actions.onProcess(null)
         }
     }
 
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
-    val chevron = if (isLandscape) Modifier.rotate(if (isRtl) 90f else -90f) else Modifier
+    val chevron = if (state.isLandscape) Modifier.rotate(if (isRtl) 90f else -90f) else Modifier
 
-    BarSurface(isLandscape, settingsExpanded) {
+    BarSurface(state.isLandscape, state.settingsExpanded) {
         AnimatedContent(
-            targetState = isSelectionMode,
+            targetState = state.isSelectionMode,
             modifier = Modifier.weight(1f),
             label = "bar_morph",
             transitionSpec = {
@@ -133,17 +128,20 @@ fun TopBar(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 if (selecting) {
-                    IconButton(onClick = { HapticPatterns.tap(); clearSelection() }) {
-                        Icon(Icons.Rounded.Close, stringResource(R.string.cancel))
-                    }
-                    TitleText(selectedImageIds.size.toString(), Modifier.weight(1f))
                     IconButton(onClick = {
                         HapticPatterns.tap()
-                        flows.requestSave(selectedImageIds, false)
+                        actions.onClearSelection()
+                    }) {
+                        Icon(Icons.Rounded.Close, stringResource(R.string.cancel))
+                    }
+                    TitleText(state.selectedImageIds.size.toString(), Modifier.weight(1f))
+                    IconButton(onClick = {
+                        HapticPatterns.tap()
+                        actions.onRequestSave(state.selectedImageIds, false)
                     }) { Icon(Icons.Rounded.Save, stringResource(R.string.save)) }
                     IconButton(onClick = {
                         HapticPatterns.tap()
-                        flows.requestRemoval(selectedImageIds)
+                        actions.onRequestRemoval(state.selectedImageIds)
                     }) {
                         Icon(
                             Icons.Rounded.Delete, stringResource(R.string.remove),
@@ -151,7 +149,10 @@ fun TopBar(
                         )
                     }
                     FilledIconButton(
-                        onClick = { HapticPatterns.tap(); tryProcess { takeProcess() } },
+                        onClick = {
+                            HapticPatterns.tap()
+                            actions.onProcess(null)
+                        },
                         colors = IconButtonDefaults.filledIconButtonColors(
                             containerColor = colors.secondaryContainer,
                             contentColor = colors.onSecondaryContainer,
@@ -159,10 +160,16 @@ fun TopBar(
                     ) { Icon(Icons.Rounded.PlayArrow, stringResource(R.string.process)) }
                 } else {
                     TitleText(stringResource(R.string.images, images.size), Modifier.weight(1f))
+                    SettingsToggle(
+                        expanded = state.settingsExpanded,
+                        onToggle = {
+                            HapticPatterns.tap()
+                            if (!state.settingsExpanded) actions.onClearSelection()
+                            actions.onSettingsExpandedChange(!state.settingsExpanded)
+                        },
+                        modifier = chevron,
+                    )
                     if (hasImages) {
-                        IconButton(onClick = { HapticPatterns.tap(); launchImportIntent() }) {
-                            Icon(Icons.Rounded.Add, stringResource(R.string.add_images))
-                        }
                         PrimaryPill(
                             icon = primaryIcon,
                             label = primaryLabel,
@@ -170,16 +177,13 @@ fun TopBar(
                             contentColor = content,
                             onClick = onPrimary,
                         )
-                    }
-                    SettingsToggle(
-                        expanded = settingsExpanded,
-                        onToggle = {
+                        IconButton(onClick = {
                             HapticPatterns.tap()
-                            if (!settingsExpanded) clearSelection()
-                            onSettingsExpandedChange(!settingsExpanded)
-                        },
-                        modifier = chevron,
-                    )
+                            actions.onImport()
+                        }) {
+                            Icon(Icons.Rounded.Add, stringResource(R.string.add_images))
+                        }
+                    }
                 }
             }
         }
@@ -220,6 +224,7 @@ private fun TitleText(text: String, modifier: Modifier = Modifier) {
     )
 }
 
+@SuppressLint("MissingHapticFeedback")
 @Composable
 private fun PrimaryPill(
     icon: ImageVector,
@@ -247,6 +252,7 @@ private fun PrimaryPill(
     }
 }
 
+@SuppressLint("MissingHapticFeedback")
 @Composable
 private fun SettingsToggle(expanded: Boolean, onToggle: () -> Unit, modifier: Modifier) {
     val cs = MaterialTheme.colorScheme

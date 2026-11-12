@@ -93,7 +93,9 @@
     <string name="saving_images">Saving…</string>
     <string name="saving_image_progress">Saving %1$d of %2$d</string>
     <string name="error_processing_title">Processing error</string>
-    <string name="error_native_crash">The processing service died unexpectedly. This usually indicates an incompatible model or insufficient memory.</string>
+    <string name="error_decode_failed">Could not read the processed image</string>
+    <string name="error_camera">Camera error: %1$s</string>
+    <string name="error_native_crash">The processing service died unexpectedly. This usually indicates a model issue or insufficient memory.</string>
     <plurals name="recover_images_title">
         <item quantity="one">Recover %1$d image</item>
         <item quantity="other">Recover %1$d images</item>
@@ -106,13 +108,13 @@
     <string name="discard">Discard</string>
     <string name="recovered_image_prefix">Recovered</string>
     <string name="copy">Copy</string>
+    <string name="more_options">More options</string>
     <string name="drag_to_compare">Drag to compare</string>
     <string name="back_desc">Back</string>
     <string name="info_desc">Info</string>
     <string name="settings_desc">Settings</string>
     <string name="reset">Reset</string>
     <string name="yes">Yes</string>
-    <string name="unknown_error">Unknown error</string>
     <string name="invalid_file_type">Only the following model filetypes are supported: %1$s</string>
     <string name="failed_to_import_model">Failed to import model</string>
     <string name="model_already_imported">A model named %1$s is already imported</string>

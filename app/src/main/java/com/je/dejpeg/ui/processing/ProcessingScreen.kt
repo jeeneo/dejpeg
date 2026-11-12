@@ -5,16 +5,12 @@
 
 package com.je.dejpeg.ui.processing
 
-import android.app.Activity
-import android.content.Context
-import android.content.Intent
-import android.content.SharedPreferences
+import android.annotation.SuppressLint
+import android.content.ClipData
 import android.content.res.Configuration
 import android.net.Uri
 import android.view.animation.PathInterpolator
-import androidx.activity.BackEventCompat
-import androidx.activity.OnBackPressedCallback
-import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
@@ -54,7 +50,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -90,15 +85,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.WavyProgressIndicatorDefaults
 import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -112,11 +104,13 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -127,15 +121,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.graphics.createBitmap
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.je.dejpeg.App
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.je.dejpeg.R
-import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.data.AppTheme
 import com.je.dejpeg.data.HapticPatterns
-import com.je.dejpeg.data.ImageFlowDialogs
-import com.je.dejpeg.data.ImageRepository
-import com.je.dejpeg.data.rememberImageFlows
 import com.je.dejpeg.ui.brisque.SaveState
 import com.je.dejpeg.ui.components.CancelProcessingDialog
 import com.je.dejpeg.ui.components.CardWrapper
@@ -144,10 +135,9 @@ import com.je.dejpeg.ui.components.GroupedListSpacing
 import com.je.dejpeg.ui.components.ImageSourceDialog
 import com.je.dejpeg.ui.components.MorphButton
 import com.je.dejpeg.ui.components.PreparingShareDialog
+import com.je.dejpeg.ui.components.RemoveImageDialog
+import com.je.dejpeg.ui.components.SaveImageDialog
 import com.je.dejpeg.ui.components.ScreenHorizontalPadding
-import com.je.dejpeg.ui.components.SnackbarController
-import com.je.dejpeg.ui.components.SnackbarDuration
-import com.je.dejpeg.ui.components.SnackbarEvents
 import com.je.dejpeg.ui.components.StyledAlertDialog
 import com.je.dejpeg.ui.components.SwipeConfig
 import com.je.dejpeg.ui.components.SwipeSide
@@ -157,212 +147,205 @@ import com.je.dejpeg.ui.settings.EdgeSheet
 import com.je.dejpeg.ui.settings.SettingsSheetContent
 import com.je.dejpeg.ui.settings.SettingsViewModel
 import com.je.dejpeg.ui.settings.SheetEdge
+import com.je.dejpeg.ui.settings.StrengthControl
 import com.je.dejpeg.ui.settings.rememberEdgeSheetState
 import com.je.dejpeg.ui.settings.reserveSheetSpace
 import com.je.dejpeg.ui.view.ImageMode
 import com.je.dejpeg.ui.view.viewerMode
-import com.je.dejpeg.utils.ModelType
 import kotlinx.coroutines.launch
-import java.util.Locale
 
+/**
+ * Owns no business state: everything that survives configuration changes comes from the
+ * ViewModel. Only UI mechanics (settings sheet, back progress) live here.
+ */
 @Composable
 fun ProcessingScreen(
     processingViewModel: ProcessingViewModel,
     settingsViewModel: SettingsViewModel,
-    imageRepository: ImageRepository,
     onOpenImage: (ImageMode) -> Unit = {},
     onNavigateToBrisque: (String) -> Unit = {},
     isActive: Boolean = true,
     initialSharedUris: List<Uri> = emptyList(),
-    onRemoveSharedUri: (Uri) -> Unit = {},
     initiallySettingsExpanded: Boolean = false,
 ) {
-    val context = App.ctx
-    val inPreview = LocalInspectionMode.current
-    val appPreferences = remember { AppPreferences() }
-    val defaultImageSource = remember { appPreferences.loadDefaultImageSource() }
-    val swapSwipeActions by produceState(initialValue = appPreferences.loadSwapSwipeActions()) {
-        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            if (key == AppPreferences.KEY_SWAP_SWIPE_ACTIONS) {
-                value = appPreferences.loadSwapSwipeActions()
-            }
-        }
-        appPreferences.prefs().registerOnSharedPreferenceChangeListener(listener)
-        awaitDispose {
-            appPreferences.prefs().unregisterOnSharedPreferenceChangeListener(listener)
-        }
-    }
-    val images by imageRepository.images.collectAsState()
-    val globalStrength by settingsViewModel.globalStrength.collectAsState()
-    val activeSelection by settingsViewModel.activeSelection.collectAsState()
-    val processingMode = activeSelection.type
-    val oidnInputScale by settingsViewModel.oidnInputScale.collectAsState()
-    val noModelMessage = stringResource(R.string.no_model_installed_title)
-    val scope = rememberCoroutineScope()
-    val isLoadingImages by imageRepository.isLoadingImages.collectAsState()
-    val loadingImagesProgress by imageRepository.loadingImagesProgress.collectAsState()
-    val processingErrorDialog by processingViewModel.processingErrorDialog.collectAsState()
-    val gpuCacheCreatingDialog by processingViewModel.gpuCacheCreatingDialog.collectAsState()
-    var imageIdToCancel by remember { mutableStateOf<String?>(null) }
-    var showImageSourceDialog by remember { mutableStateOf(false) }
+    val images by processingViewModel.images.collectAsStateWithLifecycle()
+    val isLoadingImages by processingViewModel.isLoadingImages.collectAsStateWithLifecycle()
+    val loadingImagesProgress by processingViewModel.loadingImagesProgress.collectAsStateWithLifecycle()
+    val selectedImageIds by processingViewModel.selectedImageIds.collectAsStateWithLifecycle()
+    val dialog by processingViewModel.dialog.collectAsStateWithLifecycle()
+    val saveState by processingViewModel.saveState.collectAsStateWithLifecycle()
+    val uiState by processingViewModel.uiState.collectAsStateWithLifecycle()
+    val swapSwipeActions by processingViewModel.swapSwipeActions.collectAsStateWithLifecycle()
+    val strengthControl by settingsViewModel.strengthControl.collectAsStateWithLifecycle()
+
     var settingsExpanded by rememberSaveable { mutableStateOf(initiallySettingsExpanded) }
     var settingsBackProgress by remember { mutableFloatStateOf(0f) }
-    var showCancelAllDialog by remember { mutableStateOf(false) }
-    val showSaveDialog = remember { appPreferences.loadShowSaveDialog() }
-    var selectedImageIds by remember { mutableStateOf<List<String>>(emptyList()) }
     val isSelectionMode = selectedImageIds.isNotEmpty()
 
-    val flows = rememberImageFlows(
-        images = images,
-        showSaveDialog = showSaveDialog,
-        processingViewModel = processingViewModel,
-        appPreferences = appPreferences,
-        onRemoveSharedUri = { uri -> releaseUri(uri, context, onRemoveSharedUri) },
-    )
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { processingViewModel.setAppVisible(true) }
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { processingViewModel.setAppVisible(false) }
 
-    val toggleSelection: (String) -> Unit = { id ->
-        selectedImageIds = if (selectedImageIds.contains(id)) {
-            selectedImageIds - id
-        } else {
-            selectedImageIds + id
+    LaunchedEffect(initialSharedUris) { processingViewModel.onSharedUris(initialSharedUris) }
+
+    val pickerLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        processingViewModel.onPickerResult(result.resultCode, result.data)
+    }
+    LaunchedEffect(pickerLauncher) {
+        processingViewModel.pickerRequests.collect { source ->
+            processingViewModel.pickerIntent(source)
+                .onSuccess { intent -> pickerLauncher.launch(intent) }
+                .onFailure { error -> processingViewModel.onPickerLaunchFailed(error) }
         }
     }
-    val clearSelection: () -> Unit = { selectedImageIds = emptyList() }
 
-    val dispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val currentIsActive by rememberUpdatedState(isActive)
-    val currentSettingsExpanded by rememberUpdatedState(settingsExpanded)
-    val currentIsSelectionMode by rememberUpdatedState(isSelectionMode)
-    val predictiveBackCallback = remember {
-        object : OnBackPressedCallback(false) {
-            override fun handleOnBackProgressed(backEvent: BackEventCompat) {
-                val interpolatedProgress = PathInterpolator(0f, 0f, 0f, 1f).getInterpolation(
+    val backInterpolator = remember { PathInterpolator(0f, 0f, 0f, 1f) }
+    PredictiveBackHandler(enabled = isActive && (settingsExpanded || isSelectionMode)) { progress ->
+        try {
+            progress.collect { backEvent ->
+                val interpolated = backInterpolator.getInterpolation(
                     backEvent.progress.coerceIn(0f, 1f)
                 )
-                settingsBackProgress = if (currentSettingsExpanded) {
-                    interpolatedProgress
-                } else {
-                    0f
-                }
+                settingsBackProgress = if (settingsExpanded) interpolated else 0f
             }
-
-            override fun handleOnBackPressed() {
-                if (currentSettingsExpanded) {
-                    settingsExpanded = false
-                } else if (currentIsSelectionMode) {
-                    clearSelection()
-                }
-                settingsBackProgress = 0f
-            }
-
-            override fun handleOnBackCancelled() {
-                settingsBackProgress = 0f
-            }
+            if (settingsExpanded) settingsExpanded = false else processingViewModel.clearSelection()
+        } finally {
+            settingsBackProgress = 0f
         }
     }
 
-    DisposableEffect(dispatcher, lifecycleOwner, predictiveBackCallback) {
-        dispatcher?.addCallback(lifecycleOwner, predictiveBackCallback)
-        onDispose { predictiveBackCallback.remove() }
-    }
-
-    SideEffect {
-        predictiveBackCallback.isEnabled =
-            currentIsActive && (currentSettingsExpanded || currentIsSelectionMode)
-    }
-
-    fun tryProcess(block: () -> Unit) {
-        if (!settingsViewModel.hasActiveModel(processingMode)) scope.launch {
-            SnackbarController.pushEvent(
-                SnackbarEvents.MessageEvent(
-                    message = noModelMessage, duration = SnackbarDuration.Long
-                )
-            )
-        } else block()
-    }
-
-    fun takeProcess(id: String? = null) {
-        val ids = when {
-            id != null -> listOf(id)
-            isSelectionMode -> selectedImageIds
-            else -> images.map { it.id }
-        }
-        ids.forEach(processingViewModel::processImage)
-    }
-
-    LaunchedEffect(images) {
-        flows.prune()
-        imageIdToCancel = imageIdToCancel?.takeIf { id -> images.any { it.id == id } }
-        selectedImageIds = selectedImageIds.filter { id -> images.any { it.id == id } }
-    }
-
-    LaunchedEffect(Unit) {
-        if (!inPreview) {
-            processingViewModel.initialize(context)
-            processingViewModel.serviceHelperRegister()
-        }
-    }
-
-    LaunchedEffect(initialSharedUris) {
-        if (initialSharedUris.isNotEmpty()) {
-            val existing = images.mapNotNull { it.uri?.toString() }.toSet()
-            val toAdd = initialSharedUris.filter { it.toString() !in existing }
-            if (toAdd.isNotEmpty()) {
-                imageRepository.addImagesFromUris(context, toAdd)
-            }
-            imageRepository.sharedUris.value = emptyList()
-        }
-    }
-
-    val imagePickerLauncher = if (inPreview) {
-        null
-    } else {
-        rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
-                val uris = mutableListOf<Uri>()
-                result.data?.clipData?.let { clipData ->
-                    for (i in 0 until clipData.itemCount) clipData.getItemAt(i).uri?.let {
-                        uris.add(
-                            it
-                        )
-                    }
-                } ?: result.data?.data?.let { uris.add(it) }
-                ?: processingViewModel.getCameraPhotoUri()?.let {
-                    uris.add(it)
-                    processingViewModel.clearCameraPhotoUri()
-                }
-                if (uris.isNotEmpty()) {
-                    imageRepository.addImagesFromUris(context, uris)
-                    processingViewModel.notifyImagePicked()
-                }
-            }
-        }
-    }
-    LaunchedEffect(imagePickerLauncher) {
-        if (imagePickerLauncher != null) {
-            processingViewModel.setImagePickerLauncher(imagePickerLauncher)
-        }
-    }
-
-    fun launchImportIntent() {
-        when (defaultImageSource) {
-            "gallery" -> processingViewModel.launchGalleryPicker()
-            "internal" -> processingViewModel.launchInternalPhotoPicker()
-            "documents" -> processingViewModel.launchDocumentsPicker()
-            "camera" -> processingViewModel.launchCamera()
-            else -> showImageSourceDialog = true
-        }
-    }
-
-    val density = LocalDensity.current
     val containerSize = LocalWindowInfo.current.containerSize
-    val containerWidthDp = with(density) { containerSize.width.toDp() }
-    val containerHeightDp = with(density) { containerSize.height.toDp() }
-    val isLandscape = containerWidthDp > containerHeightDp
+    val isLandscape = containerSize.width > containerSize.height
+
+    val currentOnOpenImage by rememberUpdatedState(onOpenImage)
+    val currentOnNavigateToBrisque by rememberUpdatedState(onNavigateToBrisque)
+    val actions = remember(processingViewModel) {
+        ProcessingActions(
+            onProcess = processingViewModel::process,
+            onSettingsExpandedChange = { settingsExpanded = it },
+            onRequestCancel = processingViewModel::requestCancel,
+            onRequestCancelAll = processingViewModel::requestCancelAll,
+            onImport = processingViewModel::onImportClicked,
+            onConfirmDialog = processingViewModel::confirmDialog,
+            onDismissDialog = processingViewModel::dismissDialog,
+            onPickSource = processingViewModel::onSourcePicked,
+            onConfirmSave = processingViewModel::confirmSave,
+            onConfirmOverwrite = processingViewModel::confirmOverwrite,
+            onConfirmRemoval = processingViewModel::confirmRemoval,
+            onToggleSelection = processingViewModel::onToggleSelection,
+            onClearSelection = processingViewModel::clearSelection,
+            onRequestSave = { ids, removeAfter ->
+                processingViewModel.requestSave(ids, removeAfter)
+            },
+            onRequestRemoval = processingViewModel::requestRemoval,
+            onCancelQueued = processingViewModel::cancelQueuedImage,
+            onSaveSelection = {
+                processingViewModel.requestSave(
+                    processingViewModel.selectedImageIds.value, false
+                )
+            },
+            onRemoveSelection = {
+                processingViewModel.requestRemoval(processingViewModel.selectedImageIds.value)
+            },
+            onCompareSelection = {
+                val ids = processingViewModel.selectedImageIds.value
+                if (ids.size == 2) currentOnOpenImage(ImageMode.Compare(ids[0], ids[1]))
+            },
+            onSaveAll = processingViewModel::saveAllNow,
+            onImportOutput = processingViewModel::importOutputAsNewImage,
+            onOpenImage = { currentOnOpenImage(it) },
+            onOpenBrisque = { currentOnNavigateToBrisque(it) },
+            onGlobalStrengthChange = settingsViewModel::setGlobalStrength,
+            onOidnScaleChange = settingsViewModel::setOidnInputScale,
+            isCurrent = processingViewModel::isCurrent,
+        )
+    }
+
+    ProcessingScreenContent(
+        state = ProcessingScreenState(
+            images = images,
+            isLoadingImages = isLoadingImages,
+            loadingImagesProgress = loadingImagesProgress,
+            selectedImageIds = selectedImageIds,
+            dialog = dialog,
+            saveState = saveState,
+            uiState = uiState,
+            strengthControl = strengthControl,
+            swapSwipeActions = swapSwipeActions,
+            settingsExpanded = settingsExpanded,
+            settingsBackProgress = settingsBackProgress,
+            isLandscape = isLandscape,
+        ),
+        actions = actions,
+        settingsSheet = {
+            SettingsSheetContent(
+                settingsViewModel = settingsViewModel,
+                processingViewModel = processingViewModel,
+            )
+        },
+    )
+}
+
+@Immutable
+data class ProcessingScreenState(
+    val images: List<ImageItem>,
+    val isLoadingImages: Boolean,
+    val loadingImagesProgress: Pair<Int, Int>?,
+    val selectedImageIds: List<String>,
+    val dialog: ProcessingDialog?,
+    val saveState: SaveState,
+    val uiState: ProcessingUiState,
+    val strengthControl: StrengthControl,
+    val swapSwipeActions: Boolean,
+    val settingsExpanded: Boolean,
+    val settingsBackProgress: Float,
+    val isLandscape: Boolean,
+) {
+    val isSelectionMode: Boolean get() = selectedImageIds.isNotEmpty()
+}
+
+@Stable
+class ProcessingActions(
+    val onProcess: (String?) -> Unit,
+    val onSettingsExpandedChange: (Boolean) -> Unit,
+    val onRequestCancel: (String) -> Unit,
+    val onRequestCancelAll: () -> Unit,
+    val onImport: () -> Unit,
+    val onConfirmDialog: () -> Unit,
+    val onDismissDialog: () -> Unit,
+    val onPickSource: (ImageSource) -> Unit,
+    val onConfirmSave: (String?, Boolean, Boolean) -> Unit,
+    val onConfirmOverwrite: (String) -> Unit,
+    val onConfirmRemoval: (Boolean) -> Unit,
+    val onToggleSelection: (String) -> Unit,
+    val onClearSelection: () -> Unit,
+    val onRequestSave: (List<String>, Boolean) -> Boolean,
+    val onRequestRemoval: (List<String>) -> Unit,
+    val onCancelQueued: (String) -> Unit,
+    val onSaveSelection: () -> Unit,
+    val onRemoveSelection: () -> Unit,
+    val onCompareSelection: () -> Unit,
+    val onSaveAll: () -> Unit,
+    val onImportOutput: (String) -> Unit,
+    val onOpenImage: (ImageMode) -> Unit,
+    val onOpenBrisque: (String) -> Unit,
+    val onGlobalStrengthChange: (Float) -> Unit,
+    val onOidnScaleChange: (Float) -> Unit,
+    val isCurrent: (String) -> Boolean,
+)
+
+@Composable
+fun ProcessingScreenContent(
+    state: ProcessingScreenState,
+    actions: ProcessingActions,
+    settingsSheet: @Composable () -> Unit,
+) {
+    val isLandscape = state.isLandscape
     val edge = if (isLandscape) SheetEdge.End else SheetEdge.Bottom
+    val containerSize = LocalWindowInfo.current.containerSize
     val expandedSizePx = (if (isLandscape) containerSize.width else containerSize.height) / 2f
-    val sheetState = rememberEdgeSheetState(settingsExpanded, expandedSizePx)
+    val sheetState = rememberEdgeSheetState(state.settingsExpanded, expandedSizePx)
     val sheetColor = MaterialTheme.colorScheme.surface
     val shape = if (isLandscape) {
         RoundedCornerShape(bottomEnd = ScreenHorizontalPadding)
@@ -372,202 +355,7 @@ fun ProcessingScreen(
         )
     }
 
-    val processingContent: @Composable ColumnScope.() -> Unit = {
-        TopBar(
-            isLandscape = isLandscape,
-            isSelectionMode = isSelectionMode,
-            settingsExpanded = settingsExpanded,
-            onSettingsExpandedChange = { settingsExpanded = it },
-            onShowCancelAllDialogChange = { showCancelAllDialog = it },
-            selectedImageIds = selectedImageIds,
-            images = images,
-            processingViewModel = processingViewModel,
-            flows = flows,
-            clearSelection = clearSelection,
-            tryProcess = { block -> tryProcess(block) },
-            takeProcess = { takeProcess() },
-            launchImportIntent = { launchImportIntent() },
-        )
-
-        val isFBCNN = activeSelection.modelName?.contains("fbcnn", ignoreCase = true) == true
-        val strengthVisible = images.isNotEmpty() && (isFBCNN || processingMode == ModelType.OIDN)
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.background)
-        ) {
-            AnimatedVisibility(
-                visible = strengthVisible,
-                enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
-                exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
-            ) {
-                Card(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(
-                            bottom = GroupedListSpacing,
-                            start = ScreenHorizontalPadding,
-                            end = ScreenHorizontalPadding
-                        ),
-                    colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceContainer),
-                    shape = CornerRole.forPosition(1, images.count() + 1).toShape(),
-                ) {
-                    Column(Modifier.padding(ScreenHorizontalPadding)) {
-                        if (processingMode == ModelType.OIDN) {
-                            val displayValue =
-                                if (oidnInputScale == 0f) stringResource(R.string.text_auto) else String.format(
-                                    Locale.ROOT, "%.1f", oidnInputScale
-                                )
-                            Text(
-                                stringResource(R.string.input_scale, displayValue),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            val oidnSliderState = rememberSliderState(
-                                value = oidnInputScale,
-                                steps = 19,
-                                trackRange = 0f..10f,
-                            )
-                            LaunchedEffect(oidnInputScale) {
-                                oidnSliderState.value = oidnInputScale
-                            }
-                            Slider(
-                                state = oidnSliderState, onValueChange = {
-                                    if (it != oidnInputScale) {
-                                        HapticPatterns.tap()
-                                        settingsViewModel.setOidnInputScale(it)
-                                    }
-                                }, modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(24.dp)
-                            )
-                        } else {
-                            Text(
-                                stringResource(R.string.strength, globalStrength.toInt()),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            val strengthSliderState = rememberSliderState(
-                                value = globalStrength,
-                                steps = 19,
-                                trackRange = 0f..100f,
-                            )
-                            LaunchedEffect(globalStrength) {
-                                strengthSliderState.value = globalStrength
-                            }
-                            Slider(
-                                state = strengthSliderState, onValueChange = {
-                                    if (it != globalStrength) {
-                                        HapticPatterns.tap()
-                                        settingsViewModel.setGlobalStrength(it)
-                                    }
-                                }, modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(24.dp)
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        val buttonInteractionSource = remember { MutableInteractionSource() }
-        val noImages = images.isEmpty()
-        if (noImages) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(shape)
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.background)
-                    .verticalScroll(rememberScrollState())
-            ) {
-                Box(
-                    Modifier
-                        .widthIn(min = 280.dp, max = 360.dp)
-                        .heightIn(min = 240.dp)
-                        .clickable(
-                            interactionSource = buttonInteractionSource, indication = null
-                        ) { HapticPatterns.tap(); launchImportIntent() }
-                        .padding(20.dp),
-                    contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            Icons.Rounded.AddPhotoAlternate,
-                            stringResource(R.string.add_images),
-                            modifier = Modifier.size(82.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            stringResource(R.string.no_images_yet),
-                            style = MaterialTheme.typography.titleLarge,
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            stringResource(R.string.tap_to_add_images),
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        MorphButton(
-                            interactionSource = buttonInteractionSource,
-                            onClick = { HapticPatterns.tap(); launchImportIntent() },
-                            label = stringResource(R.string.add_images),
-                        )
-                    }
-                }
-            }
-        } else {
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .clip(shape)
-                    .background(MaterialTheme.colorScheme.background)
-                    .padding(start = ScreenHorizontalPadding, end = ScreenHorizontalPadding),
-                Arrangement.SpaceBetween
-            ) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(GroupedListSpacing),
-                    contentPadding = PaddingValues(
-                        bottom = WindowInsets.navigationBars.asPaddingValues()
-                            .calculateBottomPadding() + 8.dp
-                    )
-                ) {
-                    itemsIndexed(
-                        items = images, key = { _, image -> image.id }) { index, image ->
-                        ImageCard(
-                            index = index,
-                            image = image,
-                            images = images,
-                            isSelectionMode = isSelectionMode,
-                            selectedImageIds = selectedImageIds,
-                            viewModel = processingViewModel,
-                            onToggleSelection = toggleSelection,
-                            swapSwipeActions = swapSwipeActions,
-                            onRequestSave = flows::requestSave,
-                            tryProcess = { block -> tryProcess(block) },
-                            takeProcess = { id -> takeProcess(id) },
-                            onCancelProcessing = { imageIdToCancel = it },
-                            onRequestRemoval = flows::requestRemoval,
-                            onOpenImage = onOpenImage,
-                            onNavigateToBrisque = onNavigateToBrisque,
-                            onClearSelection = clearSelection,
-                            strengthVisible = strengthVisible
-                        )
-                    }
-                }
-            }
-        }
-    }
+    val strengthVisible = state.images.isNotEmpty() && state.strengthControl != StrengthControl.None
 
     Box(
         Modifier
@@ -578,175 +366,361 @@ fun ProcessingScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .reserveSheetSpace(sheetState, edge),
-            content = processingContent
-        )
+        ) {
+            TopBar(
+                state = TopBarState(
+                    isLandscape = isLandscape,
+                    isSelectionMode = state.isSelectionMode,
+                    settingsExpanded = state.settingsExpanded,
+                    images = state.images,
+                    selectedImageIds = state.selectedImageIds,
+                    uiState = state.uiState,
+                ),
+                actions = actions,
+            )
+            AnimatedVisibility(
+                visible = strengthVisible,
+                enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
+                exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
+            ) {
+                StrengthCard(
+                    control = state.strengthControl,
+                    cornerRole = CornerRole.forPosition(1, state.images.size + 1),
+                    onGlobalStrengthChange = actions.onGlobalStrengthChange,
+                    onOidnScaleChange = actions.onOidnScaleChange,
+                )
+            }
+            if (state.images.isEmpty()) {
+                EmptyState(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(shape)
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.background),
+                    onAdd = actions.onImport,
+                )
+            } else {
+                ImageList(
+                    state = state,
+                    actions = actions,
+                    shape = shape,
+                    strengthVisible = strengthVisible,
+                )
+            }
+        }
+
         EdgeSheet(
             modifier = Modifier.align(
                 if (isLandscape) Alignment.CenterEnd else Alignment.BottomCenter
             ),
             state = sheetState,
             edge = edge,
-            expanded = settingsExpanded,
-            onExpandedChange = { settingsExpanded = it },
+            expanded = state.settingsExpanded,
+            onExpandedChange = actions.onSettingsExpandedChange,
             expandedSizePx = expandedSizePx,
-            backProgress = settingsBackProgress,
+            backProgress = state.settingsBackProgress,
             background = sheetColor,
         ) {
-            SettingsSheetContent(
-                settingsViewModel = settingsViewModel, processingViewModel = processingViewModel
-            )
+            settingsSheet()
         }
     }
 
-    imageIdToCancel?.let { targetId ->
-        images.firstOrNull { it.id == targetId }?.let { image ->
-            CancelProcessingDialog(
-                imageFilename = image.filename,
-                dismiss = { imageIdToCancel = null },
-                onConfirm = {
-                    processingViewModel.cancelQueuedImage(targetId)
-                    imageIdToCancel = null
-                })
-        } ?: run { imageIdToCancel = null }
-    }
+    ProcessingDialogHost(
+        dialog = state.dialog,
+        saveState = state.saveState,
+        actions = ProcessingDialogActions(
+            onConfirm = actions.onConfirmDialog,
+            onDismiss = actions.onDismissDialog,
+            onPickSource = actions.onPickSource,
+            onConfirmSave = actions.onConfirmSave,
+            onConfirmOverwrite = actions.onConfirmOverwrite,
+            onConfirmRemoval = actions.onConfirmRemoval,
+        ),
+    )
 
-    if (showImageSourceDialog) {
-        ImageSourceDialog(
-            onDismiss = { showImageSourceDialog = false }, viewModel = processingViewModel
-        )
-    }
-
-    if (showCancelAllDialog) {
-        CancelProcessingDialog(
-            imageFilename = null,
-            dismiss = { showCancelAllDialog = false },
-            onConfirm = {
-                processingViewModel.cancelProcessing()
-                showCancelAllDialog = false
-            })
-    }
-
-    val saveState by processingViewModel.saveState.collectAsState()
-    (saveState as? SaveState.Error)?.let { err ->
-        StyledAlertDialog(
-            onDismissRequest = { processingViewModel.dismissSaveError() },
-            confirmButton = { processingViewModel.dismissSaveError() },
-            dismissButton = { processingViewModel.dismissSaveError() },
-            title = { Text(stringResource(R.string.error_saving_image_title)) },
-            contents = { Text(err.message) },
-            confirmButtonText = stringResource(R.string.ok),
-            dismissButtonText = stringResource(R.string.copy)
-        )
-    }
-
-    (saveState as? SaveState.Saving)?.let { state ->
-        SaveProgressDialog(state)
-    }
-
-    ImageFlowDialogs(flows)
-    processingErrorDialog?.let { errorMsg ->
-        StyledAlertDialog(
-            onDismissRequest = { processingViewModel.dismissProcessingErrorDialog() },
-            confirmButton = { processingViewModel.dismissProcessingErrorDialog() },
-            dismissButton = { processingViewModel.dismissProcessingErrorDialog() },
-            title = { Text(stringResource(R.string.error_processing_title)) },
-            contents = { Text(errorMsg) },
-            confirmButtonText = stringResource(R.string.ok),
-            dismissButtonText = stringResource(R.string.copy)
-        )
-    }
-    if (gpuCacheCreatingDialog) {
-        StyledAlertDialog(
-            onDismissRequest = { processingViewModel.dismissGpuCacheCreatingDialog() },
-            confirmButton = { processingViewModel.dismissGpuCacheCreatingDialog() },
-            dismissButton = { processingViewModel.dismissGpuCacheCreatingDialog() },
-            title = { Text(stringResource(R.string.gpu_cache_title)) },
-            contents = { Text(stringResource(R.string.gpu_cache_text)) },
-            confirmButtonText = stringResource(R.string.ok)
-        )
-    }
-    if (isLoadingImages) {
-        val progress = loadingImagesProgress
+    if (state.isLoadingImages) {
+        val progress = state.loadingImagesProgress
         PreparingShareDialog(
             title = stringResource(R.string.loading_images),
             progress = progress?.let { it.first.toFloat() / it.second.toFloat() },
             progressText = progress?.let {
-                stringResource(
-                    R.string.loading_image_progress, it.first, it.second
-                )
+                stringResource(R.string.loading_image_progress, it.first, it.second)
             })
     }
 }
 
-private enum class CardState { Idle, Processing, Complete, Stale }
+@Composable
+private fun StrengthCard(
+    control: StrengthControl,
+    cornerRole: CornerRole,
+    onGlobalStrengthChange: (Float) -> Unit,
+    onOidnScaleChange: (Float) -> Unit,
+) {
+    Card(
+        Modifier
+            .fillMaxWidth()
+            .padding(
+                bottom = GroupedListSpacing,
+                start = ScreenHorizontalPadding,
+                end = ScreenHorizontalPadding
+            ),
+        colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceContainer),
+        shape = cornerRole.toShape(),
+    ) {
+        Column(Modifier.padding(ScreenHorizontalPadding)) {
+            when (control) {
+                is StrengthControl.OidnScale -> {
+                    val locale = LocalConfiguration.current.locales[0]
+                    val displayValue = if (control.value == 0f) {
+                        stringResource(R.string.text_auto)
+                    } else {
+                        String.format(locale, "%.1f", control.value)
+                    }
+                    StrengthSlider(
+                        label = stringResource(R.string.input_scale, displayValue),
+                        value = control.value,
+                        steps = 19,
+                        range = 0f..10f,
+                        onChange = onOidnScaleChange,
+                    )
+                }
 
-private fun cardStateOf(image: ImageItem): CardState = when {
-    image.isProcessing -> CardState.Processing
-    image.outputBitmap != null && image.isOutputStale -> CardState.Stale
-    image.outputBitmap != null -> CardState.Complete
-    else -> CardState.Idle
+                is StrengthControl.FBCNNStrength -> StrengthSlider(
+                    label = stringResource(R.string.strength, control.value.toInt()),
+                    value = control.value,
+                    steps = 19,
+                    range = 0f..100f,
+                    onChange = onGlobalStrengthChange,
+                )
+
+                StrengthControl.None -> Unit
+            }
+        }
+    }
+}
+
+@Suppress("SameParameterValue")
+@Composable
+private fun StrengthSlider(
+    label: String,
+    value: Float,
+    steps: Int,
+    range: ClosedFloatingPointRange<Float>,
+    onChange: (Float) -> Unit,
+) {
+    Text(
+        label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium
+    )
+    Spacer(Modifier.height(8.dp))
+    val sliderState = rememberSliderState(
+        value = value,
+        steps = steps,
+        trackRange = range,
+    )
+    LaunchedEffect(value) {
+        sliderState.value = value
+    }
+    Slider(
+        state = sliderState, onValueChange = {
+            if (it != value) {
+                HapticPatterns.tap()
+                onChange(it)
+            }
+        }, modifier = Modifier
+            .fillMaxWidth()
+            .height(24.dp)
+    )
+}
+
+@SuppressLint("MissingHapticFeedback")
+@Composable
+private fun EmptyState(modifier: Modifier, onAdd: () -> Unit) {
+    val buttonInteractionSource = remember { MutableInteractionSource() }
+    val onAddClick = {
+        HapticPatterns.tap()
+        onAdd()
+    }
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = modifier.verticalScroll(rememberScrollState()),
+    ) {
+        Box(
+            Modifier
+                .widthIn(min = 280.dp, max = 360.dp)
+                .heightIn(min = 240.dp)
+                .clickable(
+                    onClickLabel = stringResource(R.string.add_images),
+                    role = Role.Button,
+                    interactionSource = buttonInteractionSource,
+                    indication = null,
+                ) { onAddClick() }
+                .padding(20.dp), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    Icons.Rounded.AddPhotoAlternate,
+                    contentDescription = null,
+                    modifier = Modifier.size(82.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    stringResource(R.string.no_images_yet),
+                    style = MaterialTheme.typography.titleLarge,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    stringResource(R.string.tap_to_add_images),
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(8.dp))
+                MorphButton(
+                    interactionSource = buttonInteractionSource,
+                    onClick = onAddClick,
+                    label = stringResource(R.string.add_images),
+                )
+            }
+        }
+    }
 }
 
 @Composable
-fun LazyItemScope.ImageCard(
-    modifier: Modifier = Modifier,
-    index: Int,
-    image: ImageItem,
-    images: List<ImageItem>,
-    isSelectionMode: Boolean,
-    selectedImageIds: List<String>,
-    viewModel: ProcessingViewModel,
-    onToggleSelection: (String) -> Unit,
-    swapSwipeActions: Boolean,
-    onRequestSave: (List<String>, Boolean) -> Boolean,
-    tryProcess: (() -> Unit) -> Unit,
-    takeProcess: (String?) -> Unit,
-    onCancelProcessing: (String) -> Unit,
-    onRequestRemoval: (List<String>) -> Unit,
-    onOpenImage: (ImageMode) -> Unit,
-    onNavigateToBrisque: (String) -> Unit,
-    onClearSelection: () -> Unit,
+private fun ColumnScope.ImageList(
+    state: ProcessingScreenState,
+    actions: ProcessingActions,
+    shape: RoundedCornerShape,
     strengthVisible: Boolean,
 ) {
-    val realIndex = if (strengthVisible) index + 2 else index + 1
-    val imagesCount = if (strengthVisible) images.count() + 1 else images.count()
-    val isSelected = selectedImageIds.contains(image.id)
+    val accountForSlider = if (strengthVisible) state.images.size + 1 else state.images.size
+    val cardActions = remember(actions) {
+        ImageCardActions(
+            onProcess = actions.onProcess,
+            onToggleSelection = actions.onToggleSelection,
+            onClearSelection = actions.onClearSelection,
+            onRequestSave = actions.onRequestSave,
+            onRequestRemoval = actions.onRequestRemoval,
+            onCancelProcessing = actions.onRequestCancel,
+            onCancelQueued = actions.onCancelQueued,
+            isCurrent = actions.isCurrent,
+            onSaveSelection = actions.onSaveSelection,
+            onRemoveSelection = actions.onRemoveSelection,
+            onCompareSelection = actions.onCompareSelection,
+            onImportOutput = actions.onImportOutput,
+            onOpenImage = actions.onOpenImage,
+            onNavigateToBrisque = actions.onOpenBrisque,
+        )
+    }
+    val placementSpec = MaterialTheme.motionScheme.defaultSpatialSpec<IntOffset>()
+    val fadeSpec = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
+    val isSelectionMode = state.isSelectionMode
+    val selectedIds = state.selectedImageIds
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxWidth()
+            .weight(1f)
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.background)
+            .padding(start = ScreenHorizontalPadding, end = ScreenHorizontalPadding),
+        verticalArrangement = Arrangement.spacedBy(GroupedListSpacing),
+        contentPadding = PaddingValues(
+            bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 8.dp
+        )
+    ) {
+        itemsIndexed(items = state.images, key = { _, image -> image.id }) { index, image ->
+            val isSelected = selectedIds.contains(image.id)
+            ImageCard(
+                modifier = Modifier.animateItem(
+                    fadeInSpec = fadeSpec,
+                    fadeOutSpec = fadeSpec,
+                    placementSpec = placementSpec,
+                ),
+                image = image,
+                isSelected = isSelected,
+                selectedCount = if (isSelected) selectedIds.size else 0,
+                isSelectionMode = isSelectionMode,
+                isCompareReady = selectedIds.size == 2,
+                cornerRole = CornerRole.forPosition(
+                    if (strengthVisible) index + 2 else index + 1,
+                    accountForSlider,
+                ),
+                swapSwipeActions = state.swapSwipeActions,
+                actions = cardActions,
+            )
+        }
+    }
+}
+
+@Stable
+class ImageCardActions(
+    val onProcess: (String?) -> Unit,
+    val onToggleSelection: (String) -> Unit,
+    val onClearSelection: () -> Unit,
+    val onRequestSave: (List<String>, Boolean) -> Boolean,
+    val onRequestRemoval: (List<String>) -> Unit,
+    val onCancelProcessing: (String) -> Unit,
+    val onCancelQueued: (String) -> Unit,
+    val isCurrent: (String) -> Boolean,
+    val onSaveSelection: () -> Unit,
+    val onRemoveSelection: () -> Unit,
+    val onCompareSelection: () -> Unit,
+    val onImportOutput: (String) -> Unit,
+    val onOpenImage: (ImageMode) -> Unit,
+    val onNavigateToBrisque: (String) -> Unit,
+)
+
+@Composable
+fun ImageCard(
+    modifier: Modifier = Modifier,
+    image: ImageItem,
+    isSelected: Boolean,
+    selectedCount: Int,
+    isSelectionMode: Boolean,
+    isCompareReady: Boolean,
+    cornerRole: CornerRole,
+    swapSwipeActions: Boolean,
+    actions: ImageCardActions,
+) {
     val isProcessing = image.isProcessing
-    val cardState = cardStateOf(image)
+    val cardState = image.cardState
     val positiveAction: () -> (() -> Unit)? = {
         HapticPatterns.tap()
         if (image.outputBitmap != null) {
-            onRequestSave(listOf(image.id), false)
-            null
+            actions.onRequestSave(listOf(image.id), false)
         } else {
-            tryProcess { viewModel.processImage(image.id) }
-            null
+            actions.onProcess(image.id)
         }
+        null
     }
 
     val negativeAction: () -> (() -> Unit)? = {
         HapticPatterns.tap()
         when {
-            isProcessing && viewModel.isCurrent(image.id) -> {
-                onCancelProcessing(image.id)
+            isProcessing && actions.isCurrent(image.id) -> {
+                actions.onCancelProcessing(image.id)
                 null
             }
 
             isProcessing -> {
-                run { viewModel.cancelQueuedImage(image.id) }
+                actions.onCancelQueued(image.id)
                 null
             }
 
             image.outputBitmap != null -> {
-                onRequestRemoval(listOf(image.id))
+                actions.onRequestRemoval(listOf(image.id))
                 null
             }
 
             else -> {
-                { onRequestRemoval(listOf(image.id)) }
+                { actions.onRequestRemoval(listOf(image.id)) }
             }
         }
     }
+
     val config = SwipeConfig(
         right = SwipeSide(
             action = positiveAction,
@@ -760,144 +734,119 @@ fun LazyItemScope.ImageCard(
         ),
         swap = swapSwipeActions,
     )
-    val imageCorner = if (isSelected) 24.dp else 12.dp
 
     CardWrapper(
-        modifier = modifier.animateItem(
-            fadeInSpec = spring(
-                dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium
-            ), fadeOutSpec = spring(
-                dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium
-            ), placementSpec = spring(
-                dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium
-            )
-        ), config = config
+        modifier = modifier,
+        config = config,
     ) {
-        val progress = if (image.totalChunks > 1) {
-            image.completedChunks.toFloat() / image.totalChunks.coerceAtLeast(1)
-        } else -1f
         SegmentedListItem(
             selected = isSelected,
             colors = ListItemDefaults.segmentedColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 selectedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest
             ),
-            shapes = CornerRole.forPosition(realIndex, imagesCount).toListItemShapes(),
+            shapes = cornerRole.toListItemShapes(),
             contentPadding = PaddingValues(0.dp),
-            modifier = modifier,
+            modifier = Modifier,
             onClick = {
                 HapticPatterns.tap()
                 when {
                     isProcessing -> Unit
-                    isSelectionMode -> onToggleSelection(image.id)
-                    else -> onOpenImage(image.viewerMode())
+                    isSelectionMode -> actions.onToggleSelection(image.id)
+                    else -> actions.onOpenImage(image.viewerMode())
                 }
             },
             onLongClick = {
                 if (!isProcessing) {
-                    onToggleSelection(image.id)
+                    actions.onToggleSelection(image.id)
                 }
             },
             content = {
-                Box(
-                    Modifier.fillMaxSize()
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(end = 8.dp, top = 8.dp, bottom = 8.dp)
                 ) {
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(end = 8.dp, top = 8.dp, bottom = 8.dp)
+                    val imagePreview = remember(
+                        image.thumbnailBitmap, image.outputBitmap, image.inputBitmap
                     ) {
-                        val imagePreview = remember(
-                            image.thumbnailBitmap, image.outputBitmap, image.inputBitmap
-                        ) {
-                            (image.thumbnailBitmap ?: image.outputBitmap
-                            ?: image.inputBitmap).asImageBitmap()
-                        }
-                        Box(
-                            Modifier.padding(start = 8.dp, end = 8.dp),
-                        ) {
-                            Surface(
-                                Modifier
-                                    .size(84.dp)
-                                    .clip(RoundedCornerShape(imageCorner)),
-                                color = MaterialTheme.colorScheme.surfaceVariant
-                            ) {
-                                Image(
-                                    imagePreview,
-                                    image.filename,
-                                    Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            }
-                        }
-                        Column(
+                        (image.thumbnailBitmap ?: image.outputBitmap
+                        ?: image.inputBitmap).asImageBitmap()
+                    }
+                    Box(
+                        Modifier.padding(start = 8.dp, end = 8.dp),
+                    ) {
+                        Surface(
                             Modifier
-                                .weight(1f)
-                                .height(84.dp)
+                                .size(84.dp)
+                                .clip(RoundedCornerShape(if (isSelected) 24.dp else 12.dp)),
+                            color = MaterialTheme.colorScheme.surfaceVariant
                         ) {
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text(
-                                    image.filename,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Medium,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier
-                                        .weight(1f, fill = false)
-                                        .alignByBaseline()
-                                )
-                                Text(
-                                    image.size,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.alignByBaseline()
-                                )
-                            }
-                            Spacer(Modifier.weight(1f))
-                            ImageCardStatusChip(cardState, image.progress)
-                            Spacer(Modifier.weight(1f))
-                            ImageCardSplitButton(
-                                image = image,
-                                cardState = cardState,
-                                onProcess = { id ->
-                                    tryProcess {
-                                        takeProcess(id)
-                                    }
-                                },
-                                chunkProgress = progress,
-                                onRemove = {
-                                    if (isSelectionMode) {
-                                        onRequestRemoval(selectedImageIds.toList())
-                                    } else {
-                                        negativeAction()?.invoke()
-                                    }
-                                },
-                                onBrisque = {
-                                    onNavigateToBrisque(
-                                        image.id
-                                    )
-                                },
-                                onSave = {
-                                    onRequestSave(
-                                        if (isSelectionMode) selectedImageIds else listOf(image.id),
-                                        false
-                                    )
-                                },
-                                onImportOutput = {
-                                    viewModel.importOutputAsNewImage(image.id)
-                                },
-                                isCompareReady = selectedImageIds.size == 2,
-                                selectedCount = if (isSelected) selectedImageIds.size else 0,
-                                onCompare = {
-                                    val (idA, idB) = selectedImageIds
-                                    onOpenImage(ImageMode.Compare(idA, idB))
-                                },
-                                clearSelection = onClearSelection
+                            Image(
+                                imagePreview,
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
                             )
                         }
+                    }
+                    Column(
+                        Modifier
+                            .weight(1f)
+                            .height(84.dp)
+                    ) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                image.filename,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier
+                                    .weight(1f, fill = false)
+                                    .alignByBaseline()
+                            )
+                            Text(
+                                image.size,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.alignByBaseline()
+                            )
+                        }
+                        Spacer(Modifier.weight(1f))
+                        ImageCardStatusChip(cardState, image.progress)
+                        Spacer(Modifier.weight(1f))
+                        ImageCardSplitButton(
+                            image = image,
+                            cardState = cardState,
+                            chunkProgress = image.chunkProgress,
+                            onProcess = actions.onProcess,
+                            onRemove = {
+                                if (isSelectionMode) {
+                                    HapticPatterns.tap()
+                                    actions.onRemoveSelection()
+                                    null
+                                } else {
+                                    negativeAction()
+                                }
+                            },
+                            onBrisque = { actions.onNavigateToBrisque(image.id) },
+                            onSave = {
+                                if (isSelectionMode) {
+                                    actions.onSaveSelection()
+                                } else {
+                                    actions.onRequestSave(listOf(image.id), false)
+                                }
+                            },
+                            onImportOutput = { actions.onImportOutput(image.id) },
+                            isCompareReady = isCompareReady,
+                            selectedCount = selectedCount,
+                            onCompare = actions.onCompareSelection,
+                            clearSelection = actions.onClearSelection,
+                        )
                     }
                 }
             })
@@ -942,15 +891,6 @@ private fun ImageCardStatusChip(state: CardState, progressText: String) {
     }
 }
 
-private fun releaseUri(uri: Uri, context: Context, onRemoveSharedUri: (Uri) -> Unit) {
-    runCatching {
-        context.contentResolver.releasePersistableUriPermission(
-            uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
-        )
-    }
-    runCatching { onRemoveSharedUri(uri) }
-}
-
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SaveProgressDialog(saveState: SaveState.Saving) {
@@ -968,10 +908,10 @@ fun SaveProgressDialog(saveState: SaveState.Saving) {
         ), label = "save_progress"
     )
     BasicAlertDialog(
-        onDismissRequest = {},
-        modifier = Modifier,
-        properties = DialogProperties(),
-        content = {
+        onDismissRequest = {}, properties = DialogProperties(
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false,
+        ), content = {
             Box(
                 modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
             ) {
@@ -1038,6 +978,117 @@ fun SaveProgressDialog(saveState: SaveState.Saving) {
         })
 }
 
+@Immutable
+data class ProcessingDialogActions(
+    val onConfirm: () -> Unit = {},
+    val onDismiss: () -> Unit = {},
+    val onPickSource: (ImageSource) -> Unit = {},
+    val onConfirmSave: (String?, Boolean, Boolean) -> Unit = { _, _, _ -> },
+    val onConfirmOverwrite: (String) -> Unit = {},
+    val onConfirmRemoval: (Boolean) -> Unit = {},
+)
+
+@Composable
+fun ProcessingDialogHost(
+    dialog: ProcessingDialog?,
+    saveState: SaveState,
+    actions: ProcessingDialogActions,
+) {
+    when (dialog) {
+        is ProcessingDialog.CancelImage -> CancelProcessingDialog(
+            imageFilename = dialog.filename,
+            dismiss = actions.onDismiss,
+            onConfirm = actions.onConfirm,
+        )
+
+        ProcessingDialog.CancelAll -> CancelProcessingDialog(
+            imageFilename = null,
+            dismiss = actions.onDismiss,
+            onConfirm = actions.onConfirm,
+        )
+
+        ProcessingDialog.ImageSource -> ImageSourceDialog(
+            onDismiss = actions.onDismiss,
+            onPick = actions.onPickSource,
+        )
+
+        is ProcessingDialog.ProcessingError -> ErrorDialog(
+            title = stringResource(R.string.error_processing_title),
+            message = dialog.message,
+            copyText = stringResource(R.string.copy),
+            onDismiss = actions.onDismiss,
+        )
+
+        is ProcessingDialog.SaveError -> ErrorDialog(
+            title = stringResource(R.string.error_saving_image_title),
+            message = dialog.message,
+            copyText = stringResource(R.string.copy),
+            onDismiss = actions.onDismiss,
+        )
+
+        ProcessingDialog.GpuCacheCreating -> ErrorDialog(
+            title = stringResource(R.string.gpu_cache_title),
+            message = stringResource(R.string.gpu_cache_text),
+            onDismiss = actions.onDismiss,
+        )
+
+        is ProcessingDialog.SaveOptions -> SaveImageDialog(
+            defaultFilename = dialog.defaultFilename,
+            overwriteMode = false,
+            onDismissRequest = actions.onDismiss,
+            onSave = actions.onConfirmSave,
+        )
+
+        is ProcessingDialog.ConfirmOverwrite -> SaveImageDialog(
+            defaultFilename = dialog.filename,
+            overwriteMode = true,
+            onDismissRequest = actions.onDismiss,
+            onSave = { name, _, _ -> actions.onConfirmOverwrite(name) },
+        )
+
+        is ProcessingDialog.ConfirmRemoval -> RemoveImageDialog(
+            imageFilename = dialog.filename,
+            count = dialog.imageIds.size,
+            onDismissRequest = actions.onDismiss,
+            onDismissButton = { actions.onConfirmRemoval(false) },
+            onSaveAndRemove = { actions.onConfirmRemoval(true) },
+        )
+
+        null -> Unit
+    }
+    if (dialog !is ProcessingDialog.SaveError) {
+        (saveState as? SaveState.Saving)?.let { SaveProgressDialog(it) }
+    }
+}
+
+@Composable
+private fun ErrorDialog(
+    title: String,
+    message: String,
+    copyText: String? = null,
+    onDismiss: () -> Unit,
+) {
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
+    StyledAlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = onDismiss,
+        dismissButton = {
+            scope.launch {
+                try {
+                    clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(null, message)))
+                } finally {
+                    onDismiss()
+                }
+            }
+        },
+        title = { Text(title) },
+        contents = { Text(message) },
+        confirmButtonText = stringResource(R.string.ok),
+        dismissButtonText = copyText.orEmpty(),
+    )
+}
+
 @Composable
 private fun ImageCardSplitButton(
     modifier: Modifier = Modifier,
@@ -1045,7 +1096,7 @@ private fun ImageCardSplitButton(
     cardState: CardState,
     chunkProgress: Float = -1f,
     onProcess: (String?) -> Unit,
-    onRemove: () -> Unit,
+    onRemove: () -> (() -> Unit)?,
     onBrisque: () -> Unit,
     onSave: () -> Unit,
     onImportOutput: () -> Unit,
@@ -1173,7 +1224,7 @@ private fun ImageCardSplitButton(
                 checked = menuExpanded,
                 onCheckedChange = {
                     if (cardState == CardState.Processing) {
-                        onRemove()
+                        onRemove()?.invoke()
                     } else {
                         HapticPatterns.tap()
                         menuExpanded = it
@@ -1189,7 +1240,7 @@ private fun ImageCardSplitButton(
                     CardState.Processing -> {
                         Icon(
                             Icons.Rounded.Cancel,
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.cancel),
                             modifier = Modifier.size(SplitButtonDefaults.TrailingIconSize)
                         )
                     }
@@ -1202,7 +1253,7 @@ private fun ImageCardSplitButton(
                         )
                         Icon(
                             Icons.Rounded.KeyboardArrowDown,
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.more_options),
                             modifier = Modifier
                                 .size(SplitButtonDefaults.TrailingIconSize)
                                 .graphicsLayer { rotationZ = chevronRotation })
@@ -1228,9 +1279,8 @@ private fun ImageCardSplitButton(
                             Icons.Rounded.Delete, null, tint = MaterialTheme.colorScheme.error
                         )
                     }, onClick = {
-                        HapticPatterns.tap()
                         menuExpanded = false
-                        onRemove()
+                        onRemove()?.invoke()
                         clearSelection()
                     })
                 }
@@ -1300,7 +1350,6 @@ private fun ImageCardSplitButton(
     showBackground = true,
     widthDp = 412,
     heightDp = 915,
-//    uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL
 )
 @Preview(
     name = "Processing settings expanded (landscape)",
@@ -1311,55 +1360,83 @@ private fun ImageCardSplitButton(
 )
 @Composable
 private fun ProcessingScreenSettingsExpandedPreview() {
-    val context = LocalContext.current
-    val previewContext = remember(context) {
-        App.initializeForPreview(context)
-        context.applicationContext
+    val images = remember {
+        listOf(
+            previewImageItem(
+                id = "preview-1",
+                filename = "photo.jpg",
+                size = "2x2",
+                color = android.graphics.Color.rgb(56, 92, 128),
+                outputColor = android.graphics.Color.rgb(78, 124, 168),
+            ),
+            previewImageItem(
+                id = "preview-2",
+                filename = "pixel.jpg",
+                size = "1x1",
+                color = android.graphics.Color.rgb(112, 82, 60),
+                processing = true,
+                progress = "Processing 45%",
+                completedChunks = 3,
+                totalChunks = 8,
+            ),
+            previewImageItem(
+                id = "preview-3",
+                filename = "image.jpg",
+                size = "3x2",
+                color = android.graphics.Color.rgb(64, 104, 72),
+            ),
+        )
     }
-
-    val repository = remember {
-        ImageRepository().apply {
-            images.value = listOf(
-                previewImageItem(
-                    id = "preview-1",
-                    filename = "photo.jpg",
-                    size = "2x2",
-                    color = android.graphics.Color.rgb(56, 92, 128),
-                    outputColor = android.graphics.Color.rgb(78, 124, 168),
-                ),
-                previewImageItem(
-                    id = "preview-2",
-                    filename = "pixel.jpg",
-                    size = "1x1",
-                    color = android.graphics.Color.rgb(112, 82, 60),
-                    processing = true,
-                    progress = "Processing 45%",
-                    completedChunks = 3,
-                    totalChunks = 8,
-                ),
-                previewImageItem(
-                    id = "preview-3",
-                    filename = "image.jpg",
-                    size = "3x2",
-                    color = android.graphics.Color.rgb(64, 104, 72),
-                ),
-            )
-        }
+    val actions = remember {
+        ProcessingActions(
+            onProcess = {},
+            onSettingsExpandedChange = {},
+            onRequestCancel = {},
+            onRequestCancelAll = {},
+            onImport = {},
+            onConfirmDialog = {},
+            onDismissDialog = {},
+            onPickSource = {},
+            onConfirmSave = { _, _, _ -> },
+            onConfirmOverwrite = {},
+            onConfirmRemoval = {},
+            onToggleSelection = {},
+            onClearSelection = {},
+            onRequestSave = { _, _ -> false },
+            onRequestRemoval = {},
+            onCancelQueued = {},
+            onSaveSelection = {},
+            onRemoveSelection = {},
+            onCompareSelection = {},
+            onSaveAll = {},
+            onImportOutput = {},
+            onOpenImage = {},
+            onOpenBrisque = {},
+            onGlobalStrengthChange = {},
+            onOidnScaleChange = {},
+            isCurrent = { false },
+        )
     }
-    val processingViewModel = remember(repository) {
-        ProcessingViewModel().apply { imageRepository = repository }
-    }
-    val settingsViewModel = remember { SettingsViewModel() }
 
     AppTheme {
-        CompositionLocalProvider(LocalContext provides previewContext) {
-            ProcessingScreen(
-                processingViewModel = processingViewModel,
-                settingsViewModel = settingsViewModel,
-                imageRepository = repository,
-                initiallySettingsExpanded = true,
-            )
-        }
+        ProcessingScreenContent(
+            state = ProcessingScreenState(
+                images = images,
+                isLoadingImages = false,
+                loadingImagesProgress = null,
+                selectedImageIds = emptyList(),
+                dialog = null,
+                saveState = SaveState.Idle,
+                uiState = ProcessingUiState.Idle,
+                strengthControl = StrengthControl.FBCNNStrength(50f),
+                swapSwipeActions = false,
+                settingsExpanded = true,
+                settingsBackProgress = 0f,
+                isLandscape = LocalWindowInfo.current.containerSize.width > LocalWindowInfo.current.containerSize.height,
+            ),
+            actions = actions,
+            settingsSheet = {},
+        )
     }
 }
 

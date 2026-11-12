@@ -171,7 +171,6 @@
     <string name="settings_desc">الإعدادات</string>
     <string name="reset">إعادة تعيين</string>
     <string name="yes">نعم</string>
-    <string name="unknown_error">خطأ غير معروف</string>
     <string name="failed_to_import_model">فشل استيراد النموذج</string>
     <string name="model_already_imported">تم بالفعل استيراد نموذج باسم %1$s</string>
     <string name="extracted_starter_models">تم استخراج النماذج الصغيرة</string>

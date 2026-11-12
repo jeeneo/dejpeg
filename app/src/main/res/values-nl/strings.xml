@@ -155,7 +155,6 @@
     <string name="settings_desc">Instellingen</string>
     <string name="reset">Resetten</string>
     <string name="yes">Ja</string>
-    <string name="unknown_error">Onbekende fout</string>
     <string name="failed_to_import_model">Model importeren mislukt</string>
     <string name="model_already_imported">Er is al een model met de naam %1$s geïmporteerd</string>
     <string name="extracted_starter_models">Kleine modellen uitgepakt</string>

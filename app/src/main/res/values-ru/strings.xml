@@ -165,7 +165,6 @@
     <string name="settings_desc">Настройки</string>
     <string name="reset">Сбросить</string>
     <string name="yes">Да</string>
-    <string name="unknown_error">Неизвестная ошибка</string>
     <string name="failed_to_import_model">Не удалось импортировать модель</string>
     <string name="model_already_imported">Модель %1$s уже импортирована</string>
     <string name="extracted_starter_models">Малые модели извлечены</string>

@@ -151,7 +151,6 @@
     <string name="settings_desc">设置</string>
     <string name="reset">重置</string>
     <string name="yes">是</string>
-    <string name="unknown_error">未知错误</string>
     <string name="failed_to_import_model">导入模型失败</string>
     <string name="model_already_imported">已导入名为 %1$s 的模型</string>
     <string name="extracted_starter_models">入门模型已提取</string>

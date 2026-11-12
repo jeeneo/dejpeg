@@ -27,7 +27,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.Share
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -45,6 +44,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,20 +59,20 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.core.graphics.createBitmap
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.je.dejpeg.R
 import com.je.dejpeg.data.AppPreferences
 import com.je.dejpeg.data.HapticPatterns
-import com.je.dejpeg.data.ImageFlowDialogs
 import com.je.dejpeg.data.ImageRepository
-import com.je.dejpeg.data.rememberImageFlows
-import com.je.dejpeg.ui.brisque.SaveState
 import com.je.dejpeg.ui.components.GroupedListSpacing
 import com.je.dejpeg.ui.components.PreparingShareDialog
 import com.je.dejpeg.ui.components.horizontalSegmentedShapes
 import com.je.dejpeg.ui.processing.ImageItem
+import com.je.dejpeg.ui.processing.ProcessingDialogActions
+import com.je.dejpeg.ui.processing.ProcessingDialogHost
 import com.je.dejpeg.ui.processing.ProcessingViewModel
-import com.je.dejpeg.ui.processing.SaveProgressDialog
 import com.je.dejpeg.utils.ImageActions
+import kotlinx.coroutines.launch
 
 sealed interface ImageMode {
     val imageId: String
@@ -112,7 +112,6 @@ fun ImageScreen(
             image = image,
             compareImage = compareImage ?: return,
             viewModel = viewModel,
-            appPreferences = appPreferences,
             glassSlider = glassSlider,
             onBack = onBack,
         )
@@ -139,7 +138,6 @@ private fun CompareImages(
     image: ImageItem,
     compareImage: ImageItem,
     viewModel: ProcessingViewModel,
-    appPreferences: AppPreferences,
     glassSlider: Boolean,
     onBack: () -> Unit,
 ) {
@@ -150,16 +148,20 @@ private fun CompareImages(
     var rightShowsOutput by remember { mutableStateOf(isSelf && output != null) }
 
     val context = LocalContext.current
-    val showSaveDialog = remember { appPreferences.loadShowSaveDialog() }
     var isPreparingShare by remember { mutableStateOf(false) }
-    val saveState by viewModel.saveState.collectAsState()
-    val flows = rememberImageFlows(
-        images = listOf(image),
-        showSaveDialog = showSaveDialog,
-        processingViewModel = viewModel,
-        appPreferences = appPreferences,
-        onRemoveSharedUri = {},
-    )
+    val scope = rememberCoroutineScope()
+    val saveState by viewModel.saveState.collectAsStateWithLifecycle()
+    val dialog by viewModel.dialog.collectAsStateWithLifecycle()
+    val dialogActions = remember(viewModel) {
+        ProcessingDialogActions(
+            onConfirm = viewModel::confirmDialog,
+            onDismiss = viewModel::dismissDialog,
+            onPickSource = viewModel::onSourcePicked,
+            onConfirmSave = viewModel::confirmSave,
+            onConfirmOverwrite = viewModel::confirmOverwrite,
+            onConfirmRemoval = viewModel::confirmRemoval,
+        )
+    }
 
     val beforeBitmap = if (leftShowsOutput) output ?: image.inputBitmap
     else image.inputBitmap
@@ -193,33 +195,25 @@ private fun CompareImages(
             ViewerActions(modifier = Modifier.align(Alignment.BottomCenter), onShare = {
                 HapticPatterns.tap()
                 isPreparingShare = true
-                ImageActions.shareImage(
-                    context = context,
-                    bitmap = output,
-                    onReady = { isPreparingShare = false },
-                    onError = { isPreparingShare = false })
+                scope.launch {
+                    try {
+                        ImageActions.shareImageAwait(context, output)
+                    } finally {
+                        isPreparingShare = false
+                    }
+                }
             }, onSave = {
                 HapticPatterns.tap()
-                flows.requestSave(listOf(image.id), false)
+                viewModel.requestSave(listOf(image.id), false)
             })
         }
         if (isPreparingShare) PreparingShareDialog()
     }
-    ImageFlowDialogs(flows)
-    (saveState as? SaveState.Error)?.let { err ->
-        AlertDialog(
-            onDismissRequest = { viewModel.dismissSaveError() },
-            title = { Text(stringResource(R.string.error_saving_image_title)) },
-            text = { Text(err.message) },
-            confirmButton = {
-                TextButton(onClick = { HapticPatterns.tap(); viewModel.dismissSaveError() }) {
-                    Text(stringResource(R.string.ok))
-                }
-            })
-    }
-    (saveState as? SaveState.Saving)?.let { state ->
-        SaveProgressDialog(state)
-    }
+    ProcessingDialogHost(
+        dialog = dialog,
+        saveState = saveState,
+        actions = dialogActions,
+    )
 }
 
 @Composable

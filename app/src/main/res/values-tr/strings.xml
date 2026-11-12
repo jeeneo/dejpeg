@@ -155,7 +155,6 @@
     <string name="settings_desc">Ayarlar</string>
     <string name="reset">Sıfırla</string>
     <string name="yes">Evet</string>
-    <string name="unknown_error">Bilinmeyen hata</string>
     <string name="failed_to_import_model">Model içe aktarılamadı</string>
     <string name="model_already_imported">%1$s adında bir model zaten içe aktarılmış</string>
     <string name="extracted_starter_models">Küçük modeller çıkarıldı</string>

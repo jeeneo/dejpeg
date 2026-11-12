@@ -30,6 +30,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -364,6 +365,18 @@ class ImageRepository {
 
     fun markImageAsSaved(imageId: String) {
         updateImageState(imageId) { it.copy(hasBeenSaved = true) }
+    }
+
+    fun resetAllProcessing() {
+        images.update { list ->
+            list.map { item ->
+                if (item.isProcessing || item.isCancelling) {
+                    item.copy(isProcessing = false, isCancelling = false, progress = "")
+                } else {
+                    item
+                }
+            }
+        }
     }
 
     fun addImageFromOutputCache(context: Context, sourceImageId: String, sourceFilename: String) {

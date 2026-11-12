@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: GNU Affero General Public License v3.0 or later
  */
 
+@file:Suppress("SpellCheckingInspection")
+
 package com.je.dejpeg.utils
 
 import android.content.ClipData
@@ -19,16 +21,12 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.provider.OpenableColumns
-import androidx.activity.result.ActivityResultLauncher
 import androidx.core.content.FileProvider
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
 import com.je.dejpeg.R
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
@@ -246,69 +244,33 @@ object ImageLoadingHelper {
     }
 }
 
-class ImagePickerHelper(
-    private val context: Context, private var launcher: ActivityResultLauncher<Intent>? = null
-) {
-    private var currentPhotoUri: Uri? = null
-    fun setLauncher(launcher: ActivityResultLauncher<Intent>) {
-        this.launcher = launcher
+object ImagePickerHelper {
+    fun galleryIntent() = Intent(Intent.ACTION_PICK).apply {
+        setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*")
+        putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
     }
 
-    fun launchGalleryPicker() {
-        launch(
-            Intent(Intent.ACTION_PICK).apply {
-                setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*")
-                putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-            })
+    fun internalPhotoPickerIntent() = Intent(Intent.ACTION_GET_CONTENT).apply {
+        type = "image/*"
+        putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
     }
 
-    fun launchInternalPhotoPicker() {
-        launch(
-            Intent(Intent.ACTION_GET_CONTENT).apply {
-                type = "image/*"
-                putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-            })
+    fun documentsPickerIntent() = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+        type = "image/*"
+        putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
     }
 
-    fun launchDocumentsPicker() {
-        launch(
-            Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-                type = "image/*"
-                putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-            })
-    }
-
-    fun launchCamera(): Result<Uri> {
-        return try {
-            val tempFile = File(
-                context.cacheDir, "temp_camera_${System.currentTimeMillis()}.jpg"
-            )
-            val photoUri = FileProvider.getUriForFile(
-                context, "${context.packageName}.provider", tempFile
-            )
-            currentPhotoUri = photoUri
-
-            launch(
-                Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
-                    putExtra(MediaStore.EXTRA_OUTPUT, photoUri)
-                })
-            Result.success(photoUri)
-        } catch (e: IOException) {
-            Result.failure(e)
+    fun cameraIntent(context: Context): Result<Pair<Intent, Uri>> = try {
+        val tempFile = File(context.cacheDir, "temp_camera_${System.currentTimeMillis()}.jpg")
+        val photoUri = FileProvider.getUriForFile(
+            context, "${context.packageName}.provider", tempFile
+        )
+        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
+            putExtra(MediaStore.EXTRA_OUTPUT, photoUri)
         }
-    }
-
-    fun getCameraPhotoUri(): Uri? = currentPhotoUri
-
-    fun clearCameraPhotoUri() {
-        currentPhotoUri?.path?.let { path ->
-            File(path).takeIf { it.exists() }?.delete()
-        }
-        currentPhotoUri = null
-    }
-
-    private fun launch(intent: Intent) {
-        launcher?.launch(intent)
+        Result.success(intent to photoUri)
+    } catch (e: IOException) {
+        Result.failure(e)
     }
 }
 
@@ -342,84 +304,97 @@ object ImageActions {
         return findExistingImageIds(context, finalName).isNotEmpty()
     }
 
-    fun saveImage(
-        scope: CoroutineScope,
+    suspend fun saveImageAwait(
         context: Context,
         bitmap: Bitmap,
         filename: String? = null,
         overwrite: Boolean = false,
         imageId: String? = null,
-        onSuccess: () -> Unit = {},
-        onError: (String) -> Unit = {}
+    ): Result<Unit> = try {
+        withContext(Dispatchers.IO) {
+            saveImageBlocking(context, bitmap, filename, overwrite, imageId)
+        }
+        Result.success(Unit)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: SaveImageException) {
+        Result.failure(e)
+    } catch (e: Exception) {
+        Result.failure(
+            SaveImageException(
+                context.getString(
+                    R.string.error_saving_image,
+                    e.message
+                )
+            )
+        )
+    }
+
+    private class SaveImageException(message: String) : Exception(message)
+
+    private fun saveImageBlocking(
+        context: Context,
+        bitmap: Bitmap,
+        filename: String?,
+        overwrite: Boolean,
+        imageId: String?,
     ) {
-        scope.launch(Dispatchers.IO) {
-            try {
-                val fileNameRaw = filename?.takeIf { it.isNotBlank() } ?: "DeJPEG_${
-                    SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(
-                        Date()
-                    )
-                }"
-                val fileName = fileNameRaw.substringBeforeLast('.', fileNameRaw)
-                val finalName = "$fileName.png"
-                val existingIds = findExistingImageIds(context, finalName)
-                if (existingIds.isNotEmpty() && !overwrite) {
-                    withContext(Dispatchers.Main) { onError(context.getString(R.string.already_exists)) }
-                    return@launch
-                }
+        val fileNameRaw = filename?.takeIf { it.isNotBlank() } ?: "DeJPEG_${
+            SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(
+                Date()
+            )
+        }"
+        val fileName = fileNameRaw.substringBeforeLast('.', fileNameRaw)
+        val finalName = "$fileName.png"
+        val existingIds = findExistingImageIds(context, finalName)
+        if (existingIds.isNotEmpty() && !overwrite) {
+            throw SaveImageException(context.getString(R.string.already_exists))
+        }
 
-                if (overwrite) {
-                    existingIds.forEach { id ->
-                        val deleteUri = ContentUris.withAppendedId(
-                            MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id
-                        )
-                        context.contentResolver.delete(deleteUri, null, null)
-                    }
-                }
-
-                val values = ContentValues().apply {
-                    put(MediaStore.Images.Media.DISPLAY_NAME, finalName)
-                    put(MediaStore.Images.Media.MIME_TYPE, "image/png")
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES)
-                        put(MediaStore.Images.Media.IS_PENDING, 1)
-                    }
-                }
-
-                val uri = context.contentResolver.insert(
-                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values
-                ) ?: throw IOException("Failed to create MediaStore entry")
-
-                context.contentResolver.openOutputStream(uri)
-                    ?.use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
-                    ?: throw IOException("Failed to open output stream")
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    values.clear()
-                    values.put(MediaStore.Images.Media.IS_PENDING, 0)
-                    context.contentResolver.update(uri, values, null, null)
-                } else {
-                    val path =
-                        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).absolutePath + "/$finalName"
-                    MediaScannerConnection.scanFile(context, arrayOf(path), null, null)
-                }
-
-                if (imageId != null) {
-                    CacheManager.deleteRecoveryPair(
-                        context, imageId, deleteProcessed = true, deleteUnprocessed = false
-                    )
-                }
-
-                withContext(Dispatchers.Main) { onSuccess() }
-            } catch (e: Exception) {
-                val errorMsg = context.getString(R.string.error_saving_image, e.message)
-                withContext(Dispatchers.Main) { onError(errorMsg) }
+        if (overwrite) {
+            existingIds.forEach { id ->
+                val deleteUri = ContentUris.withAppendedId(
+                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id
+                )
+                context.contentResolver.delete(deleteUri, null, null)
             }
+        }
+
+        val values = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, finalName)
+            put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES)
+                put(MediaStore.Images.Media.IS_PENDING, 1)
+            }
+        }
+
+        val uri = context.contentResolver.insert(
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values
+        ) ?: throw IOException("Failed to create MediaStore entry")
+
+        context.contentResolver.openOutputStream(uri)
+            ?.use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+            ?: throw IOException("Failed to open output stream")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            values.clear()
+            values.put(MediaStore.Images.Media.IS_PENDING, 0)
+            context.contentResolver.update(uri, values, null, null)
+        } else {
+            val path =
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).absolutePath + "/$finalName"
+            MediaScannerConnection.scanFile(context, arrayOf(path), null, null)
+        }
+
+        if (imageId != null) {
+            CacheManager.deleteRecoveryPair(
+                context, imageId, deleteProcessed = true, deleteUnprocessed = false
+            )
         }
     }
 
-    fun shareImage(
-        context: Context, bitmap: Bitmap, onReady: () -> Unit = {}, onError: (String) -> Unit = {}
-    ) {
-        @OptIn(DelicateCoroutinesApi::class) GlobalScope.launch(Dispatchers.IO) {
+    suspend fun shareImageAwait(context: Context, bitmap: Bitmap): Result<Unit> =
+        withContext(Dispatchers.IO) {
             try {
                 val cachePath = File(context.cacheDir, "shared_image.png")
                 if (cachePath.exists()) cachePath.delete()
@@ -438,17 +413,19 @@ object ImageActions {
                     clipData = ClipData.newRawUri(null, contentUri)
                 }
                 withContext(Dispatchers.Main) {
-                    onReady()
                     context.startActivity(
                         Intent.createChooser(
                             shareIntent, context.getString(R.string.share_image)
                         )
                     )
                 }
+                Result.success(Unit)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                val errorMsg = context.getString(R.string.error_sharing_image, e.message)
-                withContext(Dispatchers.Main) { onError(errorMsg) }
+                Result.failure(
+                    Exception(context.getString(R.string.error_sharing_image, e.message), e)
+                )
             }
         }
-    }
 }

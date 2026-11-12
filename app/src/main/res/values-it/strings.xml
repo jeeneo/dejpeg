@@ -159,7 +159,6 @@
     <string name="settings_desc">Impostazioni</string>
     <string name="reset">Ripristina</string>
     <string name="yes">Sì</string>
-    <string name="unknown_error">Errore sconosciuto</string>
     <string name="failed_to_import_model">Impossibile importare il modello</string>
     <string name="model_already_imported">Un modello chiamato %1$s è già stato importato</string>
     <string name="extracted_starter_models">Modelli piccoli estratti</string>

@@ -146,8 +146,7 @@ open class ModelManager(
         const val MODEL_PAD_FACTOR = 8
 
         private val SEQUENTIAL_ONLY_MODELS = setOf(
-            "rmbg",
-            "u2net"
+            "rmbg", "u2net"
         )
 
         fun gpuCacheToken(modelName: String): String =
@@ -371,7 +370,7 @@ open class ModelManager(
                 onError
             )
         } catch (e: Exception) {
-            onError(e.message ?: context.getString(R.string.unknown_error))
+            onError(e.message ?: "unknown error")
         }
     }
 
@@ -456,9 +455,9 @@ open class ModelManager(
             index++
             importModel(
                 modelUri = uri, onProgress = { p ->
-                    val adjusted = ((index - 1) * 100 + p) / total
-                    onProgress(adjusted)
-                }, onSuccess = { name, type -> onSuccess(name, type) }, onError = onError
+                val adjusted = ((index - 1) * 100 + p) / total
+                onProgress(adjusted)
+            }, onSuccess = { name, type -> onSuccess(name, type) }, onError = onError
             )
         }
     }
@@ -583,7 +582,7 @@ open class ModelManager(
             extracted
         } catch (e: Exception) {
             Log.e("ModelManager", "Error extracting starter models: ${e.message}", e)
-            onError(e.message ?: context.getString(R.string.unknown_error))
+            onError(e.message ?: "unknown error")
             emptyList()
         }
     }

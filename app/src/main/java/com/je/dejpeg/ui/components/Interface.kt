@@ -32,7 +32,7 @@ fun segmentedListShapes(
     index: Int,
     count: Int,
     outer: CornerBasedShape = MaterialTheme.shapes.medium,
-    inner: CornerBasedShape = MaterialTheme.shapes.small,
+    inner: CornerBasedShape = MaterialTheme.shapes.extraSmall,
 ): ListItemShapes = CornerRole.forPosition(index, count).toListItemShapes(outer, inner)
 
 data class CornerRole(
@@ -65,7 +65,7 @@ data class CornerRole(
 @Composable
 fun CornerRole.toShape(
     outer: CornerBasedShape = MaterialTheme.shapes.medium,
-    inner: CornerBasedShape = MaterialTheme.shapes.small,
+    inner: CornerBasedShape = MaterialTheme.shapes.extraSmall,
 ): RoundedCornerShape = remember(this, outer, inner) {
     RoundedCornerShape(
         topStart = if (topStart) outer.topStart else inner.topStart,
@@ -78,7 +78,7 @@ fun CornerRole.toShape(
 @Composable
 fun CornerRole.toListItemShapes(
     outer: CornerBasedShape = MaterialTheme.shapes.medium,
-    inner: CornerBasedShape = MaterialTheme.shapes.small,
+    inner: CornerBasedShape = MaterialTheme.shapes.extraSmall,
     pressedOuter: CornerBasedShape = MaterialTheme.shapes.large,
     pressedInner: CornerBasedShape = MaterialTheme.shapes.medium,
 ): ListItemShapes {
@@ -95,7 +95,7 @@ fun horizontalSegmentedShapes(
     index: Int,
     count: Int,
     outer: CornerBasedShape = MaterialTheme.shapes.medium,
-    inner: CornerBasedShape = MaterialTheme.shapes.small,
+    inner: CornerBasedShape = MaterialTheme.shapes.extraSmall,
 ): ListItemShapes = CornerRole.horizontal(index, count).toListItemShapes(outer, inner)
 
 @SuppressLint("MissingHapticFeedback")

@@ -168,8 +168,9 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun ScreenController() {
-    val viewModel: ProcessingViewModel = viewModel()
     val settingsViewModel: SettingsViewModel = viewModel()
+    val viewModel: ProcessingViewModel =
+        viewModel(factory = ProcessingViewModel.factory(settingsViewModel))
     val imageRepository = remember { ImageRepository.getInstance() }
     val sharedUris by imageRepository.sharedUris.collectAsState()
     val snackbarHostState = remember { SnackySnackbarHostState() }
@@ -177,11 +178,6 @@ fun ScreenController() {
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, snackbarController) {
         val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_START -> viewModel.isAppVisible = true
-                Lifecycle.Event.ON_STOP -> viewModel.isAppVisible = false
-                else -> {}
-            }
             if (event == Lifecycle.Event.ON_RESUME) {
                 SnackbarController.bind(snackbarController)
             }
@@ -194,8 +190,6 @@ fun ScreenController() {
         }
     }
     LaunchedEffect(Unit) {
-        viewModel.imageRepository = imageRepository
-        viewModel.settingsViewModel = settingsViewModel
         settingsViewModel.initialize()
     }
     val context = App.ctx
@@ -212,7 +206,6 @@ fun ScreenController() {
                 ProcessingScreen(
                     processingViewModel = viewModel,
                     settingsViewModel = settingsViewModel,
-                    imageRepository = imageRepository,
                     onOpenImage = { mode ->
                         context.startActivity(
                             imageIntent(context, mode).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -225,8 +218,8 @@ fun ScreenController() {
                         )
                     },
                     isActive = true,
-                    initialSharedUris = sharedUris,
-                    onRemoveSharedUri = { })
+                    initialSharedUris = sharedUris
+                )
             }
         }
     }
@@ -288,11 +281,9 @@ class ImageActivity : ComponentActivity() {
         val mode = intentMode(intent) ?: return finish()
         setContent {
             ActivityContent { imageRepository ->
-                val viewModel: ProcessingViewModel = viewModel()
-                LaunchedEffect(Unit) {
-                    viewModel.imageRepository = imageRepository
-                    viewModel.initialize(this@ImageActivity)
-                }
+                val settingsViewModel: SettingsViewModel = viewModel()
+                val viewModel: ProcessingViewModel =
+                    viewModel(factory = ProcessingViewModel.factory(settingsViewModel))
                 ImageScreen(
                     viewModel = viewModel,
                     imageRepository = imageRepository,
