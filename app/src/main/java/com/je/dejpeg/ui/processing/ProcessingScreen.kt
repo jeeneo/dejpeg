@@ -361,8 +361,7 @@ fun ProcessingScreen(
     val containerHeightDp = with(density) { containerSize.height.toDp() }
     val isLandscape = containerWidthDp > containerHeightDp
     val edge = if (isLandscape) SheetEdge.End else SheetEdge.Bottom
-    val expandedSizePx =
-        (if (isLandscape) containerSize.width else containerSize.height) / 2f
+    val expandedSizePx = (if (isLandscape) containerSize.width else containerSize.height) / 2f
     val sheetState = rememberEdgeSheetState(settingsExpanded, expandedSizePx)
     val sheetColor = MaterialTheme.colorScheme.surface
     val shape = if (isLandscape) {
@@ -387,7 +386,7 @@ fun ProcessingScreen(
             clearSelection = clearSelection,
             tryProcess = { block -> tryProcess(block) },
             takeProcess = { takeProcess() },
-            launchImportIntent = { launchImportIntent() }
+            launchImportIntent = { launchImportIntent() },
         )
 
         val isFBCNN = activeSelection.modelName?.contains("fbcnn", ignoreCase = true) == true
